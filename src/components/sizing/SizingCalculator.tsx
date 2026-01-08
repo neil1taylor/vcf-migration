@@ -1,5 +1,5 @@
 // Interactive sizing calculator for OpenShift Virtualization and ODF
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Grid,
   Column,
@@ -26,7 +26,18 @@ interface BareMetalProfile {
   description: string;
 }
 
-export function SizingCalculator() {
+export interface SizingResult {
+  computeNodes: number;
+  computeProfile: string;
+  storageTiB: number;
+  useNvme: boolean;
+}
+
+interface SizingCalculatorProps {
+  onSizingChange?: (sizing: SizingResult) => void;
+}
+
+export function SizingCalculator({ onSizingChange }: SizingCalculatorProps) {
   const { rawData } = useData();
   const hasData = !!rawData;
 
@@ -131,6 +142,25 @@ export function SizingCalculator() {
       vmCount: vms.length,
     };
   }, [hasData, rawData, nodeCapacity, nodeRedundancy]);
+
+  // Notify parent component of sizing changes
+  useEffect(() => {
+    if (onSizingChange && nodeRequirements) {
+      // Map profile name to pricing profile name
+      const pricingProfileMap: Record<string, string> = {
+        'mx2d.metal.96x768.24xSSD': 'mx2d.metal.96x768',
+        'bx2d.metal.96x384.8xSSD': 'bx2d.metal.96x384',
+        'cx2d.metal.96x192.8xSSD': 'cx2d.metal.96x192',
+      };
+
+      onSizingChange({
+        computeNodes: nodeRequirements.totalNodes,
+        computeProfile: pricingProfileMap[selectedProfile.name] || 'mx2d.metal.96x768',
+        storageTiB: Math.ceil(nodeRequirements.totalStorageGiB / 1024),
+        useNvme: true,
+      });
+    }
+  }, [nodeRequirements, selectedProfile, onSizingChange]);
 
   // Profile dropdown items
   const profileItems = bareMetalProfiles.map((p) => ({
@@ -340,16 +370,6 @@ export function SizingCalculator() {
                 <div className="sizing-calculator__result-card sizing-calculator__result-card--storage">
                   <span className="sizing-calculator__result-label">Usable Storage</span>
                   <span className="sizing-calculator__result-value">{formatBytes(nodeCapacity.usableStorageGiB * 1024 * 1024 * 1024)}</span>
-                  <span className="sizing-calculator__result-detail">
-                    {(nodeCapacity.storageEfficiency * 100).toFixed(1)}% of {formatBytes(nodeCapacity.rawStorageGiB * 1024 * 1024 * 1024)} raw
-                  </span>
-                </div>
-              </Column>
-
-              <Column lg={4} md={4} sm={4}>
-                <div className="sizing-calculator__result-card sizing-calculator__result-card--efficiency">
-                  <span className="sizing-calculator__result-label">Storage Efficiency</span>
-                  <span className="sizing-calculator__result-value">{(nodeCapacity.storageEfficiency * 100).toFixed(1)}%</span>
                   <span className="sizing-calculator__result-detail">
                     1/{replicaFactor} × {operationalCapacity}% × {100 - cephOverhead}%
                   </span>

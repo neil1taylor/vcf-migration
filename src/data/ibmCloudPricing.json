@@ -1,0 +1,465 @@
+{
+  "pricingVersion": "2025-01-08",
+  "baseCurrency": "USD",
+  "notes": "Estimated pricing - actual costs may vary. Contact IBM for enterprise pricing.",
+
+  "bareMetal": {
+    "bx2.metal.96x384": {
+      "profile": "bx2.metal.96x384",
+      "family": "balanced",
+      "vcpus": 96,
+      "physicalCores": 48,
+      "memoryGiB": 384,
+      "hasNvme": false,
+      "hourlyRate": 4.80,
+      "monthlyRate": 3504.00,
+      "description": "Balanced bare metal - 48 cores, 384 GiB RAM"
+    },
+    "mx2.metal.96x768": {
+      "profile": "mx2.metal.96x768",
+      "family": "memory",
+      "vcpus": 96,
+      "physicalCores": 48,
+      "memoryGiB": 768,
+      "hasNvme": false,
+      "hourlyRate": 6.40,
+      "monthlyRate": 4672.00,
+      "description": "Memory-optimized bare metal - 48 cores, 768 GiB RAM"
+    },
+    "cx2.metal.96x192": {
+      "profile": "cx2.metal.96x192",
+      "family": "compute",
+      "vcpus": 96,
+      "physicalCores": 48,
+      "memoryGiB": 192,
+      "hasNvme": false,
+      "hourlyRate": 3.84,
+      "monthlyRate": 2803.20,
+      "description": "Compute-optimized bare metal - 48 cores, 192 GiB RAM"
+    },
+    "bx2d.metal.96x384": {
+      "profile": "bx2d.metal.96x384",
+      "family": "balanced",
+      "vcpus": 96,
+      "physicalCores": 48,
+      "memoryGiB": 384,
+      "hasNvme": true,
+      "nvmeDisks": 8,
+      "nvmeSizeGB": 3200,
+      "totalNvmeGB": 25600,
+      "hourlyRate": 5.25,
+      "monthlyRate": 3832.50,
+      "description": "Balanced with NVMe - 48 cores, 384 GiB RAM, 8x3.2TB NVMe"
+    },
+    "mx2d.metal.96x768": {
+      "profile": "mx2d.metal.96x768",
+      "family": "memory",
+      "vcpus": 96,
+      "physicalCores": 48,
+      "memoryGiB": 768,
+      "hasNvme": true,
+      "nvmeDisks": 8,
+      "nvmeSizeGB": 3200,
+      "totalNvmeGB": 25600,
+      "hourlyRate": 6.85,
+      "monthlyRate": 5000.50,
+      "description": "Memory-optimized with NVMe - 48 cores, 768 GiB RAM, 8x3.2TB NVMe"
+    },
+    "cx2d.metal.96x192": {
+      "profile": "cx2d.metal.96x192",
+      "family": "compute",
+      "vcpus": 96,
+      "physicalCores": 48,
+      "memoryGiB": 192,
+      "hasNvme": true,
+      "nvmeDisks": 8,
+      "nvmeSizeGB": 3200,
+      "totalNvmeGB": 25600,
+      "hourlyRate": 4.29,
+      "monthlyRate": 3131.70,
+      "description": "Compute-optimized with NVMe - 48 cores, 192 GiB RAM, 8x3.2TB NVMe"
+    }
+  },
+
+  "vsi": {
+    "bx2-2x8": {
+      "profile": "bx2-2x8",
+      "family": "balanced",
+      "vcpus": 2,
+      "memoryGiB": 8,
+      "networkGbps": 4,
+      "hourlyRate": 0.095,
+      "monthlyRate": 69.35,
+      "description": "Balanced VSI - 2 vCPU, 8 GiB RAM"
+    },
+    "bx2-4x16": {
+      "profile": "bx2-4x16",
+      "family": "balanced",
+      "vcpus": 4,
+      "memoryGiB": 16,
+      "networkGbps": 8,
+      "hourlyRate": 0.19,
+      "monthlyRate": 138.70,
+      "description": "Balanced VSI - 4 vCPU, 16 GiB RAM"
+    },
+    "bx2-8x32": {
+      "profile": "bx2-8x32",
+      "family": "balanced",
+      "vcpus": 8,
+      "memoryGiB": 32,
+      "networkGbps": 16,
+      "hourlyRate": 0.38,
+      "monthlyRate": 277.40,
+      "description": "Balanced VSI - 8 vCPU, 32 GiB RAM"
+    },
+    "bx2-16x64": {
+      "profile": "bx2-16x64",
+      "family": "balanced",
+      "vcpus": 16,
+      "memoryGiB": 64,
+      "networkGbps": 32,
+      "hourlyRate": 0.76,
+      "monthlyRate": 554.80,
+      "description": "Balanced VSI - 16 vCPU, 64 GiB RAM"
+    },
+    "bx2-32x128": {
+      "profile": "bx2-32x128",
+      "family": "balanced",
+      "vcpus": 32,
+      "memoryGiB": 128,
+      "networkGbps": 64,
+      "hourlyRate": 1.52,
+      "monthlyRate": 1109.60,
+      "description": "Balanced VSI - 32 vCPU, 128 GiB RAM"
+    },
+    "bx2-48x192": {
+      "profile": "bx2-48x192",
+      "family": "balanced",
+      "vcpus": 48,
+      "memoryGiB": 192,
+      "networkGbps": 64,
+      "hourlyRate": 2.28,
+      "monthlyRate": 1664.40,
+      "description": "Balanced VSI - 48 vCPU, 192 GiB RAM"
+    },
+    "bx2-64x256": {
+      "profile": "bx2-64x256",
+      "family": "balanced",
+      "vcpus": 64,
+      "memoryGiB": 256,
+      "networkGbps": 80,
+      "hourlyRate": 3.04,
+      "monthlyRate": 2219.20,
+      "description": "Balanced VSI - 64 vCPU, 256 GiB RAM"
+    },
+    "bx2-128x512": {
+      "profile": "bx2-128x512",
+      "family": "balanced",
+      "vcpus": 128,
+      "memoryGiB": 512,
+      "networkGbps": 80,
+      "hourlyRate": 6.08,
+      "monthlyRate": 4438.40,
+      "description": "Balanced VSI - 128 vCPU, 512 GiB RAM"
+    },
+    "cx2-2x4": {
+      "profile": "cx2-2x4",
+      "family": "compute",
+      "vcpus": 2,
+      "memoryGiB": 4,
+      "networkGbps": 4,
+      "hourlyRate": 0.071,
+      "monthlyRate": 51.83,
+      "description": "Compute VSI - 2 vCPU, 4 GiB RAM"
+    },
+    "cx2-4x8": {
+      "profile": "cx2-4x8",
+      "family": "compute",
+      "vcpus": 4,
+      "memoryGiB": 8,
+      "networkGbps": 8,
+      "hourlyRate": 0.142,
+      "monthlyRate": 103.66,
+      "description": "Compute VSI - 4 vCPU, 8 GiB RAM"
+    },
+    "cx2-8x16": {
+      "profile": "cx2-8x16",
+      "family": "compute",
+      "vcpus": 8,
+      "memoryGiB": 16,
+      "networkGbps": 16,
+      "hourlyRate": 0.284,
+      "monthlyRate": 207.32,
+      "description": "Compute VSI - 8 vCPU, 16 GiB RAM"
+    },
+    "cx2-16x32": {
+      "profile": "cx2-16x32",
+      "family": "compute",
+      "vcpus": 16,
+      "memoryGiB": 32,
+      "networkGbps": 32,
+      "hourlyRate": 0.568,
+      "monthlyRate": 414.64,
+      "description": "Compute VSI - 16 vCPU, 32 GiB RAM"
+    },
+    "cx2-32x64": {
+      "profile": "cx2-32x64",
+      "family": "compute",
+      "vcpus": 32,
+      "memoryGiB": 64,
+      "networkGbps": 64,
+      "hourlyRate": 1.136,
+      "monthlyRate": 829.28,
+      "description": "Compute VSI - 32 vCPU, 64 GiB RAM"
+    },
+    "mx2-2x16": {
+      "profile": "mx2-2x16",
+      "family": "memory",
+      "vcpus": 2,
+      "memoryGiB": 16,
+      "networkGbps": 4,
+      "hourlyRate": 0.119,
+      "monthlyRate": 86.87,
+      "description": "Memory VSI - 2 vCPU, 16 GiB RAM"
+    },
+    "mx2-4x32": {
+      "profile": "mx2-4x32",
+      "family": "memory",
+      "vcpus": 4,
+      "memoryGiB": 32,
+      "networkGbps": 8,
+      "hourlyRate": 0.238,
+      "monthlyRate": 173.74,
+      "description": "Memory VSI - 4 vCPU, 32 GiB RAM"
+    },
+    "mx2-8x64": {
+      "profile": "mx2-8x64",
+      "family": "memory",
+      "vcpus": 8,
+      "memoryGiB": 64,
+      "networkGbps": 16,
+      "hourlyRate": 0.476,
+      "monthlyRate": 347.48,
+      "description": "Memory VSI - 8 vCPU, 64 GiB RAM"
+    },
+    "mx2-16x128": {
+      "profile": "mx2-16x128",
+      "family": "memory",
+      "vcpus": 16,
+      "memoryGiB": 128,
+      "networkGbps": 32,
+      "hourlyRate": 0.952,
+      "monthlyRate": 694.96,
+      "description": "Memory VSI - 16 vCPU, 128 GiB RAM"
+    },
+    "mx2-32x256": {
+      "profile": "mx2-32x256",
+      "family": "memory",
+      "vcpus": 32,
+      "memoryGiB": 256,
+      "networkGbps": 64,
+      "hourlyRate": 1.904,
+      "monthlyRate": 1389.92,
+      "description": "Memory VSI - 32 vCPU, 256 GiB RAM"
+    },
+    "mx2-64x512": {
+      "profile": "mx2-64x512",
+      "family": "memory",
+      "vcpus": 64,
+      "memoryGiB": 512,
+      "networkGbps": 80,
+      "hourlyRate": 3.808,
+      "monthlyRate": 2779.84,
+      "description": "Memory VSI - 64 vCPU, 512 GiB RAM"
+    },
+    "mx2-128x1024": {
+      "profile": "mx2-128x1024",
+      "family": "memory",
+      "vcpus": 128,
+      "memoryGiB": 1024,
+      "networkGbps": 80,
+      "hourlyRate": 7.616,
+      "monthlyRate": 5559.68,
+      "description": "Memory VSI - 128 vCPU, 1024 GiB RAM"
+    }
+  },
+
+  "blockStorage": {
+    "5iops": {
+      "tierName": "5iops-tier",
+      "iopsPerGB": 5,
+      "costPerGBMonth": 0.10,
+      "description": "General purpose - 5 IOPS/GB"
+    },
+    "10iops": {
+      "tierName": "10iops-tier",
+      "iopsPerGB": 10,
+      "costPerGBMonth": 0.13,
+      "description": "High performance - 10 IOPS/GB (recommended for ODF)"
+    },
+    "custom": {
+      "tierName": "custom",
+      "minIOPS": 100,
+      "maxIOPS": 48000,
+      "baseCostPerGBMonth": 0.10,
+      "costPerIOPSMonth": 0.0002,
+      "description": "Custom IOPS configuration"
+    }
+  },
+
+  "roks": {
+    "ocpLicense": {
+      "perCoreMonthly": 0.00,
+      "description": "OCP license included in ROKS pricing"
+    },
+    "clusterManagement": {
+      "perClusterMonthly": 0.00,
+      "description": "ROKS management fee (included)"
+    }
+  },
+
+  "networking": {
+    "publicGateway": {
+      "perGatewayMonthly": 65.00,
+      "description": "Public gateway per availability zone"
+    },
+    "floatingIP": {
+      "perIPMonthly": 5.00,
+      "description": "Floating IP address"
+    },
+    "vpnGateway": {
+      "perGatewayMonthly": 125.00,
+      "description": "VPN gateway"
+    },
+    "loadBalancer": {
+      "perLBMonthly": 35.00,
+      "perGBProcessed": 0.005,
+      "description": "VPC Application Load Balancer"
+    }
+  },
+
+  "storageAddons": {
+    "snapshots": {
+      "costPerGBMonth": 0.05,
+      "description": "Block storage snapshots"
+    },
+    "objectStorage": {
+      "standardPerGBMonth": 0.023,
+      "vaultPerGBMonth": 0.005,
+      "description": "Cloud Object Storage for backups"
+    }
+  },
+
+  "regions": {
+    "us-south": {
+      "name": "Dallas",
+      "code": "us-south",
+      "multiplier": 1.0,
+      "availabilityZones": 3
+    },
+    "us-east": {
+      "name": "Washington DC",
+      "code": "us-east",
+      "multiplier": 1.0,
+      "availabilityZones": 3
+    },
+    "eu-de": {
+      "name": "Frankfurt",
+      "code": "eu-de",
+      "multiplier": 1.05,
+      "availabilityZones": 3
+    },
+    "eu-gb": {
+      "name": "London",
+      "code": "eu-gb",
+      "multiplier": 1.08,
+      "availabilityZones": 3
+    },
+    "eu-es": {
+      "name": "Madrid",
+      "code": "eu-es",
+      "multiplier": 1.05,
+      "availabilityZones": 3
+    },
+    "jp-tok": {
+      "name": "Tokyo",
+      "code": "jp-tok",
+      "multiplier": 1.10,
+      "availabilityZones": 3
+    },
+    "jp-osa": {
+      "name": "Osaka",
+      "code": "jp-osa",
+      "multiplier": 1.10,
+      "availabilityZones": 3
+    },
+    "au-syd": {
+      "name": "Sydney",
+      "code": "au-syd",
+      "multiplier": 1.12,
+      "availabilityZones": 3
+    },
+    "ca-tor": {
+      "name": "Toronto",
+      "code": "ca-tor",
+      "multiplier": 1.03,
+      "availabilityZones": 3
+    },
+    "br-sao": {
+      "name": "Sao Paulo",
+      "code": "br-sao",
+      "multiplier": 1.15,
+      "availabilityZones": 3
+    }
+  },
+
+  "discounts": {
+    "onDemand": {
+      "name": "On-Demand",
+      "discountPct": 0.0,
+      "description": "Pay-as-you-go pricing with no commitment"
+    },
+    "reserved1yr": {
+      "name": "1-Year Reserved",
+      "discountPct": 20.0,
+      "description": "1-year reserved capacity commitment"
+    },
+    "reserved3yr": {
+      "name": "3-Year Reserved",
+      "discountPct": 35.0,
+      "description": "3-year reserved capacity commitment"
+    },
+    "enterprise": {
+      "name": "Enterprise",
+      "discountPct": 0.0,
+      "description": "Enterprise volume discount - contact IBM sales"
+    }
+  },
+
+  "odfWorkloadProfiles": {
+    "light": {
+      "name": "Light Workloads",
+      "cpuPerNode": 8,
+      "memoryPerNodeGiB": 56,
+      "description": "Basic file/block storage, low IOPS (<10k)"
+    },
+    "standard": {
+      "name": "Standard Workloads",
+      "cpuPerNode": 16,
+      "memoryPerNodeGiB": 64,
+      "description": "Balanced VM storage, moderate IOPS (10-50k)"
+    },
+    "performance": {
+      "name": "High-Performance",
+      "cpuPerNode": 24,
+      "memoryPerNodeGiB": 72,
+      "description": "High IOPS (50-100k), database VMs"
+    },
+    "extreme": {
+      "name": "Extreme Performance",
+      "cpuPerNode": 40,
+      "memoryPerNodeGiB": 96,
+      "description": "Maximum IOPS (>100k), latency-sensitive databases"
+    }
+  }
+}

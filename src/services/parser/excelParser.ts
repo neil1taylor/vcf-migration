@@ -3,6 +3,8 @@ import * as XLSX from 'xlsx';
 import type { RVToolsData, RVToolsMetadata, ParseResult } from '@/types';
 import {
   parseVInfo,
+  parseVCPU,
+  parseVMemory,
   parseVDisk,
   parseVDatastore,
   parseVSnapshot,
@@ -11,6 +13,7 @@ import {
   parseVTools,
   parseVCluster,
   parseVHost,
+  parseVLicense,
 } from './tabParsers';
 import { REQUIRED_SHEETS, RECOMMENDED_SHEETS } from '@/utils/constants';
 
@@ -100,6 +103,16 @@ export async function parseRVToolsFile(
       ? parseVInfo(workbook.Sheets['vInfo'])
       : [];
 
+    reportProgress('vCPU');
+    const vCPU = sheetNames.includes('vCPU')
+      ? parseVCPU(workbook.Sheets['vCPU'])
+      : [];
+
+    reportProgress('vMemory');
+    const vMemory = sheetNames.includes('vMemory')
+      ? parseVMemory(workbook.Sheets['vMemory'])
+      : [];
+
     reportProgress('vDisk');
     const vDisk = sheetNames.includes('vDisk')
       ? parseVDisk(workbook.Sheets['vDisk'])
@@ -140,6 +153,11 @@ export async function parseRVToolsFile(
       ? parseVHost(workbook.Sheets['vHost'])
       : [];
 
+    reportProgress('vLicense');
+    const vLicense = sheetNames.includes('vLicense')
+      ? parseVLicense(workbook.Sheets['vLicense'])
+      : [];
+
     // Phase 3: Validate data
     onProgress?.({
       phase: 'validating',
@@ -158,8 +176,8 @@ export async function parseRVToolsFile(
     const data: RVToolsData = {
       metadata,
       vInfo,
-      vCPU: [], // TODO: Add parser if needed
-      vMemory: [], // TODO: Add parser if needed
+      vCPU,
+      vMemory,
       vDisk,
       vPartition: [], // TODO: Add parser if needed
       vNetwork,
@@ -170,7 +188,7 @@ export async function parseRVToolsFile(
       vHost,
       vDatastore,
       vResourcePool: [], // TODO: Add parser if needed
-      vLicense: [], // TODO: Add parser if needed
+      vLicense,
       vHealth: [], // TODO: Add parser if needed
     };
 

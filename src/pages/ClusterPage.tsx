@@ -95,6 +95,46 @@ export function ClusterPage() {
     .sort((a, b) => b.value - a.value)
     .slice(0, 15);
 
+  // CPU overcommitment by cluster (from vHost data)
+  const clusterCpuData = new Map<string, { totalCores: number; vmCpus: number }>();
+  hosts.forEach(host => {
+    const cluster = host.cluster || 'No Cluster';
+    if (!clusterCpuData.has(cluster)) {
+      clusterCpuData.set(cluster, { totalCores: 0, vmCpus: 0 });
+    }
+    const data = clusterCpuData.get(cluster)!;
+    data.totalCores += host.totalCpuCores || 0;
+    data.vmCpus += host.vmCpuCount || 0;
+  });
+
+  const cpuOvercommitByCluster = Array.from(clusterCpuData.entries())
+    .filter(([, data]) => data.totalCores > 0)
+    .map(([cluster, data]) => ({
+      label: cluster,
+      value: parseFloat((data.vmCpus / data.totalCores).toFixed(2)),
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  // Memory overcommitment by cluster (from vHost data)
+  const clusterMemData = new Map<string, { hostMemoryMiB: number; vmMemoryMiB: number }>();
+  hosts.forEach(host => {
+    const cluster = host.cluster || 'No Cluster';
+    if (!clusterMemData.has(cluster)) {
+      clusterMemData.set(cluster, { hostMemoryMiB: 0, vmMemoryMiB: 0 });
+    }
+    const data = clusterMemData.get(cluster)!;
+    data.hostMemoryMiB += host.memoryMiB || 0;
+    data.vmMemoryMiB += host.vmMemoryMiB || 0;
+  });
+
+  const memOvercommitByCluster = Array.from(clusterMemData.entries())
+    .filter(([, data]) => data.hostMemoryMiB > 0)
+    .map(([cluster, data]) => ({
+      label: cluster,
+      value: parseFloat((data.vmMemoryMiB / data.hostMemoryMiB).toFixed(2)),
+    }))
+    .sort((a, b) => b.value - a.value);
+
   // Top hosts by VM count
   const topHostsByVmCount = hosts
     .map(h => ({
@@ -383,6 +423,34 @@ export function ClusterPage() {
               height={280}
               valueLabel="VMs"
               formatValue={(v) => `${v} VM${v !== 1 ? 's' : ''}`}
+            />
+          </Tile>
+        </Column>
+
+        {/* CPU Overcommitment by Cluster */}
+        <Column lg={8} md={8} sm={4}>
+          <Tile className="cluster-page__chart-tile">
+            <VerticalBarChart
+              title="CPU Overcommitment by Cluster"
+              subtitle="vCPU to physical core ratio per cluster"
+              data={cpuOvercommitByCluster}
+              height={280}
+              valueLabel="Ratio"
+              formatValue={(v) => `${v}:1`}
+            />
+          </Tile>
+        </Column>
+
+        {/* Memory Overcommitment by Cluster */}
+        <Column lg={8} md={8} sm={4}>
+          <Tile className="cluster-page__chart-tile">
+            <VerticalBarChart
+              title="Memory Overcommitment by Cluster"
+              subtitle="VM memory to host memory ratio per cluster"
+              data={memOvercommitByCluster}
+              height={280}
+              valueLabel="Ratio"
+              formatValue={(v) => `${v}:1`}
             />
           </Tile>
         </Column>

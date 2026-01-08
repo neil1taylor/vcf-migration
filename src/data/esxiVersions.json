@@ -1,0 +1,101 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-01-01",
+  "description": "ESXi version lifecycle and support status",
+  "versions": {
+    "8.0": {
+      "name": "vSphere 8.0",
+      "releaseDate": "2022-10-11",
+      "endOfGeneralSupport": "2027-10-11",
+      "endOfTechnicalGuidance": "2029-10-11",
+      "status": "current",
+      "statusLabel": "Current",
+      "color": "green",
+      "notes": "Latest major release, recommended for new deployments"
+    },
+    "7.0": {
+      "name": "vSphere 7.0",
+      "releaseDate": "2020-04-02",
+      "endOfGeneralSupport": "2025-04-02",
+      "endOfTechnicalGuidance": "2027-04-02",
+      "status": "supported",
+      "statusLabel": "Supported",
+      "color": "green",
+      "notes": "Still in general support, plan upgrade path"
+    },
+    "6.7": {
+      "name": "vSphere 6.7",
+      "releaseDate": "2018-04-17",
+      "endOfGeneralSupport": "2022-10-15",
+      "endOfTechnicalGuidance": "2023-11-15",
+      "status": "eol",
+      "statusLabel": "End of Life",
+      "color": "red",
+      "notes": "No longer supported, upgrade required before migration"
+    },
+    "6.5": {
+      "name": "vSphere 6.5",
+      "releaseDate": "2016-11-15",
+      "endOfGeneralSupport": "2021-11-15",
+      "endOfTechnicalGuidance": "2023-11-15",
+      "status": "eol",
+      "statusLabel": "End of Life",
+      "color": "red",
+      "notes": "No longer supported, upgrade required before migration"
+    },
+    "6.0": {
+      "name": "vSphere 6.0",
+      "releaseDate": "2015-03-12",
+      "endOfGeneralSupport": "2020-03-12",
+      "endOfTechnicalGuidance": "2022-03-12",
+      "status": "eol",
+      "statusLabel": "End of Life",
+      "color": "red",
+      "notes": "End of life, critical upgrade needed"
+    },
+    "5.5": {
+      "name": "vSphere 5.5",
+      "releaseDate": "2013-09-19",
+      "endOfGeneralSupport": "2018-09-19",
+      "endOfTechnicalGuidance": "2020-09-19",
+      "status": "eol",
+      "statusLabel": "End of Life",
+      "color": "red",
+      "notes": "Legacy version, hardware may not be compatible with modern platforms"
+    },
+    "5.1": {
+      "name": "vSphere 5.1",
+      "status": "eol",
+      "statusLabel": "End of Life",
+      "color": "red",
+      "notes": "Legacy version"
+    },
+    "5.0": {
+      "name": "vSphere 5.0",
+      "status": "eol",
+      "statusLabel": "End of Life",
+      "color": "red",
+      "notes": "Legacy version"
+    }
+  },
+  "buildPrefixes": {
+    "8.0.3": "8.0",
+    "8.0.2": "8.0",
+    "8.0.1": "8.0",
+    "8.0.0": "8.0",
+    "7.0.3": "7.0",
+    "7.0.2": "7.0",
+    "7.0.1": "7.0",
+    "7.0.0": "7.0",
+    "6.7.0": "6.7",
+    "6.5.0": "6.5",
+    "6.0.0": "6.0",
+    "5.5.0": "5.5"
+  },
+  "hardwareCompatibility": {
+    "description": "Links to hardware compatibility resources",
+    "redHatHCL": "https://catalog.redhat.com/hardware",
+    "vmwareHCL": "https://www.vmware.com/resources/compatibility/search.php",
+    "ibmCloudBareMetal": "https://cloud.ibm.com/docs/bare-metal"
+  }
+}

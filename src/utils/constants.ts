@@ -133,7 +133,9 @@ export const ROUTES = {
   network: '/network',
   cluster: '/cluster',
   config: '/config',
-  migration: '/migration',
+  roksMigration: '/roks-migration',
+  vsiMigration: '/vsi-migration',
+  discovery: '/discovery',
   tables: '/tables',
   info: '/info',
 } as const;

@@ -91,6 +91,12 @@ export class PDFGenerator {
       this.addMTVReadiness(data);
     }
 
+    // Infrastructure Discovery (always included with MTV Readiness)
+    if (opts.includeMTVReadiness) {
+      this.addNewPage();
+      this.addInfrastructureDiscovery(data);
+    }
+
     // VM List (optional, can be very long)
     if (opts.includeVMList) {
       this.addNewPage();
@@ -403,16 +409,274 @@ export class PDFGenerator {
     this.currentY += 10;
 
     // RDM Check
-    this.addSubsectionTitle('RDM (Raw Device Mapping) Check');
-    const rdmDisks = data.vDisk.filter(d => d.raw).length;
-    if (rdmDisks === 0) {
+    this.addSubsectionTitle('Storage Blockers');
+    const rdmDisks = new Set(data.vDisk.filter(d => d.raw).map(d => d.vmName)).size;
+    const sharedDisks = new Set(data.vDisk.filter(d => d.sharingMode && d.sharingMode.toLowerCase() !== 'sharingnone').map(d => d.vmName)).size;
+    const independentDisks = new Set(data.vDisk.filter(d => d.diskMode?.toLowerCase().includes('independent')).map(d => d.vmName)).size;
+
+    if (rdmDisks === 0 && sharedDisks === 0 && independentDisks === 0) {
       this.doc.setTextColor(...COLORS.success);
-      this.addTextLine('No RDM disks detected - Ready for migration');
+      this.addTextLine('No storage blockers detected - Ready for migration');
     } else {
-      this.doc.setTextColor(...COLORS.error);
-      this.addTextLine(`${rdmDisks} RDM disks detected - Requires remediation`);
+      if (rdmDisks > 0) {
+        this.doc.setTextColor(...COLORS.error);
+        this.addTextLine(`${rdmDisks} VMs with RDM disks - Requires remediation`);
+      }
+      if (sharedDisks > 0) {
+        this.doc.setTextColor(...COLORS.error);
+        this.addTextLine(`${sharedDisks} VMs with shared/multi-writer disks - Requires remediation`);
+      }
+      if (independentDisks > 0) {
+        this.doc.setTextColor(...COLORS.error);
+        this.addTextLine(`${independentDisks} VMs with independent disk mode - Cannot be transferred`);
+      }
     }
     this.doc.setTextColor(...COLORS.text);
+
+    this.currentY += 10;
+
+    // CBT (Changed Block Tracking)
+    this.addSubsectionTitle('Changed Block Tracking (CBT)');
+    const vmsWithoutCBT = vms.filter(vm => !vm.cbtEnabled).length;
+    if (vmsWithoutCBT === 0) {
+      this.doc.setTextColor(...COLORS.success);
+      this.addTextLine('All VMs have CBT enabled - Ready for warm migration');
+    } else {
+      this.doc.setTextColor(...COLORS.warning);
+      this.addTextLine(`${vmsWithoutCBT} VMs without CBT enabled - Warm migration may be slower`);
+      this.addTextLine('Enable CBT for incremental data transfer during warm migration');
+    }
+    this.doc.setTextColor(...COLORS.text);
+
+    this.currentY += 10;
+
+    // VM Name RFC 1123 Compliance
+    this.addSubsectionTitle('VM Name Compliance (RFC 1123)');
+    const rfc1123Pattern = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+    const vmsWithInvalidNames = vms.filter(vm => !vm.vmName || vm.vmName.length > 63 || !rfc1123Pattern.test(vm.vmName.toLowerCase())).length;
+    if (vmsWithInvalidNames === 0) {
+      this.doc.setTextColor(...COLORS.success);
+      this.addTextLine('All VM names are RFC 1123 compliant');
+    } else {
+      this.doc.setTextColor(...COLORS.warning);
+      this.addTextLine(`${vmsWithInvalidNames} VMs with non-compliant names`);
+      this.addTextLine('Names must be: lowercase, max 63 chars, alphanumeric + hyphens');
+    }
+    this.doc.setTextColor(...COLORS.text);
+
+    this.currentY += 10;
+
+    // Hot Plug Configuration
+    this.addSubsectionTitle('Hot Plug Configuration');
+    const vCPUMap = new Map(data.vCPU.map(c => [c.vmName, c]));
+    const vMemoryMap = new Map(data.vMemory.map(m => [m.vmName, m]));
+    const vmsWithCPUHotPlug = vms.filter(vm => vCPUMap.get(vm.vmName)?.hotAddEnabled).length;
+    const vmsWithMemHotPlug = vms.filter(vm => vMemoryMap.get(vm.vmName)?.hotAddEnabled).length;
+
+    if (vmsWithCPUHotPlug === 0 && vmsWithMemHotPlug === 0) {
+      this.doc.setTextColor(...COLORS.success);
+      this.addTextLine('No VMs with hot plug enabled');
+    } else {
+      this.doc.setTextColor(...COLORS.warning);
+      if (vmsWithCPUHotPlug > 0) {
+        this.addTextLine(`${vmsWithCPUHotPlug} VMs with CPU hot plug - Will be disabled post-migration`);
+      }
+      if (vmsWithMemHotPlug > 0) {
+        this.addTextLine(`${vmsWithMemHotPlug} VMs with memory hot plug - Will be disabled post-migration`);
+      }
+    }
+    this.doc.setTextColor(...COLORS.text);
+
+    this.currentY += 10;
+
+    // Hostname Status
+    this.addSubsectionTitle('Guest Hostname Status');
+    const vmsWithInvalidHostname = vms.filter(vm => {
+      const hostname = vm.guestHostname?.toLowerCase()?.trim();
+      return !hostname || hostname === '' || hostname === 'localhost' ||
+             hostname === 'localhost.localdomain' || hostname === 'localhost.local';
+    }).length;
+    if (vmsWithInvalidHostname === 0) {
+      this.doc.setTextColor(...COLORS.success);
+      this.addTextLine('All VMs have valid hostnames configured');
+    } else {
+      this.doc.setTextColor(...COLORS.warning);
+      this.addTextLine(`${vmsWithInvalidHostname} VMs with missing/invalid hostnames`);
+      this.addTextLine('Configure proper hostname before migration');
+    }
+    this.doc.setTextColor(...COLORS.text);
+  }
+
+  private addInfrastructureDiscovery(data: RVToolsData): void {
+    this.addSectionTitle('Infrastructure Discovery');
+
+    const vms = data.vInfo.filter(vm => !vm.template && vm.powerState === 'poweredOn');
+    const hosts = data.vHost;
+    const clusters = data.vCluster;
+
+    // Workload Detection Patterns
+    const workloadPatterns: Record<string, { name: string; patterns: string[] }> = {
+      databases: { name: 'Databases', patterns: ['oracle', 'postgres', 'mysql', 'mssql', 'mongodb', 'redis', 'sql'] },
+      middleware: { name: 'Middleware', patterns: ['jboss', 'tomcat', 'weblogic', 'websphere', 'nginx', 'apache'] },
+      enterprise: { name: 'Enterprise Apps', patterns: ['sap', 'sharepoint', 'exchange', 'dynamics'] },
+      backup: { name: 'Backup/Recovery', patterns: ['veeam', 'veritas', 'commvault', 'avamar', 'rubrik'] },
+      security: { name: 'Security', patterns: ['paloalto', 'qualys', 'cyberark', 'fortinet', 'crowdstrike'] },
+      virtualization: { name: 'Virtualization', patterns: ['vcenter', 'nsx', 'vrops', 'vra', 'horizon'] },
+    };
+
+    // Detect workloads
+    const workloadCounts: Record<string, number> = {};
+    for (const [, config] of Object.entries(workloadPatterns)) {
+      const count = vms.filter(vm => {
+        const vmNameLower = vm.vmName.toLowerCase();
+        return config.patterns.some(p => vmNameLower.includes(p));
+      }).length;
+      if (count > 0) {
+        workloadCounts[config.name] = count;
+      }
+    }
+
+    this.addSubsectionTitle('Detected Workloads');
+    if (Object.keys(workloadCounts).length > 0) {
+      Object.entries(workloadCounts)
+        .sort((a, b) => b[1] - a[1])
+        .forEach(([name, count]) => {
+          this.addTextLine(`${name}: ${count} VM${count !== 1 ? 's' : ''}`);
+        });
+    } else {
+      this.addTextLine('No specific workloads detected from VM naming patterns');
+    }
+
+    this.currentY += 10;
+
+    // Appliance Detection
+    this.addSubsectionTitle('Virtual Appliances');
+    const appliancePatterns = ['appliance', 'ova', 'vcsa', 'vcenter', 'nsx-manager', 'vrops', 'vra'];
+    const appliances = vms.filter(vm => {
+      const vmNameLower = vm.vmName.toLowerCase();
+      const annotationLower = (vm.annotation || '').toLowerCase();
+      return appliancePatterns.some(p => vmNameLower.includes(p) || annotationLower.includes(p));
+    });
+
+    if (appliances.length > 0) {
+      this.doc.setTextColor(...COLORS.warning);
+      this.addTextLine(`${appliances.length} virtual appliances detected`);
+      this.addTextLine('Appliances may require vendor-specific migration paths');
+    } else {
+      this.doc.setTextColor(...COLORS.success);
+      this.addTextLine('No virtual appliances detected');
+    }
+    this.doc.setTextColor(...COLORS.text);
+
+    this.currentY += 10;
+
+    // ESXi Version Status
+    this.addSubsectionTitle('ESXi Version Analysis');
+    const esxiVersions = hosts.reduce((acc, host) => {
+      const version = host.esxiVersion || 'Unknown';
+      acc[version] = (acc[version] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const eolVersions = ['5.0', '5.1', '5.5', '6.0', '6.5', '6.7'];
+    let eolHostCount = 0;
+
+    Object.entries(esxiVersions)
+      .sort((a, b) => b[1] - a[1])
+      .forEach(([version, count]) => {
+        const isEOL = eolVersions.some(v => version.includes(v));
+        if (isEOL) {
+          eolHostCount += count;
+          this.doc.setTextColor(...COLORS.error);
+        } else {
+          this.doc.setTextColor(...COLORS.success);
+        }
+        this.addTextLine(`${version}: ${count} host${count !== 1 ? 's' : ''} ${isEOL ? '(EOL)' : ''}`);
+      });
+    this.doc.setTextColor(...COLORS.text);
+
+    if (eolHostCount > 0) {
+      this.doc.setTextColor(...COLORS.warning);
+      this.addTextLine(`Warning: ${eolHostCount} hosts running end-of-life ESXi versions`);
+      this.doc.setTextColor(...COLORS.text);
+    }
+
+    this.currentY += 10;
+
+    // Cluster HA Risk
+    this.addSubsectionTitle('Cluster HA Analysis');
+    const clustersUnder3Hosts = clusters.filter(c => c.hostCount < 3);
+    if (clustersUnder3Hosts.length === 0) {
+      this.doc.setTextColor(...COLORS.success);
+      this.addTextLine('All clusters have 3+ hosts for proper HA');
+    } else {
+      this.doc.setTextColor(...COLORS.warning);
+      this.addTextLine(`${clustersUnder3Hosts.length} cluster${clustersUnder3Hosts.length !== 1 ? 's' : ''} with fewer than 3 hosts:`);
+      clustersUnder3Hosts.forEach(c => {
+        this.addTextLine(`  - ${c.name}: ${c.hostCount} host${c.hostCount !== 1 ? 's' : ''}`);
+      });
+    }
+    this.doc.setTextColor(...COLORS.text);
+
+    this.currentY += 10;
+
+    // Large Memory/Core Checks
+    this.addSubsectionTitle('Compute Edge Cases');
+    const MEMORY_2TB_MIB = 2 * 1024 * 1024;
+    const largeMemoryVMs = vms.filter(vm => vm.memory >= MEMORY_2TB_MIB);
+    const largeHostCores = hosts.filter(h => h.totalCpuCores > 64);
+    const veryLargeHostCores = hosts.filter(h => h.totalCpuCores > 128);
+
+    if (largeMemoryVMs.length > 0) {
+      this.doc.setTextColor(...COLORS.warning);
+      this.addTextLine(`${largeMemoryVMs.length} VM${largeMemoryVMs.length !== 1 ? 's' : ''} with 2TB+ memory`);
+    }
+    if (largeHostCores.length > 0) {
+      this.addTextLine(`${largeHostCores.length} host${largeHostCores.length !== 1 ? 's' : ''} with 64+ CPU cores`);
+    }
+    if (veryLargeHostCores.length > 0) {
+      this.addTextLine(`${veryLargeHostCores.length} host${veryLargeHostCores.length !== 1 ? 's' : ''} with 128+ CPU cores`);
+    }
+    if (largeMemoryVMs.length === 0 && largeHostCores.length === 0) {
+      this.doc.setTextColor(...COLORS.success);
+      this.addTextLine('No compute edge cases detected');
+    }
+    this.doc.setTextColor(...COLORS.text);
+
+    // Memory Balloon Check
+    this.currentY += 10;
+    this.addSubsectionTitle('Memory Ballooning');
+    const vMemoryMap = new Map(data.vMemory.map(m => [m.vmName, m]));
+    const balloonedVMs = vms.filter(vm => {
+      const memInfo = vMemoryMap.get(vm.vmName);
+      return memInfo && (memInfo.ballooned || 0) > 0;
+    });
+
+    if (balloonedVMs.length === 0) {
+      this.doc.setTextColor(...COLORS.success);
+      this.addTextLine('No VMs with active memory ballooning');
+    } else {
+      this.doc.setTextColor(...COLORS.warning);
+      this.addTextLine(`${balloonedVMs.length} VMs with active memory ballooning`);
+      this.addTextLine('Review memory allocation before migration');
+    }
+    this.doc.setTextColor(...COLORS.text);
+
+    // Host Hardware Models
+    this.currentY += 10;
+    this.addSubsectionTitle('Host Hardware Models');
+    const hostModels = hosts.reduce((acc, host) => {
+      const model = `${host.vendor || ''} ${host.model || ''}`.trim() || 'Unknown';
+      acc[model] = (acc[model] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    Object.entries(hostModels)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .forEach(([model, count]) => {
+        this.addTextLine(`${model}: ${count} host${count !== 1 ? 's' : ''}`);
+      });
   }
 
   private addVMList(data: RVToolsData): void {

@@ -1,0 +1,138 @@
+// Cost Estimation Component Styles
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/type' as *;
+@use '@carbon/react/scss/colors' as *;
+
+.cost-estimation {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-05;
+
+  &--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+  }
+
+  &__empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: $spacing-04;
+    color: $gray-60;
+
+    p {
+      @include type-style('body-01');
+    }
+  }
+
+  &__header {
+    padding: $spacing-05;
+  }
+
+  &__title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-05;
+
+    h3 {
+      @include type-style('heading-03');
+      margin: 0;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-03;
+  }
+
+  &__controls {
+    display: flex;
+    gap: $spacing-05;
+    flex-wrap: wrap;
+
+    .cds--select {
+      min-width: 200px;
+    }
+  }
+
+  &__summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: $spacing-05;
+  }
+
+  &__details {
+    padding: 0;
+    overflow-x: auto;
+
+    .cds--data-table {
+      width: 100%;
+    }
+
+    .cds--data-table th,
+    .cds--data-table td {
+      white-space: nowrap;
+    }
+
+    .cds--data-table th:nth-child(5),
+    .cds--data-table th:nth-child(6),
+    .cds--data-table td:nth-child(5),
+    .cds--data-table td:nth-child(6) {
+      text-align: right;
+    }
+  }
+
+  &__subtotal-row {
+    background-color: $gray-10 !important;
+
+    td {
+      border-top: 1px solid $gray-30;
+    }
+  }
+
+  &__discount-row {
+    background-color: $green-10 !important;
+
+    td {
+      color: $green-60;
+    }
+  }
+
+  &__total-row {
+    background-color: $blue-10 !important;
+
+    td {
+      border-top: 2px solid $blue-60;
+      @include type-style('heading-compact-01');
+    }
+  }
+
+  &__notes {
+    margin-top: $spacing-03;
+  }
+
+  &__metadata {
+    display: flex;
+    gap: $spacing-05;
+    flex-wrap: wrap;
+    @include type-style('helper-text-01');
+    color: $gray-60;
+    padding-top: $spacing-03;
+    border-top: 1px solid $gray-20;
+
+    span {
+      &::after {
+        content: '•';
+        margin-left: $spacing-05;
+        color: $gray-40;
+      }
+
+      &:last-child::after {
+        content: '';
+      }
+    }
+  }
+}

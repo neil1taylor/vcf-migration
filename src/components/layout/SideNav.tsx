@@ -13,7 +13,9 @@ import {
   Network_3,
   SoftwareResourceCluster,
   Settings,
-  Migrate,
+  Kubernetes,
+  VirtualMachine,
+  Search,
   Table,
   Upload,
   Information,
@@ -117,13 +119,33 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
         </SideNavLink>
 
         <SideNavLink
-          renderIcon={Migrate}
+          renderIcon={Kubernetes}
           href="#"
-          onClick={(e) => handleNavClick(e, ROUTES.migration, true)}
-          isActive={isActive(ROUTES.migration)}
+          onClick={(e) => handleNavClick(e, ROUTES.roksMigration, true)}
+          isActive={isActive(ROUTES.roksMigration)}
           className={!hasData ? 'sidenav-link--disabled' : ''}
         >
-          Migration
+          ROKS Migration
+        </SideNavLink>
+
+        <SideNavLink
+          renderIcon={VirtualMachine}
+          href="#"
+          onClick={(e) => handleNavClick(e, ROUTES.vsiMigration, true)}
+          isActive={isActive(ROUTES.vsiMigration)}
+          className={!hasData ? 'sidenav-link--disabled' : ''}
+        >
+          VSI Migration
+        </SideNavLink>
+
+        <SideNavLink
+          renderIcon={Search}
+          href="#"
+          onClick={(e) => handleNavClick(e, ROUTES.discovery, true)}
+          isActive={isActive(ROUTES.discovery)}
+          className={!hasData ? 'sidenav-link--disabled' : ''}
+        >
+          Discovery
         </SideNavLink>
 
         <SideNavLink

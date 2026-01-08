@@ -240,6 +240,7 @@ function parseVInfoSheet(sheet: XLSX.WorkSheet): VirtualMachine[] {
       uuid: row['VM UUID'] || row['UUID'] ? String(row['VM UUID'] || row['UUID']) : null,
       firmwareType: row['Firmware'] || row['Firmware Type'] ? String(row['Firmware'] || row['Firmware Type']) : null,
       latencySensitivity: null,
+      cbtEnabled: Boolean(row['CBT'] || row['Changed Block Tracking']),
     };
   });
 }

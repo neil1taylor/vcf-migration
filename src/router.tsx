@@ -8,7 +8,9 @@ import { StoragePage } from '@/pages/StoragePage';
 import { NetworkPage } from '@/pages/NetworkPage';
 import { ClusterPage } from '@/pages/ClusterPage';
 import { ConfigPage } from '@/pages/ConfigPage';
-import { MigrationPage } from '@/pages/MigrationPage';
+import { ROKSMigrationPage } from '@/pages/ROKSMigrationPage';
+import { VSIMigrationPage } from '@/pages/VSIMigrationPage';
+import { DiscoveryPage } from '@/pages/DiscoveryPage';
 import { TablesPage } from '@/pages/TablesPage';
 import { InfoPage } from '@/pages/InfoPage';
 import { ROUTES } from '@/utils/constants';
@@ -47,8 +49,16 @@ export const router = createBrowserRouter([
         element: <ConfigPage />,
       },
       {
-        path: ROUTES.migration.slice(1),
-        element: <MigrationPage />,
+        path: ROUTES.roksMigration.slice(1),
+        element: <ROKSMigrationPage />,
+      },
+      {
+        path: ROUTES.vsiMigration.slice(1),
+        element: <VSIMigrationPage />,
+      },
+      {
+        path: ROUTES.discovery.slice(1),
+        element: <DiscoveryPage />,
       },
       {
         path: ROUTES.tables.slice(1),

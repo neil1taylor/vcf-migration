@@ -1,0 +1,144 @@
+{
+  "version": "1.0",
+  "description": "Patterns for detecting application workloads from VM names and annotations",
+  "categories": {
+    "middleware": {
+      "name": "Middleware / Application Servers",
+      "icon": "Application",
+      "patterns": [
+        "jboss", "wildfly", "tomcat", "weblogic", "websphere", "spring",
+        "nginx", "apache", "httpd", "iis", "haproxy", "envoy", "istio"
+      ]
+    },
+    "databases": {
+      "name": "Databases",
+      "icon": "DataBase",
+      "patterns": [
+        "oracle", "postgres", "postgresql", "mysql", "mariadb", "mssql",
+        "sqlserver", "sql-server", "mongodb", "mongo", "redis", "cassandra",
+        "couchdb", "elasticsearch", "elastic", "neo4j", "db2", "sybase",
+        "informix", "teradata", "snowflake", "clickhouse"
+      ]
+    },
+    "enterprise": {
+      "name": "Enterprise Applications",
+      "icon": "Enterprise",
+      "patterns": [
+        "sap", "hana", "s4hana", "documentum", "filenet", "sas",
+        "sharepoint", "exchange", "dynamics", "peoplesoft", "siebel",
+        "hyperion", "cognos", "tableau", "powerbi", "qlik", "splunk"
+      ]
+    },
+    "backup": {
+      "name": "Backup & Recovery",
+      "icon": "Save",
+      "patterns": [
+        "veeam", "veritas", "netbackup", "commvault", "avamar", "networker",
+        "datadomain", "rubrik", "cohesity", "arcserve", "acronis", "zerto",
+        "srm", "vrepl", "recoverpoint"
+      ]
+    },
+    "security": {
+      "name": "Security & Compliance",
+      "icon": "Security",
+      "patterns": [
+        "paloalto", "palo-alto", "qualys", "cyberark", "checkpoint",
+        "fortinet", "fortigate", "crowdstrike", "carbon-black", "carbonblack",
+        "mcafee", "symantec", "sep", "trend", "sophos", "kaspersky",
+        "tenable", "nessus", "rapid7", "splunk", "siem", "sentinel"
+      ]
+    },
+    "monitoring": {
+      "name": "Monitoring & Management",
+      "icon": "Dashboard",
+      "patterns": [
+        "nagios", "zabbix", "prometheus", "grafana", "datadog", "dynatrace",
+        "appdynamics", "newrelic", "solarwinds", "prtg", "icinga", "cacti",
+        "ganglia", "collectd", "telegraf", "influxdb", "vrops", "vrealize"
+      ]
+    },
+    "virtualization": {
+      "name": "Virtualization Infrastructure",
+      "icon": "VirtualMachine",
+      "patterns": [
+        "vcenter", "vsphere", "vsan", "nsx", "vrni", "vra", "vrops",
+        "srm", "hcx", "horizon", "vdi", "citrix", "xenapp", "xendesktop"
+      ]
+    },
+    "containers": {
+      "name": "Container Platforms",
+      "icon": "ContainerImage",
+      "patterns": [
+        "kubernetes", "k8s", "openshift", "ocp", "docker", "rancher",
+        "tanzu", "aks", "eks", "gke", "harbor", "registry", "helm"
+      ]
+    },
+    "messaging": {
+      "name": "Messaging & Integration",
+      "icon": "Email",
+      "patterns": [
+        "rabbitmq", "kafka", "activemq", "mq", "ibmmq", "tibco",
+        "mulesoft", "boomi", "apigee", "kong", "wso2", "camel"
+      ]
+    },
+    "storage": {
+      "name": "Storage Systems",
+      "icon": "ObjectStorage",
+      "patterns": [
+        "netapp", "pure", "purestorage", "emc", "powerstore", "unity",
+        "vnx", "vmax", "isilon", "ecs", "ceph", "gluster", "minio",
+        "nas", "san", "iscsi", "nfs"
+      ]
+    },
+    "network": {
+      "name": "Network Equipment",
+      "icon": "Network",
+      "patterns": [
+        "cisco", "ucs", "nexus", "aci", "f5", "bigip", "ltm", "gtm",
+        "infoblox", "bluecat", "dns", "dhcp", "loadbalancer", "lb",
+        "firewall", "fw", "router", "switch", "vpn", "proxy"
+      ]
+    },
+    "cloud": {
+      "name": "Cloud Services",
+      "icon": "Cloud",
+      "patterns": [
+        "aws", "amazon", "azure", "gcp", "google", "ibmcloud", "oci",
+        "cloudformation", "terraform", "ansible", "puppet", "chef"
+      ]
+    },
+    "devops": {
+      "name": "DevOps & CI/CD",
+      "icon": "Build",
+      "patterns": [
+        "jenkins", "gitlab", "github", "bitbucket", "bamboo", "teamcity",
+        "artifactory", "nexus", "sonar", "sonarqube", "jira", "confluence"
+      ]
+    },
+    "identity": {
+      "name": "Identity & Access",
+      "icon": "UserAccess",
+      "patterns": [
+        "ldap", "activedirectory", "ad", "adfs", "okta", "ping", "keycloak",
+        "sso", "saml", "oauth", "radius", "tacacs", "ipa", "freeipa"
+      ]
+    }
+  },
+  "appliances": {
+    "name": "Virtual Appliances",
+    "description": "Patterns indicating OVA/appliance deployments",
+    "patterns": [
+      "appliance", "ova", "ovf", "template", "golden", "master",
+      "vcsa", "vcenter", "psc", "nsx-manager", "nsx-controller",
+      "vrops", "vra", "vrni", "vrli", "srm", "hcx",
+      "unity-vsa", "netapp-ontap", "pure-fa"
+    ],
+    "annotationPatterns": [
+      "deployed from template",
+      "imported from ova",
+      "appliance",
+      "vmware.*virtual.*appliance",
+      "photon.*os"
+    ]
+  }
+}

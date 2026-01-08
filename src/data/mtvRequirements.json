@@ -103,6 +103,150 @@
       "severity": "warning",
       "remediation": "Remove USB controllers if not required",
       "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "cbt-enabled": {
+      "id": "cbt-enabled",
+      "name": "Changed Block Tracking (CBT) Not Enabled",
+      "description": "CBT must be enabled for warm migration to track disk changes incrementally",
+      "category": "storage",
+      "severity": "warning",
+      "remediation": "Enable CBT in VM settings: Edit Settings > VM Options > Advanced > Changed Block Tracking",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "cbt-warm-migration": {
+      "id": "cbt-warm-migration",
+      "name": "CBT Required for Warm Migration",
+      "description": "Warm migration requires CBT to be enabled on powered-on VMs for incremental data transfer",
+      "category": "storage",
+      "severity": "warning",
+      "remediation": "Enable CBT before attempting warm migration, or use cold migration instead",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "vm-name-rfc1123": {
+      "id": "vm-name-rfc1123",
+      "name": "VM Name Not RFC 1123 Compliant",
+      "description": "VM names must be valid DNS subdomain names: lowercase, max 63 chars, only alphanumeric and hyphens, cannot start/end with hyphen",
+      "category": "config",
+      "severity": "warning",
+      "remediation": "Rename VM to a valid DNS name or configure a custom name during migration",
+      "documentationLink": "https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names"
+    },
+    "cpu-hot-plug": {
+      "id": "cpu-hot-plug",
+      "name": "CPU Hot Plug Enabled",
+      "description": "CPU hot add/remove is not supported in OpenShift Virtualization - VMs will be configured with fixed CPU",
+      "category": "config",
+      "severity": "warning",
+      "remediation": "Review CPU requirements; hot plug will be disabled post-migration",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "memory-hot-plug": {
+      "id": "memory-hot-plug",
+      "name": "Memory Hot Plug Enabled",
+      "description": "Memory hot add/remove is not supported in OpenShift Virtualization - VMs will be configured with fixed memory",
+      "category": "config",
+      "severity": "warning",
+      "remediation": "Review memory requirements; hot plug will be disabled post-migration",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "independent-disk": {
+      "id": "independent-disk",
+      "name": "Independent Disk Mode",
+      "description": "Disks in independent mode (persistent or nonpersistent) cannot be transferred by MTV",
+      "category": "storage",
+      "severity": "blocker",
+      "remediation": "Change disk mode from Independent to Dependent before migration",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "hostname-missing": {
+      "id": "hostname-missing",
+      "name": "Hostname Missing or Invalid",
+      "description": "Guest hostname is empty, missing, or set to localhost.localdomain which may cause issues post-migration",
+      "category": "config",
+      "severity": "warning",
+      "remediation": "Configure a proper hostname in the guest OS before migration",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "static-ip-powered-off": {
+      "id": "static-ip-powered-off",
+      "name": "Static IP Requires Powered On VM",
+      "description": "Static IP preservation requires VMware Tools running, which needs the VM to be powered on",
+      "category": "network",
+      "severity": "warning",
+      "remediation": "Power on VM before migration if static IP preservation is required",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "memory-balloon": {
+      "id": "memory-balloon",
+      "name": "Memory Ballooning Active",
+      "description": "VM has active memory ballooning indicating memory pressure on the host",
+      "category": "compute",
+      "severity": "warning",
+      "remediation": "Review memory allocation; ballooned VMs may need memory adjustment before migration",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "large-memory-vm": {
+      "id": "large-memory-vm",
+      "name": "Large Memory VM (>2TB)",
+      "description": "VMs with very large memory configurations may require special handling during migration",
+      "category": "compute",
+      "severity": "warning",
+      "remediation": "Plan for extended migration windows; consider memory optimization before migration",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "very-large-memory-vm": {
+      "id": "very-large-memory-vm",
+      "name": "Very Large Memory VM (>6TB)",
+      "description": "VMs exceeding 6TB memory are at platform limits and require careful migration planning",
+      "category": "compute",
+      "severity": "blocker",
+      "remediation": "Verify target platform supports this memory size; may need architecture redesign",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "large-host-cores": {
+      "id": "large-host-cores",
+      "name": "Large Core Count Host (>64 cores)",
+      "description": "Host has more than 64 cores which may affect NUMA topology during migration",
+      "category": "compute",
+      "severity": "info",
+      "remediation": "Review NUMA configuration and CPU pinning requirements for migrated VMs",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "very-large-host-cores": {
+      "id": "very-large-host-cores",
+      "name": "Very Large Core Count Host (>128 cores)",
+      "description": "Host has more than 128 cores - verify target platform compatibility",
+      "category": "compute",
+      "severity": "warning",
+      "remediation": "Verify target bare metal nodes can accommodate similar core counts",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "cluster-ha-risk": {
+      "id": "cluster-ha-risk",
+      "name": "Cluster HA Risk (<3 hosts)",
+      "description": "Cluster has fewer than 3 hosts which limits HA capabilities",
+      "category": "infrastructure",
+      "severity": "warning",
+      "remediation": "Plan target cluster sizing with minimum 3 nodes for proper HA",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
+    },
+    "esxi-eol": {
+      "id": "esxi-eol",
+      "name": "ESXi Version End of Life",
+      "description": "Host is running an end-of-life ESXi version",
+      "category": "infrastructure",
+      "severity": "warning",
+      "remediation": "Consider upgrading ESXi before migration for best compatibility",
+      "documentationLink": "https://lifecycle.vmware.com"
+    },
+    "appliance-detected": {
+      "id": "appliance-detected",
+      "name": "Virtual Appliance Detected",
+      "description": "VM appears to be a virtual appliance (OVA) which may require special handling",
+      "category": "config",
+      "severity": "info",
+      "remediation": "Review appliance migration strategy; may need vendor-specific migration path",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/virtual_machines/importing_vms/virt-importing-vmware-vm.html"
     }
   },
   "workflowPhases": [

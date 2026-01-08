@@ -40,6 +40,8 @@ const COLUMN_MAP: Record<string, keyof VirtualMachine | null> = {
   'FT State': 'ftState',
   'FT Role': 'ftRole',
   'CBRC Enabled': 'cbrcEnabled',
+  'CBT': 'cbtEnabled',
+  'Changed Block Tracking': 'cbtEnabled',
   'HW version': 'hardwareVersion',
   'Hardware Version': 'hardwareVersion',
   'HW Version': 'hardwareVersion',
@@ -119,6 +121,7 @@ export function parseVInfo(sheet: WorkSheet): VirtualMachine[] {
       uuid: getStringValue(row, 'uuid') || null,
       firmwareType: getStringValue(row, 'firmwareType') || null,
       latencySensitivity: getStringValue(row, 'latencySensitivity') || null,
+      cbtEnabled: getBooleanValue(row, 'cbtEnabled'),
     };
   }).filter(vm => vm.vmName); // Filter out empty rows
 }

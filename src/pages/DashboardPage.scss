@@ -15,6 +15,21 @@
     margin-bottom: spacing.$spacing-06;
   }
 
+  &__section-divider {
+    height: 1px;
+    background-color: var(--cds-border-subtle-01, #e0e0e0);
+    margin: spacing.$spacing-05 0;
+  }
+
+  &__section-title {
+    @include type.type-style('heading-03');
+    color: theme.$text-primary;
+    margin-top: spacing.$spacing-06;
+    margin-bottom: spacing.$spacing-05;
+    padding-top: spacing.$spacing-05;
+    border-top: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  }
+
   &__metric-tile {
     display: flex;
     flex-direction: column;

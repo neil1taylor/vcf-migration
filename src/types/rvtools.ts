@@ -46,6 +46,7 @@ export interface VirtualMachine {
   uuid: string | null;
   firmwareType: string | null;
   latencySensitivity: string | null;
+  cbtEnabled: boolean;
 }
 
 export interface VCPUInfo {
