@@ -37,8 +37,9 @@ export function ROKSMigrationPage() {
   const [yamlExportSuccess, setYamlExportSuccess] = useState(false);
   const [calculatorSizing, setCalculatorSizing] = useState<SizingResult | null>(null);
   const [wavePlanningMode, setWavePlanningMode] = useState<'complexity' | 'network'>('network');
-  const [networkGroupBy, setNetworkGroupBy] = useState<'portGroup' | 'ipPrefix'>('portGroup');
+  const [networkGroupBy, setNetworkGroupBy] = useState<'portGroup' | 'portGroupPrefix' | 'ipPrefix'>('portGroup');
   const [ipPrefixLength, setIpPrefixLength] = useState<number>(24);
+  const [portGroupPrefixLength, setPortGroupPrefixLength] = useState<number>(20);
 
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
@@ -57,14 +58,18 @@ export function ROKSMigrationPage() {
 
   // VMware Tools checks
   const toolsMap = new Map(tools.map(t => [t.vmName, t]));
-  const vmsWithoutTools = poweredOnVMs.filter(vm => {
+  const vmsWithoutToolsList = poweredOnVMs.filter(vm => {
     const tool = toolsMap.get(vm.vmName);
     return !tool || tool.toolsStatus === 'toolsNotInstalled' || tool.toolsStatus === 'guestToolsNotInstalled';
-  }).length;
-  const vmsWithToolsNotRunning = poweredOnVMs.filter(vm => {
+  }).map(vm => vm.vmName);
+  const vmsWithoutTools = vmsWithoutToolsList.length;
+
+  const vmsWithToolsNotRunningList = poweredOnVMs.filter(vm => {
     const tool = toolsMap.get(vm.vmName);
     return tool && (tool.toolsStatus === 'toolsNotRunning' || tool.toolsStatus === 'guestToolsNotRunning');
-  }).length;
+  }).map(vm => vm.vmName);
+  const vmsWithToolsNotRunning = vmsWithToolsNotRunningList.length;
+
   const vmsWithOutdatedTools = poweredOnVMs.filter(vm => {
     const tool = toolsMap.get(vm.vmName);
     return tool && tool.toolsStatus === 'toolsOld';
@@ -72,17 +77,20 @@ export function ROKSMigrationPage() {
 
   // Snapshot checks
   const vmsWithSnapshots = new Set(snapshots.map(s => s.vmName)).size;
-  const vmsWithOldSnapshots = new Set(
+  const vmsWithOldSnapshotsList = [...new Set(
     snapshots.filter(s => s.ageInDays > SNAPSHOT_BLOCKER_AGE_DAYS).map(s => s.vmName)
-  ).size;
+  )];
+  const vmsWithOldSnapshots = vmsWithOldSnapshotsList.length;
   const vmsWithWarningSnapshots = new Set(
     snapshots.filter(s => s.ageInDays > SNAPSHOT_WARNING_AGE_DAYS && s.ageInDays <= SNAPSHOT_BLOCKER_AGE_DAYS).map(s => s.vmName)
   ).size;
 
   // CD-ROM checks
-  const vmsWithCdConnected = new Set(cdDrives.filter(cd => cd.connected).map(cd => cd.vmName)).size;
+  const vmsWithCdConnectedList = [...new Set(cdDrives.filter(cd => cd.connected).map(cd => cd.vmName))];
+  const vmsWithCdConnected = vmsWithCdConnectedList.length;
 
   // Hardware version checks
+  const hwVersionOutdatedList: string[] = [];
   const hwVersionCounts = poweredOnVMs.reduce((acc, vm) => {
     const versionNum = getHardwareVersionNumber(vm.hardwareVersion);
     if (versionNum >= HW_VERSION_RECOMMENDED) {
@@ -91,25 +99,31 @@ export function ROKSMigrationPage() {
       acc.supported++;
     } else {
       acc.outdated++;
+      hwVersionOutdatedList.push(vm.vmName);
     }
     return acc;
   }, { recommended: 0, supported: 0, outdated: 0 });
 
   // Storage checks
-  const vmsWithRDM = new Set(disks.filter(d => d.raw).map(d => d.vmName)).size;
-  const vmsWithSharedDisks = new Set(disks.filter(d =>
+  const vmsWithRDMList = [...new Set(disks.filter(d => d.raw).map(d => d.vmName))];
+  const vmsWithRDM = vmsWithRDMList.length;
+
+  const vmsWithSharedDisksList = [...new Set(disks.filter(d =>
     d.sharingMode && d.sharingMode.toLowerCase() !== 'sharingnone'
-  ).map(d => d.vmName)).size;
+  ).map(d => d.vmName))];
+  const vmsWithSharedDisks = vmsWithSharedDisksList.length;
 
   // Network checks
-  const vmsWithLegacyNIC = new Set(
+  const vmsWithLegacyNICList = [...new Set(
     networks.filter(n => n.adapterType?.toLowerCase().includes('e1000')).map(n => n.vmName)
-  ).size;
+  )];
+  const vmsWithLegacyNIC = vmsWithLegacyNICList.length;
 
   // ===== NRT (Migration Toolkit) CHECKS =====
 
   // CBT (Changed Block Tracking) check
-  const vmsWithoutCBT = poweredOnVMs.filter(vm => !vm.cbtEnabled).length;
+  const vmsWithoutCBTList = poweredOnVMs.filter(vm => !vm.cbtEnabled).map(vm => vm.vmName);
+  const vmsWithoutCBT = vmsWithoutCBTList.length;
 
   // VM name RFC 1123 compliance check
   const isRFC1123Compliant = (name: string): boolean => {
@@ -118,44 +132,50 @@ export function ROKSMigrationPage() {
     const rfc1123Pattern = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
     return rfc1123Pattern.test(lowerName);
   };
-  const vmsWithInvalidNames = poweredOnVMs.filter(vm => !isRFC1123Compliant(vm.vmName)).length;
+  const vmsWithInvalidNamesList = poweredOnVMs.filter(vm => !isRFC1123Compliant(vm.vmName)).map(vm => vm.vmName);
+  const vmsWithInvalidNames = vmsWithInvalidNamesList.length;
 
   // Hot pluggable CPU/Memory checks
   const vCPUMap = new Map(vCPU.map(c => [c.vmName, c]));
   const vMemoryMap = new Map(vMemory.map(m => [m.vmName, m]));
 
-  const vmsWithCPUHotPlug = poweredOnVMs.filter(vm => {
+  const vmsWithCPUHotPlugList = poweredOnVMs.filter(vm => {
     const cpuInfo = vCPUMap.get(vm.vmName);
     return cpuInfo?.hotAddEnabled;
-  }).length;
+  }).map(vm => vm.vmName);
+  const vmsWithCPUHotPlug = vmsWithCPUHotPlugList.length;
 
-  const vmsWithMemoryHotPlug = poweredOnVMs.filter(vm => {
+  const vmsWithMemoryHotPlugList = poweredOnVMs.filter(vm => {
     const memInfo = vMemoryMap.get(vm.vmName);
     return memInfo?.hotAddEnabled;
-  }).length;
+  }).map(vm => vm.vmName);
+  const vmsWithMemoryHotPlug = vmsWithMemoryHotPlugList.length;
 
   // Independent disk mode check (BLOCKER)
-  const vmsWithIndependentDisks = new Set(
+  const vmsWithIndependentDisksList = [...new Set(
     disks.filter(d => {
       const mode = d.diskMode?.toLowerCase() || '';
       return mode.includes('independent');
     }).map(d => d.vmName)
-  ).size;
+  )];
+  const vmsWithIndependentDisks = vmsWithIndependentDisksList.length;
 
   // Hostname missing/localhost check
-  const vmsWithInvalidHostname = poweredOnVMs.filter(vm => {
+  const vmsWithInvalidHostnameList = poweredOnVMs.filter(vm => {
     const hostname = vm.guestHostname?.toLowerCase()?.trim();
     return !hostname ||
            hostname === '' ||
            hostname === 'localhost' ||
            hostname === 'localhost.localdomain' ||
            hostname === 'localhost.local';
-  }).length;
+  }).map(vm => vm.vmName);
+  const vmsWithInvalidHostname = vmsWithInvalidHostnameList.length;
 
   // Static IP with powered off VM check
-  const vmsStaticIPPoweredOff = vms.filter(vm =>
+  const vmsStaticIPPoweredOffList = vms.filter(vm =>
     vm.powerState === 'poweredOff' && vm.guestIP
-  ).length;
+  ).map(vm => vm.vmName);
+  const vmsStaticIPPoweredOff = vmsStaticIPPoweredOffList.length;
 
   // ===== OS COMPATIBILITY =====
   const osCompatibilityResults = poweredOnVMs.map(vm => ({
@@ -296,7 +316,7 @@ export function ROKSMigrationPage() {
     return `${prefix.join('.')}/${prefixLength}`;
   };
 
-  // Network-based waves: Group by port group or IP prefix
+  // Network-based waves: Group by port group, port group prefix, or IP prefix
   const networkWaves = useMemo(() => {
     const groups = new Map<string, typeof vmWaveData>();
 
@@ -304,8 +324,12 @@ export function ROKSMigrationPage() {
       let key: string;
 
       if (networkGroupBy === 'portGroup') {
-        // Group by VMware port group name
+        // Group by full VMware port group name
         key = vm.networkName || 'No Network';
+      } else if (networkGroupBy === 'portGroupPrefix') {
+        // Group by first N characters of port group name
+        const name = vm.networkName || 'No Network';
+        key = name.length > portGroupPrefixLength ? name.substring(0, portGroupPrefixLength) + '...' : name;
       } else {
         // Group by IP prefix with configurable length
         if (vm.ipAddress) {
@@ -358,7 +382,7 @@ export function ROKSMigrationPage() {
         if (a.hasBlockers !== b.hasBlockers) return a.hasBlockers ? 1 : -1;
         return a.vmCount - b.vmCount;
       });
-  }, [vmWaveData, networkGroupBy, ipPrefixLength]);
+  }, [vmWaveData, networkGroupBy, ipPrefixLength, portGroupPrefixLength]);
 
   // Complexity-based waves (original logic)
   const complexityWaves = useMemo(() => {
@@ -438,6 +462,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['tools-installed'].remediation,
       documentationLink: mtvRequirements.checks['tools-installed'].documentationLink,
       affectedCount: vmsWithoutTools,
+      affectedVMs: vmsWithoutToolsList,
     });
   }
 
@@ -450,6 +475,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['old-snapshots'].remediation,
       documentationLink: mtvRequirements.checks['old-snapshots'].documentationLink,
       affectedCount: vmsWithOldSnapshots,
+      affectedVMs: vmsWithOldSnapshotsList,
     });
   }
 
@@ -462,6 +488,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['no-rdm'].remediation,
       documentationLink: mtvRequirements.checks['no-rdm'].documentationLink,
       affectedCount: vmsWithRDM,
+      affectedVMs: vmsWithRDMList,
     });
   }
 
@@ -474,6 +501,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['no-shared-disks'].remediation,
       documentationLink: mtvRequirements.checks['no-shared-disks'].documentationLink,
       affectedCount: vmsWithSharedDisks,
+      affectedVMs: vmsWithSharedDisksList,
     });
   }
 
@@ -486,6 +514,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['tools-running'].remediation,
       documentationLink: mtvRequirements.checks['tools-running'].documentationLink,
       affectedCount: vmsWithToolsNotRunning,
+      affectedVMs: vmsWithToolsNotRunningList,
     });
   }
 
@@ -498,6 +527,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['cd-disconnected'].remediation,
       documentationLink: mtvRequirements.checks['cd-disconnected'].documentationLink,
       affectedCount: vmsWithCdConnected,
+      affectedVMs: vmsWithCdConnectedList,
     });
   }
 
@@ -510,6 +540,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['hw-version'].remediation,
       documentationLink: mtvRequirements.checks['hw-version'].documentationLink,
       affectedCount: hwVersionCounts.outdated,
+      affectedVMs: hwVersionOutdatedList,
     });
   }
 
@@ -522,6 +553,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['network-adapter'].remediation,
       documentationLink: mtvRequirements.checks['network-adapter'].documentationLink,
       affectedCount: vmsWithLegacyNIC,
+      affectedVMs: vmsWithLegacyNICList,
     });
   }
 
@@ -534,6 +566,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['independent-disk'].remediation,
       documentationLink: mtvRequirements.checks['independent-disk'].documentationLink,
       affectedCount: vmsWithIndependentDisks,
+      affectedVMs: vmsWithIndependentDisksList,
     });
   }
 
@@ -546,6 +579,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['cbt-enabled'].remediation,
       documentationLink: mtvRequirements.checks['cbt-enabled'].documentationLink,
       affectedCount: vmsWithoutCBT,
+      affectedVMs: vmsWithoutCBTList,
     });
   }
 
@@ -558,6 +592,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['vm-name-rfc1123'].remediation,
       documentationLink: mtvRequirements.checks['vm-name-rfc1123'].documentationLink,
       affectedCount: vmsWithInvalidNames,
+      affectedVMs: vmsWithInvalidNamesList,
     });
   }
 
@@ -570,6 +605,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['cpu-hot-plug'].remediation,
       documentationLink: mtvRequirements.checks['cpu-hot-plug'].documentationLink,
       affectedCount: vmsWithCPUHotPlug,
+      affectedVMs: vmsWithCPUHotPlugList,
     });
   }
 
@@ -582,6 +618,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['memory-hot-plug'].remediation,
       documentationLink: mtvRequirements.checks['memory-hot-plug'].documentationLink,
       affectedCount: vmsWithMemoryHotPlug,
+      affectedVMs: vmsWithMemoryHotPlugList,
     });
   }
 
@@ -594,6 +631,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['hostname-missing'].remediation,
       documentationLink: mtvRequirements.checks['hostname-missing'].documentationLink,
       affectedCount: vmsWithInvalidHostname,
+      affectedVMs: vmsWithInvalidHostnameList,
     });
   }
 
@@ -606,6 +644,7 @@ export function ROKSMigrationPage() {
       remediation: mtvRequirements.checks['static-ip-powered-off'].remediation,
       documentationLink: mtvRequirements.checks['static-ip-powered-off'].documentationLink,
       affectedCount: vmsStaticIPPoweredOff,
+      affectedVMs: vmsStaticIPPoweredOffList,
     });
   }
 
@@ -916,6 +955,7 @@ export function ROKSMigrationPage() {
                       <RemediationPanel
                         items={remediationItems}
                         title="Remediation Required"
+                        showAffectedVMs={true}
                       />
                     </Column>
                   )}
@@ -1001,7 +1041,7 @@ export function ROKSMigrationPage() {
                           <h3>Migration Wave Planning</h3>
                           <p>
                             {wavePlanningMode === 'network'
-                              ? `${networkWaves.length} ${networkGroupBy === 'portGroup' ? 'port groups' : 'IP subnets'} for network-based migration with cutover`
+                              ? `${networkWaves.length} ${networkGroupBy === 'ipPrefix' ? 'IP subnets' : 'port groups'} for network-based migration with cutover`
                               : `VMs organized into ${waveResources.length} waves based on complexity and readiness`
                             }
                           </p>
@@ -1031,14 +1071,27 @@ export function ROKSMigrationPage() {
                             id="network-group-by"
                             titleText="Group VMs by"
                             label="Select grouping method"
-                            items={[
-                              { id: 'portGroup', text: 'Port Group (VMware network segment)' },
-                              { id: 'ipPrefix', text: 'IP Prefix (subnet based on IP address)' },
-                            ]}
-                            selectedItem={{ id: networkGroupBy, text: networkGroupBy === 'portGroup' ? 'Port Group (VMware network segment)' : 'IP Prefix (subnet based on IP address)' }}
-                            onChange={({ selectedItem }) => selectedItem && setNetworkGroupBy(selectedItem.id as 'portGroup' | 'ipPrefix')}
-                            style={{ minWidth: '280px' }}
+                            items={['portGroup', 'portGroupPrefix', 'ipPrefix']}
+                            itemToString={(item) => item === 'portGroup' ? 'Port Group (exact name match)'
+                              : item === 'portGroupPrefix' ? 'Port Group Prefix (first N characters)'
+                              : item === 'ipPrefix' ? 'IP Prefix (subnet based on IP address)' : ''}
+                            selectedItem={networkGroupBy}
+                            onChange={({ selectedItem }) => selectedItem && setNetworkGroupBy(selectedItem as 'portGroup' | 'portGroupPrefix' | 'ipPrefix')}
+                            style={{ minWidth: '300px' }}
                           />
+                          {networkGroupBy === 'portGroupPrefix' && (
+                            <NumberInput
+                              id="port-group-prefix-length"
+                              label="Prefix Characters"
+                              helperText="Match first N characters of port group name"
+                              min={5}
+                              max={50}
+                              step={1}
+                              value={portGroupPrefixLength}
+                              onChange={(_e, { value }) => value && setPortGroupPrefixLength(Number(value))}
+                              style={{ minWidth: '180px' }}
+                            />
+                          )}
                           {networkGroupBy === 'ipPrefix' && (
                             <NumberInput
                               id="ip-prefix-length"
@@ -1061,10 +1114,10 @@ export function ROKSMigrationPage() {
                     <Tile className="migration-page__chart-tile">
                       <HorizontalBarChart
                         title={wavePlanningMode === 'network'
-                          ? (networkGroupBy === 'portGroup' ? 'VMs by Port Group' : 'VMs by IP Subnet')
+                          ? (networkGroupBy === 'ipPrefix' ? 'VMs by IP Subnet' : 'VMs by Port Group')
                           : 'VMs by Wave'}
                         subtitle={wavePlanningMode === 'network'
-                          ? `Top ${Math.min(15, networkWaves.length)} of ${networkWaves.length} ${networkGroupBy === 'portGroup' ? 'port groups' : 'subnets'}`
+                          ? `Top ${Math.min(15, networkWaves.length)} of ${networkWaves.length} ${networkGroupBy === 'ipPrefix' ? 'subnets' : 'groups'}`
                           : 'Distribution across migration waves'
                         }
                         data={waveChartData}
@@ -1077,7 +1130,7 @@ export function ROKSMigrationPage() {
 
                   <Column lg={8} md={8} sm={4}>
                     <Tile className="migration-page__checks-tile">
-                      <h3>{wavePlanningMode === 'network' ? (networkGroupBy === 'portGroup' ? 'Port Groups' : 'IP Subnets') : 'Wave Descriptions'}</h3>
+                      <h3>{wavePlanningMode === 'network' ? (networkGroupBy === 'ipPrefix' ? 'IP Subnets' : 'Port Groups') : 'Wave Descriptions'}</h3>
                       <div className="migration-page__check-items">
                         {waveResources.slice(0, 10).map((wave, idx) => (
                           <div key={idx} className="migration-page__check-item">

@@ -48,8 +48,9 @@ export function VSIMigrationPage() {
 
   // Wave planning mode: 'complexity' for traditional complexity-based waves, 'network' for subnet-based waves
   const [wavePlanningMode, setWavePlanningMode] = useState<'complexity' | 'network'>('network');
-  const [networkGroupBy, setNetworkGroupBy] = useState<'portGroup' | 'ipPrefix'>('portGroup');
+  const [networkGroupBy, setNetworkGroupBy] = useState<'portGroup' | 'portGroupPrefix' | 'ipPrefix'>('portGroup');
   const [ipPrefixLength, setIpPrefixLength] = useState<number>(24);
+  const [portGroupPrefixLength, setPortGroupPrefixLength] = useState<number>(20);
 
   const poweredOnVMs = vms.filter(vm => vm.powerState === 'poweredOn');
   const snapshots = rawData.vSnapshot;
@@ -58,23 +59,30 @@ export function VSIMigrationPage() {
   const networks = rawData.vNetwork;
 
   // ===== PRE-FLIGHT CHECKS =====
+  // VPC VSI Limits (from IBM Cloud documentation)
+  const VPC_BOOT_DISK_MAX_GB = 250;
+  const VPC_MAX_DISKS_PER_VM = 12;
 
   // VMware Tools checks (needed for clean export)
   const toolsMap = new Map(tools.map(t => [t.vmName, t]));
-  const vmsWithoutTools = poweredOnVMs.filter(vm => {
+  const vmsWithoutToolsList = poweredOnVMs.filter(vm => {
     const tool = toolsMap.get(vm.vmName);
     return !tool || tool.toolsStatus === 'toolsNotInstalled' || tool.toolsStatus === 'guestToolsNotInstalled';
-  }).length;
-  const vmsWithToolsNotRunning = poweredOnVMs.filter(vm => {
+  }).map(vm => vm.vmName);
+  const vmsWithoutTools = vmsWithoutToolsList.length;
+
+  const vmsWithToolsNotRunningList = poweredOnVMs.filter(vm => {
     const tool = toolsMap.get(vm.vmName);
     return tool && (tool.toolsStatus === 'toolsNotRunning' || tool.toolsStatus === 'guestToolsNotRunning');
-  }).length;
+  }).map(vm => vm.vmName);
+  const vmsWithToolsNotRunning = vmsWithToolsNotRunningList.length;
 
   // Snapshot checks
   const vmsWithSnapshots = new Set(snapshots.map(s => s.vmName)).size;
-  const vmsWithOldSnapshots = new Set(
+  const vmsWithOldSnapshotsList = [...new Set(
     snapshots.filter(s => s.ageInDays > SNAPSHOT_BLOCKER_AGE_DAYS).map(s => s.vmName)
-  ).size;
+  )];
+  const vmsWithOldSnapshots = vmsWithOldSnapshotsList.length;
   const vmsWithWarningSnapshots = new Set(
     snapshots.filter(s => s.ageInDays > SNAPSHOT_WARNING_AGE_DAYS && s.ageInDays <= SNAPSHOT_BLOCKER_AGE_DAYS).map(s => s.vmName)
   ).size;
@@ -93,19 +101,51 @@ export function VSIMigrationPage() {
   }, { recommended: 0, supported: 0, outdated: 0 });
 
   // Storage checks - RDM not supported in VPC
-  const vmsWithRDM = new Set(disks.filter(d => d.raw).map(d => d.vmName)).size;
-  const vmsWithSharedDisks = new Set(disks.filter(d =>
-    d.sharingMode && d.sharingMode.toLowerCase() !== 'sharingnone'
-  ).map(d => d.vmName)).size;
+  const vmsWithRDMList = [...new Set(disks.filter(d => d.raw).map(d => d.vmName))];
+  const vmsWithRDM = vmsWithRDMList.length;
 
-  // Large disk check - VPC has limits
-  const vmsWithLargeDisks = new Set(
+  const vmsWithSharedDisksList = [...new Set(disks.filter(d =>
+    d.sharingMode && d.sharingMode.toLowerCase() !== 'sharingnone'
+  ).map(d => d.vmName))];
+  const vmsWithSharedDisks = vmsWithSharedDisksList.length;
+
+  // Boot disk >250GB check - VPC boot volume limit
+  const vmsWithLargeBootDiskList = poweredOnVMs.filter(vm => {
+    // Find the first/boot disk for this VM (typically disk 0 or the smallest disk key)
+    const vmDisks = disks.filter(d => d.vmName === vm.vmName);
+    if (vmDisks.length === 0) return false;
+    // Sort by disk key to find the boot disk (usually key 0 or 2000)
+    const sortedDisks = [...vmDisks].sort((a, b) => (a.diskKey || 0) - (b.diskKey || 0));
+    const bootDisk = sortedDisks[0];
+    return bootDisk && mibToGiB(bootDisk.capacityMiB) > VPC_BOOT_DISK_MAX_GB;
+  }).map(vm => vm.vmName);
+  const vmsWithLargeBootDisk = vmsWithLargeBootDiskList.length;
+
+  // Too many disks check - VPC limit is 12 disks per VSI
+  const vmsWithTooManyDisksList = poweredOnVMs.filter(vm => {
+    const vmDiskCount = disks.filter(d => d.vmName === vm.vmName).length;
+    return vmDiskCount > VPC_MAX_DISKS_PER_VM;
+  }).map(vm => vm.vmName);
+  const vmsWithTooManyDisks = vmsWithTooManyDisksList.length;
+
+  // Large disk check - VPC has limits (>2TB needs multiple volumes)
+  const vmsWithLargeDisksList = [...new Set(
     disks.filter(d => mibToGiB(d.capacityMiB) > 2000).map(d => d.vmName)
-  ).size;
+  )];
+  const vmsWithLargeDisks = vmsWithLargeDisksList.length;
 
   // Large memory check - VPC profile limits
-  const vmsWithLargeMemory = poweredOnVMs.filter(vm => mibToGiB(vm.memory) > 512).length;
-  const vmsWithVeryLargeMemory = poweredOnVMs.filter(vm => mibToGiB(vm.memory) > 1024).length;
+  const vmsWithLargeMemoryList = poweredOnVMs.filter(vm => mibToGiB(vm.memory) > 512).map(vm => vm.vmName);
+  const vmsWithLargeMemory = vmsWithLargeMemoryList.length;
+  const vmsWithVeryLargeMemoryList = poweredOnVMs.filter(vm => mibToGiB(vm.memory) > 1024).map(vm => vm.vmName);
+  const vmsWithVeryLargeMemory = vmsWithVeryLargeMemoryList.length;
+
+  // Unsupported OS check
+  const vmsWithUnsupportedOSList = poweredOnVMs.filter(vm => {
+    const compat = getIBMCloudOSSupport(vm.guestOS);
+    return compat.status === 'unsupported';
+  }).map(vm => vm.vmName);
+  const vmsWithUnsupportedOS = vmsWithUnsupportedOSList.length;
 
   // ===== OS COMPATIBILITY =====
   const osCompatibilityResults = poweredOnVMs.map(vm => ({
@@ -126,7 +166,7 @@ export function VSIMigrationPage() {
   ].filter(d => d.value > 0);
 
   // ===== READINESS SCORE CALCULATION =====
-  const blockerCount = vmsWithRDM + vmsWithSharedDisks + vmsWithVeryLargeMemory;
+  const blockerCount = vmsWithRDM + vmsWithSharedDisks + vmsWithVeryLargeMemory + vmsWithLargeBootDisk + vmsWithTooManyDisks + vmsWithUnsupportedOS;
   const warningCount = vmsWithoutTools + vmsWithOldSnapshots + vmsWithLargeDisks + vmsWithLargeMemory - vmsWithVeryLargeMemory;
 
   const totalVMsToCheck = poweredOnVMs.length || 1;
@@ -346,7 +386,7 @@ export function VSIMigrationPage() {
     return `${prefix.join('.')}/${prefixLength}`;
   };
 
-  // Network-based waves: Group by port group or IP prefix
+  // Network-based waves: Group by port group, port group prefix, or IP prefix
   const networkWaves = useMemo(() => {
     const groups = new Map<string, typeof vmWaveData>();
 
@@ -354,8 +394,14 @@ export function VSIMigrationPage() {
       let key: string;
 
       if (networkGroupBy === 'portGroup') {
+        // Group by full VMware port group name
         key = vm.networkName || 'No Network';
+      } else if (networkGroupBy === 'portGroupPrefix') {
+        // Group by first N characters of port group name
+        const name = vm.networkName || 'No Network';
+        key = name.length > portGroupPrefixLength ? name.substring(0, portGroupPrefixLength) + '...' : name;
       } else {
+        // Group by IP prefix with configurable length
         if (vm.ipAddress) {
           key = getIpPrefix(vm.ipAddress, ipPrefixLength);
         } else {
@@ -405,7 +451,7 @@ export function VSIMigrationPage() {
       if (a.hasBlockers !== b.hasBlockers) return a.hasBlockers ? 1 : -1;
       return a.vmCount - b.vmCount;
     });
-  }, [vmWaveData, networkGroupBy, ipPrefixLength]);
+  }, [vmWaveData, networkGroupBy, ipPrefixLength, portGroupPrefixLength]);
 
   const waveChartData = wavePlanningMode === 'network'
     ? networkWaves.map((wave) => ({
@@ -440,15 +486,31 @@ export function VSIMigrationPage() {
   // ===== REMEDIATION ITEMS =====
   const remediationItems: RemediationItem[] = [];
 
-  if (vmsWithoutTools > 0) {
+  // BLOCKERS
+
+  if (vmsWithLargeBootDisk > 0) {
     remediationItems.push({
-      id: 'tools-installed',
-      name: 'VMware Tools Not Installed',
-      severity: 'warning',
-      description: 'VMware Tools required for clean VM export',
-      remediation: 'Install VMware Tools before exporting the VM',
-      documentationLink: mtvRequirements.checks['tools-installed'].documentationLink,
-      affectedCount: vmsWithoutTools,
+      id: 'boot-disk-too-large',
+      name: 'Boot Disk Exceeds 250GB Limit',
+      severity: 'blocker',
+      description: `VPC VSI boot volumes are limited to ${VPC_BOOT_DISK_MAX_GB}GB maximum. VMs with larger boot disks cannot be migrated directly.`,
+      remediation: 'Reduce boot disk size by moving data to secondary disks, or restructure the VM to use a smaller boot volume with separate data volumes.',
+      documentationLink: 'https://fullvalence.com/2025/11/10/from-vmware-to-ibm-cloud-vpc-vsi-part-3-migrating-virtual-machines/',
+      affectedCount: vmsWithLargeBootDisk,
+      affectedVMs: vmsWithLargeBootDiskList,
+    });
+  }
+
+  if (vmsWithTooManyDisks > 0) {
+    remediationItems.push({
+      id: 'too-many-disks',
+      name: `Exceeds ${VPC_MAX_DISKS_PER_VM} Disk Limit`,
+      severity: 'blocker',
+      description: `VPC VSI supports a maximum of ${VPC_MAX_DISKS_PER_VM} disks per instance. VMs with more disks cannot be migrated directly.`,
+      remediation: 'Consolidate disks or consider using file storage for some data volumes. Alternatively, split workloads across multiple VSIs.',
+      documentationLink: 'https://fullvalence.com/2025/11/10/from-vmware-to-ibm-cloud-vpc-vsi-part-3-migrating-virtual-machines/',
+      affectedCount: vmsWithTooManyDisks,
+      affectedVMs: vmsWithTooManyDisksList,
     });
   }
 
@@ -457,10 +519,11 @@ export function VSIMigrationPage() {
       id: 'no-rdm',
       name: 'RDM Disks Detected',
       severity: 'blocker',
-      description: 'Raw Device Mapping disks cannot be migrated to VPC VSI',
-      remediation: 'Convert RDM disks to VMDK before migration',
+      description: 'Raw Device Mapping disks cannot be migrated to VPC VSI.',
+      remediation: 'Convert RDM disks to VMDK before migration.',
       documentationLink: mtvRequirements.checks['no-rdm'].documentationLink,
       affectedCount: vmsWithRDM,
+      affectedVMs: vmsWithRDMList,
     });
   }
 
@@ -469,34 +532,66 @@ export function VSIMigrationPage() {
       id: 'no-shared-disks',
       name: 'Shared Disks Detected',
       severity: 'blocker',
-      description: 'Shared disks are not supported on VPC VSIs',
-      remediation: 'Reconfigure shared storage to use block storage or file storage',
-      documentationLink: mtvRequirements.checks['no-shared-disks'].documentationLink,
+      description: 'VPC VSI does not support shared block volumes. File storage is available but does not support Windows clients.',
+      remediation: 'Reconfigure shared storage to use file storage (Linux only), or deploy a custom VSI with iSCSI targets as a workaround.',
+      documentationLink: 'https://fullvalence.com/2025/11/10/from-vmware-to-ibm-cloud-vpc-vsi-part-3-migrating-virtual-machines/',
       affectedCount: vmsWithSharedDisks,
+      affectedVMs: vmsWithSharedDisksList,
     });
   }
 
   if (vmsWithVeryLargeMemory > 0) {
     remediationItems.push({
       id: 'large-memory',
-      name: 'Very Large Memory VMs',
+      name: 'Very Large Memory VMs (>1TB)',
       severity: 'blocker',
-      description: 'VMs with >1TB memory exceed VPC VSI profile limits',
-      remediation: 'Consider using bare metal servers or splitting workloads',
+      description: 'VMs with >1TB memory exceed VPC VSI profile limits.',
+      remediation: 'Consider using bare metal servers or splitting workloads across multiple VSIs.',
       documentationLink: 'https://cloud.ibm.com/docs/vpc?topic=vpc-profiles',
       affectedCount: vmsWithVeryLargeMemory,
+      affectedVMs: vmsWithVeryLargeMemoryList,
+    });
+  }
+
+  if (vmsWithUnsupportedOS > 0) {
+    remediationItems.push({
+      id: 'unsupported-os',
+      name: 'Unsupported Operating System',
+      severity: 'blocker',
+      description: 'These VMs have operating systems that are not supported for VPC VSI migration. Windows must be Server 2008 R2+ or Windows 7+.',
+      remediation: 'Upgrade the operating system to a supported version before migration, or consider alternative migration strategies.',
+      documentationLink: 'https://fullvalence.com/2025/11/10/from-vmware-to-ibm-cloud-vpc-vsi-part-3-migrating-virtual-machines/',
+      affectedCount: vmsWithUnsupportedOS,
+      affectedVMs: vmsWithUnsupportedOSList,
+    });
+  }
+
+  // WARNINGS
+
+  if (vmsWithoutTools > 0) {
+    remediationItems.push({
+      id: 'tools-installed',
+      name: 'VMware Tools Not Installed',
+      severity: 'warning',
+      description: 'VMware Tools required for clean VM export and proper shutdown.',
+      remediation: 'Install VMware Tools before exporting the VM. Windows VMs must be shut down cleanly for virt-v2v processing.',
+      documentationLink: mtvRequirements.checks['tools-installed'].documentationLink,
+      affectedCount: vmsWithoutTools,
+      affectedVMs: vmsWithoutToolsList,
     });
   }
 
   if (vmsWithLargeMemory - vmsWithVeryLargeMemory > 0) {
+    const largeMemoryOnlyList = vmsWithLargeMemoryList.filter(vm => !vmsWithVeryLargeMemoryList.includes(vm));
     remediationItems.push({
       id: 'large-memory-warning',
-      name: 'Large Memory VMs',
+      name: 'Large Memory VMs (>512GB)',
       severity: 'warning',
-      description: 'VMs with >512GB memory require high-memory profiles',
-      remediation: 'Ensure mx2-128x1024 or similar profile is available in your region',
+      description: 'VMs with >512GB memory require high-memory profiles which may have limited availability.',
+      remediation: 'Ensure mx2-128x1024 or similar profile is available in your target region.',
       documentationLink: 'https://cloud.ibm.com/docs/vpc?topic=vpc-profiles',
       affectedCount: vmsWithLargeMemory - vmsWithVeryLargeMemory,
+      affectedVMs: largeMemoryOnlyList,
     });
   }
 
@@ -505,10 +600,11 @@ export function VSIMigrationPage() {
       id: 'large-disks',
       name: 'Large Disks (>2TB)',
       severity: 'warning',
-      description: 'Disks larger than 2TB may require multiple block volumes',
-      remediation: 'Plan for disk splitting or use file storage for large data',
+      description: 'Disks larger than 2TB may require multiple block volumes.',
+      remediation: 'Plan for disk splitting or use file storage for large data volumes.',
       documentationLink: 'https://cloud.ibm.com/docs/vpc?topic=vpc-block-storage-profiles',
       affectedCount: vmsWithLargeDisks,
+      affectedVMs: vmsWithLargeDisksList,
     });
   }
 
@@ -517,10 +613,11 @@ export function VSIMigrationPage() {
       id: 'old-snapshots',
       name: 'Old Snapshots',
       severity: 'warning',
-      description: 'Snapshots should be consolidated before export',
-      remediation: 'Delete or consolidate snapshots before VM export',
+      description: 'Snapshots should be consolidated before export for best results.',
+      remediation: 'Delete or consolidate snapshots before VM export.',
       documentationLink: mtvRequirements.checks['old-snapshots'].documentationLink,
       affectedCount: vmsWithOldSnapshots,
+      affectedVMs: vmsWithOldSnapshotsList,
     });
   }
 
@@ -711,6 +808,7 @@ export function VSIMigrationPage() {
                       <RemediationPanel
                         items={remediationItems}
                         title="Remediation Required"
+                        showAffectedVMs={true}
                       />
                     </Column>
                   )}
@@ -844,7 +942,7 @@ export function VSIMigrationPage() {
                           <h3>Migration Wave Planning</h3>
                           <p>
                             {wavePlanningMode === 'network'
-                              ? `${waveResources.length} subnets for subnet-based migration with network cutover`
+                              ? `${networkWaves.length} ${networkGroupBy === 'ipPrefix' ? 'IP subnets' : 'port groups'} for network-based migration with cutover`
                               : `VMs organized into ${waveResources.length} waves based on complexity and readiness`}
                           </p>
                         </div>
@@ -855,18 +953,64 @@ export function VSIMigrationPage() {
                           onChange={(value) => setWavePlanningMode(value as 'complexity' | 'network')}
                           orientation="horizontal"
                         >
-                          <RadioButton labelText="Network-Based" value="network" id="wave-network" />
-                          <RadioButton labelText="Complexity-Based" value="complexity" id="wave-complexity" />
+                          <RadioButton labelText="Network-Based" value="network" id="wave-network-vsi" />
+                          <RadioButton labelText="Complexity-Based" value="complexity" id="wave-complexity-vsi" />
                         </RadioButtonGroup>
                       </div>
+                      {wavePlanningMode === 'network' && (
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                          <Dropdown
+                            id="network-group-by-vsi"
+                            titleText="Group VMs by"
+                            label="Select grouping method"
+                            items={['portGroup', 'portGroupPrefix', 'ipPrefix']}
+                            itemToString={(item) => item === 'portGroup' ? 'Port Group (exact name match)'
+                              : item === 'portGroupPrefix' ? 'Port Group Prefix (first N characters)'
+                              : item === 'ipPrefix' ? 'IP Prefix (subnet based on IP address)' : ''}
+                            selectedItem={networkGroupBy}
+                            onChange={({ selectedItem }) => selectedItem && setNetworkGroupBy(selectedItem as 'portGroup' | 'portGroupPrefix' | 'ipPrefix')}
+                            style={{ minWidth: '300px' }}
+                          />
+                          {networkGroupBy === 'portGroupPrefix' && (
+                            <NumberInput
+                              id="port-group-prefix-length-vsi"
+                              label="Prefix Characters"
+                              helperText="Match first N characters of port group name"
+                              min={5}
+                              max={50}
+                              step={1}
+                              value={portGroupPrefixLength}
+                              onChange={(_e, { value }) => value && setPortGroupPrefixLength(Number(value))}
+                              style={{ minWidth: '180px' }}
+                            />
+                          )}
+                          {networkGroupBy === 'ipPrefix' && (
+                            <NumberInput
+                              id="ip-prefix-length-vsi"
+                              label="CIDR Prefix Length"
+                              helperText="e.g., /24 = 256 IPs, /16 = 65,536 IPs"
+                              min={8}
+                              max={30}
+                              step={1}
+                              value={ipPrefixLength}
+                              onChange={(_e, { value }) => value && setIpPrefixLength(Number(value))}
+                              style={{ minWidth: '180px' }}
+                            />
+                          )}
+                        </div>
+                      )}
                     </Tile>
                   </Column>
 
                   <Column lg={8} md={8} sm={4}>
                     <Tile className="migration-page__chart-tile">
                       <HorizontalBarChart
-                        title={wavePlanningMode === 'network' ? 'VMs by Subnet' : 'VMs by Wave'}
-                        subtitle={wavePlanningMode === 'network' ? 'Distribution across subnets' : 'Distribution across migration waves'}
+                        title={wavePlanningMode === 'network'
+                          ? (networkGroupBy === 'ipPrefix' ? 'VMs by IP Subnet' : 'VMs by Port Group')
+                          : 'VMs by Wave'}
+                        subtitle={wavePlanningMode === 'network'
+                          ? `Distribution across ${networkGroupBy === 'ipPrefix' ? 'subnets' : 'groups'}`
+                          : 'Distribution across migration waves'}
                         data={waveChartData}
                         height={280}
                         valueLabel="VMs"
@@ -880,7 +1024,7 @@ export function VSIMigrationPage() {
 
                   <Column lg={8} md={8} sm={4}>
                     <Tile className="migration-page__checks-tile">
-                      <h3>{wavePlanningMode === 'network' ? 'Subnets' : 'Wave Descriptions'}</h3>
+                      <h3>{wavePlanningMode === 'network' ? (networkGroupBy === 'ipPrefix' ? 'IP Subnets' : 'Port Groups') : 'Wave Descriptions'}</h3>
                       <div className="migration-page__check-items">
                         {waveResources.slice(0, 8).map((wave, idx) => (
                           <div key={idx} className="migration-page__check-item">
@@ -892,7 +1036,7 @@ export function VSIMigrationPage() {
                         ))}
                         {waveResources.length > 8 && (
                           <div className="migration-page__check-item">
-                            <span>+ {waveResources.length - 8} more {wavePlanningMode === 'network' ? 'subnets' : 'waves'}</span>
+                            <span>+ {waveResources.length - 8} more {wavePlanningMode === 'network' ? (networkGroupBy === 'ipPrefix' ? 'subnets' : 'groups') : 'waves'}</span>
                             <Tag type="gray">{formatNumber(waveResources.slice(8).reduce((sum, w) => sum + w.vmCount, 0))}</Tag>
                           </div>
                         )}
