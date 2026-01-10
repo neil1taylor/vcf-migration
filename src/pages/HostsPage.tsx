@@ -242,6 +242,8 @@ export function HostsPage() {
             value={formatNumber(totalHosts)}
             detail={`${avgVmsPerHost} VMs/host avg`}
             variant="info"
+            tooltip="Number of ESXi hosts discovered in the environment."
+            docSection="host"
           />
         </Column>
 
@@ -251,6 +253,8 @@ export function HostsPage() {
             value={formatNumber(totalCpuCores)}
             detail={`${cpuOvercommitRatio}:1 vCPU ratio`}
             variant="teal"
+            tooltip="Total physical CPU cores across all hosts. The ratio shows vCPU overcommitment."
+            docSection="host"
           />
         </Column>
 
@@ -260,6 +264,8 @@ export function HostsPage() {
             value={formatMiB(totalMemoryMiB, 0)}
             detail={`${memoryOvercommitRatio}:1 memory ratio`}
             variant="purple"
+            tooltip="Total physical memory across all hosts. The ratio shows VM memory overcommitment."
+            docSection="host"
           />
         </Column>
 
@@ -269,6 +275,8 @@ export function HostsPage() {
             value={formatNumber(hosts.filter(h => h.hyperthreading).length)}
             detail={`of ${totalHosts} hosts enabled`}
             variant="primary"
+            tooltip="Hosts with Intel Hyperthreading or AMD SMT enabled, which doubles available CPU threads."
+            docSection="host"
           />
         </Column>
 
@@ -378,6 +386,7 @@ export function HostsPage() {
                   label="Disconnected Hosts"
                   value={formatNumber(hostsNotConnected)}
                   variant={hostsNotConnected > 0 ? 'error' : 'success'}
+                  tooltip="Hosts not in 'connected' state. May be in maintenance or have connectivity issues."
                 />
               </Column>
               <Column lg={8} md={4} sm={2}>
@@ -385,6 +394,7 @@ export function HostsPage() {
                   label="High CPU (>80%)"
                   value={formatNumber(hostsHighCpuUtil)}
                   variant={hostsHighCpuUtil > 0 ? 'warning' : 'success'}
+                  tooltip="Hosts with CPU utilization above 80%. Consider workload balancing before migration."
                 />
               </Column>
               <Column lg={8} md={4} sm={2}>
@@ -392,6 +402,7 @@ export function HostsPage() {
                   label="High Memory (>80%)"
                   value={formatNumber(hostsHighMemUtil)}
                   variant={hostsHighMemUtil > 0 ? 'warning' : 'success'}
+                  tooltip="Hosts with memory utilization above 80%. High memory pressure may affect performance."
                 />
               </Column>
             </Grid>

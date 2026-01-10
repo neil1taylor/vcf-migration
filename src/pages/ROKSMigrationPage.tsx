@@ -769,6 +769,7 @@ export function ROKSMigrationPage() {
             label="VMs to Migrate"
             value={formatNumber(poweredOnVMs.length)}
             variant="primary"
+            tooltip="Total powered-on VMs eligible for migration to OpenShift Virtualization."
           />
         </Column>
         <Column lg={4} md={4} sm={2}>
@@ -776,6 +777,7 @@ export function ROKSMigrationPage() {
             label="Blockers"
             value={formatNumber(blockerCount)}
             variant={blockerCount > 0 ? 'error' : 'success'}
+            tooltip="Critical issues that must be resolved before migration (e.g., RDM disks, missing VMware Tools)."
           />
         </Column>
         <Column lg={4} md={4} sm={2}>
@@ -783,6 +785,7 @@ export function ROKSMigrationPage() {
             label="Warnings"
             value={formatNumber(warningCount)}
             variant={warningCount > 0 ? 'warning' : 'success'}
+            tooltip="Non-blocking issues that should be reviewed but won't prevent migration."
           />
         </Column>
 

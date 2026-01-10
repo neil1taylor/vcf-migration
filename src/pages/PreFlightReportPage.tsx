@@ -189,6 +189,7 @@ export function PreFlightReportPage() {
             label="Total VMs"
             value={totalVMs}
             variant="info"
+            tooltip="Total powered-on VMs analyzed for migration readiness."
           />
         </Column>
         <Column lg={4} md={2} sm={2}>
@@ -197,6 +198,7 @@ export function PreFlightReportPage() {
             value={vmsWithBlockers}
             variant="error"
             detail={`${((vmsWithBlockers / totalVMs) * 100).toFixed(1)}%`}
+            tooltip="VMs with critical issues that must be resolved before migration."
           />
         </Column>
         <Column lg={4} md={2} sm={2}>
@@ -205,6 +207,7 @@ export function PreFlightReportPage() {
             value={vmsWithWarningsOnly}
             variant="warning"
             detail={`${((vmsWithWarningsOnly / totalVMs) * 100).toFixed(1)}%`}
+            tooltip="VMs with non-blocking issues that should be reviewed."
           />
         </Column>
         <Column lg={4} md={2} sm={2}>
@@ -213,6 +216,7 @@ export function PreFlightReportPage() {
             value={vmsReady}
             variant="success"
             detail={`${((vmsReady / totalVMs) * 100).toFixed(1)}%`}
+            tooltip="VMs passing all pre-flight checks with no blockers or warnings."
           />
         </Column>
 

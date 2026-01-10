@@ -272,6 +272,8 @@ export function ClusterPage() {
             value={formatNumber(totalClusters)}
             detail={`${avgVmsPerCluster} VMs/cluster avg`}
             variant="primary"
+            tooltip="Number of VMware clusters in the environment."
+            docSection="cluster"
           />
         </Column>
 
@@ -281,6 +283,8 @@ export function ClusterPage() {
             value={formatNumber(totalHosts)}
             detail={`${avgHostsPerCluster} hosts/cluster avg`}
             variant="info"
+            tooltip="Total number of ESXi hosts across all clusters."
+            docSection="cluster"
           />
         </Column>
 
@@ -290,6 +294,8 @@ export function ClusterPage() {
             value={`${Math.round(totalClusterCpuMHz / 1000)} GHz`}
             detail={`${Math.round(effectiveClusterCpuMHz / 1000)} GHz effective`}
             variant="teal"
+            tooltip="Aggregate CPU capacity of all hosts in all clusters."
+            docSection="cluster"
           />
         </Column>
 
@@ -299,6 +305,8 @@ export function ClusterPage() {
             value={formatMiB(totalClusterMemoryMiB, 0)}
             detail={`${formatMiB(effectiveClusterMemoryMiB, 0)} effective`}
             variant="purple"
+            tooltip="Total memory capacity across all clusters. Effective memory excludes HA reservations."
+            docSection="cluster"
           />
         </Column>
 
@@ -420,6 +428,8 @@ export function ClusterPage() {
             label="Healthy Clusters"
             value={formatNumber(clustersGreen)}
             variant="success"
+            tooltip="Clusters reporting green/healthy overall status with no issues detected."
+            docSection="cluster"
           />
         </Column>
 
@@ -428,6 +438,8 @@ export function ClusterPage() {
             label="Warning Status"
             value={formatNumber(clustersYellow)}
             variant={clustersYellow > 0 ? 'warning' : 'success'}
+            tooltip="Clusters with warning status that may require attention before migration."
+            docSection="cluster"
           />
         </Column>
 
@@ -436,6 +448,8 @@ export function ClusterPage() {
             label="Critical Status"
             value={formatNumber(clustersRed)}
             variant={clustersRed > 0 ? 'error' : 'success'}
+            tooltip="Clusters in critical state requiring immediate attention."
+            docSection="cluster"
           />
         </Column>
 
@@ -445,6 +459,8 @@ export function ClusterPage() {
             value={clusters.length > 0 ? Math.max(...clusters.map(c => c.haFailoverLevel)).toString() : 'N/A'}
             detail="Maximum configured"
             variant="info"
+            tooltip="Maximum HA failover level configured across clusters. Indicates number of host failures the cluster can tolerate."
+            docSection="cluster"
           />
         </Column>
 

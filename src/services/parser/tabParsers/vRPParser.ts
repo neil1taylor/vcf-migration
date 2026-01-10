@@ -79,25 +79,80 @@ const COLUMN_MAP: Record<string, keyof VResourcePoolInfo | null> = {
   'Parent': 'parent',
   'Parent Pool': 'parent',
   'Parent Resource Pool': 'parent',
+  // Resource Pool path - used to extract datacenter/cluster if not in separate columns
+  'Resource Pool path': 'path',
+  'Path': 'path',
+  'RP Path': 'path',
 };
+
+// Extract datacenter and cluster from Resource Pool path
+// Path formats vary:
+//   /Datacenter/ClusterName/Resources/PoolName (IBM Cloud / VCF style)
+//   /Datacenter/host/ClusterName/Resources/PoolName (traditional vSphere)
+//   Datacenter/ClusterName/Resources/PoolName (no leading slash)
+function extractFromPath(path: string): { datacenter: string; cluster: string } {
+  if (!path) return { datacenter: '', cluster: '' };
+
+  const parts = path.split('/').filter(p => p);
+  let datacenter = '';
+  let cluster = '';
+
+  if (parts.length >= 1) {
+    datacenter = parts[0];
+  }
+
+  // Find 'Resources' in the path - cluster is typically right before it
+  const resourcesIndex = parts.indexOf('Resources');
+  if (resourcesIndex > 0) {
+    // Check if there's a 'host' segment before Resources
+    const hostIndex = parts.indexOf('host');
+    if (hostIndex !== -1 && hostIndex < resourcesIndex) {
+      // Traditional vSphere: /Datacenter/host/Cluster/Resources/...
+      cluster = parts[hostIndex + 1];
+    } else if (resourcesIndex >= 2) {
+      // VCF/IBM style: /Datacenter/Cluster/Resources/...
+      // Cluster is right before Resources
+      cluster = parts[resourcesIndex - 1];
+    }
+  } else if (parts.length >= 2) {
+    // No 'Resources' found - try second element as cluster
+    cluster = parts[1];
+  }
+
+  return { datacenter, cluster };
+}
 
 export function parseVRP(sheet: WorkSheet): VResourcePoolInfo[] {
   const rows = parseSheet(sheet, COLUMN_MAP);
 
-  return rows.map((row): VResourcePoolInfo => ({
-    name: getStringValue(row, 'name'),
-    configStatus: getStringValue(row, 'configStatus'),
-    cpuReservation: getNumberValue(row, 'cpuReservation'),
-    cpuLimit: getNumberValue(row, 'cpuLimit'),
-    cpuExpandable: getBooleanValue(row, 'cpuExpandable'),
-    cpuShares: getNumberValue(row, 'cpuShares'),
-    memoryReservation: getNumberValue(row, 'memoryReservation'),
-    memoryLimit: getNumberValue(row, 'memoryLimit'),
-    memoryExpandable: getBooleanValue(row, 'memoryExpandable'),
-    memoryShares: getNumberValue(row, 'memoryShares'),
-    vmCount: getNumberValue(row, 'vmCount'),
-    datacenter: getStringValue(row, 'datacenter'),
-    cluster: getStringValue(row, 'cluster'),
-    parent: getStringValue(row, 'parent') || null,
-  })).filter(rp => rp.name);
+  return rows.map((row): VResourcePoolInfo => {
+    // Try to get datacenter/cluster from direct columns first
+    let datacenter = getStringValue(row, 'datacenter');
+    let cluster = getStringValue(row, 'cluster');
+
+    // If not found, try to extract from path
+    if (!datacenter || !cluster) {
+      const path = getStringValue(row, 'path');
+      const extracted = extractFromPath(path);
+      if (!datacenter) datacenter = extracted.datacenter;
+      if (!cluster) cluster = extracted.cluster;
+    }
+
+    return {
+      name: getStringValue(row, 'name'),
+      configStatus: getStringValue(row, 'configStatus'),
+      cpuReservation: getNumberValue(row, 'cpuReservation'),
+      cpuLimit: getNumberValue(row, 'cpuLimit'),
+      cpuExpandable: getBooleanValue(row, 'cpuExpandable'),
+      cpuShares: getNumberValue(row, 'cpuShares'),
+      memoryReservation: getNumberValue(row, 'memoryReservation'),
+      memoryLimit: getNumberValue(row, 'memoryLimit'),
+      memoryExpandable: getBooleanValue(row, 'memoryExpandable'),
+      memoryShares: getNumberValue(row, 'memoryShares'),
+      vmCount: getNumberValue(row, 'vmCount'),
+      datacenter,
+      cluster,
+      parent: getStringValue(row, 'parent') || null,
+    };
+  }).filter(rp => rp.name);
 }

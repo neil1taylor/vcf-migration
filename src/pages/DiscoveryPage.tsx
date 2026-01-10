@@ -178,6 +178,7 @@ export function DiscoveryPage() {
             value={formatNumber(totalWorkloadVMs)}
             detail={`${workloadCategories} categories detected`}
             variant="primary"
+            tooltip="VMs identified with known workload patterns (databases, middleware, applications) by name/annotation analysis."
           />
         </Column>
         <Column lg={4} md={4} sm={2}>
@@ -186,6 +187,7 @@ export function DiscoveryPage() {
             value={formatNumber(uniqueAppliances)}
             detail="OVA/Virtual appliances"
             variant="purple"
+            tooltip="Virtual appliances (OVAs) detected that may require special migration handling or vendor guidance."
           />
         </Column>
         <Column lg={4} md={4} sm={2}>
@@ -194,6 +196,7 @@ export function DiscoveryPage() {
             value={formatNumber(networkEquipment.length)}
             detail="Cisco, F5, NSX, etc."
             variant="teal"
+            tooltip="Virtual network appliances (routers, load balancers, firewalls) that may need platform-specific alternatives."
           />
         </Column>
         <Column lg={4} md={4} sm={2}>
@@ -202,6 +205,7 @@ export function DiscoveryPage() {
             value={formatNumber(poweredOnVMs.length)}
             detail="Total running VMs"
             variant="info"
+            tooltip="Total running VMs being analyzed for workload detection."
           />
         </Column>
 

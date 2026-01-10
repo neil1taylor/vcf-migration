@@ -276,6 +276,7 @@ export interface VResourcePoolInfo {
   datacenter: string;
   cluster: string;
   parent: string | null;
+  path?: string; // Used for extracting datacenter/cluster from Resource Pool path
 }
 
 export interface VLicenseInfo {

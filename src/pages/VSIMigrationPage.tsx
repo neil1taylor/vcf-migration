@@ -669,6 +669,7 @@ export function VSIMigrationPage() {
             label="VMs to Migrate"
             value={formatNumber(poweredOnVMs.length)}
             variant="primary"
+            tooltip="Total powered-on VMs eligible for migration to IBM Cloud VPC Virtual Server Instances."
           />
         </Column>
         <Column lg={4} md={4} sm={2}>
@@ -676,6 +677,7 @@ export function VSIMigrationPage() {
             label="Blockers"
             value={formatNumber(blockerCount)}
             variant={blockerCount > 0 ? 'error' : 'success'}
+            tooltip="Critical issues that prevent migration (e.g., >1TB memory, RDM disks, unsupported OS)."
           />
         </Column>
         <Column lg={4} md={4} sm={2}>
@@ -683,6 +685,7 @@ export function VSIMigrationPage() {
             label="Warnings"
             value={formatNumber(warningCount)}
             variant={warningCount > 0 ? 'warning' : 'success'}
+            tooltip="Non-blocking issues to review (e.g., large disks, missing VMware Tools)."
           />
         </Column>
 
@@ -843,6 +846,7 @@ export function VSIMigrationPage() {
                       label="Total VSIs"
                       value={formatNumber(totalVSIs)}
                       variant="primary"
+                      tooltip="Number of VPC Virtual Server Instances needed for migration."
                     />
                   </Column>
 
@@ -851,6 +855,7 @@ export function VSIMigrationPage() {
                       label="Unique Profiles"
                       value={formatNumber(uniqueProfiles)}
                       variant="info"
+                      tooltip="Number of distinct VSI profile types recommended for your workloads."
                     />
                   </Column>
 
@@ -859,6 +864,7 @@ export function VSIMigrationPage() {
                       label="Total vCPUs"
                       value={formatNumber(vsiTotalVCPUs)}
                       variant="teal"
+                      tooltip="Sum of vCPUs across all recommended VSI profiles."
                     />
                   </Column>
 
@@ -867,6 +873,7 @@ export function VSIMigrationPage() {
                       label="Total Memory"
                       value={`${formatNumber(vsiTotalMemory)} GiB`}
                       variant="purple"
+                      tooltip="Sum of memory across all recommended VSI profiles."
                     />
                   </Column>
 

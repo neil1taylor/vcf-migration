@@ -237,6 +237,8 @@ export function ResourcePoolPage() {
             value={formatNumber(totalResourcePools)}
             detail={`${rootPools.length} root, ${childPools.length} nested`}
             variant="primary"
+            tooltip="Number of resource pools configured in the environment, including nested pools."
+            docSection="resourcepool"
           />
         </Column>
 
@@ -246,6 +248,8 @@ export function ResourcePoolPage() {
             value={formatNumber(totalVMsInPools)}
             detail={`${(totalVMsInPools / totalResourcePools).toFixed(1)} VMs/pool avg`}
             variant="info"
+            tooltip="Total VMs assigned to resource pools. VMs inherit resource allocations from their pool."
+            docSection="resourcepool"
           />
         </Column>
 
@@ -255,6 +259,8 @@ export function ResourcePoolPage() {
             value={`${(totalCpuReservation / 1000).toFixed(1)} GHz`}
             detail={`${poolsWithCpuReservation.length} pools with reservations`}
             variant="teal"
+            tooltip="Sum of CPU reservations across all pools. Reservations guarantee minimum CPU resources."
+            docSection="resourcepool"
           />
         </Column>
 
@@ -264,6 +270,8 @@ export function ResourcePoolPage() {
             value={formatMiB(totalMemoryReservation, 0)}
             detail={`${poolsWithMemoryReservation.length} pools with reservations`}
             variant="purple"
+            tooltip="Sum of memory reservations. Reserved memory is backed by physical RAM."
+            docSection="resourcepool"
           />
         </Column>
 
@@ -274,6 +282,7 @@ export function ResourcePoolPage() {
             value={formatNumber(cpuExpandable)}
             detail={`${((cpuExpandable / totalResourcePools) * 100).toFixed(0)}% of pools`}
             variant="success"
+            tooltip="Pools that can borrow CPU resources from parent when under contention."
           />
         </Column>
 
@@ -283,6 +292,7 @@ export function ResourcePoolPage() {
             value={formatNumber(memoryExpandable)}
             detail={`${((memoryExpandable / totalResourcePools) * 100).toFixed(0)}% of pools`}
             variant="success"
+            tooltip="Pools that can borrow memory resources from parent when under contention."
           />
         </Column>
 
@@ -291,6 +301,7 @@ export function ResourcePoolPage() {
             label="Pools with CPU Limit"
             value={formatNumber(poolsWithCpuLimit.length)}
             variant={poolsWithCpuLimit.length > 0 ? 'warning' : 'info'}
+            tooltip="Pools with hard CPU limits. Review these as they constrain maximum CPU usage."
           />
         </Column>
 
@@ -299,6 +310,7 @@ export function ResourcePoolPage() {
             label="Pools with Memory Limit"
             value={formatNumber(poolsWithMemoryLimit.length)}
             variant={poolsWithMemoryLimit.length > 0 ? 'warning' : 'info'}
+            tooltip="Pools with hard memory limits. Review these as they constrain maximum memory usage."
           />
         </Column>
 
