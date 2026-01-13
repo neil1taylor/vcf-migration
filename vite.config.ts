@@ -11,6 +11,17 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      // Proxy IBM Cloud Global Catalog API to avoid CORS issues
+      '/api/globalcatalog': {
+        target: 'https://globalcatalog.cloud.ibm.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/globalcatalog/, '/api/v1'),
+        secure: true,
+      },
+    },
+  },
   worker: {
     format: 'es',
   },

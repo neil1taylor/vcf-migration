@@ -1,5 +1,16 @@
 // IBM Cloud Cost Estimation Service
 import pricingData from '@/data/ibmCloudPricing.json';
+import type { IBMCloudPricing } from '@/services/pricing/pricingCache';
+import { getCurrentPricing } from '@/services/pricing/pricingCache';
+
+// Helper to get active pricing data (dynamic or static fallback)
+function getActivePricing(): IBMCloudPricing {
+  try {
+    return getCurrentPricing().data;
+  } catch {
+    return pricingData as unknown as IBMCloudPricing;
+  }
+}
 
 export interface CostLineItem {
   category: string;
@@ -55,8 +66,9 @@ export type DiscountType = keyof typeof pricingData.discounts;
 /**
  * Get list of available regions
  */
-export function getRegions(): { code: string; name: string; multiplier: number }[] {
-  return Object.entries(pricingData.regions).map(([code, region]) => ({
+export function getRegions(pricing?: IBMCloudPricing): { code: string; name: string; multiplier: number }[] {
+  const data = pricing || getActivePricing();
+  return Object.entries(data.regions).map(([code, region]) => ({
     code,
     name: region.name,
     multiplier: region.multiplier,
@@ -66,8 +78,9 @@ export function getRegions(): { code: string; name: string; multiplier: number }
 /**
  * Get list of available discount options
  */
-export function getDiscountOptions(): { id: string; name: string; discountPct: number; description: string }[] {
-  return Object.entries(pricingData.discounts).map(([id, discount]) => ({
+export function getDiscountOptions(pricing?: IBMCloudPricing): { id: string; name: string; discountPct: number; description: string }[] {
+  const data = pricing || getActivePricing();
+  return Object.entries(data.discounts).map(([id, discount]) => ({
     id,
     name: discount.name,
     discountPct: discount.discountPct,
@@ -78,8 +91,9 @@ export function getDiscountOptions(): { id: string; name: string; discountPct: n
 /**
  * Get bare metal profiles
  */
-export function getBareMetalProfiles() {
-  return Object.entries(pricingData.bareMetal).map(([id, profile]) => ({
+export function getBareMetalProfiles(pricing?: IBMCloudPricing) {
+  const data = pricing || getActivePricing();
+  return Object.entries(data.bareMetal).map(([id, profile]) => ({
     id,
     ...profile,
   }));
@@ -88,8 +102,9 @@ export function getBareMetalProfiles() {
 /**
  * Get VSI profiles
  */
-export function getVSIProfiles() {
-  return Object.entries(pricingData.vsi).map(([id, profile]) => ({
+export function getVSIProfiles(pricing?: IBMCloudPricing) {
+  const data = pricing || getActivePricing();
+  return Object.entries(data.vsi).map(([id, profile]) => ({
     id,
     ...profile,
   }));
@@ -98,8 +113,9 @@ export function getVSIProfiles() {
 /**
  * Get ODF workload profiles
  */
-export function getODFProfiles() {
-  return Object.entries(pricingData.odfWorkloadProfiles).map(([id, profile]) => ({
+export function getODFProfiles(pricing?: IBMCloudPricing) {
+  const data = pricing || getActivePricing();
+  return Object.entries(data.odfWorkloadProfiles).map(([id, profile]) => ({
     id,
     ...profile,
   }));
@@ -111,15 +127,17 @@ export function getODFProfiles() {
 export function calculateROKSCost(
   input: ROKSSizingInput,
   region: RegionCode = 'us-south',
-  discountType: DiscountType = 'onDemand'
+  discountType: DiscountType = 'onDemand',
+  pricing?: IBMCloudPricing
 ): CostEstimate {
+  const pricingToUse = pricing || getActivePricing();
   const lineItems: CostLineItem[] = [];
-  const regionData = pricingData.regions[region];
-  const discountData = pricingData.discounts[discountType];
+  const regionData = pricingToUse.regions[region];
+  const discountData = pricingToUse.discounts[discountType];
   const multiplier = regionData.multiplier;
 
   // Compute nodes (bare metal)
-  const computeProfile = pricingData.bareMetal[input.computeProfile as keyof typeof pricingData.bareMetal];
+  const computeProfile = pricingToUse.bareMetal[input.computeProfile as keyof typeof pricingToUse.bareMetal];
   if (computeProfile && input.computeNodes > 0) {
     const monthlyRate = computeProfile.monthlyRate * multiplier;
     lineItems.push({
@@ -153,7 +171,7 @@ export function calculateROKSCost(
   } else {
     // Hybrid architecture with separate storage nodes
     if (input.storageNodes && input.storageProfile) {
-      const storageVSI = pricingData.vsi[input.storageProfile as keyof typeof pricingData.vsi];
+      const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
       if (storageVSI) {
         const monthlyRate = storageVSI.monthlyRate * multiplier;
         lineItems.push({
@@ -172,9 +190,9 @@ export function calculateROKSCost(
     // Block storage for hybrid
     if (input.storageTiB && input.storageTiB > 0) {
       const tier = input.storageTier || '10iops';
-      const storageTierData = pricingData.blockStorage[tier];
+      const storageTierData = pricingToUse.blockStorage[tier];
       const storageGB = input.storageTiB * 1024;
-      const costPerGB = storageTierData.costPerGBMonth * multiplier;
+      const costPerGB = (storageTierData.costPerGBMonth || 0.10) * multiplier;
 
       lineItems.push({
         category: 'Storage - Block',
@@ -190,13 +208,13 @@ export function calculateROKSCost(
   }
 
   // Networking (basic setup)
-  const networkingCost = pricingData.networking.loadBalancer.perLBMonthly * multiplier * 2; // 2 LBs
+  const networkingCost = pricingToUse.networking.loadBalancer.perLBMonthly * multiplier * 2; // 2 LBs
   lineItems.push({
     category: 'Networking',
     description: 'Load Balancers (2x)',
     quantity: 2,
     unit: 'LBs',
-    unitCost: pricingData.networking.loadBalancer.perLBMonthly * multiplier,
+    unitCost: pricingToUse.networking.loadBalancer.perLBMonthly * multiplier,
     monthlyCost: networkingCost,
     annualCost: networkingCost * 12,
     notes: 'Application Load Balancers for ingress',
@@ -224,7 +242,7 @@ export function calculateROKSCost(
     totalMonthly,
     totalAnnual,
     metadata: {
-      pricingVersion: pricingData.pricingVersion,
+      pricingVersion: pricingToUse.pricingVersion,
       generatedAt: new Date().toISOString(),
       notes: [
         'Estimated pricing - actual costs may vary',
@@ -241,18 +259,20 @@ export function calculateROKSCost(
 export function calculateVSICost(
   input: VSISizingInput,
   region: RegionCode = 'us-south',
-  discountType: DiscountType = 'onDemand'
+  discountType: DiscountType = 'onDemand',
+  pricing?: IBMCloudPricing
 ): CostEstimate {
+  const pricingToUse = pricing || getActivePricing();
   const lineItems: CostLineItem[] = [];
-  const regionData = pricingData.regions[region];
-  const discountData = pricingData.discounts[discountType];
+  const regionData = pricingToUse.regions[region];
+  const discountData = pricingToUse.discounts[discountType];
   const multiplier = regionData.multiplier;
 
   // Group VSI profiles
-  const profileCounts: Record<string, { count: number; profile: typeof pricingData.vsi[keyof typeof pricingData.vsi] }> = {};
+  const profileCounts: Record<string, { count: number; profile: typeof pricingToUse.vsi[keyof typeof pricingToUse.vsi] }> = {};
 
   for (const vm of input.vmProfiles) {
-    const profile = pricingData.vsi[vm.profile as keyof typeof pricingData.vsi];
+    const profile = pricingToUse.vsi[vm.profile as keyof typeof pricingToUse.vsi];
     if (profile) {
       if (!profileCounts[vm.profile]) {
         profileCounts[vm.profile] = { count: 0, profile };
@@ -279,9 +299,9 @@ export function calculateVSICost(
   // Block storage
   if (input.storageTiB > 0) {
     const tier = input.storageTier || '10iops';
-    const storageTierData = pricingData.blockStorage[tier];
+    const storageTierData = pricingToUse.blockStorage[tier];
     const storageGB = input.storageTiB * 1024;
-    const costPerGB = storageTierData.costPerGBMonth * multiplier;
+    const costPerGB = (storageTierData.costPerGBMonth || 0.10) * multiplier;
 
     lineItems.push({
       category: 'Storage - Block',
@@ -296,7 +316,7 @@ export function calculateVSICost(
   }
 
   // Networking
-  const networkingCost = pricingData.networking.loadBalancer.perLBMonthly * multiplier;
+  const networkingCost = pricingToUse.networking.loadBalancer.perLBMonthly * multiplier;
   lineItems.push({
     category: 'Networking',
     description: 'Application Load Balancer',
@@ -330,7 +350,7 @@ export function calculateVSICost(
     totalMonthly,
     totalAnnual,
     metadata: {
-      pricingVersion: pricingData.pricingVersion,
+      pricingVersion: pricingToUse.pricingVersion,
       generatedAt: new Date().toISOString(),
       notes: [
         'Estimated pricing - actual costs may vary',

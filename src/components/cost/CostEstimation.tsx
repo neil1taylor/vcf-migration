@@ -16,6 +16,8 @@ import {
 } from '@carbon/react';
 import { Download, Calculator } from '@carbon/icons-react';
 import { MetricCard } from '@/components/common';
+import { PricingRefresh } from '@/components/pricing';
+import { useDynamicPricing } from '@/hooks';
 import type { CostEstimate, RegionCode, DiscountType, ROKSSizingInput, VSISizingInput } from '@/services/costEstimation';
 import {
   calculateROKSCost,
@@ -32,24 +34,36 @@ interface CostEstimationProps {
   roksSizing?: ROKSSizingInput;
   vsiSizing?: VSISizingInput;
   title?: string;
+  showPricingRefresh?: boolean;
 }
 
-export function CostEstimation({ type, roksSizing, vsiSizing, title }: CostEstimationProps) {
+export function CostEstimation({ type, roksSizing, vsiSizing, title, showPricingRefresh = true }: CostEstimationProps) {
   const [region, setRegion] = useState<RegionCode>('us-south');
   const [discountType, setDiscountType] = useState<DiscountType>('onDemand');
   const showDetails = true; // Always show details
 
-  const regions = getRegions();
-  const discountOptions = getDiscountOptions();
+  // Dynamic pricing hook
+  const {
+    pricing,
+    isRefreshing,
+    lastUpdated,
+    source,
+    refreshPricing,
+    isApiAvailable,
+    error: pricingError,
+  } = useDynamicPricing();
+
+  const regions = getRegions(pricing);
+  const discountOptions = getDiscountOptions(pricing);
 
   const estimate = useMemo<CostEstimate | null>(() => {
     if (type === 'roks' && roksSizing) {
-      return calculateROKSCost(roksSizing, region, discountType);
+      return calculateROKSCost(roksSizing, region, discountType, pricing);
     } else if (type === 'vsi' && vsiSizing) {
-      return calculateVSICost(vsiSizing, region, discountType);
+      return calculateVSICost(vsiSizing, region, discountType, pricing);
     }
     return null;
-  }, [type, roksSizing, vsiSizing, region, discountType]);
+  }, [type, roksSizing, vsiSizing, region, discountType, pricing]);
 
   if (!estimate) {
     return (
@@ -92,6 +106,17 @@ export function CostEstimation({ type, roksSizing, vsiSizing, title }: CostEstim
         <div className="cost-estimation__title-row">
           <h3>{title || 'Cost Estimation'}</h3>
           <div className="cost-estimation__actions">
+            {showPricingRefresh && (
+              <PricingRefresh
+                lastUpdated={lastUpdated}
+                source={source}
+                isRefreshing={isRefreshing}
+                onRefresh={refreshPricing}
+                isApiAvailable={isApiAvailable}
+                error={pricingError}
+                compact
+              />
+            )}
             <Button
               kind="ghost"
               size="sm"

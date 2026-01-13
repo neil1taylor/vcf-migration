@@ -1,0 +1,207 @@
+// Pricing cache service - manages localStorage caching with expiry
+
+import staticPricingData from '@/data/ibmCloudPricing.json';
+
+// ===== TYPES =====
+
+export interface BareMetalProfile {
+  profile: string;
+  family: string;
+  vcpus: number;
+  physicalCores: number;
+  memoryGiB: number;
+  hasNvme: boolean;
+  nvmeDisks?: number;
+  nvmeSizeGB?: number;
+  totalNvmeGB?: number;
+  hourlyRate: number;
+  monthlyRate: number;
+  description: string;
+}
+
+export interface VSIProfile {
+  profile: string;
+  family: string;
+  vcpus: number;
+  memoryGiB: number;
+  networkGbps: number;
+  hourlyRate: number;
+  monthlyRate: number;
+  description: string;
+}
+
+export interface BlockStorageTier {
+  tierName: string;
+  iopsPerGB?: number;
+  costPerGBMonth?: number;
+  description: string;
+  minIOPS?: number;
+  maxIOPS?: number;
+  baseCostPerGBMonth?: number;
+  costPerIOPSMonth?: number;
+}
+
+export interface NetworkPricing {
+  publicGateway: { perGatewayMonthly: number; description: string };
+  floatingIP: { perIPMonthly: number; description: string };
+  vpnGateway: { perGatewayMonthly: number; description: string };
+  loadBalancer: { perLBMonthly: number; perGBProcessed: number; description: string };
+}
+
+export interface RegionPricing {
+  name: string;
+  code: string;
+  multiplier: number;
+  availabilityZones: number;
+}
+
+export interface DiscountOption {
+  name: string;
+  discountPct: number;
+  description: string;
+}
+
+export interface IBMCloudPricing {
+  pricingVersion: string;
+  baseCurrency: string;
+  notes: string;
+  bareMetal: Record<string, BareMetalProfile>;
+  vsi: Record<string, VSIProfile>;
+  blockStorage: Record<string, BlockStorageTier>;
+  roks: {
+    ocpLicense: { perCoreMonthly: number; description: string };
+    clusterManagement: { perClusterMonthly: number; description: string };
+  };
+  networking: NetworkPricing;
+  storageAddons: {
+    snapshots: { costPerGBMonth: number; description: string };
+    objectStorage: { standardPerGBMonth: number; vaultPerGBMonth: number; description: string };
+  };
+  regions: Record<string, RegionPricing>;
+  discounts: Record<string, DiscountOption>;
+  odfWorkloadProfiles: Record<string, {
+    name: string;
+    cpuPerNode: number;
+    memoryPerNodeGiB: number;
+    description: string;
+  }>;
+}
+
+export type PricingSource = 'api' | 'static' | 'cached';
+
+export interface CachedPricing {
+  data: IBMCloudPricing;
+  lastUpdated: string;  // ISO timestamp
+  source: PricingSource;
+  expiresAt: string;    // ISO timestamp (24 hours from fetch)
+}
+
+// ===== CONSTANTS =====
+
+const CACHE_KEY = 'ibm-cloud-pricing-cache';
+const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+// ===== CACHE FUNCTIONS =====
+
+/**
+ * Get cached pricing data from localStorage
+ */
+export function getCachedPricing(): CachedPricing | null {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+
+    const parsed = JSON.parse(cached) as CachedPricing;
+    return parsed;
+  } catch (error) {
+    console.warn('Failed to read pricing cache:', error);
+    return null;
+  }
+}
+
+/**
+ * Save pricing data to localStorage cache
+ */
+export function setCachedPricing(data: IBMCloudPricing, source: PricingSource): void {
+  try {
+    const now = new Date();
+    const cached: CachedPricing = {
+      data,
+      lastUpdated: now.toISOString(),
+      source,
+      expiresAt: new Date(now.getTime() + CACHE_DURATION_MS).toISOString(),
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cached));
+  } catch (error) {
+    console.warn('Failed to save pricing cache:', error);
+  }
+}
+
+/**
+ * Check if the cached pricing has expired
+ */
+export function isCacheExpired(): boolean {
+  const cached = getCachedPricing();
+  if (!cached) return true;
+
+  const expiresAt = new Date(cached.expiresAt);
+  return new Date() > expiresAt;
+}
+
+/**
+ * Get the last updated timestamp
+ */
+export function getLastUpdated(): Date | null {
+  const cached = getCachedPricing();
+  if (!cached) return null;
+  return new Date(cached.lastUpdated);
+}
+
+/**
+ * Get the pricing source (api, static, or cached)
+ */
+export function getPricingSource(): PricingSource {
+  const cached = getCachedPricing();
+  if (!cached) return 'static';
+  return cached.source;
+}
+
+/**
+ * Clear the pricing cache
+ */
+export function clearPricingCache(): void {
+  try {
+    localStorage.removeItem(CACHE_KEY);
+  } catch (error) {
+    console.warn('Failed to clear pricing cache:', error);
+  }
+}
+
+/**
+ * Get static pricing data as fallback
+ */
+export function getStaticPricing(): IBMCloudPricing {
+  return staticPricingData as IBMCloudPricing;
+}
+
+/**
+ * Get current pricing data (cached or static fallback)
+ */
+export function getCurrentPricing(): { data: IBMCloudPricing; source: PricingSource; lastUpdated: Date | null } {
+  const cached = getCachedPricing();
+
+  if (cached && !isCacheExpired()) {
+    return {
+      data: cached.data,
+      source: 'cached',
+      lastUpdated: new Date(cached.lastUpdated),
+    };
+  }
+
+  // Return static data as fallback
+  return {
+    data: getStaticPricing(),
+    source: 'static',
+    lastUpdated: null,
+  };
+}

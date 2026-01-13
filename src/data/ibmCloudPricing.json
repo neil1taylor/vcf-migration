@@ -285,17 +285,23 @@
   },
 
   "blockStorage": {
+    "generalPurpose": {
+      "tierName": "general-purpose",
+      "iopsPerGB": 3,
+      "costPerGBMonth": 0.08,
+      "description": "General purpose - 3 IOPS/GB (required for boot volumes)"
+    },
     "5iops": {
       "tierName": "5iops-tier",
       "iopsPerGB": 5,
       "costPerGBMonth": 0.10,
-      "description": "General purpose - 5 IOPS/GB"
+      "description": "Moderate performance - 5 IOPS/GB"
     },
     "10iops": {
       "tierName": "10iops-tier",
       "iopsPerGB": 10,
       "costPerGBMonth": 0.13,
-      "description": "High performance - 10 IOPS/GB (recommended for ODF)"
+      "description": "High performance - 10 IOPS/GB"
     },
     "custom": {
       "tierName": "custom",
@@ -304,6 +310,10 @@
       "baseCostPerGBMonth": 0.10,
       "costPerIOPSMonth": 0.0002,
       "description": "Custom IOPS configuration"
+    },
+    "sdp": {
+      "tierName": "sdp",
+      "description": "Second-generation storage profile with increased IOPS and fine control (limitations apply)"
     }
   },
 

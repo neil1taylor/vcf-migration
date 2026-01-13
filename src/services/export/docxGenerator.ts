@@ -79,17 +79,36 @@ interface VSIMapping {
   sourceVcpus: number;
   sourceMemoryGiB: number;
   sourceStorageGiB: number;
+  bootDiskGiB: number;
+  dataDiskGiB: number;
   profile: string;
   profileVcpus: number;
   profileMemoryGiB: number;
   family: string;
   computeCost: number;
+  bootStorageCost: number;
+  dataStorageCost: number;
   storageCost: number;
   monthlyCost: number;
 }
 
-// Block storage pricing (5 IOPS tier)
-const BLOCK_STORAGE_COST_PER_GB = 0.10;
+// VSI Storage Configuration
+// Boot volume constraints: 10GB minimum, 250GB maximum, general-purpose only
+const BOOT_DISK_SIZE_GIB = 100; // Assumed boot disk size
+const BOOT_STORAGE_COST_PER_GB = 0.08; // general-purpose tier (3 IOPS/GB)
+
+// Data volume storage tier distribution (assumed workload mix)
+const DATA_STORAGE_TIER_DISTRIBUTION = {
+  generalPurpose: 0.50, // 50% at general-purpose (3 IOPS/GB) - $0.08/GB
+  tier5iops: 0.30,      // 30% at 5iops-tier - $0.10/GB
+  tier10iops: 0.20,     // 20% at 10iops-tier - $0.13/GB
+};
+
+// Weighted average data storage cost based on tier distribution
+const DATA_STORAGE_COST_PER_GB =
+  (DATA_STORAGE_TIER_DISTRIBUTION.generalPurpose * 0.08) +
+  (DATA_STORAGE_TIER_DISTRIBUTION.tier5iops * 0.10) +
+  (DATA_STORAGE_TIER_DISTRIBUTION.tier10iops * 0.13); // = $0.096/GB
 
 // ===== STYLING CONSTANTS =====
 
@@ -579,21 +598,36 @@ function calculateVSIMappings(rawData: RVToolsData): VSIMapping[] {
 
   return poweredOnVMs.map((vm: VirtualMachine) => {
     const memGiB = mibToGiB(vm.memory);
-    const storageGiB = mibToGiB(vm.inUseMiB || vm.provisionedMiB); // Use in-use storage, fallback to provisioned
+    const totalStorageGiB = mibToGiB(vm.inUseMiB || vm.provisionedMiB); // Use in-use storage, fallback to provisioned
     const profile = mapVMToVSIProfile(vm.cpus, memGiB);
     const computeCost = getVSIPricing(profile.name);
-    const storageCost = storageGiB * BLOCK_STORAGE_COST_PER_GB;
+
+    // Boot disk: Fixed size using general-purpose tier (3 IOPS/GB)
+    // Boot volumes must use general-purpose profile and are limited to 10-250GB
+    const bootDiskGiB = Math.min(BOOT_DISK_SIZE_GIB, Math.max(10, totalStorageGiB * 0.2)); // ~20% or max 100GB for boot
+    const bootStorageCost = bootDiskGiB * BOOT_STORAGE_COST_PER_GB;
+
+    // Data disks: Remaining storage using weighted average of tier distribution
+    // Assumed mix: 50% general-purpose, 30% 5iops-tier, 20% 10iops-tier
+    const dataDiskGiB = Math.max(0, totalStorageGiB - bootDiskGiB);
+    const dataStorageCost = dataDiskGiB * DATA_STORAGE_COST_PER_GB;
+
+    const storageCost = bootStorageCost + dataStorageCost;
 
     return {
       vmName: vm.vmName,
       sourceVcpus: vm.cpus,
       sourceMemoryGiB: Math.round(memGiB),
-      sourceStorageGiB: Math.round(storageGiB),
+      sourceStorageGiB: Math.round(totalStorageGiB),
+      bootDiskGiB: Math.round(bootDiskGiB),
+      dataDiskGiB: Math.round(dataDiskGiB),
       profile: profile.name,
       profileVcpus: profile.vcpus,
       profileMemoryGiB: profile.memoryGiB,
       family: profile.family.charAt(0).toUpperCase() + profile.family.slice(1),
       computeCost,
+      bootStorageCost,
+      dataStorageCost,
       storageCost,
       monthlyCost: computeCost + storageCost,
     };
@@ -1685,6 +1719,98 @@ function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): DocumentConte
       ? createParagraph(`Note: Showing ${maxVMs} of ${mappings.length} VM mappings.`, { spacing: { before: 120 } })
       : new Paragraph({}),
 
+    // Block Storage Profiles section
+    new Paragraph({ spacing: { before: 360 } }),
+    createHeading('7.7 Block Storage Profiles', HeadingLevel.HEADING_2),
+    createParagraph(
+      'IBM Cloud offers multiple storage profiles for VSI disk volumes, each optimized for different performance requirements. ' +
+      'Understanding these profiles is essential for proper workload placement and cost optimization.'
+    ),
+
+    createHeading('7.7.1 First-Generation Storage Profiles', HeadingLevel.HEADING_3),
+    createParagraph(
+      'The first-generation storage profiles provide reliable block storage with predictable IOPS performance:'
+    ),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+        bottom: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+        left: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+        right: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+        insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+        insideVertical: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+      },
+      rows: [
+        new TableRow({
+          children: [
+            createTableCell('Profile', { header: true }),
+            createTableCell('IOPS/GB', { header: true, align: AlignmentType.CENTER }),
+            createTableCell('Use Case', { header: true }),
+            createTableCell('Boot Volume', { header: true, align: AlignmentType.CENTER }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createTableCell('general-purpose'),
+            createTableCell('3', { align: AlignmentType.CENTER }),
+            createTableCell('Standard workloads, file servers, development'),
+            createTableCell('Yes (Required)', { align: AlignmentType.CENTER }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createTableCell('5iops-tier'),
+            createTableCell('5', { align: AlignmentType.CENTER }),
+            createTableCell('Moderate I/O applications, web servers'),
+            createTableCell('No', { align: AlignmentType.CENTER }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createTableCell('10iops-tier'),
+            createTableCell('10', { align: AlignmentType.CENTER }),
+            createTableCell('High-performance databases, transactional workloads'),
+            createTableCell('No', { align: AlignmentType.CENTER }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createTableCell('custom'),
+            createTableCell('100-48000', { align: AlignmentType.CENTER }),
+            createTableCell('Custom IOPS configuration for specific requirements'),
+            createTableCell('No', { align: AlignmentType.CENTER }),
+          ],
+        }),
+      ],
+    }),
+
+    createParagraph('Boot Volume Requirements:', { bold: true, spacing: { before: 200 } }),
+    ...createBulletList([
+      'Boot volumes must use the general-purpose profile exclusively',
+      'Boot disk size is limited to 10 GiB minimum and 250 GiB maximum',
+      'VSI instances cannot have more than 12 attached disk volumes',
+    ]),
+
+    createHeading('7.7.2 Second-Generation Storage (SDP)', HeadingLevel.HEADING_3),
+    createParagraph(
+      'The sdp (second-generation) storage profile provides enhanced IOPS performance and finer control. ' +
+      'However, there are important limitations to consider before deployment:'
+    ),
+    ...createBulletList([
+      'SDP volumes can only be snapshotted individually, not as part of a consistency group',
+      'SDP volumes may not reliably detect GPT formatted volumes and could boot to BIOS rather than UEFI - avoid using for boot volumes, especially with secure boot',
+      'SDP volumes are not available in all regions (notably Montreal, and may not be immediately available in newly announced regions)',
+      'Over time, SDP capabilities are expected to match and exceed first-generation profiles',
+    ]),
+
+    createParagraph('Recommendation:', { bold: true, spacing: { before: 160 } }),
+    createParagraph(
+      'For VMware migrations, use first-generation storage profiles for predictability and full feature support. ' +
+      'Consider SDP volumes only for specific workloads requiring enhanced performance where snapshot consistency groups are not needed.',
+      { spacing: { after: 120 } }
+    ),
+
     new Paragraph({ children: [new PageBreak()] }),
   ];
 }
@@ -1697,9 +1823,13 @@ function buildCostEstimation(
 
   // VSI cost breakdown
   const totalVSIComputeCost = vsiMappings.reduce((sum, m) => sum + m.computeCost, 0);
-  const totalVSIStorageCost = vsiMappings.reduce((sum, m) => sum + m.storageCost, 0);
+  const totalBootStorageCost = vsiMappings.reduce((sum, m) => sum + m.bootStorageCost, 0);
+  const totalDataStorageCost = vsiMappings.reduce((sum, m) => sum + m.dataStorageCost, 0);
+  const totalVSIStorageCost = totalBootStorageCost + totalDataStorageCost;
   const totalVSIMonthlyCost = totalVSIComputeCost + totalVSIStorageCost;
-  const totalVSIStorageGiB = vsiMappings.reduce((sum, m) => sum + m.sourceStorageGiB, 0);
+  const totalBootStorageGiB = vsiMappings.reduce((sum, m) => sum + m.bootDiskGiB, 0);
+  const totalDataStorageGiB = vsiMappings.reduce((sum, m) => sum + m.dataDiskGiB, 0);
+  const totalVSIStorageGiB = totalBootStorageGiB + totalDataStorageGiB;
   const roksMonthlyCost = roksSizing.monthlyCost;
 
   // Calculate cost ratio for recommendation
@@ -1754,11 +1884,63 @@ function buildCostEstimation(
       ],
     }),
 
-    // Storage note for VSI
-    createParagraph(
-      `VSI storage based on ${Math.round(totalVSIStorageGiB / 1024)} TiB of block storage at $0.10/GB/month (5 IOPS tier).`,
-      { spacing: { before: 120, after: 120 } }
-    ),
+    // VSI Storage breakdown
+    new Paragraph({ spacing: { before: 200 } }),
+    createParagraph('VSI Block Storage Breakdown', { bold: true }),
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: {
+        top: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+        bottom: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+        left: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+        right: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+        insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+        insideVertical: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+      },
+      rows: [
+        new TableRow({
+          children: [
+            createTableCell('Storage Type', { header: true }),
+            createTableCell('Capacity', { header: true, align: AlignmentType.RIGHT }),
+            createTableCell('Profile', { header: true }),
+            createTableCell('Monthly Cost', { header: true, align: AlignmentType.RIGHT }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createTableCell('Boot Volumes'),
+            createTableCell(`${Math.round(totalBootStorageGiB)} GiB`, { align: AlignmentType.RIGHT }),
+            createTableCell('general-purpose (3 IOPS/GB)'),
+            createTableCell(`$${Math.round(totalBootStorageCost).toLocaleString()}`, { align: AlignmentType.RIGHT }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createTableCell('Data Volumes'),
+            createTableCell(`${Math.round(totalDataStorageGiB)} GiB`, { align: AlignmentType.RIGHT }),
+            createTableCell('Tiered (see assumptions)'),
+            createTableCell(`$${Math.round(totalDataStorageCost).toLocaleString()}`, { align: AlignmentType.RIGHT }),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createTableCell('Total Storage', { bold: true }),
+            createTableCell(`${Math.round(totalVSIStorageGiB / 1024)} TiB`, { align: AlignmentType.RIGHT, bold: true }),
+            createTableCell(''),
+            createTableCell(`$${Math.round(totalVSIStorageCost).toLocaleString()}`, { align: AlignmentType.RIGHT, bold: true }),
+          ],
+        }),
+      ],
+    }),
+
+    // Storage tier assumptions
+    new Paragraph({ spacing: { before: 160 } }),
+    createParagraph('Data Volume Storage Tier Assumptions:', { bold: true }),
+    ...createBulletList([
+      '50% general-purpose (3 IOPS/GB) at $0.08/GB - Standard workloads, file servers',
+      '30% 5iops-tier (5 IOPS/GB) at $0.10/GB - Moderate I/O applications',
+      '20% 10iops-tier (10 IOPS/GB) at $0.13/GB - Database and high-performance workloads',
+    ]),
 
     // Cost Analysis and Recommendations
     new Paragraph({ spacing: { before: 240 } }),

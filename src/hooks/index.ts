@@ -5,3 +5,5 @@ export type { ChartFilter } from './useChartFilter';
 export { usePDFExport } from './usePDFExport';
 export { useExcelExport } from './useExcelExport';
 export { useDocxExport } from './useDocxExport';
+export { useDynamicPricing } from './useDynamicPricing';
+export type { UseDynamicPricingConfig, UseDynamicPricingReturn } from './useDynamicPricing';

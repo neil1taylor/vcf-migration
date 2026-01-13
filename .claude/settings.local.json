@@ -19,7 +19,12 @@
       "WebFetch(domain:fullvalence.com)",
       "WebFetch(domain:access.redhat.com)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:cloud.ibm.com)",
+      "WebFetch(domain:globalcatalog.cloud.ibm.com)",
+      "Bash(curl:*)",
+      "Bash(__NEW_LINE__ echo \"=== Volume Profiles ===\")",
+      "Bash(__NEW_LINE__ echo \"=== Bare Metal Profiles ===\")"
     ]
   }
 }
