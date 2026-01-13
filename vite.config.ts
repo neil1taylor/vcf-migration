@@ -20,6 +20,13 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/globalcatalog/, '/api/v1'),
         secure: true,
       },
+      // Proxy IBM Cloud IAM token endpoint
+      '/api/iam': {
+        target: 'https://iam.cloud.ibm.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/iam/, '/identity'),
+        secure: true,
+      },
     },
   },
   worker: {

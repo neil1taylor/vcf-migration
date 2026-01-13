@@ -1,6 +1,6 @@
 // Pricing Refresh Component - Shows pricing status and refresh button
 
-import { Button, Tag, InlineLoading, Tooltip } from '@carbon/react';
+import { Button, Tag, InlineLoading } from '@carbon/react';
 import { Renew, CloudOffline, Checkmark, Warning } from '@carbon/icons-react';
 import type { PricingSource } from '@/services/pricing/pricingCache';
 import './PricingRefresh.scss';
@@ -59,22 +59,24 @@ export function PricingRefresh({
   const sourceDisplay = getSourceDisplay(source);
 
   if (compact) {
+    const tooltipText = lastUpdated
+      ? `Refresh pricing (last: ${formatLastUpdated(lastUpdated)})`
+      : 'Refresh pricing';
+
     return (
       <div className="pricing-refresh pricing-refresh--compact">
-        <Tooltip label={`Click to refresh pricing${lastUpdated ? ` (last: ${formatLastUpdated(lastUpdated)})` : ''}`}>
-          <Button
-            kind="ghost"
-            size="sm"
-            renderIcon={isRefreshing ? undefined : Renew}
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            hasIconOnly
-            iconDescription="Refresh pricing"
-          >
-            {isRefreshing && <InlineLoading description="" />}
-          </Button>
-        </Tooltip>
-        <Tag type={sourceDisplay.kind} size="sm" title={lastUpdated ? `Updated: ${formatLastUpdated(lastUpdated)}` : 'Using bundled data'}>
+        <Button
+          kind="ghost"
+          size="sm"
+          renderIcon={isRefreshing ? undefined : Renew}
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          hasIconOnly
+          iconDescription={tooltipText}
+        >
+          {isRefreshing && <InlineLoading description="" />}
+        </Button>
+        <Tag type={sourceDisplay.kind} size="sm">
           {sourceDisplay.label}
         </Tag>
       </div>

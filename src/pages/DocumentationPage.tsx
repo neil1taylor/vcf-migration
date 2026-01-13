@@ -59,6 +59,92 @@ const dashboardMetrics: MetricDefinition[] = [
     formula: 'Total VM Memory in Cluster / Total Host Memory in Cluster',
     notes: ['Values above 1:1 rely on memory sharing techniques', 'High ratios may cause performance issues'],
   },
+  {
+    name: 'Configuration Analysis',
+    description: 'Summary of VM configuration issues displayed on the Dashboard.',
+    notes: [
+      'Hardware Version compliance checks',
+      'VMware Tools status overview',
+      'Snapshot age analysis',
+      'CD-ROM connection status',
+      'Consolidation requirements',
+    ],
+  },
+];
+
+const discoveryMetrics: MetricDefinition[] = [
+  {
+    name: 'Workload Discovery',
+    description: 'Automated detection of application types based on VM naming patterns and configurations.',
+    notes: [
+      'Identifies databases (Oracle, SQL Server, MySQL, PostgreSQL)',
+      'Detects web servers (Apache, IIS, Nginx)',
+      'Recognizes middleware (WebSphere, JBoss, Tomcat)',
+      'Flags infrastructure services (DNS, DHCP, AD)',
+    ],
+  },
+  {
+    name: 'OS Detection',
+    description: 'Operating system identification from Guest OS field.',
+    source: 'vInfo sheet, Guest OS column',
+    notes: ['Windows versions and editions', 'Linux distributions', 'Other OS types'],
+  },
+  {
+    name: 'Application Tiers',
+    description: 'Classification of VMs into application tiers based on detected workload types.',
+    notes: ['Web tier', 'Application tier', 'Database tier', 'Infrastructure'],
+  },
+];
+
+const hostsMetrics: MetricDefinition[] = [
+  {
+    name: 'Host Inventory',
+    description: 'ESXi host details including model, CPU, and memory specifications.',
+    source: 'vHost sheet',
+  },
+  {
+    name: 'CPU Model',
+    description: 'Processor model and specifications for each host.',
+    source: 'vHost sheet, CPU Model column',
+  },
+  {
+    name: 'Physical Cores',
+    description: 'Number of physical CPU cores per host.',
+    source: 'vHost sheet, # Cores column',
+  },
+  {
+    name: 'Host Memory',
+    description: 'Total physical memory installed in each host.',
+    source: 'vHost sheet, Memory column',
+  },
+  {
+    name: 'ESXi Version',
+    description: 'VMware ESXi version running on each host.',
+    source: 'vHost sheet, ESX Version column',
+  },
+];
+
+const resourcePoolMetrics: MetricDefinition[] = [
+  {
+    name: 'Resource Pool Hierarchy',
+    description: 'Tree structure of resource pools showing parent-child relationships.',
+    source: 'vRP sheet',
+  },
+  {
+    name: 'CPU Reservations',
+    description: 'Guaranteed CPU resources allocated to each resource pool.',
+    source: 'vRP sheet, CPU Reservation column',
+  },
+  {
+    name: 'Memory Reservations',
+    description: 'Guaranteed memory resources allocated to each resource pool.',
+    source: 'vRP sheet, Memory Reservation column',
+  },
+  {
+    name: 'CPU/Memory Limits',
+    description: 'Maximum resources that can be consumed by each resource pool.',
+    source: 'vRP sheet, CPU Limit and Memory Limit columns',
+  },
 ];
 
 const computeMetrics: MetricDefinition[] = [
@@ -300,7 +386,31 @@ export function DocumentationPage() {
               </div>
             </AccordionItem>
 
-            <AccordionItem title="Configuration Analysis">
+            <AccordionItem title="Hosts">
+              <div className="documentation-page__section">
+                {hostsMetrics.map((metric, idx) => (
+                  <MetricCard key={idx} metric={metric} />
+                ))}
+              </div>
+            </AccordionItem>
+
+            <AccordionItem title="Resource Pools">
+              <div className="documentation-page__section">
+                {resourcePoolMetrics.map((metric, idx) => (
+                  <MetricCard key={idx} metric={metric} />
+                ))}
+              </div>
+            </AccordionItem>
+
+            <AccordionItem title="Workload Discovery">
+              <div className="documentation-page__section">
+                {discoveryMetrics.map((metric, idx) => (
+                  <MetricCard key={idx} metric={metric} />
+                ))}
+              </div>
+            </AccordionItem>
+
+            <AccordionItem title="Configuration Checks">
               <div className="documentation-page__section">
                 {configMetrics.map((metric, idx) => (
                   <MetricCard key={idx} metric={metric} />
@@ -308,7 +418,7 @@ export function DocumentationPage() {
               </div>
             </AccordionItem>
 
-            <AccordionItem title="Migration Readiness Checks">
+            <AccordionItem title="Pre-Flight Report &amp; Migration Readiness">
               <div className="documentation-page__section">
                 <Tile className="documentation-page__metric-card">
                   <h4>Pre-Flight Check Categories</h4>
@@ -381,6 +491,94 @@ export function DocumentationPage() {
                     <ListItem><strong>Wave 4: Complex</strong> - High complexity VMs requiring careful planning</ListItem>
                     <ListItem><strong>Wave 5: Remediation</strong> - VMs with blockers requiring fixes first</ListItem>
                   </UnorderedList>
+                </Tile>
+              </div>
+            </AccordionItem>
+
+            <AccordionItem title="ROKS Migration Planning">
+              <div className="documentation-page__section">
+                <Tile className="documentation-page__metric-card">
+                  <h4>Red Hat OpenShift on IBM Cloud (ROKS)</h4>
+                  <p>Plan containerized workload migrations to ROKS clusters with bare metal worker nodes.</p>
+                  <UnorderedList>
+                    <ListItem><strong>Compute Nodes</strong> - Bare metal servers for OpenShift worker nodes</ListItem>
+                    <ListItem><strong>Storage Options</strong> - NVMe local storage or ODF (OpenShift Data Foundation)</ListItem>
+                    <ListItem><strong>Profile Selection</strong> - Balanced, compute, or memory-optimized profiles</ListItem>
+                  </UnorderedList>
+                </Tile>
+
+                <Tile className="documentation-page__metric-card">
+                  <h4>Architecture Options</h4>
+                  <UnorderedList>
+                    <ListItem><strong>All-NVMe Converged</strong> - Local NVMe storage on worker nodes</ListItem>
+                    <ListItem><strong>Hybrid (ODF)</strong> - Separate storage nodes with block storage</ListItem>
+                  </UnorderedList>
+                </Tile>
+              </div>
+            </AccordionItem>
+
+            <AccordionItem title="VSI Migration Planning">
+              <div className="documentation-page__section">
+                <Tile className="documentation-page__metric-card">
+                  <h4>Virtual Server Instances (VSI)</h4>
+                  <p>Plan lift-and-shift migrations to IBM Cloud VPC Virtual Server Instances.</p>
+                  <UnorderedList>
+                    <ListItem><strong>Profile Matching</strong> - Automatic mapping of VM specs to VSI profiles</ListItem>
+                    <ListItem><strong>Storage Sizing</strong> - Boot disk and data disk calculations</ListItem>
+                    <ListItem><strong>Profile Families</strong> - Balanced (bx2), Compute (cx2), Memory (mx2)</ListItem>
+                  </UnorderedList>
+                </Tile>
+
+                <Tile className="documentation-page__metric-card">
+                  <h4>Storage Tiers</h4>
+                  <UnorderedList>
+                    <ListItem><strong>General Purpose (3 IOPS/GB)</strong> - Required for boot volumes</ListItem>
+                    <ListItem><strong>5 IOPS/GB</strong> - Moderate performance workloads</ListItem>
+                    <ListItem><strong>10 IOPS/GB</strong> - High performance workloads</ListItem>
+                    <ListItem><strong>Custom IOPS</strong> - Configurable IOPS for specific requirements</ListItem>
+                  </UnorderedList>
+                </Tile>
+              </div>
+            </AccordionItem>
+
+            <AccordionItem title="Cost Estimation">
+              <div className="documentation-page__section">
+                <Tile className="documentation-page__metric-card">
+                  <h4>Pricing Features</h4>
+                  <UnorderedList>
+                    <ListItem><strong>Dynamic Pricing</strong> - Fetches live pricing from IBM Cloud Global Catalog API</ListItem>
+                    <ListItem><strong>Static Fallback</strong> - Uses bundled pricing data when API is unavailable</ListItem>
+                    <ListItem><strong>Regional Pricing</strong> - Supports all IBM Cloud VPC regions with regional multipliers</ListItem>
+                    <ListItem><strong>Discount Options</strong> - On-demand, 1-year reserved, 3-year reserved pricing</ListItem>
+                  </UnorderedList>
+                </Tile>
+
+                <Tile className="documentation-page__metric-card">
+                  <h4>Cost Components</h4>
+                  <UnorderedList>
+                    <ListItem><strong>Compute</strong> - Bare metal servers or VSI instances</ListItem>
+                    <ListItem><strong>Storage</strong> - Block storage volumes by tier</ListItem>
+                    <ListItem><strong>Networking</strong> - Load balancers, public gateways, floating IPs</ListItem>
+                  </UnorderedList>
+                </Tile>
+
+                <Tile className="documentation-page__metric-card">
+                  <h4>Pricing Refresh</h4>
+                  <p>The pricing status indicator shows:</p>
+                  <div className="documentation-page__status-list">
+                    <div className="documentation-page__status-item">
+                      <Tag type="green">Live API</Tag>
+                      <span>Pricing fetched from IBM Cloud API (requires API key)</span>
+                    </div>
+                    <div className="documentation-page__status-item">
+                      <Tag type="blue">Cached</Tag>
+                      <span>Using previously fetched API data (24-hour cache)</span>
+                    </div>
+                    <div className="documentation-page__status-item">
+                      <Tag type="gray">Static</Tag>
+                      <span>Using bundled pricing data</span>
+                    </div>
+                  </div>
                 </Tile>
               </div>
             </AccordionItem>

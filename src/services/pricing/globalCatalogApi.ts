@@ -89,19 +89,82 @@ const GLOBAL_CATALOG_BASE_URL = import.meta.env.DEV
 
 const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
+// API key from environment variable
+const ENV_API_KEY = import.meta.env.VITE_IBM_CLOUD_API_KEY as string | undefined;
+
+// IAM token endpoint (also needs proxy in dev)
+const IAM_TOKEN_URL = import.meta.env.DEV
+  ? '/api/iam/token'
+  : 'https://iam.cloud.ibm.com/identity/token';
+
+// Cache for IAM token
+let cachedIamToken: { token: string; expiry: number } | null = null;
+
 // ===== API FUNCTIONS =====
+
+/**
+ * Get IAM access token from API key
+ */
+async function getIamToken(apiKey: string): Promise<string> {
+  // Check if we have a valid cached token (with 5 min buffer)
+  if (cachedIamToken && cachedIamToken.expiry > Date.now() + 300000) {
+    console.log('[Pricing API] Using cached IAM token');
+    return cachedIamToken.token;
+  }
+
+  console.log('[Pricing API] Fetching new IAM token...');
+
+  const response = await fetch(IAM_TOKEN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Accept': 'application/json',
+    },
+    body: new URLSearchParams({
+      grant_type: 'urn:ibm:params:oauth:grant-type:apikey',
+      apikey: apiKey,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error('[Pricing API] IAM token request failed:', response.status);
+    throw new Error(`IAM authentication failed: ${response.status}`);
+  }
+
+  const data = await response.json();
+
+  // Cache the token
+  cachedIamToken = {
+    token: data.access_token,
+    expiry: Date.now() + (data.expires_in * 1000),
+  };
+
+  console.log('[Pricing API] IAM token obtained successfully');
+  return data.access_token;
+}
 
 /**
  * Build headers for API request
  */
-function buildHeaders(config?: GlobalCatalogConfig): HeadersInit {
+async function buildHeaders(config?: GlobalCatalogConfig): Promise<HeadersInit> {
   const headers: HeadersInit = {
     'Accept': 'application/json',
     'Content-Type': 'application/json',
   };
 
-  if (config?.apiKey) {
-    headers['Authorization'] = `Bearer ${config.apiKey}`;
+  // Use API key from config or environment
+  const apiKey = config?.apiKey || ENV_API_KEY;
+
+  if (apiKey) {
+    try {
+      const token = await getIamToken(apiKey);
+      headers['Authorization'] = `Bearer ${token}`;
+      console.log('[Pricing API] Using authenticated request');
+    } catch (error) {
+      console.warn('[Pricing API] Failed to get IAM token, continuing without auth:', error);
+    }
+  } else {
+    console.log('[Pricing API] No API key configured, using unauthenticated request');
   }
 
   return headers;
@@ -150,11 +213,12 @@ export async function searchCatalog(
   console.log('[Pricing API] Searching catalog:', { query, url });
 
   try {
+    const headers = await buildHeaders(config);
     const response = await fetchWithTimeout(
       url,
       {
         method: 'GET',
-        headers: buildHeaders(config),
+        headers,
       },
       timeout
     );
@@ -190,11 +254,12 @@ export async function getPricing(
   const url = `${GLOBAL_CATALOG_BASE_URL}/${encodeURIComponent(id)}/pricing`;
   const timeout = config?.timeout || DEFAULT_TIMEOUT;
 
+  const headers = await buildHeaders(config);
   const response = await fetchWithTimeout(
     url,
     {
       method: 'GET',
-      headers: buildHeaders(config),
+      headers,
     },
     timeout
   );
