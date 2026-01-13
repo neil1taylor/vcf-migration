@@ -9,3 +9,5 @@ export {
   downloadBOM,
   generateComparisonText,
 } from './bomGenerator';
+export { generateDocxReport, downloadDocx } from './docxGenerator';
+export type { DocxExportOptions } from './docxGenerator';

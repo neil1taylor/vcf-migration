@@ -11,7 +11,7 @@ import {
 import { TopNav } from './TopNav';
 import { SideNav } from './SideNav';
 import { ROUTES } from '@/utils/constants';
-import { useData, usePDFExport, useExcelExport } from '@/hooks';
+import { useData, usePDFExport, useExcelExport, useDocxExport } from '@/hooks';
 import './AppLayout.scss';
 
 interface ExportOptions {
@@ -35,6 +35,7 @@ export function AppLayout() {
   const { rawData } = useData();
   const { isExporting, error, exportPDF } = usePDFExport();
   const { exportExcel } = useExcelExport();
+  const { exportDocx } = useDocxExport();
   const [isSideNavExpanded] = useState(true);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportOptions, setExportOptions] = useState<ExportOptions>(DEFAULT_OPTIONS);
@@ -52,6 +53,16 @@ export function AppLayout() {
       exportExcel(rawData);
     }
   }, [rawData, exportExcel]);
+
+  const handleExportDocxClick = useCallback(async () => {
+    if (rawData) {
+      try {
+        await exportDocx(rawData);
+      } catch {
+        // Error is handled by the hook
+      }
+    }
+  }, [rawData, exportDocx]);
 
   const handleCloseExportModal = useCallback(() => {
     setIsExportModalOpen(false);
@@ -81,6 +92,7 @@ export function AppLayout() {
         onUploadClick={handleUploadClick}
         onExportPDFClick={handleExportPDFClick}
         onExportExcelClick={handleExportExcelClick}
+        onExportDocxClick={handleExportDocxClick}
       />
       <SideNav isExpanded={isSideNavExpanded} />
       <Content className="app-layout__content">

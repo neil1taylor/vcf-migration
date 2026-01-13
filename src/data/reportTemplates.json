@@ -1,0 +1,377 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2025-01-11",
+
+  "placeholders": {
+    "companyName": "[Company Name]",
+    "clientName": "[Client Name]",
+    "preparedBy": "[Prepared By]",
+    "contactEmail": "[contact@example.com]",
+    "contactPhone": "[+1 (XXX) XXX-XXXX]"
+  },
+
+  "coverPage": {
+    "title": "VMware Cloud Migration Assessment",
+    "subtitle": "Migration Analysis and Recommendations for IBM Cloud",
+    "documentType": "Technical Assessment Report"
+  },
+
+  "executiveSummary": {
+    "title": "Executive Summary",
+    "introduction": "This report provides a comprehensive analysis of the current VMware vSphere environment and presents migration options to IBM Cloud. The assessment includes infrastructure inventory, migration readiness evaluation, target platform recommendations, and estimated costs.",
+    "keyFindings": {
+      "title": "Key Findings",
+      "environmentOverview": "The analysis covers the complete VMware environment including all virtual machines, hosts, clusters, and storage infrastructure. This data has been extracted and analyzed to provide accurate migration planning information."
+    },
+    "recommendations": {
+      "title": "Recommendations",
+      "intro": "Based on the analysis of the source environment, the following migration approaches are recommended:",
+      "roksTitle": "IBM Cloud Red Hat OpenShift (ROKS)",
+      "roksRecommended": "ROKS with OpenShift Virtualization is ideal for organizations that want:",
+      "roksReasons": [
+        "Portability: Run workloads on-premises, on IBM Cloud, or across multiple cloud providers using the same Kubernetes-based platform",
+        "Unified Platform: Operate both virtual machines and containers on a single infrastructure, enabling gradual application modernization",
+        "Future-Ready: Leverage Kubernetes ecosystem tools, GitOps workflows, and cloud-native capabilities as your team evolves",
+        "Hybrid Cloud: Consistent operations and workload mobility between environments using Red Hat OpenShift's hybrid cloud capabilities"
+      ],
+      "vsiTitle": "IBM Cloud VPC Virtual Servers (VSI)",
+      "vsiRecommended": "VPC Virtual Servers are ideal for organizations that want:",
+      "vsiReasons": [
+        "Familiar Operations: Traditional VM management without requiring Kubernetes expertise or new operational skills",
+        "Quick Migration: Straightforward lift-and-shift approach with minimal architectural changes",
+        "Simplicity: Each VM maps directly to a VSI instance with well-understood IaaS operations",
+        "Lower Learning Curve: IT teams can continue using existing VM management practices and tools"
+      ]
+    }
+  },
+
+  "environmentAnalysis": {
+    "title": "Current Environment Analysis",
+    "introduction": "This section provides a detailed breakdown of the existing VMware infrastructure based on the RVTools data analysis.",
+    "sections": {
+      "infrastructure": {
+        "title": "Infrastructure Overview",
+        "description": "The following table summarizes the VMware infrastructure components discovered during the assessment."
+      },
+      "compute": {
+        "title": "Compute Resources",
+        "description": "Analysis of CPU and memory allocation across all virtual machines in the environment."
+      },
+      "storage": {
+        "title": "Storage Analysis",
+        "description": "Overview of storage capacity, utilization, and datastore configuration."
+      },
+      "network": {
+        "title": "Network Configuration",
+        "description": "Summary of network adapters, port groups, and virtual switches in the environment."
+      },
+      "clusters": {
+        "title": "Cluster Configuration",
+        "description": "Details of VMware clusters including HA, DRS settings, and resource allocation."
+      }
+    }
+  },
+
+  "migrationReadiness": {
+    "title": "Migration Readiness Assessment",
+    "introduction": "Each virtual machine has been evaluated against migration readiness criteria to identify potential blockers and items requiring remediation before migration.",
+    "readinessCategories": {
+      "ready": {
+        "label": "Ready",
+        "description": "VMs that pass all migration readiness checks and can proceed with migration without additional preparation."
+      },
+      "needsPreparation": {
+        "label": "Needs Preparation",
+        "description": "VMs with warnings that should be addressed before migration but are not critical blockers."
+      },
+      "blocked": {
+        "label": "Blocked",
+        "description": "VMs with critical issues that must be resolved before migration can proceed."
+      }
+    },
+    "checksPerformed": {
+      "title": "Pre-Flight Checks Performed",
+      "checks": [
+        {
+          "name": "VMware Tools",
+          "description": "VMware Tools must be installed and running for proper guest OS integration during migration."
+        },
+        {
+          "name": "Hardware Version",
+          "description": "Virtual hardware version must meet minimum requirements for migration compatibility."
+        },
+        {
+          "name": "Snapshots",
+          "description": "VMs with old snapshots may experience migration issues. Snapshots should be consolidated."
+        },
+        {
+          "name": "RDM Disks",
+          "description": "Raw Device Mapped disks require special handling and may not be directly migratable."
+        },
+        {
+          "name": "CD-ROM Connected",
+          "description": "Connected CD/DVD drives should be disconnected before migration."
+        },
+        {
+          "name": "Operating System",
+          "description": "Guest operating system must be supported on the target platform."
+        }
+      ]
+    },
+    "blockersSummary": {
+      "title": "VMs with Migration Blockers",
+      "description": "The following virtual machines have critical issues that must be resolved before migration."
+    },
+    "warningsSummary": {
+      "title": "VMs with Warnings",
+      "description": "The following virtual machines have warnings that should be reviewed and addressed."
+    }
+  },
+
+  "migrationOptions": {
+    "title": "Migration Options",
+    "introduction": "Two primary migration paths are available for moving VMware workloads to IBM Cloud. Each option has distinct characteristics that may make it more suitable depending on the organization's goals and requirements.",
+    "comparisonIntro": "The following table compares the key characteristics of each migration approach."
+  },
+
+  "roksOverview": {
+    "title": "IBM Cloud Red Hat OpenShift (ROKS)",
+    "subtitle": "OpenShift Virtualization for VMware Migrations",
+    "introduction": "Red Hat OpenShift on IBM Cloud (ROKS) is a fully managed OpenShift container platform that enables organizations to deploy, manage, and scale containerized applications. With OpenShift Virtualization (based on KubeVirt), ROKS can also run traditional virtual machines alongside containers on the same platform.",
+    "whatIsRoks": {
+      "title": "What is ROKS?",
+      "content": "ROKS provides a managed Kubernetes environment with enterprise features including integrated CI/CD, monitoring, logging, and security. The platform runs on dedicated bare metal infrastructure with local NVMe storage, providing high-performance compute and storage for demanding workloads."
+    },
+    "architecture": {
+      "title": "Architecture Overview",
+      "content": "ROKS with OpenShift Virtualization uses bare metal worker nodes with local NVMe drives. OpenShift Data Foundation (ODF) provides software-defined storage with Ceph, delivering persistent block and file storage with built-in replication and high availability.",
+      "components": [
+        "Managed OpenShift control plane (provided by IBM)",
+        "Dedicated bare metal worker nodes with local NVMe storage",
+        "OpenShift Data Foundation (ODF) for persistent storage",
+        "OpenShift Virtualization for running VMs as Kubernetes resources",
+        "Integrated networking with VPC and IBM Cloud services"
+      ]
+    },
+    "benefits": {
+      "title": "Benefits for VMware Migrations",
+      "items": [
+        {
+          "title": "Unified Platform",
+          "description": "Run VMs and containers on the same infrastructure, enabling gradual application modernization."
+        },
+        {
+          "title": "Kubernetes-Native Operations",
+          "description": "Manage VMs using familiar Kubernetes tools, APIs, and GitOps workflows."
+        },
+        {
+          "title": "High Performance Storage",
+          "description": "Local NVMe drives with ODF provide high IOPS and low latency for demanding workloads."
+        },
+        {
+          "title": "Built-in HA and DR",
+          "description": "OpenShift's self-healing capabilities and ODF replication ensure workload availability."
+        },
+        {
+          "title": "Path to Modernization",
+          "description": "Migrate VMs first, then containerize applications at your own pace."
+        }
+      ]
+    },
+    "considerations": {
+      "title": "Considerations",
+      "items": [
+        "Requires Kubernetes expertise for operations and troubleshooting",
+        "Minimum 3-node cluster for ODF storage resilience",
+        "Higher base cost due to bare metal infrastructure and storage replication",
+        "Best suited for organizations planning application modernization"
+      ]
+    },
+    "sizing": {
+      "title": "Recommended Cluster Sizing",
+      "description": "Based on the analysis of the source environment, the following ROKS cluster configuration is recommended.",
+      "methodology": "Sizing calculations consider CPU requirements (with conservative 1.8:1 overcommit), memory (no overcommit for VMs), and storage (3x replication with ODF operational overhead)."
+    }
+  },
+
+  "vsiOverview": {
+    "title": "IBM Cloud VPC Virtual Servers",
+    "subtitle": "Infrastructure-as-a-Service Migration",
+    "introduction": "IBM Cloud VPC Virtual Servers (VSI) provide on-demand compute capacity in a secure, isolated virtual private cloud environment. VSIs offer a straightforward path for lift-and-shift migrations of VMware workloads with minimal architectural changes.",
+    "whatIsVsi": {
+      "title": "What are VPC Virtual Servers?",
+      "content": "VPC Virtual Servers are virtual machine instances running on IBM Cloud's next-generation infrastructure. They offer a range of profiles optimized for different workload types, from compute-intensive applications to memory-heavy databases."
+    },
+    "architecture": {
+      "title": "Architecture Overview",
+      "content": "VSIs run within a Virtual Private Cloud (VPC), providing network isolation and security. Each VSI can have multiple network interfaces, block storage volumes, and can be deployed across multiple availability zones for high availability.",
+      "components": [
+        "Virtual server instances with dedicated vCPUs and memory",
+        "VPC networking with security groups and ACLs",
+        "Block storage volumes (boot and data) with snapshot capability",
+        "Multiple availability zones for HA deployments",
+        "Integration with IBM Cloud services and VPN connectivity"
+      ]
+    },
+    "profileFamilies": {
+      "title": "VSI Profile Families",
+      "description": "VSI profiles are organized into families optimized for different use cases:",
+      "families": [
+        {
+          "name": "Balanced (bx2)",
+          "ratio": "1:4",
+          "useCase": "General purpose workloads with balanced CPU and memory"
+        },
+        {
+          "name": "Compute (cx2)",
+          "ratio": "1:2",
+          "useCase": "CPU-intensive applications, web servers, batch processing"
+        },
+        {
+          "name": "Memory (mx2)",
+          "ratio": "1:8",
+          "useCase": "Memory-intensive databases, caching, analytics"
+        }
+      ]
+    },
+    "benefits": {
+      "title": "Benefits for VMware Migrations",
+      "items": [
+        {
+          "title": "Familiar IaaS Model",
+          "description": "Traditional VM-based infrastructure similar to VMware, reducing the learning curve."
+        },
+        {
+          "title": "Flexible Sizing",
+          "description": "Wide range of profiles from 2 vCPU to 128 vCPU to match existing VM sizes."
+        },
+        {
+          "title": "Pay-as-you-go",
+          "description": "Hourly billing with no minimum commitment, with discounts for reserved capacity."
+        },
+        {
+          "title": "Network Isolation",
+          "description": "Complete network control with VPC, subnets, security groups, and ACLs."
+        },
+        {
+          "title": "Enterprise Storage",
+          "description": "High-performance block storage with multiple IOPS tiers and snapshot support."
+        }
+      ]
+    },
+    "considerations": {
+      "title": "Considerations",
+      "items": [
+        "Each VM becomes an independent VSI instance",
+        "Storage is attached via block volumes, not shared datastores",
+        "Maximum profile size of 128 vCPU / 1024 GiB RAM for standard profiles",
+        "Operating system licensing may be additional (BYOL or IBM-provided)"
+      ]
+    },
+    "sizing": {
+      "title": "VM to VSI Profile Mapping",
+      "description": "Each source VM has been mapped to an appropriate IBM Cloud VSI profile based on its compute and memory requirements.",
+      "methodology": "Profile selection considers the VM's vCPU count, memory allocation, and memory-to-CPU ratio to determine the optimal profile family (Balanced, Compute, or Memory)."
+    }
+  },
+
+  "costEstimation": {
+    "title": "Cost Estimation",
+    "introduction": "The following cost estimates are based on IBM Cloud list pricing and the resource requirements calculated from the source environment analysis. Actual costs may vary based on negotiated discounts, reserved capacity commitments, and actual usage patterns.",
+    "disclaimer": "These estimates are for planning purposes only. Contact IBM or an authorized partner for accurate pricing based on your specific requirements.",
+    "sections": {
+      "roks": {
+        "title": "ROKS with OpenShift Virtualization",
+        "description": "Cost estimate for running workloads on Red Hat OpenShift with bare metal infrastructure."
+      },
+      "vsi": {
+        "title": "VPC Virtual Server Instances",
+        "description": "Cost estimate for running workloads as individual VPC VSI instances."
+      },
+      "comparison": {
+        "title": "Cost Comparison",
+        "description": "Side-by-side comparison of monthly costs for each migration option."
+      }
+    },
+    "notes": {
+      "title": "Notes and Assumptions",
+      "items": [
+        "Costs shown are list prices without enterprise discounts",
+        "Storage costs include the estimated in-use storage, not provisioned capacity",
+        "Network egress and additional services are not included",
+        "ROKS includes Red Hat OpenShift licensing in the infrastructure cost",
+        "VSI costs do not include operating system licensing for non-Linux workloads"
+      ]
+    }
+  },
+
+  "nextSteps": {
+    "title": "Recommended Next Steps",
+    "introduction": "The following steps are recommended to proceed with the migration planning process.",
+    "steps": [
+      {
+        "phase": "Phase 1: Detailed Planning",
+        "items": [
+          "Review and validate the migration readiness assessment findings",
+          "Remediate identified blockers (VMware Tools, snapshots, RDM disks)",
+          "Confirm target platform selection (ROKS or VSI)",
+          "Develop detailed migration runbook and testing procedures"
+        ]
+      },
+      {
+        "phase": "Phase 2: Environment Preparation",
+        "items": [
+          "Provision IBM Cloud VPC and networking infrastructure",
+          "Set up connectivity (Direct Link or VPN) to source environment",
+          "Deploy target platform (ROKS cluster or VSI infrastructure)",
+          "Configure storage and backup solutions"
+        ]
+      },
+      {
+        "phase": "Phase 3: Pilot Migration",
+        "items": [
+          "Select low-risk, non-critical VMs for pilot migration",
+          "Execute pilot migration and validate functionality",
+          "Document lessons learned and refine procedures",
+          "Obtain stakeholder sign-off on migration approach"
+        ]
+      },
+      {
+        "phase": "Phase 4: Production Migration",
+        "items": [
+          "Execute migration in planned waves",
+          "Validate each wave before proceeding to the next",
+          "Monitor performance and address any issues",
+          "Decommission source environment after successful migration"
+        ]
+      }
+    ],
+    "contact": {
+      "title": "Contact Information",
+      "content": "For questions about this assessment or to discuss next steps, please contact:"
+    }
+  },
+
+  "appendix": {
+    "title": "Appendix",
+    "sections": {
+      "methodology": {
+        "title": "Assessment Methodology",
+        "content": "This assessment was conducted using RVTools data exported from the VMware vSphere environment. RVTools collects comprehensive information about virtual machines, hosts, datastores, networks, and configuration settings. The data was analyzed using automated tools to identify migration readiness issues and calculate resource requirements."
+      },
+      "glossary": {
+        "title": "Glossary of Terms",
+        "terms": [
+          { "term": "ROKS", "definition": "Red Hat OpenShift on IBM Cloud - IBM's managed OpenShift container platform service" },
+          { "term": "VSI", "definition": "Virtual Server Instance - Virtual machine on IBM Cloud VPC infrastructure" },
+          { "term": "VPC", "definition": "Virtual Private Cloud - Isolated network environment on IBM Cloud" },
+          { "term": "ODF", "definition": "OpenShift Data Foundation - Software-defined storage solution for OpenShift" },
+          { "term": "MTV", "definition": "Migration Toolkit for Virtualization - Tool for migrating VMs to OpenShift Virtualization" },
+          { "term": "vCPU", "definition": "Virtual CPU - Logical processor allocated to a virtual machine" },
+          { "term": "GiB", "definition": "Gibibyte - 1024^3 bytes, used for memory and storage measurements" },
+          { "term": "TiB", "definition": "Tebibyte - 1024^4 bytes, used for large storage measurements" }
+        ]
+      }
+    }
+  }
+}

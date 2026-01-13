@@ -4,3 +4,4 @@ export { useChartFilter } from './useChartFilter';
 export type { ChartFilter } from './useChartFilter';
 export { usePDFExport } from './usePDFExport';
 export { useExcelExport } from './useExcelExport';
+export { useDocxExport } from './useDocxExport';

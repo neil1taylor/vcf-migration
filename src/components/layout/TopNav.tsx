@@ -5,16 +5,17 @@ import {
   HeaderGlobalBar,
   HeaderGlobalAction,
 } from '@carbon/react';
-import { Information, Upload, DocumentExport, DataTableReference } from '@carbon/icons-react';
+import { Information, Upload, DocumentExport, DataTableReference, Document } from '@carbon/icons-react';
 import { useHasData } from '@/hooks';
 
 interface TopNavProps {
   onUploadClick?: () => void;
   onExportPDFClick?: () => void;
   onExportExcelClick?: () => void;
+  onExportDocxClick?: () => void;
 }
 
-export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick }: TopNavProps) {
+export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick, onExportDocxClick }: TopNavProps) {
   const hasData = useHasData();
 
   return (
@@ -39,6 +40,15 @@ export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick }: 
             tooltipAlignment="end"
           >
             <DocumentExport size={20} />
+          </HeaderGlobalAction>
+        )}
+        {hasData && onExportDocxClick && (
+          <HeaderGlobalAction
+            aria-label="Export Report (DOCX)"
+            onClick={onExportDocxClick}
+            tooltipAlignment="end"
+          >
+            <Document size={20} />
           </HeaderGlobalAction>
         )}
         {onUploadClick && (
