@@ -429,3 +429,150 @@ export function exportPreFlightExcel(
   const filename = `preflight-report-${mode}-${new Date().toISOString().split('T')[0]}.xlsx`;
   XLSX.writeFile(workbook, filename);
 }
+
+// ===== Wave Planning Export =====
+
+export interface WaveVM {
+  vmName: string;
+  complexity: number;
+  osStatus: string;
+  hasBlocker: boolean;
+  vcpus: number;
+  memoryGiB: number;
+  storageGiB: number;
+  networkName: string;
+  ipAddress: string;
+  cluster: string;
+}
+
+export interface WaveGroup {
+  name: string;
+  description: string;
+  vmCount: number;
+  vcpus: number;
+  memoryGiB: number;
+  storageGiB: number;
+  hasBlockers: boolean;
+  vms: WaveVM[];
+}
+
+/**
+ * Export wave planning data to Excel
+ */
+export function downloadWavePlanningExcel(
+  waves: WaveGroup[],
+  planningMode: 'network' | 'complexity',
+  groupBy?: string
+): void {
+  const workbook = XLSX.utils.book_new();
+
+  // ===== Summary Sheet =====
+  const totalVMs = waves.reduce((sum, w) => sum + w.vmCount, 0);
+  const totalVcpus = waves.reduce((sum, w) => sum + w.vcpus, 0);
+  const totalMemory = waves.reduce((sum, w) => sum + w.memoryGiB, 0);
+  const totalStorage = waves.reduce((sum, w) => sum + w.storageGiB, 0);
+  const wavesWithBlockers = waves.filter(w => w.hasBlockers).length;
+
+  const summaryData = [
+    ['Migration Wave Planning Report', ''],
+    ['Generated', new Date().toLocaleString()],
+    ['Planning Mode', planningMode === 'network' ? `Network-Based (${groupBy || 'cluster'})` : 'Complexity-Based'],
+    [''],
+    ['Summary', ''],
+    ['Total Waves/Groups', waves.length],
+    ['Total VMs', totalVMs],
+    ['Total vCPUs', totalVcpus],
+    ['Total Memory (GiB)', totalMemory],
+    ['Total Storage (GiB)', Math.round(totalStorage)],
+    ['Groups with Blockers', wavesWithBlockers],
+    [''],
+    ['Wave Overview', ''],
+  ];
+
+  // Add wave summary rows
+  waves.forEach((wave, idx) => {
+    summaryData.push([
+      `${planningMode === 'complexity' ? 'Wave' : 'Group'} ${idx + 1}: ${wave.name}`,
+      `${wave.vmCount} VMs, ${wave.vcpus} vCPUs, ${wave.memoryGiB} GiB RAM${wave.hasBlockers ? ' (BLOCKERS)' : ''}`
+    ]);
+  });
+
+  const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+  summarySheet['!cols'] = [{ wch: 40 }, { wch: 60 }];
+  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+
+  // ===== Wave Details Sheet =====
+  const waveDetails = waves.map((wave, idx) => ({
+    'Wave/Group': `${planningMode === 'complexity' ? 'Wave' : 'Group'} ${idx + 1}`,
+    'Name': wave.name,
+    'Description': wave.description,
+    'VM Count': wave.vmCount,
+    'Total vCPUs': wave.vcpus,
+    'Total Memory (GiB)': wave.memoryGiB,
+    'Total Storage (GiB)': Math.round(wave.storageGiB),
+    'Has Blockers': wave.hasBlockers ? 'Yes' : 'No',
+  }));
+  const waveSheet = XLSX.utils.json_to_sheet(waveDetails);
+  waveSheet['!cols'] = [
+    { wch: 12 }, { wch: 30 }, { wch: 50 },
+    { wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 18 }, { wch: 12 }
+  ];
+  XLSX.utils.book_append_sheet(workbook, waveSheet, 'Wave Details');
+
+  // ===== All VMs Sheet =====
+  const allVMs: Array<Record<string, string | number | boolean>> = [];
+  waves.forEach((wave, waveIdx) => {
+    wave.vms.forEach(vm => {
+      allVMs.push({
+        'Wave/Group': `${planningMode === 'complexity' ? 'Wave' : 'Group'} ${waveIdx + 1}`,
+        'Wave Name': wave.name,
+        'VM Name': vm.vmName,
+        'Complexity Score': vm.complexity,
+        'OS Status': vm.osStatus,
+        'Has Blocker': vm.hasBlocker ? 'Yes' : 'No',
+        'vCPUs': vm.vcpus,
+        'Memory (GiB)': vm.memoryGiB,
+        'Storage (GiB)': vm.storageGiB,
+        'Network': vm.networkName,
+        'IP Address': vm.ipAddress,
+        'Cluster': vm.cluster,
+      });
+    });
+  });
+  const vmSheet = XLSX.utils.json_to_sheet(allVMs);
+  vmSheet['!cols'] = [
+    { wch: 12 }, { wch: 25 }, { wch: 35 }, { wch: 15 },
+    { wch: 12 }, { wch: 12 }, { wch: 8 }, { wch: 12 },
+    { wch: 12 }, { wch: 25 }, { wch: 15 }, { wch: 20 }
+  ];
+  XLSX.utils.book_append_sheet(workbook, vmSheet, 'All VMs');
+
+  // ===== Individual Wave Sheets (for each wave) =====
+  waves.forEach((wave, idx) => {
+    const sheetName = `${planningMode === 'complexity' ? 'Wave' : 'Group'} ${idx + 1}`.substring(0, 31);
+    const waveVMs = wave.vms.map(vm => ({
+      'VM Name': vm.vmName,
+      'Complexity': vm.complexity,
+      'OS Status': vm.osStatus,
+      'Blocker': vm.hasBlocker ? 'Yes' : 'No',
+      'vCPUs': vm.vcpus,
+      'Memory (GiB)': vm.memoryGiB,
+      'Storage (GiB)': vm.storageGiB,
+      'Network': vm.networkName,
+      'IP Address': vm.ipAddress,
+      'Cluster': vm.cluster,
+    }));
+    const waveVMSheet = XLSX.utils.json_to_sheet(waveVMs);
+    waveVMSheet['!cols'] = [
+      { wch: 35 }, { wch: 10 }, { wch: 12 }, { wch: 8 },
+      { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 25 },
+      { wch: 15 }, { wch: 20 }
+    ];
+    XLSX.utils.book_append_sheet(workbook, waveVMSheet, sheetName);
+  });
+
+  // Download the file
+  const modeLabel = planningMode === 'network' ? `network-${groupBy || 'cluster'}` : 'complexity';
+  const filename = `wave-planning-${modeLabel}-${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(workbook, filename);
+}

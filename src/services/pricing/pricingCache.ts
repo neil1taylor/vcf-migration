@@ -44,7 +44,15 @@ export interface BlockStorageTier {
 export interface NetworkPricing {
   publicGateway: { perGatewayMonthly: number; description: string };
   floatingIP: { perIPMonthly: number; description: string };
-  vpnGateway: { perGatewayMonthly: number; description: string };
+  vpnGateway: { perGatewayMonthly: number; perConnectionMonthly: number; description: string };
+  transitGateway: {
+    perGatewayMonthly: number;
+    localConnectionMonthly: number;
+    globalConnectionMonthly: number;
+    perGBLocal: number;
+    perGBGlobal: number;
+    description: string;
+  };
   loadBalancer: { perLBMonthly: number; perGBProcessed: number; description: string };
 }
 
@@ -87,7 +95,7 @@ export interface IBMCloudPricing {
   }>;
 }
 
-export type PricingSource = 'api' | 'static' | 'cached';
+export type PricingSource = 'api' | 'static' | 'cached' | 'proxy';
 
 export interface CachedPricing {
   data: IBMCloudPricing;

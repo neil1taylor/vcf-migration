@@ -13,12 +13,16 @@ import {
   TableBody,
   TableCell,
   InlineNotification,
+  Toggle,
+  NumberInput,
+  Accordion,
+  AccordionItem,
 } from '@carbon/react';
 import { Download, Calculator } from '@carbon/icons-react';
 import { MetricCard } from '@/components/common';
 import { PricingRefresh } from '@/components/pricing';
 import { useDynamicPricing } from '@/hooks';
-import type { CostEstimate, RegionCode, DiscountType, ROKSSizingInput, VSISizingInput } from '@/services/costEstimation';
+import type { CostEstimate, RegionCode, DiscountType, ROKSSizingInput, VSISizingInput, NetworkingOptions } from '@/services/costEstimation';
 import {
   calculateROKSCost,
   calculateVSICost,
@@ -26,21 +30,36 @@ import {
   getDiscountOptions,
   formatCurrency,
 } from '@/services/costEstimation';
-import { downloadBOM } from '@/services/export';
+import { downloadBOM, downloadVSIBOMExcel, downloadROKSBOMExcel } from '@/services/export';
+import type { VMDetail, ROKSNodeDetail } from '@/services/export';
 import './CostEstimation.scss';
 
 interface CostEstimationProps {
   type: 'roks' | 'vsi';
   roksSizing?: ROKSSizingInput;
   vsiSizing?: VSISizingInput;
+  vmDetails?: VMDetail[];
+  roksNodeDetails?: ROKSNodeDetail[];
   title?: string;
   showPricingRefresh?: boolean;
 }
 
-export function CostEstimation({ type, roksSizing, vsiSizing, title, showPricingRefresh = true }: CostEstimationProps) {
+export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true }: CostEstimationProps) {
   const [region, setRegion] = useState<RegionCode>('us-south');
   const [discountType, setDiscountType] = useState<DiscountType>('onDemand');
   const showDetails = true; // Always show details
+
+  // Networking options state (VSI only)
+  const [networkingOptions, setNetworkingOptions] = useState<NetworkingOptions>({
+    includeVPN: false,
+    vpnGatewayCount: 1,
+    includeTransitGateway: false,
+    transitGatewayLocalConnections: 1,
+    transitGatewayGlobalConnections: 0,
+    includePublicGateway: false,
+    publicGatewayCount: 1,
+    loadBalancerCount: 1,
+  });
 
   // Dynamic pricing hook
   const {
@@ -60,10 +79,15 @@ export function CostEstimation({ type, roksSizing, vsiSizing, title, showPricing
     if (type === 'roks' && roksSizing) {
       return calculateROKSCost(roksSizing, region, discountType, pricing);
     } else if (type === 'vsi' && vsiSizing) {
-      return calculateVSICost(vsiSizing, region, discountType, pricing);
+      // Add networking options to the sizing input
+      const sizingWithNetworking: VSISizingInput = {
+        ...vsiSizing,
+        networking: networkingOptions,
+      };
+      return calculateVSICost(sizingWithNetworking, region, discountType, pricing);
     }
     return null;
-  }, [type, roksSizing, vsiSizing, region, discountType, pricing]);
+  }, [type, roksSizing, vsiSizing, region, discountType, pricing, networkingOptions]);
 
   if (!estimate) {
     return (
@@ -96,8 +120,20 @@ export function CostEstimation({ type, roksSizing, vsiSizing, title, showPricing
     notes: item.notes,
   }));
 
-  const handleExport = (format: 'text' | 'json' | 'csv') => {
-    downloadBOM(estimate, format);
+  const handleExport = async (format: 'text' | 'json' | 'csv' | 'xlsx') => {
+    if (format === 'xlsx') {
+      // Use xlsx export for detailed BOM
+      if (type === 'vsi' && vmDetails && vmDetails.length > 0) {
+        await downloadVSIBOMExcel(vmDetails, estimate, 'Default VPC', region, discountType);
+      } else if (type === 'roks' && roksNodeDetails && roksNodeDetails.length > 0) {
+        await downloadROKSBOMExcel(estimate, roksNodeDetails, 'ROKS Cluster', region, discountType);
+      } else {
+        // Fallback to text BOM if no detailed data
+        downloadBOM(estimate, 'text');
+      }
+    } else {
+      downloadBOM(estimate, format);
+    }
   };
 
   return (
@@ -121,15 +157,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, title, showPricing
               kind="ghost"
               size="sm"
               renderIcon={Download}
-              onClick={() => handleExport('csv')}
-            >
-              Export CSV
-            </Button>
-            <Button
-              kind="ghost"
-              size="sm"
-              renderIcon={Download}
-              onClick={() => handleExport('text')}
+              onClick={() => handleExport('xlsx')}
             >
               Export BOM
             </Button>
@@ -167,6 +195,113 @@ export function CostEstimation({ type, roksSizing, vsiSizing, title, showPricing
             ))}
           </Select>
         </div>
+
+        {/* Networking Options (VSI only) */}
+        {type === 'vsi' && (
+          <Accordion className="cost-estimation__networking-accordion">
+            <AccordionItem title="VPC Networking Options" open={false}>
+              <div className="cost-estimation__networking-options">
+                <div className="cost-estimation__networking-row">
+                  <Toggle
+                    id="vpn-toggle"
+                    labelText="VPN Gateway"
+                    labelA="Off"
+                    labelB="On"
+                    toggled={networkingOptions.includeVPN}
+                    onToggle={(checked) => setNetworkingOptions(prev => ({ ...prev, includeVPN: checked }))}
+                  />
+                  {networkingOptions.includeVPN && (
+                    <NumberInput
+                      id="vpn-count"
+                      label="Gateway count"
+                      min={1}
+                      max={10}
+                      value={networkingOptions.vpnGatewayCount}
+                      onChange={(_, { value }) => setNetworkingOptions(prev => ({ ...prev, vpnGatewayCount: value as number }))}
+                      size="sm"
+                      hideSteppers
+                    />
+                  )}
+                  <span className="cost-estimation__networking-hint">Site-to-site VPN ($125/mo per gateway)</span>
+                </div>
+
+                <div className="cost-estimation__networking-row">
+                  <Toggle
+                    id="transit-gw-toggle"
+                    labelText="Transit Gateway"
+                    labelA="Off"
+                    labelB="On"
+                    toggled={networkingOptions.includeTransitGateway}
+                    onToggle={(checked) => setNetworkingOptions(prev => ({ ...prev, includeTransitGateway: checked }))}
+                  />
+                  {networkingOptions.includeTransitGateway && (
+                    <>
+                      <NumberInput
+                        id="transit-local"
+                        label="Local connections"
+                        min={0}
+                        max={20}
+                        value={networkingOptions.transitGatewayLocalConnections}
+                        onChange={(_, { value }) => setNetworkingOptions(prev => ({ ...prev, transitGatewayLocalConnections: value as number }))}
+                        size="sm"
+                        hideSteppers
+                      />
+                      <NumberInput
+                        id="transit-global"
+                        label="Global connections"
+                        min={0}
+                        max={20}
+                        value={networkingOptions.transitGatewayGlobalConnections}
+                        onChange={(_, { value }) => setNetworkingOptions(prev => ({ ...prev, transitGatewayGlobalConnections: value as number }))}
+                        size="sm"
+                        hideSteppers
+                      />
+                    </>
+                  )}
+                  <span className="cost-estimation__networking-hint">VPC/Classic connectivity ($45/mo local, $170/mo global)</span>
+                </div>
+
+                <div className="cost-estimation__networking-row">
+                  <Toggle
+                    id="public-gw-toggle"
+                    labelText="Public Gateway"
+                    labelA="Off"
+                    labelB="On"
+                    toggled={networkingOptions.includePublicGateway}
+                    onToggle={(checked) => setNetworkingOptions(prev => ({ ...prev, includePublicGateway: checked }))}
+                  />
+                  {networkingOptions.includePublicGateway && (
+                    <NumberInput
+                      id="public-gw-count"
+                      label="Gateway count"
+                      min={1}
+                      max={10}
+                      value={networkingOptions.publicGatewayCount}
+                      onChange={(_, { value }) => setNetworkingOptions(prev => ({ ...prev, publicGatewayCount: value as number }))}
+                      size="sm"
+                      hideSteppers
+                    />
+                  )}
+                  <span className="cost-estimation__networking-hint">Outbound internet access ($65/mo per gateway)</span>
+                </div>
+
+                <div className="cost-estimation__networking-row">
+                  <NumberInput
+                    id="lb-count"
+                    label="Load Balancers"
+                    min={0}
+                    max={20}
+                    value={networkingOptions.loadBalancerCount}
+                    onChange={(_, { value }) => setNetworkingOptions(prev => ({ ...prev, loadBalancerCount: value as number }))}
+                    size="sm"
+                    hideSteppers
+                  />
+                  <span className="cost-estimation__networking-hint">Application Load Balancer ($35/mo each)</span>
+                </div>
+              </div>
+            </AccordionItem>
+          </Accordion>
+        )}
       </Tile>
 
       {/* Cost Summary */}

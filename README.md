@@ -1,161 +1,275 @@
 # VCF Migration
 
-A modern **React + TypeScript + Vite** web UI to support VMware Cloud Foundation (VCF) migration workflows — planning, execution and reporting to IBM Cloud Red Hat Open Shift Kubernetes (ROKs) and/or IBM Cloud Virtual Private Cloud (VPC) Virtual Server Instances (VSI).
+A modern **React + TypeScript + Vite** web application to support VMware Cloud Foundation (VCF) migration workflows — planning, analysis, cost estimation, and reporting for migration to **IBM Cloud Red Hat OpenShift (ROKS)** and/or **IBM Cloud Virtual Private Cloud (VPC) Virtual Server Instances (VSI)**.
 
-This project provides an interactive interface for visualizing, configuring, and driving migration actions related to VCF environments. Whether you’re assessing workloads for brownfield import, exporting inventory data, or orchestrating migration steps, this UI is designed to be a lightweight but powerful companion to your tooling.
-
-
-This project leverages RVTools, which is a widely-used **Windows utility for VMware vSphere inventory and reporting**, designed to connect to a vCenter Server or individual ESXi hosts and pull detailed configuration and status information across your virtual environment. It displays data about VMs, hosts, datastores, networks, snapshots, VMware Tools status and more in an easy-to-navigate interface, with rich export options (CSV/XLSX) that make it ideal for audits, health checks, capacity planning, and migration planning. RVTools has long been a go-to for VMware administrators who need fast, comprehensive environment insights without installing agents on the infrastructure. See [RVTools – VMware Infrastructure Management​ | Dell USA](https://rvtoolit.com/rvtools.htm)
-
-For official details and downloads, see the RVTools page on Dell’s site, the current authorized host for the tool, [https://www.dell.com/en-us/shop/vmware/sl/rvtools](https://www.dell.com/en-us/shop/vmware/sl/rvtools). Also see [RVTools – VMware Infrastructure Management​ | Dell USA](https://www.dell.com/en-us/shop/vmware/sl/rvtools)
+This project provides an interactive interface for analyzing VMware environments, assessing migration readiness, estimating costs, and generating comprehensive reports and Bills of Materials (BOMs).
 
 ---
 
-## Features
+## Key Features
 
-- **Interactive Migration Dashboard** – See at-a-glance status and history  
-- **Inventory Reporting** – Parse and present data (ex: exported RVTools inventory)  
-- **Configuration UI** – Provide inputs needed for migration operations  
-- **Extensible Frontend Toolkit** – Built with React + TypeScript + Vite
+### Data Import & Analysis
+- **RVTools Import** — Parse and analyze RVTools Excel exports (vInfo, vCPU, vMemory, vDisk, vNetwork, vHost, vDatastore tabs)
+- **Environment Overview** — Dashboard with VM counts, resource utilization, and health metrics
+- **Inventory Visualization** — Interactive charts and tables for exploring your VMware environment
+
+### Migration Targets
+
+#### ROKS (Red Hat OpenShift on IBM Cloud)
+- **MTV Compatibility Analysis** — Pre-flight checks against Migration Toolkit for Virtualization requirements
+- **OS Compatibility Matrix** — Red Hat OS support validation with detailed compatibility status
+- **Bare Metal Sizing** — Automatic calculation of required bare metal nodes for OpenShift Virtualization
+- **ODF Storage Planning** — OpenData Foundation storage requirements with NVMe recommendations
+- **ROKS Sizing Calculator** — Interactive calculator for cluster sizing based on workload requirements
+
+#### VPC VSI (Virtual Server Instances)
+- **VSI Profile Mapping** — Automatic mapping of VMs to appropriate IBM Cloud VSI profiles
+- **Profile Family Selection** — Support for Balanced (bx2), Compute (cx2), and Memory (mx2) families
+- **OS Support Analysis** — IBM Cloud VPC supported operating system validation
+
+### Cost Estimation
+- **Dynamic Pricing** — Real-time pricing from IBM Cloud Global Catalog API
+- **Regional Pricing** — Support for all IBM Cloud regions with regional multipliers
+- **Discount Options** — On-Demand, 1-Year Reserved, and 3-Year Reserved pricing
+- **Cost Breakdown** — Detailed line-item costs for compute, storage, and networking
+- **Monthly/Annual Projections** — Cost forecasting for budget planning
+- **Custom Profiles** - Features:
+
+    1. Profile Override - Users can override the auto-mapped VSI profile for any VM by clicking the edit icon in the VM mapping table
+    2. Custom Profile Definition - Users can define custom profiles with specific vCPUs, memory, and pricing
+    3. Persistence - All overrides and custom profiles are stored in localStorage
+    4. Visual Indicators - Override tags and notification banner when profiles are customized
+    5. Bulk Actions - "Clear All Overrides" button to reset all customizations
+    6. Integration - Overrides automatically apply to cost estimation and BOM export
+    7. Usage - Navigate to the VSI Migration > Sizing tab:
+    - Click Custom Profiles button to define new profiles
+    - In the VM to VSI Profile Mapping table, click the edit icon to override any VM's profile
+    - Changes are persisted across sessions
+
+### Export & Reporting
+
+#### Bill of Materials (BOM) Export
+- **Excel BOM with Formulas** — Detailed spreadsheet with:
+  - VPC/Cluster summary with regional pricing
+  - Per-VM/node cost breakdown with formulas (Unit Price × Quantity)
+  - Boot and data volume costs referencing storage cost per GB
+  - Section totals with SUM formulas
+  - Color-coded headers and styling for easy reading
+- **VM Details Sheet** — Complete inventory with profile mapping and costs
+- **Summary Sheet** — Configuration overview and cost summary
+
+#### Additional Export Formats
+- **PDF Reports** — Professional migration assessment reports with charts
+- **Excel Workbooks** — Multi-sheet analysis with VM mapping and recommendations
+- **Word Documents** — Formatted migration planning documents
+- **YAML Templates** — MTV operator configuration files for migration execution
+
+### Migration Planning
+- **Wave Planning** — Network-based or complexity-based migration grouping
+- **Complexity Scoring** — Automatic assessment of migration difficulty per VM
+- **Remediation Guidance** — Actionable recommendations for migration blockers
+
+---
+
+## Technology Stack
+
+- **React 18** with TypeScript for type-safe UI development
+- **Vite** for fast development and optimized production builds
+- **IBM Carbon Design System** for enterprise-grade UI components
+- **Chart.js** for data visualization
+- **ExcelJS** for Excel generation with styling and formulas
+- **SheetJS (xlsx)** for reading Excel files
+- **jsPDF** for PDF report generation
+
+See [TECHNOLOGIES.md](TECHNOLOGIES.md) for detailed technology documentation.
 
 ---
 
 ## Getting Started
 
-These instructions will get the project up and running on your local machine for development and testing.
-
 ### Prerequisites
 
-Make sure you have the following installed:
+- **Node.js** >= 18.x
+- **npm** >= 9.x or **yarn**
 
-- **Node.js** (>= 18.x)
-- **npm** (>= 9.x) or **yarn**
-
----
-
-## Installation
-
-Clone the repo:
+### Installation
 
 ```bash
 git clone https://github.com/neilrtaylor/vcf-migration.git
 cd vcf-migration
-````
-
-Install dependencies:
-
-```bash
 npm install
-# or
-yarn install
 ```
 
----
-
-## Development
-
-Run a local development server with hot reload:
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
 ```
 
-This will open the app at `http://localhost:5173` (default Vite host/port).
+Opens at `http://localhost:5173`
 
----
-
-## Build for Production
-
-Create an optimized production build:
+### Production Build
 
 ```bash
 npm run build
-# or
-yarn build
-```
-
-Serve the build locally for testing:
-
-```bash
 npm run preview
-# or
-yarn preview
 ```
+
+### Production Deployment
+
+For deploying to IBM Cloud, see [DEPLOYMENT.md](DEPLOYMENT.md) which covers:
+- **VPC VSI with Nginx** — Full control, enterprise deployments
+- **Code Engine** — Serverless, auto-scaling
+- **Cloud Object Storage + CDN** — Static hosting, cost-effective
 
 ---
 
 ## Project Structure
 
-```text
+```
 vcf-migration/
-├─ public/                 # Static assets
-├─ src/                    # Source code
-│   ├─ components/         # Reusable UI components
-│   ├─ pages/              # Route pages
-│   ├─ services/           # API and migration services
-│   ├─ styles/             # SCSS / styled sheets
-│   └─ index.tsx           # App entrypoint
-├─ .gitignore
-├─ package.json
-├─ tsconfig.json
-├─ vite.config.ts
-└─ README.md
+├── public/                    # Static assets
+├── src/
+│   ├── components/
+│   │   ├── charts/           # Visualization components
+│   │   ├── common/           # Reusable UI components
+│   │   ├── cost/             # Cost estimation components
+│   │   ├── export/           # Export functionality
+│   │   ├── layout/           # Navigation and layout
+│   │   ├── pricing/          # Pricing display components
+│   │   ├── sizing/           # Sizing calculators
+│   │   └── tables/           # Data table components
+│   ├── data/                 # Static data files
+│   │   ├── ibmCloudPricing.json    # Fallback pricing data
+│   │   ├── ibmCloudProfiles.json   # VSI profile definitions
+│   │   ├── mtvRequirements.json    # MTV validation rules
+│   │   └── redhatOSCompatibility.json
+│   ├── hooks/                # Custom React hooks
+│   ├── pages/                # Route pages
+│   │   ├── ROKSMigrationPage.tsx   # ROKS analysis
+│   │   ├── VSIMigrationPage.tsx    # VPC VSI analysis
+│   │   └── ...
+│   ├── services/
+│   │   ├── costEstimation.ts       # Cost calculation logic
+│   │   ├── export/                 # Export generators
+│   │   │   ├── bomXlsxGenerator.ts # BOM Excel export
+│   │   │   ├── pdfGenerator.ts     # PDF reports
+│   │   │   └── ...
+│   │   └── pricing/                # IBM Cloud pricing
+│   │       ├── globalCatalogApi.ts # API integration
+│   │       └── pricingCache.ts     # Caching layer
+│   ├── styles/               # SCSS stylesheets
+│   ├── types/                # TypeScript type definitions
+│   └── utils/                # Utility functions
+├── DEPLOYMENT.md             # Production deployment guide
+├── PRD.md                    # Product Requirements Document
+├── TECHNOLOGIES.md           # Technology documentation
+└── README.md
 ```
 
 ---
 
-## Testing
+## Usage
 
-*(Add this section if you include tests later)*
+### 1. Import RVTools Data
+
+1. Export your VMware environment using RVTools
+2. Upload the `.xlsx` file to the application
+3. The parser extracts data from multiple tabs (vInfo, vCPU, vDisk, etc.)
+
+### 2. Analyze Migration Targets
+
+Navigate to either:
+- **ROKS Migration** — For OpenShift Virtualization with MTV
+- **VPC VSI Migration** — For traditional VM-to-VSI migration
+
+### 3. Review Readiness
+
+- Check the readiness score and blockers
+- Review OS compatibility status
+- Examine remediation recommendations
+
+### 4. Estimate Costs
+
+- Select your target region
+- Choose pricing type (On-Demand or Reserved)
+- Review cost breakdown by category
+- Export BOM for detailed cost analysis
+
+### 5. Export Reports
+
+- **Export BOM** — Excel spreadsheet with formulas and styling
+- **Export PDF** — Professional assessment report
+- **Export Excel** — Complete analysis workbook
+
+---
+
+## Configuration
+
+### Environment Variables
+
+Create a `.env` file based on `.env.example`:
+
+```env
+# IBM Cloud API (optional - enables live pricing)
+VITE_IBM_CLOUD_API_KEY=your-api-key
+```
+
+Without an API key, the application uses static pricing data from `ibmCloudPricing.json`.
+
+### How It Works
 
 ```bash
-npm run test
-# or
-yarn test
+  ┌─────────────────┐         ┌──────────────────────┐         ┌─────────────────┐
+  │   Browser       │ ──────> │  Cloud Functions     │ ──────> │  IBM Cloud      │
+  │   (Frontend)    │         │  Proxy               │         │  Global Catalog │
+  │                 │ <────── │  (1-hour cache)      │ <────── │  API            │
+  └─────────────────┘         └──────────────────────┘         └─────────────────┘
+                                       │
+                                API Key secure
+                                on server
+```
+
+To deploy:
+
+```bash
+# 1. Create API key
+ibmcloud iam api-key-create vcf-pricing-proxy
+
+# 2. Deploy proxy
+cd functions/pricing-proxy
+export IBM_CLOUD_API_KEY="your-key"
+./deploy.sh
+
+# 3. Add URL to frontend .env
+VITE_PRICING_PROXY_URL=https://your-function-url
+
+# 4. Rebuild and deploy
+npm run build
 ```
 
 ---
 
-## Backend Integration
+## Data Sources
 
-This UI expects a backend API that supports endpoints for:
+### RVTools
+- Website: https://www.dell.com/en-us/shop/vmware/sl/rvtools
+- Supported export format: Excel (.xlsx)
 
-* Fetching migration inventories
-* Submitting migration jobs
-* Retrieving job status/progress
-* Serving configuration metadata
-
-You can stub/mock these endpoints during early development, or point to a live service matching your VCF migration tooling.
-
----
-
-## Tips
-
-* Use your browser’s dev tools to inspect network requests while integrating with real APIs.
-* Leverage React DevTools for UI component state debugging.
-* If you’re working with Excel or CSV exports (like RVTools), consider using a client library (e.g., SheetJS) to parse files in the browser.
+### IBM Cloud Pricing
+- Global Catalog API for live pricing
+- Static fallback data updated periodically
+- Regional multipliers for accurate estimates
 
 ---
 
 ## Contributing
-
-Thanks for considering contributing! We follow a standard fork-and-pull request workflow:
 
 1. Fork the project
 2. Create your feature branch (`git checkout -b feature/foo`)
 3. Commit your changes
 4. Push to your branch (`git push origin feature/foo`)
 5. Open a Pull Request
-
-Please make sure your changes are linted and formatted consistently.
-
----
-
-## Technologies
-
-This project uses a number of technologies — see the [TECHNOLOGIES](TECHNOLOGIES.md) file for details.
 
 ---
 
@@ -167,9 +281,8 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 
 ## Acknowledgements
 
-Inspired by real-world VMware Cloud Foundation migration needs and built using:
-
-* React
-* TypeScript
-* Vite
-
+Built with:
+- [React](https://react.dev/)
+- [IBM Carbon Design System](https://carbondesignsystem.com/)
+- [ExcelJS](https://github.com/exceljs/exceljs)
+- [Chart.js](https://www.chartjs.org/)

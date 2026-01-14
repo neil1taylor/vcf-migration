@@ -144,6 +144,8 @@ export const ROUTES = {
   tables: '/tables',
   info: '/info',
   documentation: '/documentation',
+  vsiMigrationMethods: '/vsi-migration-methods',
+  mtvDocumentation: '/mtv-documentation',
 } as const;
 
 // Local storage keys

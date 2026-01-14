@@ -1,0 +1,21 @@
+{
+  "name": "vcf-pricing-proxy",
+  "version": "1.0.0",
+  "description": "IBM Cloud Functions pricing proxy for VCF Migration app",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js",
+    "deploy": "./deploy.sh"
+  },
+  "keywords": [
+    "ibm-cloud",
+    "functions",
+    "pricing",
+    "proxy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

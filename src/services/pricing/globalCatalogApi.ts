@@ -1,4 +1,5 @@
 // IBM Cloud Global Catalog API client for fetching pricing data
+// Supports both direct API access and Cloud Functions proxy
 
 // ===== TYPES =====
 
@@ -91,6 +92,9 @@ const DEFAULT_TIMEOUT = 30000; // 30 seconds
 
 // API key from environment variable
 const ENV_API_KEY = import.meta.env.VITE_IBM_CLOUD_API_KEY as string | undefined;
+
+// Pricing proxy URL (IBM Cloud Functions)
+const PRICING_PROXY_URL = import.meta.env.VITE_PRICING_PROXY_URL as string | undefined;
 
 // IAM token endpoint (also needs proxy in dev)
 const IAM_TOKEN_URL = import.meta.env.DEV
@@ -359,6 +363,125 @@ export async function testApiConnection(config?: GlobalCatalogConfig): Promise<b
     return isAvailable;
   } catch (error) {
     console.error('[Pricing API] Connection test FAILED:', error instanceof Error ? error.message : error);
+    return false;
+  }
+}
+
+// ===== PROXY FUNCTIONS =====
+
+/**
+ * Pricing data structure returned by the proxy
+ */
+export interface ProxyPricingResponse {
+  version: string;
+  lastUpdated: string;
+  source: string;
+  cached: boolean;
+  cacheAge?: number;
+  stale?: boolean;
+  error?: string;
+  regions: Record<string, { name: string; multiplier: number }>;
+  discountOptions: Record<string, { name: string; discountPct: number }>;
+  vsiProfiles: Record<string, { vcpus: number; memoryGiB: number; hourlyRate: number }>;
+  blockStorage: {
+    generalPurpose: { costPerGBMonth: number; iopsPerGB: number };
+    custom: { costPerGBMonth: number; costPerIOPS: number };
+    tiers: Record<string, { costPerGBMonth: number; iopsPerGB: number }>;
+  };
+  bareMetal: Record<string, { vcpus: number; memoryGiB: number; storageGiB: number; monthlyRate: number }>;
+  roks: { clusterManagementFee: number; workerNodeMarkup: number };
+  odf: { perTBMonth: number; minimumTB: number };
+  networking: {
+    loadBalancer: { perLBMonthly: number; perGBProcessed: number };
+    floatingIP: { monthlyRate: number };
+    vpnGateway: { monthlyRate: number };
+  };
+}
+
+/**
+ * Check if pricing proxy is configured
+ */
+export function isProxyConfigured(): boolean {
+  return !!PRICING_PROXY_URL;
+}
+
+/**
+ * Get the proxy URL
+ */
+export function getProxyUrl(): string | undefined {
+  return PRICING_PROXY_URL;
+}
+
+/**
+ * Fetch pricing data from the Cloud Functions proxy
+ * This is the preferred method as it keeps API credentials server-side
+ */
+export async function fetchFromProxy(
+  options?: { refresh?: boolean; timeout?: number }
+): Promise<ProxyPricingResponse> {
+  if (!PRICING_PROXY_URL) {
+    throw new Error('Pricing proxy URL not configured. Set VITE_PRICING_PROXY_URL environment variable.');
+  }
+
+  const url = new URL(PRICING_PROXY_URL);
+  if (options?.refresh) {
+    url.searchParams.set('refresh', 'true');
+  }
+
+  const timeout = options?.timeout || DEFAULT_TIMEOUT;
+
+  console.log('[Pricing API] Fetching from proxy:', url.toString());
+
+  try {
+    const response = await fetchWithTimeout(
+      url.toString(),
+      {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+      },
+      timeout
+    );
+
+    if (!response.ok) {
+      throw new Error(`Proxy request failed: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    console.log('[Pricing API] Proxy response:', {
+      cached: data.cached,
+      cacheAge: data.cacheAge,
+      source: data.source,
+      vsiProfiles: Object.keys(data.vsiProfiles || {}).length,
+    });
+
+    return data;
+  } catch (error) {
+    console.error('[Pricing API] Proxy fetch failed:', error instanceof Error ? error.message : error);
+    throw error;
+  }
+}
+
+/**
+ * Test proxy connectivity
+ */
+export async function testProxyConnection(): Promise<boolean> {
+  if (!PRICING_PROXY_URL) {
+    console.log('[Pricing API] Proxy not configured');
+    return false;
+  }
+
+  console.log('[Pricing API] Testing proxy connectivity...');
+
+  try {
+    const data = await fetchFromProxy({ timeout: 10000 });
+    const isAvailable = !!data.vsiProfiles && Object.keys(data.vsiProfiles).length > 0;
+    console.log('[Pricing API] Proxy test result:', isAvailable ? 'SUCCESS' : 'NO DATA');
+    return isAvailable;
+  } catch (error) {
+    console.error('[Pricing API] Proxy test FAILED:', error instanceof Error ? error.message : error);
     return false;
   }
 }

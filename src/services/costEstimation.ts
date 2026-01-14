@@ -54,10 +54,22 @@ export interface ROKSSizingInput {
   odfProfile?: string;
 }
 
+export interface NetworkingOptions {
+  includeVPN?: boolean;
+  vpnGatewayCount?: number;
+  includeTransitGateway?: boolean;
+  transitGatewayLocalConnections?: number;
+  transitGatewayGlobalConnections?: number;
+  includePublicGateway?: boolean;
+  publicGatewayCount?: number;
+  loadBalancerCount?: number;
+}
+
 export interface VSISizingInput {
   vmProfiles: { profile: string; count: number }[];
   storageTiB: number;
   storageTier?: '5iops' | '10iops';
+  networking?: NetworkingOptions;
 }
 
 export type RegionCode = keyof typeof pricingData.regions;
@@ -316,17 +328,92 @@ export function calculateVSICost(
   }
 
   // Networking
-  const networkingCost = pricingToUse.networking.loadBalancer.perLBMonthly * multiplier;
-  lineItems.push({
-    category: 'Networking',
-    description: 'Application Load Balancer',
-    quantity: 1,
-    unit: 'LB',
-    unitCost: networkingCost,
-    monthlyCost: networkingCost,
-    annualCost: networkingCost * 12,
-    notes: 'For application traffic',
-  });
+  const netOpts = input.networking || {};
+  const loadBalancerCount = netOpts.loadBalancerCount ?? 1;
+
+  // Load Balancer(s)
+  if (loadBalancerCount > 0) {
+    const lbCost = pricingToUse.networking.loadBalancer.perLBMonthly * multiplier;
+    lineItems.push({
+      category: 'Networking',
+      description: 'Application Load Balancer',
+      quantity: loadBalancerCount,
+      unit: 'LB',
+      unitCost: lbCost,
+      monthlyCost: loadBalancerCount * lbCost,
+      annualCost: loadBalancerCount * lbCost * 12,
+      notes: 'For application traffic distribution',
+    });
+  }
+
+  // VPN Gateway
+  if (netOpts.includeVPN) {
+    const vpnCount = netOpts.vpnGatewayCount || 1;
+    const vpnCost = pricingToUse.networking.vpnGateway.perGatewayMonthly * multiplier;
+    lineItems.push({
+      category: 'Networking',
+      description: 'VPN Gateway',
+      quantity: vpnCount,
+      unit: 'gateway',
+      unitCost: vpnCost,
+      monthlyCost: vpnCount * vpnCost,
+      annualCost: vpnCount * vpnCost * 12,
+      notes: 'Site-to-site VPN connectivity to on-premises',
+    });
+  }
+
+  // Transit Gateway
+  if (netOpts.includeTransitGateway) {
+    const localConns = netOpts.transitGatewayLocalConnections || 1;
+    const globalConns = netOpts.transitGatewayGlobalConnections || 0;
+    const transitGw = pricingToUse.networking.transitGateway;
+
+    // Local connections
+    if (localConns > 0) {
+      const localConnCost = transitGw.localConnectionMonthly * multiplier;
+      lineItems.push({
+        category: 'Networking',
+        description: 'Transit Gateway - Local Connection',
+        quantity: localConns,
+        unit: 'connection',
+        unitCost: localConnCost,
+        monthlyCost: localConns * localConnCost,
+        annualCost: localConns * localConnCost * 12,
+        notes: 'Same-region VPC/Classic connectivity',
+      });
+    }
+
+    // Global connections
+    if (globalConns > 0) {
+      const globalConnCost = transitGw.globalConnectionMonthly * multiplier;
+      lineItems.push({
+        category: 'Networking',
+        description: 'Transit Gateway - Global Connection',
+        quantity: globalConns,
+        unit: 'connection',
+        unitCost: globalConnCost,
+        monthlyCost: globalConns * globalConnCost,
+        annualCost: globalConns * globalConnCost * 12,
+        notes: 'Cross-region connectivity',
+      });
+    }
+  }
+
+  // Public Gateway
+  if (netOpts.includePublicGateway) {
+    const pgwCount = netOpts.publicGatewayCount || 1;
+    const pgwCost = pricingToUse.networking.publicGateway.perGatewayMonthly * multiplier;
+    lineItems.push({
+      category: 'Networking',
+      description: 'Public Gateway',
+      quantity: pgwCount,
+      unit: 'gateway',
+      unitCost: pgwCost,
+      monthlyCost: pgwCount * pgwCost,
+      annualCost: pgwCount * pgwCost * 12,
+      notes: 'Outbound internet access for VPC subnets',
+    });
+  }
 
   // Calculate totals
   const subtotalMonthly = lineItems.reduce((sum, item) => sum + item.monthlyCost, 0);

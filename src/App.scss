@@ -6,6 +6,11 @@
 );
 @use '@carbon/styles';
 
+// Dark theme support - apply g100 theme when data-carbon-theme="g100"
+:root[data-carbon-theme='g100'] {
+  @include theme.theme(themes.$g100);
+}
+
 // Global box-sizing
 *,
 *::before,

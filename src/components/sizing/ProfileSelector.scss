@@ -1,0 +1,46 @@
+@use '@carbon/styles/scss/spacing';
+@use '@carbon/styles/scss/type';
+
+.profile-selector {
+  display: flex;
+  align-items: center;
+  gap: spacing.$spacing-03;
+
+  &--compact {
+    flex-wrap: nowrap;
+  }
+
+  &__name {
+    font-family: var(--cds-code-01-font-family);
+    font-size: var(--cds-code-01-font-size);
+    white-space: nowrap;
+  }
+
+  &__tag {
+    flex-shrink: 0;
+  }
+
+  &__edit-btn,
+  &__reset-btn,
+  &__done-btn {
+    flex-shrink: 0;
+    min-width: auto;
+    padding: spacing.$spacing-02;
+  }
+
+  &__dropdown {
+    min-width: 200px;
+    max-width: 300px;
+
+    .cds--dropdown {
+      background-color: var(--cds-field-01);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: spacing.$spacing-03;
+    margin-left: spacing.$spacing-03;
+  }
+}

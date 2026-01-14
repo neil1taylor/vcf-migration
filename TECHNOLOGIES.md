@@ -213,6 +213,53 @@ This is especially valuable when working with large RVTools datasets where consi
 
 ---
 
+## Excel Generation with ExcelJS
+
+**ExcelJS** is a powerful JavaScript library for creating, reading, and manipulating Excel workbooks in the browser and Node.js. Unlike SheetJS (which is primarily for reading), ExcelJS provides full support for:
+
+- **Cell Styling** — Background colors, font styles, borders, and number formats
+- **Formulas** — Excel formulas that calculate when the file is opened
+- **Multiple Worksheets** — Complex workbooks with multiple tabs
+- **Column Widths** — Automatic and manual column sizing
+
+### Why ExcelJS for BOM Export
+
+The Bill of Materials (BOM) export feature requires styled spreadsheets with formulas that users can modify. ExcelJS enables:
+
+- Color-coded headers (blue for main headers, black for section headers)
+- Currency formatting (`$#,##0.00`)
+- Formulas like `=B5*C5` for price calculations
+- SUM formulas for totals that update when values change
+- Professional styling matching IBM Cloud cost estimator format
+
+This allows exported BOMs to be fully editable — users can adjust quantities or prices and see totals recalculate automatically.
+
+🔗 https://github.com/exceljs/exceljs
+
+---
+
+## Data Visualization with Chart.js
+
+**Chart.js** is a flexible JavaScript charting library used to create interactive, responsive charts and graphs. The application uses Chart.js for visualizing VMware environment data and migration analysis results.
+
+### Chart Types Used
+
+- **Doughnut Charts** — OS distribution, VM status breakdown
+- **Bar Charts** — Resource utilization, profile distribution
+- **Horizontal Bar Charts** — Complexity scoring, wave planning
+
+### Integration with React
+
+Chart.js integrates with React through wrapper components that handle:
+- Canvas rendering and cleanup
+- Responsive resizing
+- Theme-aware styling (IBM Carbon colors)
+- Interactive tooltips and legends
+
+🔗 https://www.chartjs.org/
+
+---
+
 ### Why Client-Side PDF Generation
 
 Using browser-based PDF generation provides:
@@ -227,13 +274,31 @@ This aligns well with the goal of keeping the application lightweight while stil
 
 ## Summary
 
-This technology stack combines a modern React frontend with strong typing, fast build tooling, and an enterprise-grade design system. Together, these technologies provide a scalable foundation for building a robust UI to support VMware Cloud Foundation migration and infrastructure analysis workflows. The parsing and data handling stack includes:
+This technology stack combines a modern React frontend with strong typing, fast build tooling, and an enterprise-grade design system. Together, these technologies provide a scalable foundation for building a robust UI to support VMware Cloud Foundation migration and infrastructure analysis workflows.
+
+### Data Import & Parsing
 
 | Responsibility | Technology |
 |----------------|------------|
 | Read file from user device | FileReader API |
 | Parse CSV content | PapaParse |
 | Parse Excel/Sheets | SheetJS (`xlsx`) |
-| Transform & normalize | JavaScript / Utility libs (optional) |
+| Transform & normalize | JavaScript / Utility libs |
+
+### Export & Reporting
+
+| Responsibility | Technology |
+|----------------|------------|
+| Generate styled Excel with formulas | ExcelJS |
+| Generate PDF reports | jsPDF + AutoTable |
+| Read/write basic Excel | SheetJS (`xlsx`) |
+
+### Visualization
+
+| Responsibility | Technology |
+|----------------|------------|
+| Charts and graphs | Chart.js |
+| UI components | IBM Carbon Design System |
+| Responsive layout | CSS3 / Carbon Grid |
 
 Each of these has broad community support and clear documentation, so you can extend or swap them as the project evolves without large rewrites.

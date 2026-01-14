@@ -16,6 +16,8 @@ import { DiscoveryPage } from '@/pages/DiscoveryPage';
 import { TablesPage } from '@/pages/TablesPage';
 import { InfoPage } from '@/pages/InfoPage';
 import { DocumentationPage } from '@/pages/DocumentationPage';
+import { VSIMigrationMethodsPage } from '@/pages/VSIMigrationMethodsPage';
+import { MTVDocumentationPage } from '@/pages/MTVDocumentationPage';
 import { ROUTES } from '@/utils/constants';
 
 export const router = createBrowserRouter([
@@ -82,6 +84,14 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.documentation.slice(1),
         element: <DocumentationPage />,
+      },
+      {
+        path: ROUTES.vsiMigrationMethods.slice(1),
+        element: <VSIMigrationMethodsPage />,
+      },
+      {
+        path: ROUTES.mtvDocumentation.slice(1),
+        element: <MTVDocumentationPage />,
       },
       {
         path: '*',

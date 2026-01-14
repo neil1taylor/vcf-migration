@@ -1,6 +1,6 @@
 // Main application component
 import { RouterProvider } from 'react-router-dom';
-import { DataProvider } from '@/context';
+import { DataProvider, ThemeProvider } from '@/context';
 import { ErrorBoundary } from '@/components/common';
 import { router } from './router';
 
@@ -10,9 +10,11 @@ import './App.scss';
 function App() {
   return (
     <ErrorBoundary>
-      <DataProvider>
-        <RouterProvider router={router} />
-      </DataProvider>
+      <ThemeProvider>
+        <DataProvider>
+          <RouterProvider router={router} />
+        </DataProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }

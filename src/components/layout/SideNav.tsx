@@ -22,6 +22,8 @@ import {
   Upload,
   Information,
   Book,
+  DataShare,
+  Migrate,
 } from '@carbon/icons-react';
 import { useHasData } from '@/hooks';
 import { ROUTES } from '@/utils/constants';
@@ -199,6 +201,24 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
           isActive={isActive(ROUTES.documentation)}
         >
           Documentation
+        </SideNavLink>
+
+        <SideNavLink
+          renderIcon={DataShare}
+          href="#"
+          onClick={(e) => handleNavClick(e, ROUTES.vsiMigrationMethods)}
+          isActive={isActive(ROUTES.vsiMigrationMethods)}
+        >
+          VSI Migration Methods
+        </SideNavLink>
+
+        <SideNavLink
+          renderIcon={Migrate}
+          href="#"
+          onClick={(e) => handleNavClick(e, ROUTES.mtvDocumentation)}
+          isActive={isActive(ROUTES.mtvDocumentation)}
+        >
+          MTV Guide
         </SideNavLink>
       </SideNavItems>
     </CarbonSideNav>

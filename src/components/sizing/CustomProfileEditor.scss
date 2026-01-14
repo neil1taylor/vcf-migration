@@ -1,0 +1,96 @@
+@use '@carbon/styles/scss/spacing';
+@use '@carbon/styles/scss/type';
+
+.custom-profile-editor {
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$spacing-05;
+  }
+
+  &__description {
+    @include type.type-style('body-01');
+    color: var(--cds-text-secondary);
+    margin-bottom: spacing.$spacing-03;
+  }
+
+  &__table {
+    margin-bottom: spacing.$spacing-05;
+
+    code {
+      font-family: var(--cds-code-01-font-family);
+      font-size: var(--cds-code-01-font-size);
+    }
+  }
+
+  &__add-btn {
+    align-self: flex-start;
+  }
+
+  &__form {
+    background: var(--cds-layer-01);
+    padding: spacing.$spacing-05;
+    border-radius: 4px;
+
+    h4 {
+      @include type.type-style('heading-02');
+      margin-bottom: spacing.$spacing-05;
+    }
+
+    .cds--inline-notification {
+      margin-bottom: spacing.$spacing-05;
+    }
+  }
+
+  &__form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: spacing.$spacing-05;
+
+    @media (max-width: 672px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__name-row {
+    display: flex;
+    align-items: flex-end;
+    gap: spacing.$spacing-03;
+    grid-column: 1 / -1;
+
+    .cds--text-input-wrapper {
+      flex: 1;
+    }
+  }
+
+  &__generate-btn {
+    flex-shrink: 0;
+    margin-bottom: spacing.$spacing-03;
+  }
+
+  &__preview {
+    margin-top: spacing.$spacing-05;
+    padding: spacing.$spacing-04;
+    background: var(--cds-layer-02);
+    border-radius: 4px;
+    @include type.type-style('body-compact-01');
+
+    code {
+      font-family: var(--cds-code-01-font-family);
+      color: var(--cds-text-primary);
+      background: var(--cds-layer-accent-01);
+      padding: 2px 6px;
+      border-radius: 2px;
+    }
+  }
+
+  &__empty {
+    text-align: center;
+    padding: spacing.$spacing-07;
+    color: var(--cds-text-secondary);
+
+    p {
+      margin-bottom: spacing.$spacing-03;
+    }
+  }
+}

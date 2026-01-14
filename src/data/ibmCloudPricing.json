@@ -339,7 +339,16 @@
     },
     "vpnGateway": {
       "perGatewayMonthly": 125.00,
-      "description": "VPN gateway"
+      "perConnectionMonthly": 0.00,
+      "description": "VPN gateway for site-to-site connectivity"
+    },
+    "transitGateway": {
+      "perGatewayMonthly": 0.00,
+      "localConnectionMonthly": 45.00,
+      "globalConnectionMonthly": 170.00,
+      "perGBLocal": 0.02,
+      "perGBGlobal": 0.05,
+      "description": "Transit Gateway for VPC and classic infrastructure connectivity"
     },
     "loadBalancer": {
       "perLBMonthly": 35.00,

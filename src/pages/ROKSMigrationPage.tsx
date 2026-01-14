@@ -15,7 +15,9 @@ import type { SizingResult } from '@/components/sizing';
 import { CostEstimation } from '@/components/cost';
 import type { RemediationItem } from '@/components/common';
 import type { ROKSSizingInput } from '@/services/costEstimation';
-import { MTVYAMLGenerator, downloadBlob } from '@/services/export';
+import type { ROKSNodeDetail } from '@/services/export';
+import { MTVYAMLGenerator, downloadBlob, downloadWavePlanningExcel } from '@/services/export';
+import type { WaveGroup } from '@/services/export';
 import type { MTVExportOptions } from '@/types/mtvYaml';
 import osCompatibilityData from '@/data/redhatOSCompatibility.json';
 import mtvRequirements from '@/data/mtvRequirements.json';
@@ -813,6 +815,33 @@ export function ROKSMigrationPage() {
     };
   }, [calculatorSizing, poweredOnVMs]);
 
+  // ===== ROKS NODE DETAILS FOR BOM EXPORT =====
+  const roksNodeDetails = useMemo<ROKSNodeDetail[]>(() => {
+    const nodes: ROKSNodeDetail[] = [];
+
+    // Add compute/worker nodes
+    for (let i = 0; i < roksSizing.computeNodes; i++) {
+      nodes.push({
+        nodeName: `worker-${i + 1}`,
+        profile: roksSizing.computeProfile,
+        nodeType: 'worker',
+      });
+    }
+
+    // Add storage nodes if not using NVMe (hybrid architecture)
+    if (!roksSizing.useNvme && roksSizing.storageNodes && roksSizing.storageProfile) {
+      for (let i = 0; i < roksSizing.storageNodes; i++) {
+        nodes.push({
+          nodeName: `storage-${i + 1}`,
+          profile: roksSizing.storageProfile,
+          nodeType: 'storage',
+        });
+      }
+    }
+
+    return nodes;
+  }, [roksSizing]);
+
   return (
     <div className="migration-page">
       <Grid>
@@ -1106,6 +1135,7 @@ export function ROKSMigrationPage() {
                     <CostEstimation
                       type="roks"
                       roksSizing={roksSizing}
+                      roksNodeDetails={roksNodeDetails}
                       title="ROKS Cluster Cost Estimation"
                     />
                   </Column>
@@ -1145,24 +1175,57 @@ export function ROKSMigrationPage() {
                             }
                           </p>
                         </div>
-                        <RadioButtonGroup
-                          legendText="Wave Planning Mode"
-                          name="wave-mode"
-                          valueSelected={wavePlanningMode}
-                          onChange={(value) => setWavePlanningMode(value as 'complexity' | 'network')}
-                          orientation="horizontal"
-                        >
-                          <RadioButton
-                            id="wave-network"
-                            value="network"
-                            labelText="Network-based"
-                          />
-                          <RadioButton
-                            id="wave-complexity"
-                            value="complexity"
-                            labelText="Complexity-based"
-                          />
-                        </RadioButtonGroup>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                          <RadioButtonGroup
+                            legendText="Wave Planning Mode"
+                            name="wave-mode-roks"
+                            valueSelected={wavePlanningMode}
+                            onChange={(value) => setWavePlanningMode(value as 'complexity' | 'network')}
+                            orientation="horizontal"
+                          >
+                            <RadioButton
+                              id="wave-network-roks"
+                              value="network"
+                              labelText="Network-based"
+                            />
+                            <RadioButton
+                              id="wave-complexity-roks"
+                              value="complexity"
+                              labelText="Complexity-based"
+                            />
+                          </RadioButtonGroup>
+                          <Button
+                            kind="tertiary"
+                            size="sm"
+                            renderIcon={Download}
+                            onClick={() => {
+                              const waveExportData: WaveGroup[] = wavePlanningMode === 'network'
+                                ? networkWaves.map(wave => ({
+                                    name: wave.name,
+                                    description: wave.description,
+                                    vmCount: wave.vmCount,
+                                    vcpus: wave.vcpus,
+                                    memoryGiB: wave.memoryGiB,
+                                    storageGiB: wave.storageGiB,
+                                    hasBlockers: wave.hasBlockers,
+                                    vms: wave.vms,
+                                  }))
+                                : complexityWaves.map(wave => ({
+                                    name: wave.name,
+                                    description: wave.description,
+                                    vmCount: wave.vms.length,
+                                    vcpus: wave.vms.reduce((sum, vm) => sum + vm.vcpus, 0),
+                                    memoryGiB: wave.vms.reduce((sum, vm) => sum + vm.memoryGiB, 0),
+                                    storageGiB: wave.vms.reduce((sum, vm) => sum + vm.storageGiB, 0),
+                                    hasBlockers: wave.vms.some(vm => vm.hasBlocker),
+                                    vms: wave.vms,
+                                  }));
+                              downloadWavePlanningExcel(waveExportData, wavePlanningMode, networkGroupBy);
+                            }}
+                          >
+                            Export to Excel
+                          </Button>
+                        </div>
                       </div>
                       {wavePlanningMode === 'network' && (
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>

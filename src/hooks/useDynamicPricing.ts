@@ -9,8 +9,14 @@ import {
   clearPricingCache,
   getStaticPricing,
 } from '@/services/pricing/pricingCache';
-import { fetchAllCatalogPricing, testApiConnection } from '@/services/pricing/globalCatalogApi';
-import { transformCatalogToAppPricing } from '@/services/pricing/pricingTransformer';
+import {
+  fetchAllCatalogPricing,
+  testApiConnection,
+  isProxyConfigured,
+  fetchFromProxy,
+  testProxyConnection,
+} from '@/services/pricing/globalCatalogApi';
+import { transformCatalogToAppPricing, transformProxyToAppPricing } from '@/services/pricing/pricingTransformer';
 
 export interface UseDynamicPricingConfig {
   apiKey?: string;
@@ -53,10 +59,47 @@ export function useDynamicPricing(
   const [isApiAvailable, setIsApiAvailable] = useState<boolean | null>(null);
 
   /**
-   * Fetch fresh pricing from API
+   * Fetch fresh pricing from proxy (preferred) or direct API
    */
   const fetchPricing = useCallback(async () => {
     console.log('[Dynamic Pricing] Starting pricing fetch...');
+
+    // Try proxy first if configured (keeps credentials server-side)
+    if (isProxyConfigured()) {
+      console.log('[Dynamic Pricing] Proxy configured, fetching from proxy...');
+      try {
+        const proxyData = await fetchFromProxy({ timeout: 30000 });
+
+        // Check if we got valid data
+        if (proxyData.vsiProfiles && Object.keys(proxyData.vsiProfiles).length > 0) {
+          // Transform proxy response to app format
+          const transformedPricing = transformProxyToAppPricing(proxyData);
+
+          console.log('[Dynamic Pricing] Proxy data received:', {
+            vsiProfiles: Object.keys(transformedPricing.vsi).length,
+            cached: proxyData.cached,
+            source: proxyData.source,
+          });
+
+          // Cache the transformed data
+          setCachedPricing(transformedPricing, 'proxy');
+
+          // Update state
+          setPricing(transformedPricing);
+          setLastUpdated(new Date(proxyData.lastUpdated));
+          setSource('proxy');
+          setIsApiAvailable(true);
+          setError(null);
+
+          console.log('[Dynamic Pricing] Successfully updated from PROXY');
+          return true;
+        }
+      } catch (proxyError) {
+        console.warn('[Dynamic Pricing] Proxy fetch failed, trying direct API:', proxyError);
+      }
+    }
+
+    // Fall back to direct API if proxy not configured or failed
     try {
       // Fetch from Global Catalog API
       const catalogData = await fetchAllCatalogPricing({
@@ -167,11 +210,24 @@ export function useDynamicPricing(
         cacheExpired: isCacheExpired(),
       });
 
-      // Test API availability
-      const apiAvailable = await testApiConnection({ apiKey: config?.apiKey });
+      // Test connectivity - prefer proxy, fall back to direct API
+      let apiAvailable = false;
+      if (isProxyConfigured()) {
+        console.log('[Dynamic Pricing] Testing proxy connectivity...');
+        apiAvailable = await testProxyConnection();
+        if (apiAvailable) {
+          console.log('[Dynamic Pricing] Proxy available');
+        } else {
+          console.log('[Dynamic Pricing] Proxy not available, testing direct API...');
+          apiAvailable = await testApiConnection({ apiKey: config?.apiKey });
+        }
+      } else {
+        console.log('[Dynamic Pricing] No proxy configured, testing direct API...');
+        apiAvailable = await testApiConnection({ apiKey: config?.apiKey });
+      }
       setIsApiAvailable(apiAvailable);
 
-      console.log('[Dynamic Pricing] API availability:', apiAvailable);
+      console.log('[Dynamic Pricing] API/Proxy availability:', apiAvailable);
 
       // If cache is expired and auto-refresh is enabled, fetch fresh data
       if (config?.autoRefreshOnExpiry !== false && isCacheExpired() && apiAvailable) {

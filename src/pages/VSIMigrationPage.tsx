@@ -1,8 +1,9 @@
 // VSI (IBM Cloud VPC Virtual Server) Migration page
 import { useState, useMemo } from 'react';
-import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, RadioButtonGroup, RadioButton, Dropdown } from '@carbon/react';
+import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, RadioButtonGroup, RadioButton, Dropdown, Button, InlineNotification } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
-import { useData, useVMs } from '@/hooks';
+import { Settings, Reset, Download } from '@carbon/icons-react';
+import { useData, useVMs, useCustomProfiles } from '@/hooks';
 import { ROUTES, HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
 import { formatNumber, mibToGiB, getHardwareVersionNumber } from '@/utils/formatters';
 import { HorizontalBarChart, DoughnutChart } from '@/components/charts';
@@ -10,8 +11,11 @@ import { EnhancedDataTable } from '@/components/tables';
 import type { ColumnDef } from '@tanstack/react-table';
 import { MetricCard, RedHatDocLink, RemediationPanel } from '@/components/common';
 import { CostEstimation } from '@/components/cost';
+import { ProfileSelector, CustomProfileEditor } from '@/components/sizing';
 import type { RemediationItem } from '@/components/common';
 import type { VSISizingInput } from '@/services/costEstimation';
+import type { VMDetail, WaveGroup } from '@/services/export';
+import { downloadWavePlanningExcel } from '@/services/export';
 import ibmCloudProfiles from '@/data/ibmCloudProfiles.json';
 import mtvRequirements from '@/data/mtvRequirements.json';
 import './MigrationPage.scss';
@@ -52,6 +56,20 @@ export function VSIMigrationPage() {
   const [wavePlanningMode, setWavePlanningMode] = useState<'complexity' | 'network'>('network');
   const [networkGroupBy, setNetworkGroupBy] = useState<'portGroup' | 'cluster'>('cluster');
   const [complexityFilter, setComplexityFilter] = useState<string | null>(null);
+
+  // Custom profiles state
+  const [showCustomProfileEditor, setShowCustomProfileEditor] = useState(false);
+  const {
+    setProfileOverride,
+    removeProfileOverride,
+    clearAllOverrides,
+    getEffectiveProfile,
+    hasOverride,
+    customProfiles,
+    addCustomProfile,
+    updateCustomProfile,
+    removeCustomProfile,
+  } = useCustomProfiles();
 
   const poweredOnVMs = vms.filter(vm => vm.powerState === 'poweredOn');
   const snapshots = rawData.vSnapshot;
@@ -208,12 +226,42 @@ export function VSIMigrationPage() {
     return bestFit || profiles[profiles.length - 1];
   }
 
-  const vmProfileMappings = poweredOnVMs.map(vm => ({
-    vmName: vm.vmName,
-    vcpus: vm.cpus,
-    memoryGiB: Math.round(mibToGiB(vm.memory)),
-    profile: mapVMToVSIProfile(vm.cpus, mibToGiB(vm.memory)),
-  }));
+  const vmProfileMappings = poweredOnVMs.map(vm => {
+    const autoProfile = mapVMToVSIProfile(vm.cpus, mibToGiB(vm.memory));
+    const effectiveProfileName = getEffectiveProfile(vm.vmName, autoProfile.name);
+    const isOverridden = hasOverride(vm.vmName);
+
+    // Look up profile details - check custom profiles first, then standard
+    let effectiveProfile = autoProfile;
+    if (isOverridden) {
+      const customProfile = customProfiles.find(p => p.name === effectiveProfileName);
+      if (customProfile) {
+        effectiveProfile = {
+          name: customProfile.name,
+          vcpus: customProfile.vcpus,
+          memoryGiB: customProfile.memoryGiB,
+          bandwidth: customProfile.bandwidth || 16, // Default bandwidth for custom profiles
+        };
+      } else {
+        // Standard profile - find in vpcProfiles
+        const allProfiles = [...vpcProfiles.balanced, ...vpcProfiles.compute, ...vpcProfiles.memory];
+        const standardProfile = allProfiles.find(p => p.name === effectiveProfileName);
+        if (standardProfile) {
+          effectiveProfile = standardProfile;
+        }
+      }
+    }
+
+    return {
+      vmName: vm.vmName,
+      vcpus: vm.cpus,
+      memoryGiB: Math.round(mibToGiB(vm.memory)),
+      autoProfile,
+      profile: effectiveProfile,
+      effectiveProfileName,
+      isOverridden,
+    };
+  });
 
   const profileCounts = vmProfileMappings.reduce((acc, mapping) => {
     acc[mapping.profile.name] = (acc[mapping.profile.name] || 0) + 1;
@@ -242,6 +290,59 @@ export function VSIMigrationPage() {
   const uniqueProfiles = Object.keys(profileCounts).length;
   const vsiTotalVCPUs = vmProfileMappings.reduce((sum, m) => sum + m.profile.vcpus, 0);
   const vsiTotalMemory = vmProfileMappings.reduce((sum, m) => sum + m.profile.memoryGiB, 0);
+  const overriddenVMCount = vmProfileMappings.filter(m => m.isOverridden).length;
+
+  // VM profile mapping table columns
+  type VMProfileMapping = typeof vmProfileMappings[0];
+  const profileMappingColumns: ColumnDef<VMProfileMapping, unknown>[] = [
+    {
+      accessorKey: 'vmName',
+      header: 'VM Name',
+      enableSorting: true,
+    },
+    {
+      accessorKey: 'vcpus',
+      header: 'Source vCPUs',
+      enableSorting: true,
+    },
+    {
+      accessorKey: 'memoryGiB',
+      header: 'Source Memory (GiB)',
+      enableSorting: true,
+    },
+    {
+      id: 'profile',
+      header: 'Target Profile',
+      enableSorting: true,
+      accessorFn: (row) => row.profile.name,
+      cell: ({ row }) => (
+        <ProfileSelector
+          vmName={row.original.vmName}
+          autoMappedProfile={row.original.autoProfile.name}
+          currentProfile={row.original.profile.name}
+          isOverridden={row.original.isOverridden}
+          customProfiles={customProfiles}
+          onProfileChange={(vmName, newProfile, originalProfile) => {
+            setProfileOverride(vmName, newProfile, originalProfile);
+          }}
+          onResetToAuto={removeProfileOverride}
+          compact
+        />
+      ),
+    },
+    {
+      id: 'profileVcpus',
+      header: 'Target vCPUs',
+      enableSorting: true,
+      accessorFn: (row) => row.profile.vcpus,
+    },
+    {
+      id: 'profileMemory',
+      header: 'Target Memory (GiB)',
+      enableSorting: true,
+      accessorFn: (row) => row.profile.memoryGiB,
+    },
+  ];
 
   // ===== COMPLEXITY DISTRIBUTION =====
   const complexityScores = poweredOnVMs.map(vm => {
@@ -427,6 +528,40 @@ export function VSIMigrationPage() {
       storageTiB: Math.ceil(totalStorageGiB / 1024),
     };
   }, [vmProfileMappings, disks]);
+
+  // ===== VM DETAILS FOR BOM EXPORT =====
+  const vmDetails = useMemo<VMDetail[]>(() => {
+    return poweredOnVMs.map(vm => {
+      const mapping = vmProfileMappings.find(m => m.vmName === vm.vmName);
+      const vmDisks = disks.filter(d => d.vmName === vm.vmName);
+
+      // Sort disks by disk key to identify boot disk (usually key 0 or 2000)
+      const sortedDisks = [...vmDisks].sort((a, b) => (a.diskKey || 0) - (b.diskKey || 0));
+      const bootDisk = sortedDisks[0];
+      const dataDisks = sortedDisks.slice(1);
+
+      // Boot volume size (default 100GB for Linux, 120GB for Windows)
+      const isWindows = vm.guestOS.toLowerCase().includes('windows');
+      const bootVolumeGiB = bootDisk
+        ? Math.max(Math.round(mibToGiB(bootDisk.capacityMiB)), isWindows ? 120 : 100)
+        : (isWindows ? 120 : 100);
+
+      // Data volumes
+      const dataVolumes = dataDisks.map(d => ({
+        sizeGiB: Math.round(mibToGiB(d.capacityMiB)),
+      }));
+
+      return {
+        vmName: vm.vmName,
+        guestOS: vm.guestOS,
+        profile: mapping?.profile.name || 'bx2-2x8',
+        vcpus: mapping?.profile.vcpus || vm.cpus,
+        memoryGiB: mapping?.profile.memoryGiB || Math.round(mibToGiB(vm.memory)),
+        bootVolumeGiB,
+        dataVolumes,
+      };
+    });
+  }, [poweredOnVMs, vmProfileMappings, disks]);
 
   // ===== MIGRATION WAVE PLANNING =====
   const vmWaveData = poweredOnVMs.map(vm => {
@@ -907,10 +1042,46 @@ export function VSIMigrationPage() {
                 <Grid className="migration-page__tab-content">
                   <Column lg={16} md={8} sm={4}>
                     <Tile className="migration-page__sizing-header">
-                      <h3>VPC Virtual Server Instance Mapping</h3>
-                      <p>Best-fit IBM Cloud VPC VSI profiles for {formatNumber(totalVSIs)} VMs</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+                        <div>
+                          <h3>VPC Virtual Server Instance Mapping</h3>
+                          <p>Best-fit IBM Cloud VPC VSI profiles for {formatNumber(totalVSIs)} VMs</p>
+                        </div>
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          <Button
+                            kind="tertiary"
+                            size="sm"
+                            renderIcon={Settings}
+                            onClick={() => setShowCustomProfileEditor(true)}
+                          >
+                            Custom Profiles {customProfiles.length > 0 && `(${customProfiles.length})`}
+                          </Button>
+                          {overriddenVMCount > 0 && (
+                            <Button
+                              kind="ghost"
+                              size="sm"
+                              renderIcon={Reset}
+                              onClick={clearAllOverrides}
+                            >
+                              Clear All Overrides
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     </Tile>
                   </Column>
+
+                  {overriddenVMCount > 0 && (
+                    <Column lg={16} md={8} sm={4}>
+                      <InlineNotification
+                        kind="info"
+                        title="Profile Overrides Active"
+                        subtitle={`${overriddenVMCount} VM${overriddenVMCount !== 1 ? 's have' : ' has'} custom profile assignments. These will be used in cost estimation and BOM export.`}
+                        lowContrast
+                        hideCloseButton
+                      />
+                    </Column>
+                  )}
 
                   <Column lg={4} md={4} sm={2}>
                     <MetricCard
@@ -1007,6 +1178,25 @@ export function VSIMigrationPage() {
                       />
                     </Tile>
                   </Column>
+
+                  {/* VM Profile Mapping Table */}
+                  <Column lg={16} md={8} sm={4}>
+                    <Tile className="migration-page__table-tile">
+                      <EnhancedDataTable
+                        data={vmProfileMappings}
+                        columns={profileMappingColumns}
+                        title="VM to VSI Profile Mapping"
+                        description="Click the edit icon in the Target Profile column to override the auto-mapped profile for any VM."
+                        enableSearch
+                        enablePagination
+                        enableSorting
+                        enableExport
+                        enableColumnVisibility
+                        defaultPageSize={25}
+                        exportFilename="vm-profile-mapping"
+                      />
+                    </Tile>
+                  </Column>
                 </Grid>
               </TabPanel>
 
@@ -1017,6 +1207,7 @@ export function VSIMigrationPage() {
                     <CostEstimation
                       type="vsi"
                       vsiSizing={vsiSizing}
+                      vmDetails={vmDetails}
                       title="VPC VSI Cost Estimation"
                     />
                   </Column>
@@ -1037,16 +1228,49 @@ export function VSIMigrationPage() {
                               : `VMs organized into ${waveResources.length} waves based on complexity and readiness`}
                           </p>
                         </div>
-                        <RadioButtonGroup
-                          legendText="Planning Mode"
-                          name="wave-planning-mode"
-                          valueSelected={wavePlanningMode}
-                          onChange={(value) => setWavePlanningMode(value as 'complexity' | 'network')}
-                          orientation="horizontal"
-                        >
-                          <RadioButton labelText="Network-Based" value="network" id="wave-network-vsi" />
-                          <RadioButton labelText="Complexity-Based" value="complexity" id="wave-complexity-vsi" />
-                        </RadioButtonGroup>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
+                          <RadioButtonGroup
+                            legendText="Planning Mode"
+                            name="wave-planning-mode"
+                            valueSelected={wavePlanningMode}
+                            onChange={(value) => setWavePlanningMode(value as 'complexity' | 'network')}
+                            orientation="horizontal"
+                          >
+                            <RadioButton labelText="Network-Based" value="network" id="wave-network-vsi" />
+                            <RadioButton labelText="Complexity-Based" value="complexity" id="wave-complexity-vsi" />
+                          </RadioButtonGroup>
+                          <Button
+                            kind="tertiary"
+                            size="sm"
+                            renderIcon={Download}
+                            onClick={() => {
+                              const waveExportData: WaveGroup[] = wavePlanningMode === 'network'
+                                ? networkWaves.map(wave => ({
+                                    name: wave.name,
+                                    description: wave.description,
+                                    vmCount: wave.vmCount,
+                                    vcpus: wave.vcpus,
+                                    memoryGiB: wave.memoryGiB,
+                                    storageGiB: wave.storageGiB,
+                                    hasBlockers: wave.hasBlockers,
+                                    vms: wave.vms,
+                                  }))
+                                : complexityWaves.map(wave => ({
+                                    name: wave.name,
+                                    description: wave.description,
+                                    vmCount: wave.vms.length,
+                                    vcpus: wave.vms.reduce((sum, vm) => sum + vm.vcpus, 0),
+                                    memoryGiB: wave.vms.reduce((sum, vm) => sum + vm.memoryGiB, 0),
+                                    storageGiB: wave.vms.reduce((sum, vm) => sum + vm.storageGiB, 0),
+                                    hasBlockers: wave.vms.some(vm => vm.hasBlocker),
+                                    vms: wave.vms,
+                                  }));
+                              downloadWavePlanningExcel(waveExportData, wavePlanningMode, networkGroupBy);
+                            }}
+                          >
+                            Export to Excel
+                          </Button>
+                        </div>
                       </div>
                       {wavePlanningMode === 'network' && (
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -1335,6 +1559,16 @@ export function VSIMigrationPage() {
           </Tabs>
         </Column>
       </Grid>
+
+      {/* Custom Profile Editor Modal */}
+      <CustomProfileEditor
+        isOpen={showCustomProfileEditor}
+        onClose={() => setShowCustomProfileEditor(false)}
+        customProfiles={customProfiles}
+        onAddProfile={addCustomProfile}
+        onUpdateProfile={updateCustomProfile}
+        onRemoveProfile={removeCustomProfile}
+      />
     </div>
   );
 }

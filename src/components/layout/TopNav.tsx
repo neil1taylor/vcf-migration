@@ -5,8 +5,9 @@ import {
   HeaderGlobalBar,
   HeaderGlobalAction,
 } from '@carbon/react';
-import { Information, Upload, DocumentExport, DataTableReference, Document } from '@carbon/icons-react';
+import { Information, Upload, DocumentExport, DataTableReference, Document, Light, Asleep } from '@carbon/icons-react';
 import { useHasData } from '@/hooks';
+import { useTheme } from '@/context';
 
 interface TopNavProps {
   onUploadClick?: () => void;
@@ -17,6 +18,7 @@ interface TopNavProps {
 
 export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick, onExportDocxClick }: TopNavProps) {
   const hasData = useHasData();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <Header aria-label="RVTools Analyzer">
@@ -60,6 +62,13 @@ export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick, on
             <Upload size={20} />
           </HeaderGlobalAction>
         )}
+        <HeaderGlobalAction
+          aria-label={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+          onClick={toggleTheme}
+          tooltipAlignment="end"
+        >
+          {theme === 'light' ? <Asleep size={20} /> : <Light size={20} />}
+        </HeaderGlobalAction>
         <HeaderGlobalAction
           aria-label="About"
           tooltipAlignment="end"

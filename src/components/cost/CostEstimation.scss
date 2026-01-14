@@ -135,4 +135,40 @@
       }
     }
   }
+
+  &__networking-accordion {
+    margin-top: $spacing-05;
+
+    .cds--accordion__content {
+      padding: $spacing-05;
+    }
+  }
+
+  &__networking-options {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-05;
+  }
+
+  &__networking-row {
+    display: flex;
+    align-items: center;
+    gap: $spacing-05;
+    flex-wrap: wrap;
+
+    .cds--toggle {
+      min-width: 180px;
+    }
+
+    .cds--number-input {
+      width: 120px;
+    }
+  }
+
+  &__networking-hint {
+    @include type-style('helper-text-01');
+    color: $gray-60;
+    flex: 1;
+    min-width: 200px;
+  }
 }
