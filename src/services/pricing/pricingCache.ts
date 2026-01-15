@@ -1,6 +1,6 @@
 // Pricing cache service - manages localStorage caching with expiry
 
-import staticPricingData from '@/data/ibmCloudPricing.json';
+import staticPricingData from '@/data/ibmCloudConfig.json';
 
 // ===== TYPES =====
 

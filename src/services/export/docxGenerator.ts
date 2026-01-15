@@ -35,8 +35,7 @@ import type {
 import { mibToGiB, mibToTiB, getHardwareVersionNumber } from '@/utils/formatters';
 import { HW_VERSION_MINIMUM, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
 import reportTemplates from '@/data/reportTemplates.json';
-import ibmCloudProfiles from '@/data/ibmCloudProfiles.json';
-import ibmCloudPricing from '@/data/ibmCloudPricing.json';
+import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import osCompatibilityData from '@/data/redhatOSCompatibility.json';
 
 // ===== TYPES =====
@@ -159,7 +158,7 @@ function getOSCompatibility(guestOS: string) {
 }
 
 function mapVMToVSIProfile(vcpus: number, memoryGiB: number) {
-  const { vpcProfiles } = ibmCloudProfiles;
+  const vsiProfiles = ibmCloudConfig.vsiProfiles;
   const memToVcpuRatio = memoryGiB / vcpus;
 
   let family: 'balanced' | 'compute' | 'memory' = 'balanced';
@@ -169,7 +168,7 @@ function mapVMToVSIProfile(vcpus: number, memoryGiB: number) {
     family = 'memory';
   }
 
-  const profiles = vpcProfiles[family];
+  const profiles = vsiProfiles[family];
   const bestFit = profiles.find(
     (p: { vcpus: number; memoryGiB: number }) => p.vcpus >= vcpus && p.memoryGiB >= memoryGiB
   );
@@ -177,12 +176,12 @@ function mapVMToVSIProfile(vcpus: number, memoryGiB: number) {
 }
 
 function getVSIPricing(profileName: string): number {
-  const pricing = ibmCloudPricing.vsi as Record<string, { monthlyRate: number }>;
+  const pricing = ibmCloudConfig.vsiPricing as Record<string, { monthlyRate: number }>;
   return pricing[profileName]?.monthlyRate || 0;
 }
 
 function getBaremetalPricing(profileName: string): number {
-  const pricing = ibmCloudPricing.bareMetal as Record<string, { monthlyRate: number }>;
+  const pricing = ibmCloudConfig.bareMetalPricing as Record<string, { monthlyRate: number }>;
   return pricing[profileName]?.monthlyRate || 0;
 }
 
@@ -535,7 +534,13 @@ function calculateVMReadiness(rawData: RVToolsData): VMReadiness[] {
 }
 
 function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
-  const { bareMetalProfiles, odfSizing, ocpVirtSizing } = ibmCloudProfiles;
+  const { odfSizing, ocpVirtSizing, bareMetalProfiles: bmProfiles } = ibmCloudConfig;
+  // Flatten bare metal profiles from family-organized structure
+  const bareMetalProfiles = [
+    ...bmProfiles.balanced,
+    ...bmProfiles.compute,
+    ...bmProfiles.memory,
+  ];
   const poweredOnVMs = rawData.vInfo.filter(
     (vm: VirtualMachine) => vm.powerState === 'poweredOn' && !vm.template
   );
@@ -563,17 +568,17 @@ function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
     (p: { name: string }) => p.name === 'bx2d.metal.96x384'
   ) || bareMetalProfiles[0];
 
-  const usableThreadsPerNode = Math.floor(recommendedProfile.threads * 0.85);
+  const usableThreadsPerNode = Math.floor(recommendedProfile.vcpus * 0.85);
   const usableMemoryPerNode = recommendedProfile.memoryGiB - ocpVirtSizing.systemReservedMemoryGiB;
-  const usableNvmePerNode = recommendedProfile.totalNvmeGiB;
+  const usableNvmePerNode = recommendedProfile.totalNvmeGiB || 0;
 
   const nodesForCPU = Math.ceil(adjustedVCPUs / usableThreadsPerNode);
   const nodesForMemory = Math.ceil(totalMemoryGiB / usableMemoryPerNode);
-  const nodesForStorage = Math.ceil(requiredRawStorageGiB / usableNvmePerNode);
+  const nodesForStorage = usableNvmePerNode > 0 ? Math.ceil(requiredRawStorageGiB / usableNvmePerNode) : 0;
   const baseNodeCount = Math.max(odfSizing.minOdfNodes, nodesForCPU, nodesForMemory, nodesForStorage);
   const recommendedWorkers = baseNodeCount + ocpVirtSizing.nodeRedundancy;
 
-  const totalClusterNvmeGiB = recommendedWorkers * recommendedProfile.totalNvmeGiB;
+  const totalClusterNvmeGiB = recommendedWorkers * (recommendedProfile.totalNvmeGiB || 0);
   const odfUsableTiB =
     ((totalClusterNvmeGiB / replicaFactor) * operationalCapacity * cephEfficiency) / 1024;
 
@@ -582,8 +587,8 @@ function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
   return {
     workerNodes: recommendedWorkers,
     profileName: recommendedProfile.name,
-    totalCores: recommendedWorkers * recommendedProfile.cores,
-    totalThreads: recommendedWorkers * recommendedProfile.threads,
+    totalCores: recommendedWorkers * recommendedProfile.physicalCores,
+    totalThreads: recommendedWorkers * recommendedProfile.vcpus,
     totalMemoryGiB: recommendedWorkers * recommendedProfile.memoryGiB,
     totalNvmeTiB: Math.round(totalClusterNvmeGiB / 1024),
     odfUsableTiB: parseFloat(odfUsableTiB.toFixed(1)),

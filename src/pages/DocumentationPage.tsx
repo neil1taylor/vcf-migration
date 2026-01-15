@@ -541,6 +541,85 @@ export function DocumentationPage() {
               </div>
             </AccordionItem>
 
+            <AccordionItem title="ODF Storage Sizing">
+              <div className="documentation-page__section">
+                <Tile className="documentation-page__metric-card">
+                  <h4>RVTools Storage Metrics</h4>
+                  <p>For ODF capacity sizing, use the correct RVTools metric:</p>
+                  <table style={{ width: '100%', marginTop: '0.5rem', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>RVTools Field</th>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Use It?</th>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Why</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
+                        <td style={{ padding: '0.5rem' }}><strong>In Use MiB</strong></td>
+                        <td style={{ padding: '0.5rem' }}><Tag type="green">YES</Tag></td>
+                        <td style={{ padding: '0.5rem' }}>Actual data written inside VMDKs</td>
+                      </tr>
+                      <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
+                        <td style={{ padding: '0.5rem' }}>Provisioned MiB</td>
+                        <td style={{ padding: '0.5rem' }}><Tag type="red">No</Tag></td>
+                        <td style={{ padding: '0.5rem' }}>Thin disks inflate this 2-5×</td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: '0.5rem' }}>Datastore Consumed</td>
+                        <td style={{ padding: '0.5rem' }}><Tag type="red">No</Tag></td>
+                        <td style={{ padding: '0.5rem' }}>Includes snapshots, swap, temp files</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </Tile>
+
+                <Tile className="documentation-page__metric-card">
+                  <h4>ODF Sizing Formula</h4>
+                  <p>Calculate raw ODF capacity using this approach:</p>
+                  <div style={{ fontFamily: 'monospace', backgroundColor: '#f4f4f4', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem' }}>
+                    <p><strong>Step 1:</strong> Base = In Use MiB × Replication Factor (3.2× for 3-replica)</p>
+                    <p><strong>Step 2:</strong> Add headroom = Base × 1.3 (30% free space minimum)</p>
+                    <p><strong>Step 3:</strong> Add growth = Result × (1 + annual rate)^years</p>
+                    <p><strong>Step 4:</strong> Add virt overhead = Result × 1.15 (15% for OpenShift Virt)</p>
+                  </div>
+                </Tile>
+
+                <Tile className="documentation-page__metric-card">
+                  <h4>Quick Reference Formulas</h4>
+                  <UnorderedList>
+                    <ListItem><strong>Conservative (Production):</strong> In Use × 3.2 × 1.7</ListItem>
+                    <ListItem><strong>Standard (Balanced):</strong> In Use × 3.2 × 1.5</ListItem>
+                    <ListItem><strong>Aggressive (Cost-Optimized):</strong> In Use × 3.2 × 1.4</ListItem>
+                  </UnorderedList>
+                  <p style={{ marginTop: '0.5rem' }}><em>Add 10-15% extra for OpenShift Virtualization deployments.</em></p>
+                </Tile>
+
+                <Tile className="documentation-page__metric-card">
+                  <h4>ODF Best Practices</h4>
+                  <UnorderedList>
+                    <ListItem><strong>Free Space:</strong> Maintain 30-40% minimum. Ceph degrades above 75-80% utilization</ListItem>
+                    <ListItem><strong>Replication:</strong> 3× replication default for production (provides zone-level DR in multi-zone clusters)</ListItem>
+                    <ListItem><strong>Performance:</strong> IOPS scale with disk count, not total TB. More capacity ≠ more performance</ListItem>
+                    <ListItem><strong>NVMe:</strong> Strongly recommended for production workloads</ListItem>
+                    <ListItem><strong>Minimum nodes:</strong> 3 nodes for ODF quorum (1 per zone in multi-zone clusters)</ListItem>
+                  </UnorderedList>
+                </Tile>
+
+                <Tile className="documentation-page__metric-card">
+                  <h4>OpenShift Virtualization Overhead</h4>
+                  <p>Add 10-15% extra capacity for:</p>
+                  <UnorderedList>
+                    <ListItem>VM snapshots for backups/clones</ListItem>
+                    <ListItem>Clone operations (temporary space)</ListItem>
+                    <ListItem>Live migration scratch space</ListItem>
+                    <ListItem>CDI import/upload operations</ListItem>
+                    <ListItem>KubeVirt PVC metadata</ListItem>
+                  </UnorderedList>
+                </Tile>
+              </div>
+            </AccordionItem>
+
             <AccordionItem title="Cost Estimation">
               <div className="documentation-page__section">
                 <Tile className="documentation-page__metric-card">
@@ -568,7 +647,7 @@ export function DocumentationPage() {
                   <div className="documentation-page__status-list">
                     <div className="documentation-page__status-item">
                       <Tag type="green">Live API</Tag>
-                      <span>Pricing fetched from IBM Cloud API (requires API key)</span>
+                      <span>Pricing fetched from IBM Cloud Global Catalog API</span>
                     </div>
                     <div className="documentation-page__status-item">
                       <Tag type="blue">Cached</Tag>
@@ -577,6 +656,42 @@ export function DocumentationPage() {
                     <div className="documentation-page__status-item">
                       <Tag type="gray">Static</Tag>
                       <span>Using bundled pricing data</span>
+                    </div>
+                  </div>
+                </Tile>
+
+                <Tile className="documentation-page__metric-card">
+                  <h4>Profiles Refresh</h4>
+                  <p>Instance profiles (VSI and bare metal) can be refreshed from IBM Cloud APIs:</p>
+                  <UnorderedList>
+                    <ListItem><strong>VPC VSI API</strong> - GET /v1/instance/profiles returns all VSI profiles</ListItem>
+                    <ListItem><strong>VPC Bare Metal API</strong> - GET /v1/bare_metal_server/profiles returns bare metal profiles with NVMe details</ListItem>
+                    <ListItem><strong>ROKS Flavors API</strong> - GET /global/v2/getFlavors returns ROKS-supported worker node flavors</ListItem>
+                  </UnorderedList>
+                  <p style={{ marginTop: '1rem' }}>API Endpoints:</p>
+                  <div className="documentation-page__code-block">
+                    <code>VSI: https://&#123;region&#125;.iaas.cloud.ibm.com/v1/instance/profiles</code><br />
+                    <code>Bare Metal: https://&#123;region&#125;.iaas.cloud.ibm.com/v1/bare_metal_server/profiles</code><br />
+                    <code>ROKS: https://containers.cloud.ibm.com/global/v2/getFlavors</code>
+                  </div>
+                  <p style={{ marginTop: '1rem' }}>ROKS Bare Metal Profiles (with NVMe for ODF):</p>
+                  <div className="documentation-page__code-block">
+                    <code>bx2d.metal.96x384 - 48c/384GB, 8×3200GB NVMe</code><br />
+                    <code>cx2d.metal.96x192 - 48c/192GB, 8×3200GB NVMe</code><br />
+                    <code>mx2d.metal.96x768 - 48c/768GB, 8×3200GB NVMe</code>
+                  </div>
+                  <div className="documentation-page__status-list" style={{ marginTop: '1rem' }}>
+                    <div className="documentation-page__status-item">
+                      <Tag type="green">Live API</Tag>
+                      <span>Profiles fetched from IBM Cloud VPC/Kubernetes APIs</span>
+                    </div>
+                    <div className="documentation-page__status-item">
+                      <Tag type="blue">Cached</Tag>
+                      <span>Using previously fetched profile data (24-hour cache)</span>
+                    </div>
+                    <div className="documentation-page__status-item">
+                      <Tag type="gray">Static</Tag>
+                      <span>Using bundled profile data from ibmCloudConfig.json</span>
                     </div>
                   </div>
                 </Tile>

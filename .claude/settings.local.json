@@ -25,7 +25,14 @@
       "Bash(curl:*)",
       "Bash(__NEW_LINE__ echo \"=== Volume Profiles ===\")",
       "Bash(__NEW_LINE__ echo \"=== Bare Metal Profiles ===\")",
-      "Bash(xargs kill -9)"
+      "Bash(xargs kill -9)",
+      "WebFetch(domain:containers.cloud.ibm.com)",
+      "Bash(source .env)",
+      "Bash(if [ -n \"$VITE_IBM_CLOUD_API_KEY\" ])",
+      "Bash(then echo \"API key is set \\(length: $#VITE_IBM_CLOUD_API_KEY\\)\")",
+      "Bash(else echo \"API key NOT found in .env\")",
+      "Bash(fi)",
+      "Bash(bash:*)"
     ]
   }
 }

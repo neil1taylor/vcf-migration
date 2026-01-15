@@ -27,6 +27,38 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api\/iam/, '/identity'),
         secure: true,
       },
+      // Proxy IBM Cloud VPC API for instance profiles (per region)
+      '/api/vpc/us-south': {
+        target: 'https://us-south.iaas.cloud.ibm.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/vpc\/us-south/, ''),
+        secure: true,
+      },
+      '/api/vpc/us-east': {
+        target: 'https://us-east.iaas.cloud.ibm.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/vpc\/us-east/, ''),
+        secure: true,
+      },
+      '/api/vpc/eu-de': {
+        target: 'https://eu-de.iaas.cloud.ibm.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/vpc\/eu-de/, ''),
+        secure: true,
+      },
+      '/api/vpc/eu-gb': {
+        target: 'https://eu-gb.iaas.cloud.ibm.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/vpc\/eu-gb/, ''),
+        secure: true,
+      },
+      // Proxy IBM Cloud Kubernetes Service API for machine types
+      '/api/kubernetes': {
+        target: 'https://containers.cloud.ibm.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/kubernetes/, '/global/v2'),
+        secure: true,
+      },
     },
   },
   worker: {

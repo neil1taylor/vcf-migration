@@ -10,12 +10,28 @@
     min-height: 200px;
   }
 
-  &__section-title {
-    @include type.type-style('heading-compact-02');
-    color: var(--cds-text-primary, #161616);
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: spacing.$spacing-03;
     margin-bottom: spacing.$spacing-05;
     padding-bottom: spacing.$spacing-03;
     border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  }
+
+  &__section-title {
+    @include type.type-style('heading-compact-02');
+    color: var(--cds-text-primary, #161616);
+    margin: 0;
+
+    // When used outside of section-header
+    &:not(.sizing-calculator__section-header &) {
+      margin-bottom: spacing.$spacing-05;
+      padding-bottom: spacing.$spacing-03;
+      border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+    }
   }
 
   &__profile-details {

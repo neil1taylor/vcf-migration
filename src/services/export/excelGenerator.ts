@@ -4,7 +4,7 @@ import type { RVToolsData, VirtualMachine, VHostInfo, VDatastoreInfo, VSnapshotI
 import { mibToGiB, formatHardwareVersion, getHardwareVersionNumber } from '@/utils/formatters';
 import { HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
 import osCompatibilityData from '@/data/redhatOSCompatibility.json';
-import ibmCloudProfiles from '@/data/ibmCloudProfiles.json';
+import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import type { VMCheckResults, CheckMode } from '@/services/preflightChecks';
 import { getChecksForMode } from '@/services/preflightChecks';
 
@@ -21,7 +21,7 @@ function getOSCompatibility(guestOS: string) {
 
 // Map VM to VPC VSI profile
 function mapVMToVSIProfile(vcpus: number, memoryGiB: number) {
-  const { vpcProfiles } = ibmCloudProfiles;
+  const vsiProfiles = ibmCloudConfig.vsiProfiles;
   const memToVcpuRatio = memoryGiB / vcpus;
 
   let family: 'balanced' | 'compute' | 'memory' = 'balanced';
@@ -31,7 +31,7 @@ function mapVMToVSIProfile(vcpus: number, memoryGiB: number) {
     family = 'memory';
   }
 
-  const profiles = vpcProfiles[family];
+  const profiles = vsiProfiles[family];
   const bestFit = profiles.find(p => p.vcpus >= vcpus && p.memoryGiB >= memoryGiB);
   return bestFit || profiles[profiles.length - 1];
 }
@@ -117,7 +117,13 @@ export function generateExcelReport(rawData: RVToolsData): XLSX.WorkBook {
   XLSX.utils.book_append_sheet(workbook, migrationSheet, 'Migration Readiness');
 
   // ===== ROKS Bare Metal Sizing Sheet =====
-  const { bareMetalProfiles, odfSizing, ocpVirtSizing } = ibmCloudProfiles;
+  const { odfSizing, ocpVirtSizing, bareMetalProfiles: bmProfiles } = ibmCloudConfig;
+  // Flatten bare metal profiles from family-organized structure
+  const bareMetalProfiles = [
+    ...bmProfiles.balanced,
+    ...bmProfiles.compute,
+    ...bmProfiles.memory,
+  ];
   const totalVCPUs = poweredOnVMs.reduce((sum: number, vm: VirtualMachine) => sum + vm.cpus, 0);
   const totalMemoryGiB = poweredOnVMs.reduce((sum: number, vm: VirtualMachine) => sum + mibToGiB(vm.memory), 0);
   const totalStorageGiB = poweredOnVMs.reduce((sum: number, vm: VirtualMachine) => sum + mibToGiB(vm.provisionedMiB), 0);
@@ -134,17 +140,17 @@ export function generateExcelReport(rawData: RVToolsData): XLSX.WorkBook {
     p.name === 'bx2d.metal.96x384'
   ) || bareMetalProfiles[0];
 
-  const usableThreadsPerNode = Math.floor(recommendedProfile.threads * 0.85);
+  const usableThreadsPerNode = Math.floor(recommendedProfile.vcpus * 0.85);
   const usableMemoryPerNode = recommendedProfile.memoryGiB - ocpVirtSizing.systemReservedMemoryGiB;
-  const usableNvmePerNode = recommendedProfile.totalNvmeGiB;
+  const usableNvmePerNode = recommendedProfile.totalNvmeGiB || 0;
 
   const nodesForCPU = Math.ceil(adjustedVCPUs / usableThreadsPerNode);
   const nodesForMemory = Math.ceil(totalMemoryGiB / usableMemoryPerNode);
-  const nodesForStorage = Math.ceil(requiredRawStorageGiB / usableNvmePerNode);
+  const nodesForStorage = usableNvmePerNode > 0 ? Math.ceil(requiredRawStorageGiB / usableNvmePerNode) : 0;
   const baseNodeCount = Math.max(odfSizing.minOdfNodes, nodesForCPU, nodesForMemory, nodesForStorage);
   const recommendedWorkers = baseNodeCount + ocpVirtSizing.nodeRedundancy;
 
-  const totalClusterNvmeGiB = recommendedWorkers * recommendedProfile.totalNvmeGiB;
+  const totalClusterNvmeGiB = recommendedWorkers * (recommendedProfile.totalNvmeGiB || 0);
   const odfActualUsableTiB = ((totalClusterNvmeGiB / replicaFactor) * operationalCapacity * cephEfficiency / 1024).toFixed(1);
 
   const roksData = [
@@ -170,8 +176,8 @@ export function generateExcelReport(rawData: RVToolsData): XLSX.WorkBook {
     ['Recommended Bare Metal Configuration', ''],
     ['Node Profile', recommendedProfile.name],
     ['Worker Nodes (N+2)', recommendedWorkers],
-    ['Total Physical Cores', recommendedWorkers * recommendedProfile.cores],
-    ['Total Threads', recommendedWorkers * recommendedProfile.threads],
+    ['Total Physical Cores', recommendedWorkers * recommendedProfile.physicalCores],
+    ['Total Threads', recommendedWorkers * recommendedProfile.vcpus],
     ['Total Memory (GiB)', recommendedWorkers * recommendedProfile.memoryGiB],
     ['Total Raw NVMe (TiB)', Math.round(totalClusterNvmeGiB / 1024)],
   ];

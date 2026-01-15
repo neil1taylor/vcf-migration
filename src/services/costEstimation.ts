@@ -1,5 +1,5 @@
 // IBM Cloud Cost Estimation Service
-import pricingData from '@/data/ibmCloudPricing.json';
+import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import type { IBMCloudPricing } from '@/services/pricing/pricingCache';
 import { getCurrentPricing } from '@/services/pricing/pricingCache';
 
@@ -8,7 +8,7 @@ function getActivePricing(): IBMCloudPricing {
   try {
     return getCurrentPricing().data;
   } catch {
-    return pricingData as unknown as IBMCloudPricing;
+    return ibmCloudConfig as unknown as IBMCloudPricing;
   }
 }
 
@@ -72,8 +72,8 @@ export interface VSISizingInput {
   networking?: NetworkingOptions;
 }
 
-export type RegionCode = keyof typeof pricingData.regions;
-export type DiscountType = keyof typeof pricingData.discounts;
+export type RegionCode = keyof typeof ibmCloudConfig.regions;
+export type DiscountType = keyof typeof ibmCloudConfig.discounts;
 
 /**
  * Get list of available regions

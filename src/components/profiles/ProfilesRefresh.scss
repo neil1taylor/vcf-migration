@@ -1,0 +1,63 @@
+@use '@carbon/react/scss/spacing' as *;
+@use '@carbon/react/scss/colors' as *;
+@use '@carbon/react/scss/type' as *;
+
+.profiles-refresh {
+  display: flex;
+  align-items: center;
+  gap: $spacing-04;
+  flex-wrap: wrap;
+
+  &--compact {
+    gap: $spacing-02;
+  }
+
+  &__status {
+    display: flex;
+    align-items: center;
+    gap: $spacing-03;
+  }
+
+  &__source {
+    display: flex;
+    align-items: center;
+    gap: $spacing-02;
+  }
+
+  &__icon {
+    &--api {
+      color: $green-50;
+    }
+
+    &--static {
+      color: $yellow-30;
+    }
+
+    &--offline {
+      color: $gray-50;
+    }
+  }
+
+  &__updated {
+    @include type-style('helper-text-01');
+    color: $gray-60;
+  }
+
+  &__counts {
+    @include type-style('helper-text-01');
+    color: $gray-50;
+    padding-left: $spacing-03;
+    border-left: 1px solid $gray-30;
+  }
+
+  &__button {
+    flex-shrink: 0;
+  }
+
+  &__error {
+    @include type-style('helper-text-01');
+    color: $orange-40;
+    width: 100%;
+    margin-top: $spacing-02;
+  }
+}

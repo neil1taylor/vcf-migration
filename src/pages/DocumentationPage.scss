@@ -101,6 +101,20 @@
     }
   }
 
+  &__code-block {
+    background-color: var(--cds-layer-02);
+    padding: spacing.$spacing-03;
+    border-radius: 4px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    overflow-x: auto;
+
+    code {
+      color: theme.$text-primary;
+    }
+  }
+
   // Override accordion styles
   .cds--accordion__title {
     @include type.type-style('heading-compact-02');

@@ -7,5 +7,7 @@ export { useExcelExport } from './useExcelExport';
 export { useDocxExport } from './useDocxExport';
 export { useDynamicPricing } from './useDynamicPricing';
 export type { UseDynamicPricingConfig, UseDynamicPricingReturn } from './useDynamicPricing';
+export { useDynamicProfiles } from './useDynamicProfiles';
+export type { UseDynamicProfilesConfig, UseDynamicProfilesReturn } from './useDynamicProfiles';
 export { useCustomProfiles } from './useCustomProfiles';
 export type { CustomProfile, ProfileOverride, UseCustomProfilesReturn } from './useCustomProfiles';

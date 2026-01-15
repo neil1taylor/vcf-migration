@@ -3,14 +3,14 @@ import ExcelJS from 'exceljs';
 import type { CostEstimate, RegionCode, DiscountType } from '../costEstimation';
 import type { IBMCloudPricing } from '../pricing/pricingCache';
 import { getCurrentPricing } from '../pricing/pricingCache';
-import pricingData from '@/data/ibmCloudPricing.json';
+import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 
 // Helper to get active pricing data
 function getActivePricing(): IBMCloudPricing {
   try {
     return getCurrentPricing().data;
   } catch {
-    return pricingData as unknown as IBMCloudPricing;
+    return ibmCloudConfig as unknown as IBMCloudPricing;
   }
 }
 

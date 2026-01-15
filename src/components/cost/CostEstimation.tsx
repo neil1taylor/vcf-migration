@@ -21,7 +21,8 @@ import {
 import { Download, Calculator } from '@carbon/icons-react';
 import { MetricCard } from '@/components/common';
 import { PricingRefresh } from '@/components/pricing';
-import { useDynamicPricing } from '@/hooks';
+import { ProfilesRefresh } from '@/components/profiles';
+import { useDynamicPricing, useDynamicProfiles } from '@/hooks';
 import type { CostEstimate, RegionCode, DiscountType, ROKSSizingInput, VSISizingInput, NetworkingOptions } from '@/services/costEstimation';
 import {
   calculateROKSCost,
@@ -71,6 +72,17 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
     isApiAvailable,
     error: pricingError,
   } = useDynamicPricing();
+
+  // Dynamic profiles hook
+  const {
+    isRefreshing: isRefreshingProfiles,
+    lastUpdated: profilesLastUpdated,
+    source: profilesSource,
+    refreshProfiles,
+    isApiAvailable: isProfilesApiAvailable,
+    error: profilesError,
+    profileCounts,
+  } = useDynamicProfiles();
 
   const regions = getRegions(pricing);
   const discountOptions = getDiscountOptions(pricing);
@@ -143,15 +155,27 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
           <h3>{title || 'Cost Estimation'}</h3>
           <div className="cost-estimation__actions">
             {showPricingRefresh && (
-              <PricingRefresh
-                lastUpdated={lastUpdated}
-                source={source}
-                isRefreshing={isRefreshing}
-                onRefresh={refreshPricing}
-                isApiAvailable={isApiAvailable}
-                error={pricingError}
-                compact
-              />
+              <>
+                <PricingRefresh
+                  lastUpdated={lastUpdated}
+                  source={source}
+                  isRefreshing={isRefreshing}
+                  onRefresh={refreshPricing}
+                  isApiAvailable={isApiAvailable}
+                  error={pricingError}
+                  compact
+                />
+                <ProfilesRefresh
+                  lastUpdated={profilesLastUpdated}
+                  source={profilesSource}
+                  isRefreshing={isRefreshingProfiles}
+                  onRefresh={refreshProfiles}
+                  isApiAvailable={isProfilesApiAvailable}
+                  error={profilesError}
+                  profileCounts={profileCounts}
+                  compact
+                />
+              </>
             )}
             <Button
               kind="ghost"

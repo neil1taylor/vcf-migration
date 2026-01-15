@@ -414,7 +414,7 @@ export function ROKSMigrationPage() {
       hasBlocker: hasBlocker || hasSnapshot || noTools,
       vcpus: vm.cpus,
       memoryGiB: Math.round(mibToGiB(vm.memory)),
-      storageGiB: Math.round(mibToGiB(vm.provisionedMiB)),
+      storageGiB: Math.round(mibToGiB(vm.inUseMiB)), // Use actual data footprint, not provisioned
       networkName,
       ipAddress,
       subnet,
@@ -804,8 +804,8 @@ export function ROKSMigrationPage() {
       };
     }
 
-    // Otherwise calculate default sizing
-    const totalStorageGiB = poweredOnVMs.reduce((sum, vm) => sum + mibToGiB(vm.provisionedMiB), 0);
+    // Otherwise calculate default sizing using actual data footprint (In Use), not provisioned
+    const totalStorageGiB = poweredOnVMs.reduce((sum, vm) => sum + mibToGiB(vm.inUseMiB), 0);
 
     return {
       computeNodes: 3, // Minimum for ODF

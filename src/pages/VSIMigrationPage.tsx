@@ -16,7 +16,7 @@ import type { RemediationItem } from '@/components/common';
 import type { VSISizingInput } from '@/services/costEstimation';
 import type { VMDetail, WaveGroup } from '@/services/export';
 import { downloadWavePlanningExcel } from '@/services/export';
-import ibmCloudProfiles from '@/data/ibmCloudProfiles.json';
+import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import mtvRequirements from '@/data/mtvRequirements.json';
 import './MigrationPage.scss';
 
@@ -209,7 +209,7 @@ export function VSIMigrationPage() {
   const readinessScore = Math.max(0, Math.round(100 - blockerPenalty - warningPenalty - unsupportedOSPenalty));
 
   // ===== VPC VSI PROFILE MAPPING =====
-  const { vpcProfiles } = ibmCloudProfiles;
+  const vsiProfiles = ibmCloudConfig.vsiProfiles;
 
   function mapVMToVSIProfile(vcpus: number, memoryGiB: number) {
     const memToVcpuRatio = memoryGiB / vcpus;
@@ -221,7 +221,7 @@ export function VSIMigrationPage() {
       family = 'memory';
     }
 
-    const profiles = vpcProfiles[family];
+    const profiles = vsiProfiles[family];
     const bestFit = profiles.find(p => p.vcpus >= vcpus && p.memoryGiB >= memoryGiB);
     return bestFit || profiles[profiles.length - 1];
   }
@@ -243,8 +243,8 @@ export function VSIMigrationPage() {
           bandwidth: customProfile.bandwidth || 16, // Default bandwidth for custom profiles
         };
       } else {
-        // Standard profile - find in vpcProfiles
-        const allProfiles = [...vpcProfiles.balanced, ...vpcProfiles.compute, ...vpcProfiles.memory];
+        // Standard profile - find in vsiProfiles
+        const allProfiles = [...vsiProfiles.balanced, ...vsiProfiles.compute, ...vsiProfiles.memory];
         const standardProfile = allProfiles.find(p => p.name === effectiveProfileName);
         if (standardProfile) {
           effectiveProfile = standardProfile;
@@ -586,7 +586,7 @@ export function VSIMigrationPage() {
       hasBlocker: hasBlocker || hasVeryLargeMem || noTools,
       vcpus: vm.cpus,
       memoryGiB: Math.round(mibToGiB(vm.memory)),
-      storageGiB: Math.round(mibToGiB(vm.provisionedMiB)),
+      storageGiB: Math.round(mibToGiB(vm.inUseMiB)), // Use actual data footprint, not provisioned
       networkName,
       ipAddress,
       subnet,
