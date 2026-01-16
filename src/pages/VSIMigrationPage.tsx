@@ -240,7 +240,9 @@ export function VSIMigrationPage() {
           name: customProfile.name,
           vcpus: customProfile.vcpus,
           memoryGiB: customProfile.memoryGiB,
-          bandwidth: customProfile.bandwidth || 16, // Default bandwidth for custom profiles
+          bandwidthGbps: customProfile.bandwidth || 16, // Default bandwidth for custom profiles
+          hourlyRate: 0, // Custom profiles don't have predefined rates
+          monthlyRate: 0,
         };
       } else {
         // Standard profile - find in vsiProfiles

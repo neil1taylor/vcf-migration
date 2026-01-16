@@ -187,9 +187,109 @@ export function clearPricingCache(): void {
 
 /**
  * Get static pricing data as fallback
+ * Transforms the config structure to match the IBMCloudPricing interface
  */
 export function getStaticPricing(): IBMCloudPricing {
-  return staticPricingData as IBMCloudPricing;
+  const config = staticPricingData as {
+    version: string;
+    baseCurrency: string;
+    notes: string;
+    vsiPricing: Record<string, { hourlyRate: number; monthlyRate: number }>;
+    bareMetalPricing: Record<string, { hourlyRate: number; monthlyRate: number }>;
+    bareMetalProfiles: Record<string, Array<{
+      name: string;
+      physicalCores: number;
+      vcpus: number;
+      memoryGiB: number;
+      hasNvme: boolean;
+      nvmeDisks?: number;
+      nvmeSizeGiB?: number;
+      totalNvmeGiB?: number;
+      hourlyRate: number;
+      monthlyRate: number;
+      useCase: string;
+      description: string;
+    }>>;
+    vsiProfiles: Record<string, Array<{
+      name: string;
+      vcpus: number;
+      memoryGiB: number;
+      bandwidthGbps: number;
+      hourlyRate: number;
+      monthlyRate: number;
+    }>>;
+    blockStorage: Record<string, BlockStorageTier>;
+    networking: NetworkPricing;
+    storageAddons: {
+      snapshots: { costPerGBMonth: number; description: string };
+      objectStorage: { standardPerGBMonth: number; vaultPerGBMonth: number; description: string };
+    };
+    regions: Record<string, RegionPricing>;
+    discounts: Record<string, DiscountOption>;
+    roks: {
+      ocpLicense: { perCoreMonthly: number; description: string };
+      clusterManagement: { perClusterMonthly: number; description: string };
+    };
+    odfWorkloadProfiles: Record<string, {
+      name: string;
+      cpuPerNode: number;
+      memoryPerNodeGiB: number;
+      description: string;
+    }>;
+  };
+
+  // Transform bareMetal profiles from array structure to flat Record
+  const bareMetal: Record<string, BareMetalProfile> = {};
+  for (const [family, profiles] of Object.entries(config.bareMetalProfiles)) {
+    for (const profile of profiles) {
+      bareMetal[profile.name] = {
+        profile: profile.name,
+        family,
+        vcpus: profile.vcpus,
+        physicalCores: profile.physicalCores,
+        memoryGiB: profile.memoryGiB,
+        hasNvme: profile.hasNvme,
+        nvmeDisks: profile.nvmeDisks,
+        nvmeSizeGB: profile.nvmeSizeGiB,
+        totalNvmeGB: profile.totalNvmeGiB,
+        hourlyRate: profile.hourlyRate,
+        monthlyRate: profile.monthlyRate,
+        description: profile.description,
+      };
+    }
+  }
+
+  // Transform VSI profiles from array structure to flat Record
+  const vsi: Record<string, VSIProfile> = {};
+  for (const [family, profiles] of Object.entries(config.vsiProfiles)) {
+    for (const profile of profiles) {
+      vsi[profile.name] = {
+        profile: profile.name,
+        family,
+        vcpus: profile.vcpus,
+        memoryGiB: profile.memoryGiB,
+        networkGbps: profile.bandwidthGbps,
+        hourlyRate: profile.hourlyRate,
+        monthlyRate: profile.monthlyRate,
+        description: `${family} - ${profile.vcpus} vCPUs, ${profile.memoryGiB} GiB RAM`,
+      };
+    }
+  }
+
+  return {
+    pricingVersion: config.version,
+    baseCurrency: config.baseCurrency,
+    notes: config.notes,
+    bareMetal,
+    vsi,
+    blockStorage: config.blockStorage,
+    roks: config.roks,
+    networking: config.networking,
+    storageAddons: config.storageAddons,
+    regions: config.regions,
+    discounts: config.discounts,
+    odfWorkloadProfiles: config.odfWorkloadProfiles,
+  };
 }
 
 /**

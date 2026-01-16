@@ -32,7 +32,9 @@
       "Bash(then echo \"API key is set \\(length: $#VITE_IBM_CLOUD_API_KEY\\)\")",
       "Bash(else echo \"API key NOT found in .env\")",
       "Bash(fi)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(wc:*)",
+      "Bash(find:*)"
     ]
   }
 }

@@ -3,6 +3,190 @@ import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import type { IBMCloudPricing } from '@/services/pricing/pricingCache';
 import { getCurrentPricing } from '@/services/pricing/pricingCache';
 
+// ===== TYPES =====
+
+export interface ValidationError {
+  field: string;
+  message: string;
+}
+
+export interface ValidationResult {
+  valid: boolean;
+  errors: ValidationError[];
+}
+
+export interface ROKSSizingInput {
+  computeNodes: number;
+  computeProfile: string;
+  storageNodes?: number;
+  storageProfile?: string;
+  storageTiB?: number;
+  storageTier?: '5iops' | '10iops';
+  useNvme?: boolean;
+  odfProfile?: string;
+}
+
+export interface NetworkingOptions {
+  includeVPN?: boolean;
+  vpnGatewayCount?: number;
+  includeTransitGateway?: boolean;
+  transitGatewayLocalConnections?: number;
+  transitGatewayGlobalConnections?: number;
+  includePublicGateway?: boolean;
+  publicGatewayCount?: number;
+  loadBalancerCount?: number;
+}
+
+export interface VSISizingInput {
+  vmProfiles: { profile: string; count: number }[];
+  storageTiB: number;
+  storageTier?: '5iops' | '10iops';
+  networking?: NetworkingOptions;
+}
+
+// ===== VALIDATION =====
+
+/**
+ * Validate ROKSSizingInput
+ */
+export function validateROKSSizingInput(input: ROKSSizingInput): ValidationResult {
+  const errors: ValidationError[] = [];
+
+  // Compute nodes validation
+  if (input.computeNodes === undefined || input.computeNodes === null) {
+    errors.push({ field: 'computeNodes', message: 'Compute nodes count is required' });
+  } else if (!Number.isInteger(input.computeNodes) || input.computeNodes < 0) {
+    errors.push({ field: 'computeNodes', message: 'Compute nodes must be a non-negative integer' });
+  } else if (input.computeNodes > 1000) {
+    errors.push({ field: 'computeNodes', message: 'Compute nodes cannot exceed 1000' });
+  }
+
+  // Compute profile validation
+  if (!input.computeProfile || typeof input.computeProfile !== 'string') {
+    errors.push({ field: 'computeProfile', message: 'Compute profile is required' });
+  } else if (input.computeProfile.trim() === '') {
+    errors.push({ field: 'computeProfile', message: 'Compute profile cannot be empty' });
+  }
+
+  // Storage nodes validation (optional)
+  if (input.storageNodes !== undefined && input.storageNodes !== null) {
+    if (!Number.isInteger(input.storageNodes) || input.storageNodes < 0) {
+      errors.push({ field: 'storageNodes', message: 'Storage nodes must be a non-negative integer' });
+    } else if (input.storageNodes > 500) {
+      errors.push({ field: 'storageNodes', message: 'Storage nodes cannot exceed 500' });
+    }
+  }
+
+  // Storage TiB validation (optional)
+  if (input.storageTiB !== undefined && input.storageTiB !== null) {
+    if (typeof input.storageTiB !== 'number' || input.storageTiB < 0) {
+      errors.push({ field: 'storageTiB', message: 'Storage TiB must be a non-negative number' });
+    } else if (input.storageTiB > 10000) {
+      errors.push({ field: 'storageTiB', message: 'Storage TiB cannot exceed 10,000' });
+    }
+  }
+
+  // Storage tier validation (optional)
+  if (input.storageTier !== undefined && input.storageTier !== null) {
+    if (!['5iops', '10iops'].includes(input.storageTier)) {
+      errors.push({ field: 'storageTier', message: 'Storage tier must be "5iops" or "10iops"' });
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Validate VSISizingInput
+ */
+export function validateVSISizingInput(input: VSISizingInput): ValidationResult {
+  const errors: ValidationError[] = [];
+
+  // VM profiles validation
+  if (!input.vmProfiles || !Array.isArray(input.vmProfiles)) {
+    errors.push({ field: 'vmProfiles', message: 'VM profiles array is required' });
+  } else {
+    input.vmProfiles.forEach((vm, index) => {
+      if (!vm.profile || typeof vm.profile !== 'string' || vm.profile.trim() === '') {
+        errors.push({ field: `vmProfiles[${index}].profile`, message: 'Profile name is required' });
+      }
+      if (vm.count === undefined || vm.count === null) {
+        errors.push({ field: `vmProfiles[${index}].count`, message: 'VM count is required' });
+      } else if (!Number.isInteger(vm.count) || vm.count < 0) {
+        errors.push({ field: `vmProfiles[${index}].count`, message: 'VM count must be a non-negative integer' });
+      } else if (vm.count > 10000) {
+        errors.push({ field: `vmProfiles[${index}].count`, message: 'VM count cannot exceed 10,000' });
+      }
+    });
+  }
+
+  // Storage TiB validation
+  if (input.storageTiB === undefined || input.storageTiB === null) {
+    errors.push({ field: 'storageTiB', message: 'Storage TiB is required' });
+  } else if (typeof input.storageTiB !== 'number' || input.storageTiB < 0) {
+    errors.push({ field: 'storageTiB', message: 'Storage TiB must be a non-negative number' });
+  } else if (input.storageTiB > 100000) {
+    errors.push({ field: 'storageTiB', message: 'Storage TiB cannot exceed 100,000' });
+  }
+
+  // Storage tier validation (optional)
+  if (input.storageTier !== undefined && input.storageTier !== null) {
+    if (!['5iops', '10iops'].includes(input.storageTier)) {
+      errors.push({ field: 'storageTier', message: 'Storage tier must be "5iops" or "10iops"' });
+    }
+  }
+
+  // Networking validation (optional)
+  if (input.networking) {
+    const net = input.networking;
+    if (net.vpnGatewayCount !== undefined && (!Number.isInteger(net.vpnGatewayCount) || net.vpnGatewayCount < 0)) {
+      errors.push({ field: 'networking.vpnGatewayCount', message: 'VPN gateway count must be a non-negative integer' });
+    }
+    if (net.publicGatewayCount !== undefined && (!Number.isInteger(net.publicGatewayCount) || net.publicGatewayCount < 0)) {
+      errors.push({ field: 'networking.publicGatewayCount', message: 'Public gateway count must be a non-negative integer' });
+    }
+    if (net.loadBalancerCount !== undefined && (!Number.isInteger(net.loadBalancerCount) || net.loadBalancerCount < 0)) {
+      errors.push({ field: 'networking.loadBalancerCount', message: 'Load balancer count must be a non-negative integer' });
+    }
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Validate region code
+ */
+export function validateRegion(region: string, pricing?: IBMCloudPricing): ValidationResult {
+  const errors: ValidationError[] = [];
+  const data = pricing || getActivePricing();
+
+  if (!region || typeof region !== 'string') {
+    errors.push({ field: 'region', message: 'Region is required' });
+  } else if (!data.regions[region]) {
+    const validRegions = Object.keys(data.regions).join(', ');
+    errors.push({ field: 'region', message: `Invalid region "${region}". Valid regions: ${validRegions}` });
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Validate discount type
+ */
+export function validateDiscountType(discountType: string, pricing?: IBMCloudPricing): ValidationResult {
+  const errors: ValidationError[] = [];
+  const data = pricing || getActivePricing();
+
+  if (!discountType || typeof discountType !== 'string') {
+    errors.push({ field: 'discountType', message: 'Discount type is required' });
+  } else if (!data.discounts[discountType]) {
+    const validTypes = Object.keys(data.discounts).join(', ');
+    errors.push({ field: 'discountType', message: `Invalid discount type "${discountType}". Valid types: ${validTypes}` });
+  }
+
+  return { valid: errors.length === 0, errors };
+}
+
 // Helper to get active pricing data (dynamic or static fallback)
 function getActivePricing(): IBMCloudPricing {
   try {
@@ -41,35 +225,6 @@ export interface CostEstimate {
     generatedAt: string;
     notes: string[];
   };
-}
-
-export interface ROKSSizingInput {
-  computeNodes: number;
-  computeProfile: string;
-  storageNodes?: number;
-  storageProfile?: string;
-  storageTiB?: number;
-  storageTier?: '5iops' | '10iops';
-  useNvme?: boolean;
-  odfProfile?: string;
-}
-
-export interface NetworkingOptions {
-  includeVPN?: boolean;
-  vpnGatewayCount?: number;
-  includeTransitGateway?: boolean;
-  transitGatewayLocalConnections?: number;
-  transitGatewayGlobalConnections?: number;
-  includePublicGateway?: boolean;
-  publicGatewayCount?: number;
-  loadBalancerCount?: number;
-}
-
-export interface VSISizingInput {
-  vmProfiles: { profile: string; count: number }[];
-  storageTiB: number;
-  storageTier?: '5iops' | '10iops';
-  networking?: NetworkingOptions;
 }
 
 export type RegionCode = keyof typeof ibmCloudConfig.regions;

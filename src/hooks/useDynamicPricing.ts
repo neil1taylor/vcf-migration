@@ -214,16 +214,19 @@ export function useDynamicPricing(
       let apiAvailable = false;
       if (isProxyConfigured()) {
         console.log('[Dynamic Pricing] Testing proxy connectivity...');
-        apiAvailable = await testProxyConnection();
+        const proxyResult = await testProxyConnection();
+        apiAvailable = proxyResult.success;
         if (apiAvailable) {
           console.log('[Dynamic Pricing] Proxy available');
         } else {
           console.log('[Dynamic Pricing] Proxy not available, testing direct API...');
-          apiAvailable = await testApiConnection({ apiKey: config?.apiKey });
+          const apiResult = await testApiConnection({ apiKey: config?.apiKey });
+          apiAvailable = apiResult.success;
         }
       } else {
         console.log('[Dynamic Pricing] No proxy configured, testing direct API...');
-        apiAvailable = await testApiConnection({ apiKey: config?.apiKey });
+        const apiResult = await testApiConnection({ apiKey: config?.apiKey });
+        apiAvailable = apiResult.success;
       }
       setIsApiAvailable(apiAvailable);
 

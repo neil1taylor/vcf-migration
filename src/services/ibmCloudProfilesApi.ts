@@ -3,6 +3,11 @@
 // VPC API: https://cloud.ibm.com/apidocs/vpc/latest#list-instance-profiles
 // Kubernetes Service API: https://cloud.ibm.com/apidocs/kubernetes/containers-v1-v2
 
+import { withRetry, isRetryableError } from '@/utils/retry';
+import { createLogger, parseApiError, getUserFriendlyMessage } from '@/utils/logger';
+
+const logger = createLogger('IBM Cloud API');
+
 // ===== TYPES =====
 
 export interface VPCInstanceProfile {
@@ -136,36 +141,52 @@ export function isApiKeyConfigured(): boolean {
 async function getIamToken(apiKey: string): Promise<string> {
   // Check if we have a valid cached token (with 5 min buffer)
   if (cachedIamToken && cachedIamToken.expiry > Date.now() + 300000) {
-    console.log('[IBM Cloud API] Using cached IAM token');
+    logger.debug('Using cached IAM token');
     return cachedIamToken.token;
   }
 
-  console.log('[IBM Cloud API] Fetching new IAM token...');
+  logger.info('Fetching new IAM token...');
 
-  const response = await fetch(IAM_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
+  return withRetry(
+    async () => {
+      const response = await fetch(IAM_TOKEN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: new URLSearchParams({
+          grant_type: 'urn:ibm:params:oauth:grant-type:apikey',
+          apikey: apiKey,
+        }),
+      });
+
+      if (!response.ok) {
+        const apiError = await parseApiError(response, 'IAM authentication');
+        throw new Error(apiError.message);
+      }
+
+      const data = await response.json();
+
+      cachedIamToken = {
+        token: data.access_token,
+        expiry: Date.now() + (data.expires_in * 1000),
+      };
+
+      logger.info('IAM token obtained successfully');
+      return data.access_token;
     },
-    body: new URLSearchParams({
-      grant_type: 'urn:ibm:params:oauth:grant-type:apikey',
-      apikey: apiKey,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`IAM authentication failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  cachedIamToken = {
-    token: data.access_token,
-    expiry: Date.now() + (data.expires_in * 1000),
-  };
-
-  return data.access_token;
+    {
+      maxRetries: 2,
+      initialDelayMs: 1000,
+      onRetry: (error, attempt, delayMs) => {
+        logger.warn(`IAM token request failed, retrying (attempt ${attempt})`, {
+          error: error.message,
+          delayMs,
+        });
+      },
+    }
+  );
 }
 
 async function fetchWithTimeout(
@@ -213,54 +234,56 @@ export async function fetchVPCInstanceProfiles(
   const effectiveApiKey = apiKey || ENV_API_KEY;
 
   if (!effectiveApiKey) {
-    console.warn('[IBM Cloud API] No API key configured. Set VITE_IBM_CLOUD_API_KEY in .env file.');
+    logger.warn('No API key configured. Set VITE_IBM_CLOUD_API_KEY in .env file.');
     throw new Error('API key required. Set VITE_IBM_CLOUD_API_KEY environment variable.');
   }
 
   const url = `${baseUrl}/v1/instance/profiles?version=${VPC_API_VERSION}&generation=2`;
 
-  console.log('[IBM Cloud API] Fetching VPC instance profiles:', { region, url });
+  logger.info('Fetching VPC instance profiles', { region });
 
-  const headers: HeadersInit = {
-    'Accept': 'application/json',
-  };
+  return withRetry(
+    async () => {
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+      };
 
-  // Get IAM token for authentication
-  try {
-    const token = await getIamToken(effectiveApiKey);
-    headers['Authorization'] = `Bearer ${token}`;
-  } catch (authError) {
-    console.error('[IBM Cloud API] Authentication failed:', authError);
-    throw new Error('Authentication failed. Check your API key.');
-  }
+      // Get IAM token for authentication
+      const token = await getIamToken(effectiveApiKey);
+      headers['Authorization'] = `Bearer ${token}`;
 
-  const response = await fetchWithTimeout(url, { method: 'GET', headers });
+      const response = await fetchWithTimeout(url, { method: 'GET', headers });
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => '');
-    console.error('[IBM Cloud API] VPC API error:', response.status, errorText);
-
-    // Parse error for better messaging
-    try {
-      const errorData = JSON.parse(errorText);
-      const errorCode = errorData.errors?.[0]?.code || '';
-      const errorMsg = errorData.errors?.[0]?.message || '';
-      if (errorCode === 'not_authorized' || response.status === 403) {
-        throw new Error(`not_authorized: Service ID needs VPC Infrastructure Services Viewer role. ${errorMsg}`);
+      if (!response.ok) {
+        const apiError = await parseApiError(response, 'VPC Instance Profiles');
+        logger.error('VPC API error', new Error(apiError.message), { region, status: apiError.status });
+        throw new Error(apiError.message);
       }
-    } catch (parseErr) {
-      if (parseErr instanceof Error && parseErr.message.includes('not_authorized')) {
-        throw parseErr;
-      }
+
+      const data = await response.json();
+      logger.info('Fetched VPC profiles', { count: data.total_count });
+
+      return data;
+    },
+    {
+      maxRetries: 3,
+      initialDelayMs: 1000,
+      onRetry: (error, attempt, delayMs) => {
+        logger.warn(`VPC profiles fetch failed, retrying (attempt ${attempt})`, {
+          region,
+          error: error.message,
+          delayMs,
+        });
+      },
+      retryableErrors: (error) => {
+        // Don't retry auth errors
+        if (error.message.includes('not_authorized') || error.message.includes('403')) {
+          return false;
+        }
+        return isRetryableError(error);
+      },
     }
-
-    throw new Error(`VPC API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  console.log('[IBM Cloud API] Fetched VPC profiles:', { count: data.total_count });
-
-  return data;
+  );
 }
 
 /**
@@ -336,52 +359,55 @@ export async function fetchVPCBareMetalProfiles(
   const effectiveApiKey = apiKey || ENV_API_KEY;
 
   if (!effectiveApiKey) {
-    console.warn('[IBM Cloud API] No API key configured for Bare Metal API.');
+    logger.warn('No API key configured for Bare Metal API.');
     throw new Error('API key required. Set VITE_IBM_CLOUD_API_KEY environment variable.');
   }
 
   const url = `${baseUrl}/v1/bare_metal_server/profiles?version=${VPC_API_VERSION}&generation=2`;
 
-  console.log('[IBM Cloud API] Fetching VPC bare metal profiles:', { region, url });
+  logger.info('Fetching VPC bare metal profiles', { region });
 
-  const headers: HeadersInit = {
-    'Accept': 'application/json',
-  };
+  return withRetry(
+    async () => {
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+      };
 
-  try {
-    const token = await getIamToken(effectiveApiKey);
-    headers['Authorization'] = `Bearer ${token}`;
-  } catch (authError) {
-    console.error('[IBM Cloud API] Bare metal authentication failed:', authError);
-    throw new Error('Authentication failed. Check your API key.');
-  }
+      const token = await getIamToken(effectiveApiKey);
+      headers['Authorization'] = `Bearer ${token}`;
 
-  const response = await fetchWithTimeout(url, { method: 'GET', headers });
+      const response = await fetchWithTimeout(url, { method: 'GET', headers });
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => '');
-    console.error('[IBM Cloud API] Bare Metal API error:', response.status, errorText);
-
-    try {
-      const errorData = JSON.parse(errorText);
-      const errorCode = errorData.errors?.[0]?.code || '';
-      const errorMsg = errorData.errors?.[0]?.message || '';
-      if (errorCode === 'not_authorized' || response.status === 403) {
-        throw new Error(`not_authorized: Service ID needs VPC Infrastructure Services Viewer role. ${errorMsg}`);
+      if (!response.ok) {
+        const apiError = await parseApiError(response, 'Bare Metal Profiles');
+        logger.error('Bare Metal API error', new Error(apiError.message), { region, status: apiError.status });
+        throw new Error(apiError.message);
       }
-    } catch (parseErr) {
-      if (parseErr instanceof Error && parseErr.message.includes('not_authorized')) {
-        throw parseErr;
-      }
+
+      const data = await response.json();
+      logger.info('Fetched bare metal profiles', { count: data.total_count });
+
+      return data;
+    },
+    {
+      maxRetries: 3,
+      initialDelayMs: 1000,
+      onRetry: (error, attempt, delayMs) => {
+        logger.warn(`Bare metal profiles fetch failed, retrying (attempt ${attempt})`, {
+          region,
+          error: error.message,
+          delayMs,
+        });
+      },
+      retryableErrors: (error) => {
+        // Don't retry auth errors
+        if (error.message.includes('not_authorized') || error.message.includes('403')) {
+          return false;
+        }
+        return isRetryableError(error);
+      },
     }
-
-    throw new Error(`Bare Metal API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
-  console.log('[IBM Cloud API] Fetched bare metal profiles:', { count: data.total_count });
-
-  return data;
+  );
 }
 
 /**
@@ -444,46 +470,55 @@ export async function fetchROKSMachineTypes(
   const effectiveApiKey = apiKey || ENV_API_KEY;
 
   if (!effectiveApiKey) {
-    console.warn('[IBM Cloud API] No API key configured for ROKS API.');
+    logger.warn('No API key configured for ROKS API.');
     throw new Error('API key required. Set VITE_IBM_CLOUD_API_KEY environment variable.');
   }
 
   // Use getFlavors endpoint instead of getMachineTypes
   const url = `${KUBERNETES_API_URL}/getFlavors?zone=${encodeURIComponent(zone)}&provider=${encodeURIComponent(provider)}`;
 
-  console.log('[IBM Cloud API] Fetching ROKS flavors:', { zone, provider, url });
+  logger.info('Fetching ROKS flavors', { zone, provider });
 
-  const headers: HeadersInit = {
-    'Accept': 'application/json',
-  };
+  return withRetry(
+    async () => {
+      const headers: HeadersInit = {
+        'Accept': 'application/json',
+      };
 
-  // Get IAM token for authentication
-  try {
-    const token = await getIamToken(effectiveApiKey);
-    headers['Authorization'] = `Bearer ${token}`;
-  } catch (authError) {
-    console.error('[IBM Cloud API] ROKS authentication failed:', authError);
-    throw new Error('Authentication failed. Check your API key.');
-  }
+      const token = await getIamToken(effectiveApiKey);
+      headers['Authorization'] = `Bearer ${token}`;
 
-  const response = await fetchWithTimeout(url, { method: 'GET', headers });
+      const response = await fetchWithTimeout(url, { method: 'GET', headers });
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => '');
-    console.error('[IBM Cloud API] ROKS API error:', response.status, errorText);
-    throw new Error(`Kubernetes Service API error: ${response.status} ${response.statusText}`);
-  }
+      if (!response.ok) {
+        const apiError = await parseApiError(response, 'ROKS Flavors');
+        logger.error('ROKS API error', new Error(apiError.message), { zone, status: apiError.status });
+        throw new Error(apiError.message);
+      }
 
-  const data = await response.json();
+      const data = await response.json();
 
-  // getFlavors returns an array directly, wrap it for compatibility
-  const result: ROKSMachineTypesResponse = {
-    machineTypes: Array.isArray(data) ? data : (data.machineTypes || []),
-  };
+      // getFlavors returns an array directly, wrap it for compatibility
+      const result: ROKSMachineTypesResponse = {
+        machineTypes: Array.isArray(data) ? data : (data.machineTypes || []),
+      };
 
-  console.log('[IBM Cloud API] Fetched ROKS flavors:', { count: result.machineTypes.length });
+      logger.info('Fetched ROKS flavors', { count: result.machineTypes.length });
 
-  return result;
+      return result;
+    },
+    {
+      maxRetries: 3,
+      initialDelayMs: 1000,
+      onRetry: (error, attempt, delayMs) => {
+        logger.warn(`ROKS flavors fetch failed, retrying (attempt ${attempt})`, {
+          zone,
+          error: error.message,
+          delayMs,
+        });
+      },
+    }
+  );
 }
 
 /**
@@ -576,7 +611,17 @@ export interface ProfilesApiResult {
 }
 
 /**
+ * Errors encountered during fetchAllProfiles
+ */
+export interface ProfilesFetchErrors {
+  vpc?: string;
+  roks?: string;
+  bareMetal?: string;
+}
+
+/**
  * Fetch all profiles from both VPC and Kubernetes Service APIs
+ * Returns partial results if some APIs fail, with error details
  *
  * @param region - IBM Cloud region (e.g., 'us-south')
  * @param zone - Availability zone (e.g., 'us-south-1')
@@ -586,18 +631,30 @@ export async function fetchAllProfiles(
   region: string = 'us-south',
   zone?: string,
   apiKey?: string
-): Promise<ProfilesApiResult> {
+): Promise<ProfilesApiResult & { errors: ProfilesFetchErrors; hasErrors: boolean }> {
   const effectiveZone = zone || `${region}-1`;
 
-  console.log('[IBM Cloud API] Fetching all profiles:', { region, zone: effectiveZone });
+  logger.info('Fetching all profiles', { region, zone: effectiveZone });
 
-  const [vpcResponse, roksResponse] = await Promise.all([
+  const errors: ProfilesFetchErrors = {};
+
+  const [vpcResponse, bareMetalResponse, roksResponse] = await Promise.all([
     fetchVPCInstanceProfiles(region, apiKey).catch(err => {
-      console.warn('[IBM Cloud API] Failed to fetch VPC profiles:', err.message);
+      const message = getUserFriendlyMessage(err);
+      errors.vpc = message;
+      logger.error('Failed to fetch VPC profiles', err);
+      return null;
+    }),
+    fetchVPCBareMetalProfiles(region, apiKey).catch(err => {
+      const message = getUserFriendlyMessage(err);
+      errors.bareMetal = message;
+      logger.error('Failed to fetch VPC bare metal profiles', err);
       return null;
     }),
     fetchROKSMachineTypes(effectiveZone, 'vpc-gen2', apiKey).catch(err => {
-      console.warn('[IBM Cloud API] Failed to fetch ROKS machine types:', err.message);
+      const message = getUserFriendlyMessage(err);
+      errors.roks = message;
+      logger.error('Failed to fetch ROKS machine types', err);
       return null;
     }),
   ]);
@@ -606,9 +663,25 @@ export async function fetchAllProfiles(
     ? transformVPCProfiles(vpcResponse.profiles)
     : { balanced: [], compute: [], memory: [], veryHighMemory: [], ultraHighMemory: [], gpu: [], other: [] };
 
+  const vpcBareMetalProfiles = bareMetalResponse
+    ? transformVPCBareMetalProfiles(bareMetalResponse.profiles)
+    : [];
+
   const roksMachineTypes = roksResponse
     ? transformROKSMachineTypes(roksResponse.machineTypes)
     : { vsi: [], bareMetal: [] };
+
+  const hasErrors = Object.keys(errors).length > 0;
+
+  if (hasErrors) {
+    logger.warn('Profiles fetch completed with errors', { errors });
+  } else {
+    logger.info('All profiles fetched successfully', {
+      vpcProfiles: Object.values(vpcProfiles).flat().length,
+      bareMetalProfiles: vpcBareMetalProfiles.length,
+      roksFlavors: roksMachineTypes.vsi.length + roksMachineTypes.bareMetal.length,
+    });
+  }
 
   return {
     vpcProfiles,
@@ -616,6 +689,8 @@ export async function fetchAllProfiles(
     fetchedAt: new Date().toISOString(),
     region,
     zone: effectiveZone,
+    errors,
+    hasErrors,
   };
 }
 
@@ -625,12 +700,15 @@ export async function fetchAllProfiles(
 export async function testProfilesApiConnection(
   region: string = 'us-south',
   apiKey?: string
-): Promise<boolean> {
+): Promise<{ success: boolean; error?: string }> {
   try {
     const response = await fetchVPCInstanceProfiles(region, apiKey);
-    return response.total_count > 0;
+    const success = response.total_count > 0;
+    logger.info(`Connection test result: ${success ? 'SUCCESS' : 'NO DATA'}`);
+    return { success };
   } catch (error) {
-    console.error('[IBM Cloud API] Connection test failed:', error);
-    return false;
+    const message = getUserFriendlyMessage(error instanceof Error ? error : new Error(String(error)));
+    logger.error('Connection test failed', error instanceof Error ? error : new Error(String(error)));
+    return { success: false, error: message };
   }
 }

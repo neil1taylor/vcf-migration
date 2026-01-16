@@ -103,7 +103,7 @@ export function SizingCalculator({ onSizingChange }: SizingCalculatorProps) {
 
     // Storage capacity calculation
     // Raw NVMe / replica factor × operational capacity × (1 - Ceph overhead)
-    const rawStorageGiB = selectedProfile.totalNvmeGiB;
+    const rawStorageGiB = selectedProfile.totalNvmeGiB ?? 0;
     const storageEfficiency = (1 / replicaFactor) * (operationalCapacity / 100) * (1 - cephOverhead / 100);
     const usableStorageGiB = Math.floor(rawStorageGiB * storageEfficiency);
 

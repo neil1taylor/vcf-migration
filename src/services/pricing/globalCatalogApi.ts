@@ -1,6 +1,11 @@
 // IBM Cloud Global Catalog API client for fetching pricing data
 // Supports both direct API access and Cloud Functions proxy
 
+import { withRetry, isRetryableError } from '@/utils/retry';
+import { createLogger, parseApiError, isCorsError, getUserFriendlyMessage } from '@/utils/logger';
+
+const logger = createLogger('Pricing API');
+
 // ===== TYPES =====
 
 export interface GlobalCatalogConfig {
@@ -112,39 +117,53 @@ let cachedIamToken: { token: string; expiry: number } | null = null;
 async function getIamToken(apiKey: string): Promise<string> {
   // Check if we have a valid cached token (with 5 min buffer)
   if (cachedIamToken && cachedIamToken.expiry > Date.now() + 300000) {
-    console.log('[Pricing API] Using cached IAM token');
+    logger.debug('Using cached IAM token');
     return cachedIamToken.token;
   }
 
-  console.log('[Pricing API] Fetching new IAM token...');
+  logger.info('Fetching new IAM token...');
 
-  const response = await fetch(IAM_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
+  return withRetry(
+    async () => {
+      const response = await fetch(IAM_TOKEN_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: new URLSearchParams({
+          grant_type: 'urn:ibm:params:oauth:grant-type:apikey',
+          apikey: apiKey,
+        }),
+      });
+
+      if (!response.ok) {
+        const apiError = await parseApiError(response, 'IAM authentication');
+        throw new Error(apiError.message);
+      }
+
+      const data = await response.json();
+
+      // Cache the token
+      cachedIamToken = {
+        token: data.access_token,
+        expiry: Date.now() + (data.expires_in * 1000),
+      };
+
+      logger.info('IAM token obtained successfully');
+      return data.access_token;
     },
-    body: new URLSearchParams({
-      grant_type: 'urn:ibm:params:oauth:grant-type:apikey',
-      apikey: apiKey,
-    }),
-  });
-
-  if (!response.ok) {
-    console.error('[Pricing API] IAM token request failed:', response.status);
-    throw new Error(`IAM authentication failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-
-  // Cache the token
-  cachedIamToken = {
-    token: data.access_token,
-    expiry: Date.now() + (data.expires_in * 1000),
-  };
-
-  console.log('[Pricing API] IAM token obtained successfully');
-  return data.access_token;
+    {
+      maxRetries: 2,
+      initialDelayMs: 1000,
+      onRetry: (error, attempt, delayMs) => {
+        logger.warn(`IAM token request failed, retrying (attempt ${attempt})`, {
+          error: error.message,
+          delayMs,
+        });
+      },
+    }
+  );
 }
 
 /**
@@ -163,12 +182,14 @@ async function buildHeaders(config?: GlobalCatalogConfig): Promise<HeadersInit> 
     try {
       const token = await getIamToken(apiKey);
       headers['Authorization'] = `Bearer ${token}`;
-      console.log('[Pricing API] Using authenticated request');
+      logger.debug('Using authenticated request');
     } catch (error) {
-      console.warn('[Pricing API] Failed to get IAM token, continuing without auth:', error);
+      logger.warn('Failed to get IAM token, continuing without auth', {
+        error: error instanceof Error ? error.message : String(error),
+      });
     }
   } else {
-    console.log('[Pricing API] No API key configured, using unauthenticated request');
+    logger.debug('No API key configured, using unauthenticated request');
   }
 
   return headers;
@@ -214,38 +235,52 @@ export async function searchCatalog(
   const url = `${GLOBAL_CATALOG_BASE_URL}?${params.toString()}`;
   const timeout = config?.timeout || DEFAULT_TIMEOUT;
 
-  console.log('[Pricing API] Searching catalog:', { query, url });
+  logger.info('Searching catalog', { query });
 
-  try {
-    const headers = await buildHeaders(config);
-    const response = await fetchWithTimeout(
-      url,
-      {
-        method: 'GET',
-        headers,
+  return withRetry(
+    async () => {
+      const headers = await buildHeaders(config);
+      const response = await fetchWithTimeout(
+        url,
+        {
+          method: 'GET',
+          headers,
+        },
+        timeout
+      );
+
+      if (!response.ok) {
+        const apiError = await parseApiError(response, 'Global Catalog search');
+        logger.error('Catalog search failed', new Error(apiError.message), { query, status: apiError.status });
+        throw new Error(apiError.message);
+      }
+
+      const data = await response.json();
+      logger.info('Search successful', { query, resourceCount: data.resource_count });
+      return data;
+    },
+    {
+      maxRetries: 3,
+      initialDelayMs: 1000,
+      onRetry: (error, attempt, delayMs) => {
+        logger.warn(`Catalog search failed, retrying (attempt ${attempt})`, {
+          query,
+          error: error.message,
+          delayMs,
+        });
       },
-      timeout
-    );
-
-    if (!response.ok) {
-      console.error('[Pricing API] HTTP error:', response.status, response.statusText);
-      throw new Error(`Global Catalog API error: ${response.status} ${response.statusText}`);
+      retryableErrors: (error) => {
+        // Don't retry CORS errors
+        if (isCorsError(error)) {
+          logger.error('CORS or network error - API may be blocked by browser security policy', error, {
+            suggestion: 'Use a proxy server or configure CORS headers',
+          });
+          return false;
+        }
+        return isRetryableError(error);
+      },
     }
-
-    const data = await response.json();
-    console.log('[Pricing API] Search successful:', { query, resourceCount: data.resource_count });
-    return data;
-  } catch (error) {
-    // Detect CORS errors
-    if (error instanceof TypeError && error.message === 'Failed to fetch') {
-      console.error('[Pricing API] CORS or network error - API may be blocked by browser security policy');
-      console.info('[Pricing API] To fix CORS issues, you may need to:');
-      console.info('  1. Use a proxy server');
-      console.info('  2. Run from a server that allows CORS');
-      console.info('  3. Use a browser extension for development');
-    }
-    throw error;
-  }
+  );
 }
 
 /**
@@ -258,21 +293,38 @@ export async function getPricing(
   const url = `${GLOBAL_CATALOG_BASE_URL}/${encodeURIComponent(id)}/pricing`;
   const timeout = config?.timeout || DEFAULT_TIMEOUT;
 
-  const headers = await buildHeaders(config);
-  const response = await fetchWithTimeout(
-    url,
-    {
-      method: 'GET',
-      headers,
+  return withRetry(
+    async () => {
+      const headers = await buildHeaders(config);
+      const response = await fetchWithTimeout(
+        url,
+        {
+          method: 'GET',
+          headers,
+        },
+        timeout
+      );
+
+      if (!response.ok) {
+        const apiError = await parseApiError(response, 'Get pricing');
+        logger.error('Failed to get pricing', new Error(apiError.message), { id, status: apiError.status });
+        throw new Error(apiError.message);
+      }
+
+      return response.json();
     },
-    timeout
+    {
+      maxRetries: 3,
+      initialDelayMs: 1000,
+      onRetry: (error, attempt, delayMs) => {
+        logger.warn(`Get pricing failed, retrying (attempt ${attempt})`, {
+          id,
+          error: error.message,
+          delayMs,
+        });
+      },
+    }
   );
-
-  if (!response.ok) {
-    throw new Error(`Pricing API error: ${response.status} ${response.statusText}`);
-  }
-
-  return response.json();
 }
 
 /**
@@ -315,7 +367,17 @@ export async function fetchBareMetalProfiles(config?: GlobalCatalogConfig): Prom
 }
 
 /**
+ * Errors encountered during fetchAllCatalogPricing
+ */
+export interface CatalogFetchErrors {
+  vsi?: string;
+  bareMetal?: string;
+  blockStorage?: string;
+}
+
+/**
  * Fetch all pricing data from Global Catalog
+ * Returns partial results if some APIs fail, with error details
  */
 export async function fetchAllCatalogPricing(
   config?: GlobalCatalogConfig
@@ -323,47 +385,64 @@ export async function fetchAllCatalogPricing(
   vsi: CatalogResource[];
   bareMetal: CatalogResource[];
   blockStorage: CatalogResource[];
+  errors: CatalogFetchErrors;
+  hasErrors: boolean;
 }> {
-  console.log('[Pricing API] Fetching all catalog pricing data...');
+  logger.info('Fetching all catalog pricing data...');
+
+  const errors: CatalogFetchErrors = {};
 
   // Fetch all resource types in parallel
   const [vsi, bareMetal, blockStorage] = await Promise.all([
     fetchVSIProfiles(config).catch((err) => {
-      console.warn('[Pricing API] Failed to fetch VSI profiles:', err.message);
+      const message = getUserFriendlyMessage(err);
+      errors.vsi = message;
+      logger.error('Failed to fetch VSI profiles', err);
       return [];
     }),
     fetchBareMetalProfiles(config).catch((err) => {
-      console.warn('[Pricing API] Failed to fetch Bare Metal profiles:', err.message);
+      const message = getUserFriendlyMessage(err);
+      errors.bareMetal = message;
+      logger.error('Failed to fetch Bare Metal profiles', err);
       return [];
     }),
     fetchBlockStorageProfiles(config).catch((err) => {
-      console.warn('[Pricing API] Failed to fetch Block Storage profiles:', err.message);
+      const message = getUserFriendlyMessage(err);
+      errors.blockStorage = message;
+      logger.error('Failed to fetch Block Storage profiles', err);
       return [];
     }),
   ]);
 
-  console.log('[Pricing API] Fetch complete:', {
-    vsiProfiles: vsi.length,
-    bareMetalProfiles: bareMetal.length,
-    blockStorageProfiles: blockStorage.length,
-  });
+  const hasErrors = Object.keys(errors).length > 0;
 
-  return { vsi, bareMetal, blockStorage };
+  if (hasErrors) {
+    logger.warn('Catalog fetch completed with errors', { errors });
+  } else {
+    logger.info('Fetch complete', {
+      vsiProfiles: vsi.length,
+      bareMetalProfiles: bareMetal.length,
+      blockStorageProfiles: blockStorage.length,
+    });
+  }
+
+  return { vsi, bareMetal, blockStorage, errors, hasErrors };
 }
 
 /**
  * Test API connectivity
  */
-export async function testApiConnection(config?: GlobalCatalogConfig): Promise<boolean> {
-  console.log('[Pricing API] Testing API connectivity...');
+export async function testApiConnection(config?: GlobalCatalogConfig): Promise<{ success: boolean; error?: string }> {
+  logger.info('Testing API connectivity...');
   try {
     const response = await searchCatalog('is.instance', { ...config, timeout: 10000 });
     const isAvailable = response.resource_count > 0;
-    console.log('[Pricing API] Connection test result:', isAvailable ? 'SUCCESS' : 'NO DATA');
-    return isAvailable;
+    logger.info(`Connection test result: ${isAvailable ? 'SUCCESS' : 'NO DATA'}`);
+    return { success: isAvailable };
   } catch (error) {
-    console.error('[Pricing API] Connection test FAILED:', error instanceof Error ? error.message : error);
-    return false;
+    const message = getUserFriendlyMessage(error instanceof Error ? error : new Error(String(error)));
+    logger.error('Connection test FAILED', error instanceof Error ? error : new Error(String(error)));
+    return { success: false, error: message };
   }
 }
 
@@ -430,58 +509,69 @@ export async function fetchFromProxy(
 
   const timeout = options?.timeout || DEFAULT_TIMEOUT;
 
-  console.log('[Pricing API] Fetching from proxy:', url.toString());
+  logger.info('Fetching from proxy');
 
-  try {
-    const response = await fetchWithTimeout(
-      url.toString(),
-      {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
+  return withRetry(
+    async () => {
+      const response = await fetchWithTimeout(
+        url.toString(),
+        {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
         },
+        timeout
+      );
+
+      if (!response.ok) {
+        const apiError = await parseApiError(response, 'Proxy request');
+        throw new Error(apiError.message);
+      }
+
+      const data = await response.json();
+
+      logger.info('Proxy response received', {
+        cached: data.cached,
+        cacheAge: data.cacheAge,
+        source: data.source,
+        vsiProfiles: Object.keys(data.vsiProfiles || {}).length,
+      });
+
+      return data;
+    },
+    {
+      maxRetries: 2,
+      initialDelayMs: 1000,
+      onRetry: (error, attempt, delayMs) => {
+        logger.warn(`Proxy fetch failed, retrying (attempt ${attempt})`, {
+          error: error.message,
+          delayMs,
+        });
       },
-      timeout
-    );
-
-    if (!response.ok) {
-      throw new Error(`Proxy request failed: ${response.status} ${response.statusText}`);
     }
-
-    const data = await response.json();
-
-    console.log('[Pricing API] Proxy response:', {
-      cached: data.cached,
-      cacheAge: data.cacheAge,
-      source: data.source,
-      vsiProfiles: Object.keys(data.vsiProfiles || {}).length,
-    });
-
-    return data;
-  } catch (error) {
-    console.error('[Pricing API] Proxy fetch failed:', error instanceof Error ? error.message : error);
-    throw error;
-  }
+  );
 }
 
 /**
  * Test proxy connectivity
  */
-export async function testProxyConnection(): Promise<boolean> {
+export async function testProxyConnection(): Promise<{ success: boolean; error?: string }> {
   if (!PRICING_PROXY_URL) {
-    console.log('[Pricing API] Proxy not configured');
-    return false;
+    logger.info('Proxy not configured');
+    return { success: false, error: 'Proxy URL not configured' };
   }
 
-  console.log('[Pricing API] Testing proxy connectivity...');
+  logger.info('Testing proxy connectivity...');
 
   try {
     const data = await fetchFromProxy({ timeout: 10000 });
     const isAvailable = !!data.vsiProfiles && Object.keys(data.vsiProfiles).length > 0;
-    console.log('[Pricing API] Proxy test result:', isAvailable ? 'SUCCESS' : 'NO DATA');
-    return isAvailable;
+    logger.info(`Proxy test result: ${isAvailable ? 'SUCCESS' : 'NO DATA'}`);
+    return { success: isAvailable };
   } catch (error) {
-    console.error('[Pricing API] Proxy test FAILED:', error instanceof Error ? error.message : error);
-    return false;
+    const message = getUserFriendlyMessage(error instanceof Error ? error : new Error(String(error)));
+    logger.error('Proxy test FAILED', error instanceof Error ? error : new Error(String(error)));
+    return { success: false, error: message };
   }
 }

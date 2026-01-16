@@ -253,7 +253,8 @@ export function useDynamicProfiles(
 
       // Test API connectivity
       console.log('[Dynamic Profiles] Testing API connectivity...');
-      const apiAvailable = await testProfilesApiConnection(region, config?.apiKey);
+      const connectionResult = await testProfilesApiConnection(region, config?.apiKey);
+      const apiAvailable = connectionResult.success;
       setIsApiAvailable(apiAvailable);
 
       console.log('[Dynamic Profiles] API availability:', apiAvailable);
