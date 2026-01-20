@@ -1,11 +1,14 @@
 // Wave Planning Panel - shared component for migration wave planning
 
-import { Grid, Column, Tile, Tag, RadioButtonGroup, RadioButton, Dropdown, Button } from '@carbon/react';
+import { useState } from 'react';
+import { Grid, Column, Tile, Tag, RadioButtonGroup, RadioButton, Dropdown, OverflowMenu, OverflowMenuItem } from '@carbon/react';
 import { Download } from '@carbon/icons-react';
 import { HorizontalBarChart } from '@/components/charts';
 import { RedHatDocLink } from '@/components/common';
+import { RackwareExportModal } from '@/components/export';
 import { formatNumber } from '@/utils/formatters';
 import { downloadWavePlanningExcel } from '@/services/export';
+import type { VMDetail } from '@/services/export';
 import type { WaveGroup, NetworkWaveGroup, NetworkGroupBy, MigrationMode } from '@/services/migration';
 
 export type WavePlanningMode = 'complexity' | 'network';
@@ -28,6 +31,8 @@ export interface WavePlanningPanelProps {
     storageGiB: number;
     hasBlockers: boolean;
   }>;
+  // Optional: VM details for RackWare RMM export (VSI mode only)
+  vmDetails?: VMDetail[];
 }
 
 export function WavePlanningPanel({
@@ -40,11 +45,16 @@ export function WavePlanningPanel({
   complexityWaves,
   waveChartData,
   waveResources,
+  vmDetails,
 }: WavePlanningPanelProps) {
   const isNetworkMode = wavePlanningMode === 'network';
+  const [showRackwareModal, setShowRackwareModal] = useState(false);
+
+  // Get active waves based on mode
+  const activeWaves = isNetworkMode ? networkWaves : complexityWaves;
 
   // Handle export to Excel
-  const handleExport = () => {
+  const handleExcelExport = () => {
     const waveExportData = isNetworkMode
       ? networkWaves.map(wave => ({
           name: wave.name,
@@ -67,6 +77,11 @@ export function WavePlanningPanel({
           vms: wave.vms,
         }));
     downloadWavePlanningExcel(waveExportData, wavePlanningMode, networkGroupBy);
+  };
+
+  // Handle RackWare RMM export
+  const handleRackwareExport = () => {
+    setShowRackwareModal(true);
   };
 
   // Workflow steps based on mode
@@ -107,14 +122,24 @@ export function WavePlanningPanel({
                 <RadioButton labelText="Network-Based" value="network" id={`wave-network-${mode}`} />
                 <RadioButton labelText="Complexity-Based" value="complexity" id={`wave-complexity-${mode}`} />
               </RadioButtonGroup>
-              <Button
-                kind="tertiary"
+              <OverflowMenu
                 size="sm"
                 renderIcon={Download}
-                onClick={handleExport}
+                iconDescription="Export options"
+                flipped
+                menuOptionsClass="migration-page__export-menu"
               >
-                Export to Excel
-              </Button>
+                <OverflowMenuItem
+                  itemText="Export to Excel"
+                  onClick={handleExcelExport}
+                />
+                {mode === 'vsi' && (
+                  <OverflowMenuItem
+                    itemText="Export for RackWare RMM"
+                    onClick={handleRackwareExport}
+                  />
+                )}
+              </OverflowMenu>
             </div>
           </div>
           {isNetworkMode && (
@@ -236,6 +261,19 @@ export function WavePlanningPanel({
             )}
           </Tile>
         </Column>
+      )}
+
+      {/* RackWare RMM Export Modal */}
+      {mode === 'vsi' && (
+        <RackwareExportModal
+          open={showRackwareModal}
+          onClose={() => setShowRackwareModal(false)}
+          waves={activeWaves}
+          vmDetails={vmDetails}
+          mode={mode}
+          wavePlanningMode={wavePlanningMode}
+          networkGroupBy={networkGroupBy}
+        />
       )}
     </Grid>
   );

@@ -208,6 +208,129 @@
     }
   }
 
+  // Cluster Efficiency Analysis styles
+  &__efficiency-results {
+    padding: spacing.$spacing-05;
+    margin-bottom: spacing.$spacing-05;
+    background-color: var(--cds-layer-01, #ffffff);
+    border: 2px solid var(--cds-border-subtle-01, #e0e0e0);
+  }
+
+  &__efficiency-scenario {
+    padding: spacing.$spacing-04;
+    border-radius: 4px;
+    margin-bottom: spacing.$spacing-04;
+
+    &--healthy {
+      background-color: rgba(36, 161, 72, 0.08);
+      border: 1px solid var(--cds-support-success, #24a148);
+    }
+
+    &--degraded {
+      background-color: rgba(208, 38, 112, 0.08);
+      border: 1px solid var(--cds-support-error, #da1e28);
+    }
+  }
+
+  &__efficiency-header {
+    display: flex;
+    align-items: center;
+    gap: spacing.$spacing-03;
+    margin-bottom: spacing.$spacing-04;
+    padding-bottom: spacing.$spacing-03;
+    border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  }
+
+  &__efficiency-subtitle {
+    @include type.type-style('body-compact-01');
+    color: var(--cds-text-secondary, #525252);
+  }
+
+  &__efficiency-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$spacing-03;
+  }
+
+  &__efficiency-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: spacing.$spacing-02 0;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+    }
+  }
+
+  &__efficiency-metric-label {
+    @include type.type-style('label-01');
+    color: var(--cds-text-secondary, #525252);
+  }
+
+  &__efficiency-metric-value {
+    @include type.type-style('body-compact-01');
+    color: var(--cds-text-primary, #161616);
+    font-weight: 600;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: spacing.$spacing-01;
+  }
+
+  &__efficiency-util {
+    @include type.type-style('helper-text-01');
+    font-weight: 400;
+
+    &--good {
+      color: var(--cds-support-success, #24a148);
+    }
+
+    &--warning {
+      color: var(--cds-support-warning, #f1c21b);
+    }
+
+    &--critical {
+      color: var(--cds-support-error, #da1e28);
+    }
+  }
+
+  &__efficiency-legend {
+    display: flex;
+    justify-content: center;
+    gap: spacing.$spacing-05;
+    margin-top: spacing.$spacing-05;
+    padding-top: spacing.$spacing-04;
+    border-top: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  }
+
+  &__efficiency-legend-item {
+    @include type.type-style('helper-text-01');
+    color: var(--cds-text-secondary, #525252);
+    display: flex;
+    align-items: center;
+    gap: spacing.$spacing-02;
+  }
+
+  &__efficiency-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+
+    &--good {
+      background-color: var(--cds-support-success, #24a148);
+    }
+
+    &--warning {
+      background-color: var(--cds-support-warning, #f1c21b);
+    }
+
+    &--critical {
+      background-color: var(--cds-support-error, #da1e28);
+    }
+  }
+
   // Carbon slider overrides for better spacing
   :global {
     .cds--slider-container {

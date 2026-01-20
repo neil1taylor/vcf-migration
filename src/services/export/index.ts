@@ -19,3 +19,12 @@ export {
 export type { VMDetail, ROKSNodeDetail } from './bomXlsxGenerator';
 export { generateDocxReport, downloadDocx } from './docxGenerator';
 export type { DocxExportOptions } from './docxGenerator';
+export {
+  generateRackwareRmmCSV,
+  generateRackwareRmmFromWaves,
+  downloadRackwareRmmCSV,
+  generateRackwareRmmPerWave,
+  downloadRackwareRmmPerWaveZip,
+  combineWaveAndVMData,
+} from './rackwareRmmGenerator';
+export type { RackwareRmmConfig, RackwareVMData } from './rackwareRmmGenerator';

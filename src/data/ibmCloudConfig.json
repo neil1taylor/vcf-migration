@@ -65,18 +65,19 @@
   "bareMetalProfiles": {
     "balanced": [
       {
-        "name": "bx2.metal.96x384",
+        "name": "bx2-metal-96x384",
         "physicalCores": 48,
         "vcpus": 96,
         "memoryGiB": 384,
         "hasNvme": false,
+        "roksSupported": true,
         "hourlyRate": 4.80,
         "monthlyRate": 3504.00,
         "useCase": "General purpose bare metal",
         "description": "Balanced bare metal - 48 cores, 384 GiB RAM"
       },
       {
-        "name": "bx2d.metal.96x384",
+        "name": "bx2d-metal-96x384",
         "physicalCores": 48,
         "vcpus": 96,
         "memoryGiB": 384,
@@ -84,26 +85,97 @@
         "nvmeDisks": 8,
         "nvmeSizeGiB": 3200,
         "totalNvmeGiB": 25600,
+        "roksSupported": true,
         "hourlyRate": 5.25,
         "monthlyRate": 3832.50,
         "useCase": "OpenShift Virtualization - Standard",
         "description": "Balanced with NVMe - 48 cores, 384 GiB RAM, 8x3.2TB NVMe"
+      },
+      {
+        "name": "bx3-metal-48x256",
+        "physicalCores": 24,
+        "vcpus": 48,
+        "memoryGiB": 256,
+        "hasNvme": false,
+        "roksSupported": false,
+        "hourlyRate": 3.20,
+        "monthlyRate": 2336.00,
+        "useCase": "Gen3 general purpose bare metal",
+        "description": "Gen3 Balanced bare metal - 24 cores, 256 GiB RAM"
+      },
+      {
+        "name": "bx3d-metal-48x256",
+        "physicalCores": 24,
+        "vcpus": 48,
+        "memoryGiB": 256,
+        "hasNvme": true,
+        "nvmeDisks": 8,
+        "nvmeSizeGiB": 3840,
+        "totalNvmeGiB": 30720,
+        "roksSupported": false,
+        "hourlyRate": 3.65,
+        "monthlyRate": 2664.50,
+        "useCase": "Gen3 balanced with local NVMe",
+        "description": "Gen3 Balanced with NVMe - 24 cores, 256 GiB RAM, 8x3.84TB NVMe"
+      },
+      {
+        "name": "bx3-metal-64x256",
+        "physicalCores": 32,
+        "vcpus": 64,
+        "memoryGiB": 256,
+        "hasNvme": false,
+        "roksSupported": false,
+        "hourlyRate": 3.45,
+        "monthlyRate": 2518.50,
+        "useCase": "Gen3 balanced bare metal",
+        "description": "Gen3 Balanced bare metal - 32 cores, 256 GiB RAM"
+      },
+      {
+        "name": "bx3d-metal-64x256",
+        "physicalCores": 32,
+        "vcpus": 64,
+        "memoryGiB": 256,
+        "hasNvme": true,
+        "nvmeDisks": 8,
+        "nvmeSizeGiB": 3840,
+        "totalNvmeGiB": 30720,
+        "roksSupported": false,
+        "hourlyRate": 3.90,
+        "monthlyRate": 2847.00,
+        "useCase": "Gen3 balanced with local NVMe",
+        "description": "Gen3 Balanced with NVMe - 32 cores, 256 GiB RAM, 8x3.84TB NVMe"
+      },
+      {
+        "name": "bx3d-metal-192x1024",
+        "physicalCores": 96,
+        "vcpus": 192,
+        "memoryGiB": 1024,
+        "hasNvme": true,
+        "nvmeDisks": 16,
+        "nvmeSizeGiB": 3840,
+        "totalNvmeGiB": 61440,
+        "roksSupported": false,
+        "hourlyRate": 12.80,
+        "monthlyRate": 9344.00,
+        "useCase": "Gen3 high-capacity bare metal",
+        "description": "Gen3 Balanced with NVMe - 96 cores, 1024 GiB RAM, 16x3.84TB NVMe"
       }
     ],
     "compute": [
       {
-        "name": "cx2.metal.96x192",
+        "name": "cx2-metal-96x192",
         "physicalCores": 48,
         "vcpus": 96,
         "memoryGiB": 192,
         "hasNvme": false,
+        "roksSupported": true,
         "hourlyRate": 3.84,
         "monthlyRate": 2803.20,
         "useCase": "Compute-intensive bare metal",
         "description": "Compute-optimized bare metal - 48 cores, 192 GiB RAM"
       },
       {
-        "name": "cx2d.metal.96x192",
+        "name": "cx2d-metal-96x192",
         "physicalCores": 48,
         "vcpus": 96,
         "memoryGiB": 192,
@@ -111,6 +183,7 @@
         "nvmeDisks": 8,
         "nvmeSizeGiB": 3200,
         "totalNvmeGiB": 25600,
+        "roksSupported": true,
         "hourlyRate": 4.29,
         "monthlyRate": 3131.70,
         "useCase": "Compute-intensive with local storage",
@@ -119,18 +192,19 @@
     ],
     "memory": [
       {
-        "name": "mx2.metal.96x768",
+        "name": "mx2-metal-96x768",
         "physicalCores": 48,
         "vcpus": 96,
         "memoryGiB": 768,
         "hasNvme": false,
+        "roksSupported": true,
         "hourlyRate": 6.40,
         "monthlyRate": 4672.00,
         "useCase": "Memory-intensive bare metal",
         "description": "Memory-optimized bare metal - 48 cores, 768 GiB RAM"
       },
       {
-        "name": "mx2d.metal.96x768",
+        "name": "mx2d-metal-96x768",
         "physicalCores": 48,
         "vcpus": 96,
         "memoryGiB": 768,
@@ -138,10 +212,28 @@
         "nvmeDisks": 8,
         "nvmeSizeGiB": 3200,
         "totalNvmeGiB": 25600,
+        "roksSupported": true,
         "hourlyRate": 6.85,
         "monthlyRate": 5000.50,
         "useCase": "Memory-intensive VMs with ODF",
         "description": "Memory-optimized with NVMe - 48 cores, 768 GiB RAM, 8x3.2TB NVMe"
+      }
+    ],
+    "veryHighMemory": [
+      {
+        "name": "vx2d-metal-96x1536",
+        "physicalCores": 48,
+        "vcpus": 96,
+        "memoryGiB": 1536,
+        "hasNvme": true,
+        "nvmeDisks": 8,
+        "nvmeSizeGiB": 3200,
+        "totalNvmeGiB": 25600,
+        "roksSupported": false,
+        "hourlyRate": 10.50,
+        "monthlyRate": 7665.00,
+        "useCase": "Large databases, SAP HANA",
+        "description": "Very high memory with NVMe - 48 cores, 1536 GiB RAM, 8x3.2TB NVMe"
       }
     ]
   },
@@ -177,12 +269,18 @@
   },
 
   "bareMetalPricing": {
-    "bx2.metal.96x384": { "hourlyRate": 4.80, "monthlyRate": 3504.00 },
-    "bx2d.metal.96x384": { "hourlyRate": 5.25, "monthlyRate": 3832.50 },
-    "cx2.metal.96x192": { "hourlyRate": 3.84, "monthlyRate": 2803.20 },
-    "cx2d.metal.96x192": { "hourlyRate": 4.29, "monthlyRate": 3131.70 },
-    "mx2.metal.96x768": { "hourlyRate": 6.40, "monthlyRate": 4672.00 },
-    "mx2d.metal.96x768": { "hourlyRate": 6.85, "monthlyRate": 5000.50 }
+    "bx2-metal-96x384": { "hourlyRate": 4.80, "monthlyRate": 3504.00 },
+    "bx2d-metal-96x384": { "hourlyRate": 5.25, "monthlyRate": 3832.50 },
+    "bx3-metal-48x256": { "hourlyRate": 3.20, "monthlyRate": 2336.00 },
+    "bx3d-metal-48x256": { "hourlyRate": 3.65, "monthlyRate": 2664.50 },
+    "bx3-metal-64x256": { "hourlyRate": 3.45, "monthlyRate": 2518.50 },
+    "bx3d-metal-64x256": { "hourlyRate": 3.90, "monthlyRate": 2847.00 },
+    "bx3d-metal-192x1024": { "hourlyRate": 12.80, "monthlyRate": 9344.00 },
+    "cx2-metal-96x192": { "hourlyRate": 3.84, "monthlyRate": 2803.20 },
+    "cx2d-metal-96x192": { "hourlyRate": 4.29, "monthlyRate": 3131.70 },
+    "mx2-metal-96x768": { "hourlyRate": 6.40, "monthlyRate": 4672.00 },
+    "mx2d-metal-96x768": { "hourlyRate": 6.85, "monthlyRate": 5000.50 },
+    "vx2d-metal-96x1536": { "hourlyRate": 10.50, "monthlyRate": 7665.00 }
   },
 
   "profileFamilies": {
@@ -345,8 +443,8 @@
 
   "ocpVirtSizing": {
     "cpuOvercommitMax": 10,
-    "cpuOvercommitRecommended": 4,
-    "cpuOvercommitConservative": 1.8,
+    "cpuOvercommitRecommended": 5,
+    "cpuOvercommitConservative": 4,
     "memoryOvercommitRecommended": 1,
     "hyperthreadingEfficiencyDefault": 1.25,
     "hyperthreadingEfficiencyMin": 1.15,
@@ -355,11 +453,11 @@
     "systemReservedMemoryGiB": 12,
     "nodeRedundancy": 2,
     "minWorkerNodes": 3,
-    "description": "Red Hat recommends no memory overcommit for VMs; CPU max 1.8x physical cores; HT efficiency typically 1.2-1.3x"
+    "description": "Red Hat KVM recommends 5:1 vCPU ratio for loads under 100%; no memory overcommit for VMs; max 10:1 vCPU ratio"
   },
 
   "defaults": {
-    "cpuOvercommitRatio": 1.8,
+    "cpuOvercommitRatio": 5.0,
     "memoryOvercommitRatio": 1.0,
     "hyperthreadingMultiplier": 1.25,
     "odfReplicationFactor": 3,

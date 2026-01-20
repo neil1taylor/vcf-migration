@@ -17,6 +17,7 @@ import {
   NumberInput,
   Accordion,
   AccordionItem,
+  Tag,
 } from '@carbon/react';
 import { Download, Calculator } from '@carbon/icons-react';
 import { MetricCard } from '@/components/common';
@@ -30,6 +31,7 @@ import {
   getRegions,
   getDiscountOptions,
   formatCurrency,
+  getBareMetalProfiles,
 } from '@/services/costEstimation';
 import { downloadBOM, downloadVSIBOMExcel, downloadROKSBOMExcel } from '@/services/export';
 import type { VMDetail, ROKSNodeDetail } from '@/services/export';
@@ -100,6 +102,37 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
     }
     return null;
   }, [type, roksSizing, vsiSizing, region, discountType, pricing, networkingOptions]);
+
+  // Calculate costs for all bare metal profiles (ROKS only)
+  const allProfileCosts = useMemo(() => {
+    if (type !== 'roks' || !roksSizing) return null;
+
+    const profiles = getBareMetalProfiles(pricing);
+    // Filter to only NVMe profiles for ODF compatibility
+    const nvmeProfiles = profiles.filter(p => p.hasNvme);
+
+    const costs = nvmeProfiles.map(profile => {
+      const profileSizing: ROKSSizingInput = {
+        ...roksSizing,
+        computeProfile: profile.id,
+      };
+      const cost = calculateROKSCost(profileSizing, region, discountType, pricing);
+      return {
+        profile,
+        estimate: cost,
+        isSelected: profile.id === roksSizing.computeProfile,
+      };
+    });
+
+    // Sort by monthly cost to find most efficient
+    const sortedCosts = [...costs].sort((a, b) => a.estimate.totalMonthly - b.estimate.totalMonthly);
+    const lowestCostProfileId = sortedCosts[0]?.profile.id;
+
+    return costs.map(c => ({
+      ...c,
+      isBestValue: c.profile.id === lowestCostProfileId,
+    }));
+  }, [type, roksSizing, region, discountType, pricing]);
 
   if (!estimate) {
     return (
@@ -349,6 +382,59 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
           />
         )}
       </div>
+
+      {/* Bare Metal Profile Comparison (ROKS only) */}
+      {type === 'roks' && allProfileCosts && allProfileCosts.length > 0 && (
+        <Tile className="cost-estimation__profile-comparison">
+          <h4 className="cost-estimation__profile-comparison-title">
+            Bare Metal Profile Cost Comparison
+          </h4>
+          <p className="cost-estimation__profile-comparison-subtitle">
+            Costs for {roksSizing?.computeNodes || 0} nodes with {roksSizing?.useNvme ? 'NVMe storage' : 'block storage'}
+          </p>
+          <div className="cost-estimation__profile-grid">
+            {allProfileCosts.map(({ profile, estimate: profileEstimate, isSelected, isBestValue }) => (
+              <div
+                key={profile.id}
+                className={`cost-estimation__profile-card ${isSelected ? 'cost-estimation__profile-card--selected' : ''} ${isBestValue ? 'cost-estimation__profile-card--best-value' : ''}`}
+              >
+                <div className="cost-estimation__profile-card-header">
+                  <span className="cost-estimation__profile-name">{profile.id}</span>
+                  <div className="cost-estimation__profile-tags">
+                    {isBestValue && <Tag type="green" size="sm">Best Value</Tag>}
+                    {isSelected && <Tag type="blue" size="sm">Selected</Tag>}
+                  </div>
+                </div>
+                <div className="cost-estimation__profile-specs">
+                  <span>{profile.physicalCores} cores</span>
+                  <span>{profile.memoryGiB} GiB RAM</span>
+                  {profile.hasNvme && profile.totalNvmeGB && (
+                    <span>{Math.round(profile.totalNvmeGB / 1024)} TiB NVMe</span>
+                  )}
+                </div>
+                <div className="cost-estimation__profile-family">
+                  <Tag type="gray" size="sm">{profile.family}</Tag>
+                </div>
+                <div className="cost-estimation__profile-costs">
+                  <div className="cost-estimation__profile-cost-row">
+                    <span className="cost-estimation__profile-cost-label">Monthly</span>
+                    <span className="cost-estimation__profile-cost-value">{formatCurrency(profileEstimate.totalMonthly)}</span>
+                  </div>
+                  <div className="cost-estimation__profile-cost-row">
+                    <span className="cost-estimation__profile-cost-label">Annual</span>
+                    <span className="cost-estimation__profile-cost-value cost-estimation__profile-cost-value--annual">{formatCurrency(profileEstimate.totalAnnual)}</span>
+                  </div>
+                </div>
+                {isBestValue && !isSelected && (
+                  <div className="cost-estimation__profile-savings">
+                    Save {formatCurrency((estimate.totalAnnual - profileEstimate.totalAnnual))}/year
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </Tile>
+      )}
 
       {/* Line Items Table */}
       {showDetails && (

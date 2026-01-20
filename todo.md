@@ -282,3 +282,172 @@ interface AnalysisBundle {
 | 5 | Import/Export Ecosystem | 2-3 days | Medium | Phases 1-3 |
 | 6 | Bulk VM Operations | 2 days | Medium | Phase 2 |
 | 7 | Dependency Mapping | 3-4 days | Medium | None |
+
+
+
+
+
+
+Processing file - uploads/RVTools_export_all_w082_2025-12-15_14.45.00e6332b9b-0bdf-4147-81ac-7ed424bf265b.xlsx
+Found 1288 Virtual Machines.
+
+Saving VPC Pricing Sheet processed/RVTools_export_all_w082_2025-12-15_14.45.00e6332b9b-0bdf-4147-81ac-7ed424bf265b.xlsx
+
+Virtual Machines not to be migrated:
+VM Name                                            Issues                                                                                              
+------------------------------------------------------------------------------------------------------------------------------------------------------
+200v-qvoW                                          poweredOff                                                                                          
+d0w082p03vpl072                                    suspected_appliance                                                                                 
+more ...                                                                                     
+Total Virtual Machines:  1288
+
+OK to migrate         :  761
+     Total Memory     :  16101
+     Total vCPU       :  4262
+
+Should not migrate     :  527
+
+Total VMs to migrate  :  761
+  vCPU per VM         :  5.60
+  Memory per VM (GiB) :  21.16
+  Storage per VM (GiB):  462.04
+  Storage Buffer %    :  10
+  Storage per VM with Buffer (GiB):  508.25
+  Storage Calculation Method:  Total Disk Capacity
+  CPU overcommit      :  4.0
+  Memory overcommit   :  2.0
+
+bx2.metal.96x384 worker nodes required:  1209
+bx2.metal.96x384 Average VM capacity per node:  0.6296160510725345
+bx2.metal.96x384 hourly cost worker node:  5.30 USD
+bx2.metal.96x384 cpu cores:  48
+bx2.metal.96x384 memory (GB):  384
+bx2.metal.96x384 raw storage (GB):  960
+bx2.metal.96x384 usable storage (GB):  320.0
+bx2.metal.96x384 monthly cost worker nodes:  4677621.00 USD
+bx2.metal.96x384 OCP/OVE license (OCP License):  3622067.28 USD
+SUMMARY ACM for Virtualization:  150036.90 USD
+SUMMARY Ansible Automation Platform:  13963.95 USD
+SUMMARY ODF license:  681.82 USD
+SUMMARY total:  8464370.95 USD per month
+
+
+bx2d.metal.96x384 worker nodes required:  45
+bx2d.metal.96x384 Average VM capacity per node:  17
+bx2d.metal.96x384 hourly cost worker node:  7.31 USD
+bx2d.metal.96x384 cpu cores:  48
+bx2d.metal.96x384 memory (GB):  384
+bx2d.metal.96x384 raw storage (GB):  26560
+bx2d.metal.96x384 usable storage (GB):  8853.333333333334
+bx2d.metal.96x384 monthly cost worker nodes:  240133.50 USD
+bx2d.metal.96x384 OCP/OVE license (OCP License):  134816.40 USD
+SUMMARY ACM for Virtualization:  5584.50 USD
+SUMMARY Ansible Automation Platform:  519.75 USD
+SUMMARY ODF license:  681.82 USD
+SUMMARY total:  381735.97 USD per month
+
+
+cx2.metal.96x192 worker nodes required:  1209
+cx2.metal.96x192 Average VM capacity per node:  0.6296160510725345
+cx2.metal.96x192 hourly cost worker node:  4.69 USD
+cx2.metal.96x192 cpu cores:  48
+cx2.metal.96x192 memory (GB):  192
+cx2.metal.96x192 raw storage (GB):  960
+cx2.metal.96x192 usable storage (GB):  320.0
+cx2.metal.96x192 monthly cost worker nodes:  4139253.30 USD
+cx2.metal.96x192 OCP/OVE license (OCP License):  3622067.28 USD
+SUMMARY ACM for Virtualization:  150036.90 USD
+SUMMARY Ansible Automation Platform:  13963.95 USD
+SUMMARY ODF license:  681.82 USD
+SUMMARY total:  7926003.25 USD per month
+
+
+cx2d.metal.96x192 worker nodes required:  45
+cx2d.metal.96x192 Average VM capacity per node:  17
+cx2d.metal.96x192 hourly cost worker node:  6.71 USD
+cx2d.metal.96x192 cpu cores:  48
+cx2d.metal.96x192 memory (GB):  192
+cx2d.metal.96x192 raw storage (GB):  26560
+cx2d.metal.96x192 usable storage (GB):  8853.333333333334
+cx2d.metal.96x192 monthly cost worker nodes:  220423.50 USD
+cx2d.metal.96x192 OCP/OVE license (OCP License):  134816.40 USD
+SUMMARY ACM for Virtualization:  5584.50 USD
+SUMMARY Ansible Automation Platform:  519.75 USD
+SUMMARY ODF license:  681.82 USD
+SUMMARY total:  362025.97 USD per month
+
+
+mx2.metal.96x768 worker nodes required:  1209
+mx2.metal.96x768 Average VM capacity per node:  0.6296160510725345
+mx2.metal.96x768 hourly cost worker node:  6.85 USD
+mx2.metal.96x768 cpu cores:  48
+mx2.metal.96x768 memory (GB):  768
+mx2.metal.96x768 raw storage (GB):  960
+mx2.metal.96x768 usable storage (GB):  320.0
+mx2.metal.96x768 monthly cost worker nodes:  6045604.50 USD
+mx2.metal.96x768 OCP/OVE license (OCP License):  3622067.28 USD
+SUMMARY ACM for Virtualization:  150036.90 USD
+SUMMARY Ansible Automation Platform:  13963.95 USD
+SUMMARY ODF license:  681.82 USD
+SUMMARY total:  9832354.45 USD per month
+
+
+mx2d.metal.96x768 worker nodes required:  45
+mx2d.metal.96x768 Average VM capacity per node:  17
+mx2d.metal.96x768 hourly cost worker node:  8.87 USD
+mx2d.metal.96x768 cpu cores:  48
+mx2d.metal.96x768 memory (GB):  768
+mx2d.metal.96x768 raw storage (GB):  26560
+mx2d.metal.96x768 usable storage (GB):  8853.333333333334
+mx2d.metal.96x768 monthly cost worker nodes:  291379.50 USD
+mx2d.metal.96x768 OCP/OVE license (OCP License):  134816.40 USD
+SUMMARY ACM for Virtualization:  5584.50 USD
+SUMMARY Ansible Automation Platform:  519.75 USD
+SUMMARY ODF license:  681.82 USD
+SUMMARY total:  432981.97 USD per month
+
+
+The best flavor is cx2d.metal.96x192 with the lowest total monthly cost of 362025.97 USD
+
+ROKS pricing template saved: Cooltool_ROKS_pricing_RVTools_export_all_w082_2025-12-15_14.45.00086007e6-2fd3-45cb-95b9-c5cdd5937973_20260119_145948.xlsx
+DOWNLOAD_LINK:Cooltool_ROKS_pricing_RVTools_export_all_w082_2025-12-15_14.45.00086007e6-2fd3-45cb-95b9-c5cdd5937973_20260119_145948.xlsx
+
+
+
+
+Total Virtual Machines:  1288
+
+OK to migrate         :  761
+     Total Memory     :  16101
+     Total vCPU       :  4262
+
+Should not migrate     :  527
+
+Total VMs to migrate  :  761
+  vCPU per VM         :  5.60
+  Memory per VM (GiB) :  21.16
+  Storage per VM (GiB):  1483.46
+  Storage Buffer %    :  10
+  Storage per VM with Buffer (GiB):  1631.81
+  Storage Calculation Method:  Provisioned Storage
+  CPU overcommit      :  4.0
+  Memory overcommit   :  2.0
+
+
+Total Virtual Machines:  1288
+
+OK to migrate         :  761
+     Total Memory     :  16101
+     Total vCPU       :  4262
+
+Should not migrate     :  527
+
+Total VMs to migrate  :  761
+  vCPU per VM         :  5.60
+  Memory per VM (GiB) :  21.16
+  Storage per VM (GiB):  829.21
+  Storage Buffer %    :  10
+  Storage per VM with Buffer (GiB):  912.13
+  Storage Calculation Method:  Used Storage
+  CPU overcommit      :  4.0
+  Memory overcommit   :  2.0  

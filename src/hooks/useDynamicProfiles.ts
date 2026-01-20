@@ -125,31 +125,51 @@ export function useDynamicProfiles(
         ? transformVPCBareMetalProfiles(vpcBareMetalResponse.profiles)
         : [];
 
-      // Merge: Use ROKS list but enrich with VPC NVMe details
+      // Merge: Start with all VPC bare metal profiles, mark ROKS-supported ones
       let bareMetalProfiles: BareMetalProfilesByFamily;
+
+      // Build a set of ROKS-supported profile names (normalized to hyphen format)
+      const roksProfileNames = new Set<string>();
       if (roksTransformed?.bareMetal.length) {
-        // Merge ROKS profiles with VPC bare metal details
-        const mergedBareMetals = roksTransformed.bareMetal.map(roksBm => {
-          // Find matching VPC profile (name format differs: bx2d.metal.96x384 vs bx2d-metal-96x384)
-          const roksNameNormalized = roksBm.name.replace(/\./g, '-');
-          const vpcMatch = vpcBareMetalTransformed.find(
-            vpcBm => vpcBm.name === roksNameNormalized || vpcBm.name.replace(/-/g, '.') === roksBm.name
+        for (const roksBm of roksTransformed.bareMetal) {
+          // Normalize name format (bx2d.metal.96x384 -> bx2d-metal-96x384)
+          const normalizedName = roksBm.name.replace(/\./g, '-');
+          roksProfileNames.add(normalizedName);
+          roksProfileNames.add(roksBm.name); // Also add original format
+        }
+      }
+
+      if (vpcBareMetalTransformed.length > 0) {
+        // Use all VPC profiles, enriched with ROKS support info
+        const allBareMetals = vpcBareMetalTransformed.map(vpcBm => {
+          // Check if this profile is ROKS-supported
+          const normalizedName = vpcBm.name.replace(/\./g, '-');
+          const roksSupported = roksProfileNames.has(normalizedName) || roksProfileNames.has(vpcBm.name);
+
+          // Find ROKS profile for additional details if available
+          const roksMatch = roksTransformed?.bareMetal.find(
+            roksBm => roksBm.name.replace(/\./g, '-') === normalizedName || roksBm.name === vpcBm.name
           );
 
-          if (vpcMatch) {
-            // Use VPC NVMe details
-            return {
-              ...roksBm,
-              hasNvme: vpcMatch.hasNvme,
-              nvmeDisks: vpcMatch.nvmeDisks,
-              nvmeSizeGiB: vpcMatch.nvmeSizeGiB,
-              totalNvmeGiB: vpcMatch.totalNvmeGiB,
-            };
-          }
-          return roksBm;
+          return {
+            ...vpcBm,
+            roksSupported,
+            // Merge any additional details from ROKS if available
+            ...(roksMatch && {
+              bandwidthGbps: roksMatch.bandwidthGbps || vpcBm.bandwidthGbps,
+            }),
+          };
         });
-        bareMetalProfiles = groupBareMetalByFamily(mergedBareMetals);
+        bareMetalProfiles = groupBareMetalByFamily(allBareMetals);
+      } else if (roksTransformed?.bareMetal.length) {
+        // Fallback: Only ROKS data available, mark all as ROKS-supported
+        const allBareMetals = roksTransformed.bareMetal.map(roksBm => ({
+          ...roksBm,
+          roksSupported: true,
+        }));
+        bareMetalProfiles = groupBareMetalByFamily(allBareMetals);
       } else {
+        // No API data, use static profiles
         bareMetalProfiles = getStaticProfiles().bareMetalProfiles;
       }
 
@@ -311,11 +331,12 @@ function transformToVSIProfilesByFamily(apiProfiles: Record<string, TransformedP
 /**
  * Group bare metal profiles by family
  */
-function groupBareMetalByFamily(profiles: Array<{ name: string; family: string; vcpus: number; memoryGiB: number; physicalCores?: number; hasNvme?: boolean; nvmeDisks?: number; nvmeSizeGiB?: number; totalNvmeGiB?: number }>): BareMetalProfilesByFamily {
+function groupBareMetalByFamily(profiles: Array<{ name: string; family: string; vcpus: number; memoryGiB: number; physicalCores?: number; hasNvme?: boolean; nvmeDisks?: number; nvmeSizeGiB?: number; totalNvmeGiB?: number; roksSupported?: boolean; bandwidthGbps?: number }>): BareMetalProfilesByFamily {
   const grouped: BareMetalProfilesByFamily = {
     balanced: [],
     compute: [],
     memory: [],
+    veryHighMemory: [],
   };
 
   for (const profile of profiles) {

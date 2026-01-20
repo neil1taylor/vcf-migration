@@ -80,25 +80,29 @@ export function InfoPage() {
                     </thead>
                     <tbody>
                       <tr>
-                        <td><Tag type="green">1.8:1</Tag></td>
-                        <td>Conservative (Recommended)</td>
-                        <td>Red Hat recommends not exceeding 1.8x physical cores</td>
+                        <td><Tag type="green">4:1</Tag></td>
+                        <td>Conservative</td>
+                        <td>Industry standard for production workloads requiring consistent performance</td>
                       </tr>
                       <tr>
-                        <td><Tag type="blue">4:1</Tag></td>
-                        <td>Standard</td>
-                        <td>Suitable for most mixed workloads</td>
+                        <td><Tag type="blue">5:1</Tag></td>
+                        <td>Standard (Recommended)</td>
+                        <td>Red Hat KVM safe ratio for workloads under 100% utilization</td>
                       </tr>
                       <tr>
                         <td><Tag type="purple">10:1</Tag></td>
                         <td>Maximum</td>
-                        <td>OpenShift Virtualization maximum limit</td>
+                        <td>OpenShift Virtualization default; not recommended beyond this</td>
                       </tr>
                     </tbody>
                   </table>
+                  <div className="info-page__callout info-page__callout--info">
+                    <strong>Red Hat guidance:</strong> "KVM should safely support guest VMs with loads under 100% at a ratio
+                    of five vCPUs to one physical CPU." Do not exceed 10:1 total allocated vCPUs per physical core.
+                  </div>
                   <p className="info-page__note">
                     <strong>Note:</strong> CPU overcommitment is expected as most VMs don't use all their allocated CPU resources at all times.
-                    The conservative 1.8:1 ratio ensures consistent performance for production workloads.
+                    The actual safe ratio depends on your workload characteristics and requires testing before production deployment.
                   </p>
                 </div>
               </AccordionItem>
@@ -114,14 +118,124 @@ export function InfoPage() {
                     <strong>Memory is the leading sizing factor</strong> for OpenShift Virtualization clusters.
                     Plan your cluster size based on total VM memory requirements.
                   </div>
-                  <h4>System Reserved Memory</h4>
-                  <p>Reserve approximately <strong>12 GiB per node</strong> for:</p>
+                  <p className="info-page__note">
+                    <strong>Note:</strong> See the Infrastructure Reservations section below for details on how much memory
+                    is reserved for OpenShift system processes and ODF/Ceph daemons.
+                  </p>
+                </div>
+              </AccordionItem>
+
+              <AccordionItem title="Infrastructure Reservations">
+                <div className="info-page__accordion-content">
+                  <h4>Why Reservations Matter</h4>
+                  <p>
+                    OpenShift worker nodes require CPU and memory resources for infrastructure components.
+                    These resources are <strong>not available for VM workloads</strong> and must be subtracted
+                    from the node's total capacity when sizing.
+                  </p>
+
+                  <h4>OpenShift System Reserved</h4>
+                  <p>
+                    The <code>systemReserved</code> kubelet setting reserves resources for node-level system daemons:
+                  </p>
                   <ul>
-                    <li>OpenShift system pods and services</li>
-                    <li>Kubelet and container runtime</li>
-                    <li>ODF/Ceph daemons</li>
-                    <li>Monitoring and logging agents</li>
+                    <li><strong>kubelet</strong> - Node agent managing pods</li>
+                    <li><strong>cri-o</strong> - Container runtime</li>
+                    <li><strong>NetworkManager, sshd</strong> - System services</li>
+                    <li><strong>Monitoring agents</strong> - Prometheus node exporter, etc.</li>
                   </ul>
+                  <table className="info-page__table">
+                    <thead>
+                      <tr>
+                        <th>Resource</th>
+                        <th>Recommended</th>
+                        <th>Notes</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>CPU</td>
+                        <td><Tag type="blue">~1 core</Tag></td>
+                        <td>500m minimum, scales with node size</td>
+                      </tr>
+                      <tr>
+                        <td>Memory</td>
+                        <td><Tag type="blue">~4 GiB</Tag></td>
+                        <td>Varies by workload density</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <h4>ODF/Ceph Reserved</h4>
+                  <p>
+                    OpenShift Data Foundation runs Ceph storage daemons on each worker node.
+                    Resources scale with the number of storage devices (OSDs):
+                  </p>
+                  <table className="info-page__table">
+                    <thead>
+                      <tr>
+                        <th>Component</th>
+                        <th>CPU</th>
+                        <th>Memory</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>ODF Base (per node)</td>
+                        <td>~5 cores</td>
+                        <td>~21 GiB</td>
+                        <td>MON, MGR, MDS daemons (cluster total ÷ 3)</td>
+                      </tr>
+                      <tr>
+                        <td>Per NVMe Device (OSD)</td>
+                        <td>+2 cores</td>
+                        <td>+5 GiB</td>
+                        <td>Each storage device runs an OSD daemon</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <h4>Total Reservation Formula</h4>
+                  <div className="info-page__formula-block">
+                    <div className="info-page__formula">
+                      <code>Reserved CPU = System (1) + ODF Base (5) + (NVMe Devices × 2)</code>
+                    </div>
+                    <div className="info-page__formula">
+                      <code>Reserved Memory = System (4) + ODF Base (21) + (NVMe Devices × 5)</code>
+                    </div>
+                  </div>
+
+                  <h4>Example: bx2d.metal.96x384 (8 NVMe)</h4>
+                  <table className="info-page__table">
+                    <thead>
+                      <tr>
+                        <th>Resource</th>
+                        <th>Total</th>
+                        <th>Reserved</th>
+                        <th>Available for VMs</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Physical Cores</td>
+                        <td>48</td>
+                        <td>22 (1+5+16)</td>
+                        <td><strong>26 cores</strong></td>
+                      </tr>
+                      <tr>
+                        <td>Memory</td>
+                        <td>384 GiB</td>
+                        <td>65 GiB (4+21+40)</td>
+                        <td><strong>319 GiB</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <div className="info-page__callout info-page__callout--info">
+                    <strong>Sizing Calculator:</strong> The interactive calculator automatically computes these
+                    reservations based on the selected bare metal profile and number of NVMe devices.
+                  </div>
                 </div>
               </AccordionItem>
 
@@ -151,7 +265,7 @@ export function InfoPage() {
                         <td>96</td>
                         <td>192</td>
                         <td>768 GiB</td>
-                        <td>16x 3.2 TiB NVMe</td>
+                        <td>8x 3.2 TiB NVMe</td>
                       </tr>
                       <tr>
                         <td>mx2d.metal.96x768</td>
@@ -351,8 +465,8 @@ export function InfoPage() {
                   <td><strong>1.25× (typical)</strong></td>
                 </tr>
                 <tr>
-                  <td>CPU Overcommit (Conservative)</td>
-                  <td><strong>1.8:1</strong></td>
+                  <td>CPU Overcommit (Standard)</td>
+                  <td><strong>5:1</strong></td>
                 </tr>
                 <tr>
                   <td>Memory Overcommit</td>
@@ -379,11 +493,18 @@ export function InfoPage() {
                   <td><strong>N+2</strong></td>
                 </tr>
                 <tr>
-                  <td>System Reserved Memory</td>
-                  <td><strong>12 GiB/node</strong></td>
+                  <td>Infrastructure Reserved CPU</td>
+                  <td><strong>~22 cores/node*</strong></td>
+                </tr>
+                <tr>
+                  <td>Infrastructure Reserved Memory</td>
+                  <td><strong>~65 GiB/node*</strong></td>
                 </tr>
               </tbody>
             </table>
+            <p className="info-page__note" style={{ marginTop: '0.5rem', fontSize: '0.7rem' }}>
+              *Based on 8 NVMe devices. Formula: System + ODF base + (devices × per-device overhead)
+            </p>
           </Tile>
         </Column>
 
@@ -399,9 +520,9 @@ export function InfoPage() {
               <li>Result: Recommended bare metal node count</li>
             </ol>
             <p className="info-page__note" style={{ marginTop: '1rem' }}>
-              <strong>Example (bx2d.metal.96x384):</strong><br />
-              CPU: 48 cores × 1.25 HT × 1.8 = 108 vCPU/node<br />
-              Memory: 384 - 12 = 372 GiB/node<br />
+              <strong>Example (bx2d.metal.96x384, 8 NVMe):</strong><br />
+              CPU: (48 - 22 reserved) × 1.25 HT × 5.0 = 162 vCPU/node<br />
+              Memory: (384 - 65 reserved) × 1.0 = 319 GiB/node<br />
               Storage: 25 TiB × 21.25% = 5.3 TiB/node
             </p>
           </Tile>
@@ -422,6 +543,21 @@ export function InfoPage() {
                   href: 'https://access.redhat.com/solutions/5843241',
                   label: 'System Reserved Resources',
                   description: 'CPU and memory reservation guidelines for OpenShift nodes',
+                },
+                {
+                  href: 'https://developers.redhat.com/articles/2025/10/24/how-modify-system-reserved-parameters-openshift-nodes',
+                  label: 'Modify System Reserved Parameters',
+                  description: 'How to configure system-reserved CPU and memory on OpenShift nodes',
+                },
+                {
+                  href: 'https://docs.redhat.com/en/documentation/red_hat_openshift_data_foundation/4.16/html/planning_your_deployment/infrastructure-requirements_rhodf',
+                  label: 'ODF Infrastructure Requirements',
+                  description: 'CPU, memory, and storage requirements for ODF deployment',
+                },
+                {
+                  href: 'https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/7/html/virtualization_deployment_and_administration_guide/sect-overcommitting_with_kvm-overcommitting_virtualized_cpus',
+                  label: 'KVM CPU Overcommitment',
+                  description: 'Red Hat KVM guidance: 5:1 safe ratio, 10:1 maximum',
                 },
                 {
                   href: 'https://www.redhat.com/en/blog/capacity-management-overcommitment-best-practices-openshift',

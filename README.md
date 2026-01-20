@@ -20,7 +20,10 @@ This project provides an interactive interface for analyzing VMware environments
 - **OS Compatibility Matrix** — Red Hat OS support validation with detailed compatibility status
 - **Bare Metal Sizing** — Automatic calculation of required bare metal nodes for OpenShift Virtualization
 - **ODF Storage Planning** — OpenData Foundation storage requirements with NVMe recommendations
-- **ROKS Sizing Calculator** — Interactive calculator for cluster sizing based on workload requirements
+- **ROKS Sizing Calculator** — Interactive calculator for cluster sizing with three storage calculation methods:
+  - **Disk Capacity** — Full disk size from vDisk inventory (use when VMs may grow to full capacity)
+  - **In Use (recommended)** — Actual consumed storage including snapshots
+  - **Provisioned** — Allocated capacity including thin-provisioned promises (most conservative)
 
 #### VPC VSI (Virtual Server Instances)
 - **VSI Profile Mapping** — Automatic mapping of VMs to appropriate IBM Cloud VSI profiles

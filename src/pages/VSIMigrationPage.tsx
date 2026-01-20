@@ -497,6 +497,7 @@ export function VSIMigrationPage() {
                   complexityWaves={wavePlanning.complexityWaves}
                   waveChartData={wavePlanning.waveChartData}
                   waveResources={wavePlanning.waveResources}
+                  vmDetails={vmDetails}
                 />
               </TabPanel>
 

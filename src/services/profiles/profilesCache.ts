@@ -19,6 +19,7 @@ export interface BareMetalProfilesByFamily {
   balanced: TransformedProfile[];
   compute: TransformedProfile[];
   memory: TransformedProfile[];
+  veryHighMemory: TransformedProfile[];
 }
 
 export interface IBMCloudProfiles {
@@ -85,6 +86,7 @@ function transformStaticToProfiles(): IBMCloudProfiles {
     balanced: [],
     compute: [],
     memory: [],
+    veryHighMemory: [],
   };
 
   for (const [family, profiles] of Object.entries(staticProfilesData.bareMetalProfiles)) {
@@ -99,6 +101,7 @@ function transformStaticToProfiles(): IBMCloudProfiles {
         nvmeDisks?: number;
         nvmeSizeGiB?: number;
         totalNvmeGiB?: number;
+        roksSupported?: boolean;
       }>).map(p => ({
         name: p.name,
         family: familyKey,
@@ -109,6 +112,7 @@ function transformStaticToProfiles(): IBMCloudProfiles {
         nvmeDisks: p.nvmeDisks,
         nvmeSizeGiB: p.nvmeSizeGiB,
         totalNvmeGiB: p.totalNvmeGiB,
+        roksSupported: p.roksSupported,
       }));
     }
   }

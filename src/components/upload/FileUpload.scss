@@ -20,14 +20,14 @@
 
   &__warnings {
     padding: spacing.$spacing-04;
-    background-color: #fcf4d6; // Warning background
+    background-color: var(--cds-layer-02, #e0e0e0);
     border-radius: 4px;
-    border-left: 3px solid theme.$support-warning;
+    border-left: 3px solid var(--cds-support-warning, #f1c21b);
 
     h4 {
       @include type.type-style('heading-compact-01');
       margin-bottom: spacing.$spacing-03;
-      color: theme.$text-primary;
+      color: var(--cds-text-primary, #161616);
     }
 
     ul {
@@ -36,7 +36,7 @@
 
       li {
         @include type.type-style('body-compact-01');
-        color: theme.$text-secondary;
+        color: var(--cds-text-secondary, #525252);
         margin-bottom: spacing.$spacing-02;
 
         &:last-child {
@@ -56,14 +56,14 @@
   &__error {
     width: 100%;
     padding: spacing.$spacing-05;
-    background-color: #fff1f1; // Error background
+    background-color: var(--cds-layer-02, #e0e0e0);
     border-radius: 4px;
-    border-left: 3px solid theme.$support-error;
+    border-left: 3px solid var(--cds-support-error, #da1e28);
 
     h4 {
       @include type.type-style('heading-compact-01');
       margin-bottom: spacing.$spacing-03;
-      color: theme.$support-error;
+      color: var(--cds-support-error, #da1e28);
     }
 
     ul {
@@ -72,7 +72,7 @@
 
       li {
         @include type.type-style('body-compact-01');
-        color: theme.$text-primary;
+        color: var(--cds-text-primary, #161616);
         margin-bottom: spacing.$spacing-02;
 
         &:last-child {

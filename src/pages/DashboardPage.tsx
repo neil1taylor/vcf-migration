@@ -45,6 +45,13 @@ export function DashboardPage() {
   const totalInUseMiB = vms.reduce((sum, vm) => sum + vm.inUseMiB, 0);
   const totalInUseTiB = mibToTiB(totalInUseMiB);
 
+  // Disk capacity from vDisk sheet (filtered to non-template, powered-on VMs)
+  const vmNames = new Set(vms.map(vm => vm.vmName));
+  const totalDiskCapacityMiB = (rawData.vDisk || [])
+    .filter(disk => vmNames.has(disk.vmName))
+    .reduce((sum, disk) => sum + disk.capacityMiB, 0);
+  const totalDiskCapacityTiB = mibToTiB(totalDiskCapacityMiB);
+
   const uniqueClusters = new Set(vms.map(vm => vm.cluster).filter(Boolean)).size;
   const uniqueDatacenters = new Set(vms.map(vm => vm.datacenter).filter(Boolean)).size;
 
@@ -404,6 +411,37 @@ export function DashboardPage() {
           />
         </Column>
 
+        {/* Average per VM metrics */}
+        <Column lg={4} md={4} sm={4}>
+          <MetricCard
+            label="Avg vCPU per VM"
+            value={(totalVCPUs / totalVMs).toFixed(1)}
+            detail={`${formatNumber(totalVCPUs)} total vCPUs`}
+            variant="info"
+            tooltip="Average number of virtual CPUs allocated per VM."
+          />
+        </Column>
+
+        <Column lg={4} md={4} sm={4}>
+          <MetricCard
+            label="Avg Memory per VM"
+            value={`${(totalMemoryGiB / totalVMs).toFixed(1)} GiB`}
+            detail={`${totalMemoryTiB.toFixed(1)} TiB total`}
+            variant="teal"
+            tooltip="Average memory allocated per VM in GiB."
+          />
+        </Column>
+
+        <Column lg={4} md={4} sm={4}>
+          <MetricCard
+            label="Avg Storage per VM"
+            value={`${(mibToGiB(totalInUseMiB) / totalVMs).toFixed(0)} GiB`}
+            detail={`${totalInUseTiB.toFixed(1)} TiB total in use`}
+            variant="purple"
+            tooltip="Average in-use storage per VM in GiB (recommended metric for migration sizing)."
+          />
+        </Column>
+
         {/* Spacer between primary and secondary metrics */}
         <Column lg={16} md={8} sm={4}>
           <div className="dashboard-page__section-divider" />
@@ -455,6 +493,62 @@ export function DashboardPage() {
             variant="default"
             tooltip="VM templates (not counted in Total VMs) used for cloning new VMs."
           />
+        </Column>
+
+        {/* Storage Metrics Comparison Tile */}
+        <Column lg={16} md={8} sm={4}>
+          <Tile className="dashboard-page__storage-comparison-tile">
+            <div className="dashboard-page__storage-comparison-header">
+              <h3 className="dashboard-page__storage-comparison-title">Storage Calculation Methods</h3>
+              <Tooltip label="Different methods for calculating storage requirements. Use these values when planning migration capacity." align="top">
+                <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
+              </Tooltip>
+            </div>
+            <p className="dashboard-page__storage-comparison-subtitle">
+              Compare storage metrics for migration planning (powered-on VMs only)
+            </p>
+            <div className="dashboard-page__storage-comparison-grid">
+              <div className="dashboard-page__storage-comparison-item">
+                <div className="dashboard-page__storage-comparison-label">
+                  <span>Disk Capacity</span>
+                  <Tag type="blue" size="sm">vDisk</Tag>
+                </div>
+                <span className="dashboard-page__storage-comparison-value">{totalDiskCapacityTiB.toFixed(2)} TiB</span>
+                <span className="dashboard-page__storage-comparison-detail">
+                  Full disk sizes from vDisk inventory
+                </span>
+                <span className="dashboard-page__storage-comparison-per-vm">
+                  {(mibToGiB(totalDiskCapacityMiB) / totalVMs).toFixed(1)} GiB/VM avg
+                </span>
+              </div>
+              <div className="dashboard-page__storage-comparison-item dashboard-page__storage-comparison-item--recommended">
+                <div className="dashboard-page__storage-comparison-label">
+                  <span>In Use</span>
+                  <Tag type="green" size="sm">Recommended</Tag>
+                </div>
+                <span className="dashboard-page__storage-comparison-value">{totalInUseTiB.toFixed(2)} TiB</span>
+                <span className="dashboard-page__storage-comparison-detail">
+                  Actual consumed storage incl. snapshots
+                </span>
+                <span className="dashboard-page__storage-comparison-per-vm">
+                  {(mibToGiB(totalInUseMiB) / totalVMs).toFixed(1)} GiB/VM avg
+                </span>
+              </div>
+              <div className="dashboard-page__storage-comparison-item">
+                <div className="dashboard-page__storage-comparison-label">
+                  <span>Provisioned</span>
+                  <Tag type="purple" size="sm">Conservative</Tag>
+                </div>
+                <span className="dashboard-page__storage-comparison-value">{totalProvisionedTiB.toFixed(2)} TiB</span>
+                <span className="dashboard-page__storage-comparison-detail">
+                  Allocated capacity incl. thin-provisioned
+                </span>
+                <span className="dashboard-page__storage-comparison-per-vm">
+                  {(mibToGiB(totalProvisionedMiB) / totalVMs).toFixed(1)} GiB/VM avg
+                </span>
+              </div>
+            </div>
+          </Tile>
         </Column>
 
         {/* Charts */}

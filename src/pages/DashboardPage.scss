@@ -205,4 +205,86 @@
     @include type.type-style('helper-text-01');
     color: theme.$text-helper;
   }
+
+  // Storage Comparison Tile
+  &__storage-comparison-tile {
+    padding: spacing.$spacing-05;
+    margin-bottom: spacing.$spacing-05;
+    background-color: var(--cds-layer-01);
+    border-left: 4px solid var(--cds-link-primary, #0f62fe);
+  }
+
+  &__storage-comparison-header {
+    display: flex;
+    align-items: center;
+    gap: spacing.$spacing-02;
+    margin-bottom: spacing.$spacing-02;
+  }
+
+  &__storage-comparison-title {
+    @include type.type-style('heading-compact-02');
+    color: theme.$text-primary;
+    margin: 0;
+  }
+
+  &__storage-comparison-subtitle {
+    @include type.type-style('helper-text-01');
+    color: theme.$text-secondary;
+    margin-bottom: spacing.$spacing-05;
+  }
+
+  &__storage-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: spacing.$spacing-05;
+
+    @media (max-width: 672px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__storage-comparison-item {
+    background-color: var(--cds-layer-02);
+    padding: spacing.$spacing-04;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--cds-border-subtle-01);
+
+    &--recommended {
+      border-color: var(--cds-support-success, #24a148);
+      background-color: rgba(36, 161, 72, 0.05);
+    }
+  }
+
+  &__storage-comparison-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: spacing.$spacing-03;
+
+    span:first-child {
+      @include type.type-style('label-01');
+      color: theme.$text-secondary;
+      font-weight: 600;
+    }
+  }
+
+  &__storage-comparison-value {
+    @include type.type-style('heading-04');
+    color: theme.$text-primary;
+    margin-bottom: spacing.$spacing-02;
+  }
+
+  &__storage-comparison-detail {
+    @include type.type-style('helper-text-01');
+    color: theme.$text-helper;
+    margin-bottom: spacing.$spacing-02;
+  }
+
+  &__storage-comparison-per-vm {
+    @include type.type-style('code-01');
+    color: theme.$text-secondary;
+    font-size: 0.75rem;
+  }
 }

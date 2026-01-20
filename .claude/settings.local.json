@@ -37,7 +37,14 @@
       "Bash(find:*)",
       "Bash(done)",
       "Bash(grep:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "WebFetch(domain:www.rackwareinc.com)",
+      "WebFetch(domain:rackware.freshdesk.com)",
+      "WebFetch(domain:www.redhat.com)",
+      "WebFetch(domain:xphyr.net)",
+      "WebFetch(domain:pronteff.com)",
+      "WebFetch(domain:community.veeam.com)",
+      "WebFetch(domain:docs.redhat.com)"
     ]
   }
 }

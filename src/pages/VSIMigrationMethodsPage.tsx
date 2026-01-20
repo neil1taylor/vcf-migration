@@ -17,8 +17,54 @@ interface MigrationMethod {
 
 const migrationMethods: MigrationMethod[] = [
   {
+    id: 'rackware-rmm',
+    name: 'Method 1: RackWare RMM (Recommended)',
+    description: 'Use RackWare RMM (RackWare Management Module) to migrate VMs directly to IBM Cloud VPC VSIs with automated orchestration, driver injection, and support for IP address retention.',
+    whenToUse: [
+      'Large-scale migrations requiring automation and orchestration',
+      'VMs on isolated NSX overlay segments without direct network access',
+      'Migrations requiring IP address retention on target VSIs',
+      'Organizations wanting minimal downtime with delta sync capabilities',
+      'Mixed Windows and Linux environments',
+    ],
+    requirements: [
+      'RackWare RMM server deployed in IBM Cloud VPC',
+      'Bridge server for isolated network connectivity (if NSX overlay)',
+      'Transit Gateway connecting Classic and VPC (if using bridge)',
+      'SSH access configured on source VMs (rackware user for Linux, RackWare SSHD for Windows)',
+      'IBM Cloud API credentials for auto-provisioning',
+    ],
+    steps: [
+      'Deploy RackWare RMM server in VPC and configure IBM Cloud credentials',
+      'Set up bridge server with NAT if source VMs are on isolated NSX segments',
+      'Configure SSH keys between RMM, source VMs, and target VSIs',
+      'Create migration wave in RMM with source VM details (IP/NAT address)',
+      'RMM discovers source VM metadata (OS, disks, network)',
+      'RMM auto-provisions target VSI or uses pre-provisioned server',
+      'RMM performs Direct Sync with Passthrough (Source → RMM → Target)',
+      'RMM installs bootloader and drivers, then reboots target',
+      'Perform delta syncs as needed before final cutover',
+    ],
+    pros: [
+      'Automated orchestration reduces manual effort',
+      'Supports IP address retention on migrated VMs',
+      'Delta sync minimizes cutover downtime',
+      'Works with isolated NSX overlay networks via bridge server',
+      'Single tool handles discovery, provisioning, and data transfer',
+      'Built-in driver injection for target hardware',
+      'Wave-based migration for organized cutovers',
+    ],
+    cons: [
+      'Requires RackWare licensing',
+      'Initial setup complexity for bridge server configuration',
+      'Bridge server needed for NSX isolated networks',
+      'Requires SSH access to source VMs',
+    ],
+    complexity: 'Medium',
+  },
+  {
     id: 'image-based',
-    name: 'Method 1: Image-Based Import',
+    name: 'Method 3: Image-Based Import',
     description: 'Export VM disk to VMDK, convert to QCOW2, upload to Cloud Object Storage, and create a custom VSI image.',
     whenToUse: [
       'Simple single-disk migrations',
@@ -52,7 +98,7 @@ const migrationMethods: MigrationMethod[] = [
   },
   {
     id: 'direct-volume',
-    name: 'Method 2: Direct Volume Copy',
+    name: 'Method 4: Direct Volume Copy',
     description: 'Write exported VM disks directly to VPC block volumes via a temporary worker VSI.',
     whenToUse: [
       'Multi-disk VMs',
@@ -87,7 +133,7 @@ const migrationMethods: MigrationMethod[] = [
   },
   {
     id: 'iso-network',
-    name: 'Method 3: ISO-Based Network Transfer',
+    name: 'Method 5: ISO-Based Network Transfer',
     description: 'Boot source VM from ISO image (Ubuntu installer, TinyCore Linux, or virt-p2v); transfer disks over network to worker VSI using tools like dd and gzip.',
     whenToUse: [
       'Avoiding VMDK export inefficiencies',
@@ -124,7 +170,7 @@ const migrationMethods: MigrationMethod[] = [
   },
   {
     id: 'vddk-direct',
-    name: 'Method 4: Direct VDDK Extraction',
+    name: 'Method 6: Direct VDDK Extraction',
     description: 'Use virt-v2v with VMware VDDK plugin to directly connect to vCenter and extract VM disks while applying transformations.',
     whenToUse: [
       'Direct vCenter access available',
@@ -192,6 +238,11 @@ const limitations = [
 
 const tools = [
   {
+    name: 'RackWare RMM',
+    description: 'Commercial migration platform with automated discovery, provisioning, data transfer, and driver injection',
+    usage: 'https://<RMM_IP>/  # Web-based UI for wave management',
+  },
+  {
     name: 'virt-v2v',
     description: 'Transforms VM images; installs virtio drivers; connects to vCenter via VDDK',
     usage: 'virt-v2v -i vmx source.vmx -o local -os /output',
@@ -213,6 +264,24 @@ const tools = [
   },
 ];
 
+// RackWare RMM supported operating systems
+const rackwareSupportedOS = {
+  linux: [
+    'RHEL 5.2-5.11, 6.x, 7.x, 8.x, 9.x',
+    'CentOS 5.2-5.11, 6.x, 7.x, 8.x',
+    'Oracle Linux 5.6-5.11, 6.x, 7.x, 8.x, 9.x',
+    'SLES 11 (including 32-bit), 12, 15 (no btrfs)',
+    'Ubuntu 12-24 (including 32-bit for 12)',
+    'Debian 8, 9, 10, 11, 12',
+    'AlmaLinux 8, 9',
+    'Rocky Linux 8, 9',
+  ],
+  windows: [
+    'Windows Server 2008 R2',
+    'Windows Server 2012, 2016, 2019, 2022',
+  ],
+};
+
 export function VSIMigrationMethodsPage() {
   return (
     <div className="documentation-page">
@@ -220,7 +289,7 @@ export function VSIMigrationMethodsPage() {
         <Column lg={16} md={8} sm={4}>
           <h1 className="documentation-page__title">VPC VSI Migration Methods</h1>
           <p className="documentation-page__subtitle">
-            Four approaches to migrating VMware VMs to IBM Cloud VPC Virtual Server Instances
+            Six approaches to migrating VMware VMs to IBM Cloud VPC Virtual Server Instances
           </p>
         </Column>
 
@@ -229,19 +298,33 @@ export function VSIMigrationMethodsPage() {
             <h2>Overview</h2>
             <p>
               Migrating virtual machines from VMware to IBM Cloud VPC requires careful planning
-              and the right approach based on your environment. This guide covers four primary
-              migration methods, from simple image-based imports to advanced VDDK-based extraction.
+              and the right approach based on your environment. This guide covers six migration
+              methods, with <strong>RackWare RMM recommended</strong> for most enterprise migrations
+              due to its automation, wave-based orchestration, and support for IP address retention.
             </p>
             <p style={{ marginTop: '1rem' }}>
-              <strong>Source:</strong> Based on{' '}
-              <a
-                href="https://fullvalence.com/2025/11/10/from-vmware-to-ibm-cloud-vpc-vsi-part-3-migrating-virtual-machines/"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                From VMware to IBM Cloud VPC VSI - Part 3: Migrating Virtual Machines
-              </a>
+              <strong>Sources:</strong>
             </p>
+            <UnorderedList>
+              <ListItem>
+                <a
+                  href="https://fullvalence.com/2025/11/10/from-vmware-to-ibm-cloud-vpc-vsi-part-3-migrating-virtual-machines/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  From VMware to IBM Cloud VPC VSI - Part 3: Migrating Virtual Machines
+                </a>
+              </ListItem>
+              <ListItem>
+                <a
+                  href="https://cloud.ibm.com/docs/cloud-infrastructure?topic=cloud-infrastructure-migrating-on-prem-cloud-vpc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  IBM Cloud: Migrating to VPC with RackWare RMM
+                </a>
+              </ListItem>
+            </UnorderedList>
           </Tile>
         </Column>
 
@@ -319,6 +402,124 @@ export function VSIMigrationMethodsPage() {
                 </div>
               </AccordionItem>
             ))}
+
+            <AccordionItem title="RackWare RMM Deep Dive">
+              <div className="documentation-page__section">
+                <Tile className="documentation-page__metric-card">
+                  <h4>How RackWare RMM Works</h4>
+                  <p>
+                    RackWare RMM orchestrates migrations using a combination of <strong>Direct Sync</strong> and{' '}
+                    <strong>Passthrough</strong> modes. Data transfers directly from source to target without being
+                    stored on the RMM server, while RMM acts as a network relay for isolated networks.
+                  </p>
+                  <CodeSnippet type="multi" feedback="Copied!" hideCopyButton>
+{`IBM Cloud VMware-Automated    Bridge Server              IBM Cloud VPC
++----------------+            +----------------+         +----------------+
+|                |            | ens192:        |         |                |
+|   Source VM    |            | 192.168.10.254 |         |   RMM Server   |
+| 192.168.10.11  |----------->|                |<--------|  10.68.70.11   |
+|                |            |    ens224:     |         |                |
++----------------+            | 10.134.54.62   |         +----------------+
+                              |                |                 |
+                              +----------------+                 |
+                                                                 v
+                                                         +----------------+
+                                                         |   Target VSI   |
+                                                         | 192.168.10.11  |
+                                                         +----------------+`}
+                  </CodeSnippet>
+                </Tile>
+
+                <Grid>
+                  <Column lg={8} md={4} sm={4}>
+                    <Tile className="documentation-page__metric-card">
+                      <h4>Key RMM Operations</h4>
+                      <UnorderedList>
+                        <ListItem><strong>Discover:</strong> SSH to source, gather OS/disk/network metadata</ListItem>
+                        <ListItem><strong>AutoProvision:</strong> Create target VSI using discovered specs</ListItem>
+                        <ListItem><strong>Direct Sync:</strong> Transfer data source → target (via RMM if passthrough)</ListItem>
+                        <ListItem><strong>Delta Sync:</strong> Transfer only changed files for minimal downtime</ListItem>
+                        <ListItem><strong>Microkernel Boot:</strong> RMM boots target into microkernel for disk prep</ListItem>
+                      </UnorderedList>
+                    </Tile>
+                  </Column>
+                  <Column lg={8} md={4} sm={4}>
+                    <Tile className="documentation-page__metric-card">
+                      <h4>Bridge Server (for NSX Overlay)</h4>
+                      <p>When source VMs are on isolated NSX overlay segments:</p>
+                      <UnorderedList>
+                        <ListItem>Bridge uses iptables NAT to translate addresses</ListItem>
+                        <ListItem>RMM connects to NAT IP, bridge DNATs to real VM IP</ListItem>
+                        <ListItem>Enables migration without modifying NSX configuration</ListItem>
+                        <ListItem>IBM Cloud portable subnet routes to bridge server</ListItem>
+                      </UnorderedList>
+                    </Tile>
+                  </Column>
+                </Grid>
+
+                <Tile className="documentation-page__metric-card">
+                  <h4>IP Address Retention</h4>
+                  <p>
+                    RackWare RMM supports retaining IP addresses on migrated workloads. However, VPC subnets have
+                    reserved addresses that cannot be used:
+                  </p>
+                  <div style={{ marginTop: '0.5rem', fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                    <UnorderedList>
+                      <ListItem><code>.0</code> - Network address</ListItem>
+                      <ListItem><code>.1</code> - Default gateway</ListItem>
+                      <ListItem><code>.2</code> - DNS address</ListItem>
+                      <ListItem><code>.3</code> - Reserved</ListItem>
+                      <ListItem><code>.255</code> - Broadcast address</ListItem>
+                    </UnorderedList>
+                  </div>
+                  <p style={{ marginTop: '0.5rem' }}>
+                    VMs using these addresses will need to be re-IPed during migration.
+                  </p>
+                </Tile>
+
+                <Grid>
+                  <Column lg={8} md={4} sm={4}>
+                    <Tile className="documentation-page__metric-card">
+                      <h4>Supported Linux</h4>
+                      <UnorderedList>
+                        {rackwareSupportedOS.linux.map((os, idx) => (
+                          <ListItem key={idx}>{os}</ListItem>
+                        ))}
+                      </UnorderedList>
+                    </Tile>
+                  </Column>
+                  <Column lg={8} md={4} sm={4}>
+                    <Tile className="documentation-page__metric-card">
+                      <h4>Supported Windows</h4>
+                      <UnorderedList>
+                        {rackwareSupportedOS.windows.map((os, idx) => (
+                          <ListItem key={idx}>{os}</ListItem>
+                        ))}
+                      </UnorderedList>
+                      <p style={{ marginTop: '1rem', fontSize: '0.85rem' }}>
+                        <strong>Note:</strong> Windows requires RackWare SSHD utility (MSI installer) available from
+                        the RMM server at <code>/windows/RWSSHDService_x64.msi</code>
+                      </p>
+                    </Tile>
+                  </Column>
+                </Grid>
+
+                <Tile className="documentation-page__metric-card">
+                  <h4>SSH Key Authentication Flow</h4>
+                  <ol style={{ paddingLeft: '1.5rem' }}>
+                    <li style={{ marginBottom: '0.5rem' }}>
+                      <strong>RMM → Source VM:</strong> Uses RMM SSH key, authenticates as <code>rackware</code> user (Linux) or via SSHD (Windows)
+                    </li>
+                    <li style={{ marginBottom: '0.5rem' }}>
+                      <strong>RMM → Target VSI:</strong> Uses RMM SSH key, authenticates as <code>root</code> user
+                    </li>
+                    <li style={{ marginBottom: '0.5rem' }}>
+                      <strong>Target → Source (via tunnel):</strong> RMM creates reverse SSH tunnel; target pulls data through RMM
+                    </li>
+                  </ol>
+                </Tile>
+              </div>
+            </AccordionItem>
 
             <AccordionItem title="VM Preparation: Linux">
               <div className="documentation-page__section">
@@ -432,9 +633,25 @@ export function VSIMigrationMethodsPage() {
                 </tr>
               </thead>
               <tbody>
+                <tr style={{ borderBottom: '1px solid #e0e0e0', backgroundColor: '#d0e2ff' }}>
+                  <td style={{ padding: '0.75rem' }}>Enterprise migration, automation needed</td>
+                  <td style={{ padding: '0.75rem' }}><Tag type="green">RackWare RMM</Tag> <Tag type="cyan" size="sm">Recommended</Tag></td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e0e0e0', backgroundColor: '#d0e2ff' }}>
+                  <td style={{ padding: '0.75rem' }}>Need to retain IP addresses</td>
+                  <td style={{ padding: '0.75rem' }}><Tag type="green">RackWare RMM</Tag></td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e0e0e0', backgroundColor: '#d0e2ff' }}>
+                  <td style={{ padding: '0.75rem' }}>VMs on isolated NSX overlay segments</td>
+                  <td style={{ padding: '0.75rem' }}><Tag type="green">RackWare RMM</Tag> (with bridge server)</td>
+                </tr>
+                <tr style={{ borderBottom: '1px solid #e0e0e0', backgroundColor: '#d0e2ff' }}>
+                  <td style={{ padding: '0.75rem' }}>Minimal downtime required (delta sync)</td>
+                  <td style={{ padding: '0.75rem' }}><Tag type="green">RackWare RMM</Tag></td>
+                </tr>
                 <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
                   <td style={{ padding: '0.75rem' }}>Single-disk VM, need reusable image</td>
-                  <td style={{ padding: '0.75rem' }}><Tag type="green">Image-Based Import</Tag></td>
+                  <td style={{ padding: '0.75rem' }}><Tag type="teal">Image-Based Import</Tag></td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
                   <td style={{ padding: '0.75rem' }}>Multi-disk VM, complex configuration</td>
@@ -445,11 +662,11 @@ export function VSIMigrationMethodsPage() {
                   <td style={{ padding: '0.75rem' }}><Tag type="blue">ISO-Based Network Transfer</Tag></td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
-                  <td style={{ padding: '0.75rem' }}>vCenter access, automation needed</td>
+                  <td style={{ padding: '0.75rem' }}>vCenter access, DIY automation</td>
                   <td style={{ padding: '0.75rem' }}><Tag type="purple">Direct VDDK Extraction</Tag></td>
                 </tr>
                 <tr>
-                  <td style={{ padding: '0.75rem' }}>Windows VMs with driver injection</td>
+                  <td style={{ padding: '0.75rem' }}>Windows VMs (manual approach)</td>
                   <td style={{ padding: '0.75rem' }}><Tag type="purple">Direct VDDK Extraction</Tag> or <Tag type="blue">Direct Volume Copy</Tag></td>
                 </tr>
               </tbody>

@@ -171,4 +171,135 @@
     flex: 1;
     min-width: 200px;
   }
+
+  // Profile Comparison Section
+  &__profile-comparison {
+    padding: $spacing-05;
+  }
+
+  &__profile-comparison-title {
+    @include type-style('heading-compact-02');
+    margin: 0 0 $spacing-02 0;
+  }
+
+  &__profile-comparison-subtitle {
+    @include type-style('helper-text-01');
+    color: var(--cds-text-secondary, $gray-60);
+    margin-bottom: $spacing-05;
+  }
+
+  &__profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: $spacing-05;
+  }
+
+  &__profile-card {
+    background-color: var(--cds-layer-02, $gray-10);
+    border: 2px solid var(--cds-border-subtle-01, $gray-30);
+    border-radius: 4px;
+    padding: $spacing-04;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-03;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      border-color: var(--cds-border-interactive, $blue-60);
+    }
+
+    &--selected {
+      border-color: var(--cds-link-primary, $blue-60);
+      background-color: rgba($blue-60, 0.05);
+    }
+
+    &--best-value {
+      border-color: var(--cds-support-success, $green-60);
+
+      &:not(.cost-estimation__profile-card--selected) {
+        background-color: rgba($green-60, 0.05);
+      }
+    }
+  }
+
+  &__profile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: $spacing-03;
+  }
+
+  &__profile-name {
+    @include type-style('heading-compact-01');
+    color: var(--cds-text-primary);
+    word-break: break-word;
+  }
+
+  &__profile-tags {
+    display: flex;
+    gap: $spacing-02;
+    flex-shrink: 0;
+  }
+
+  &__profile-specs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-03;
+    @include type-style('body-compact-01');
+    color: var(--cds-text-secondary, $gray-70);
+
+    span {
+      &::after {
+        content: '•';
+        margin-left: $spacing-03;
+        color: var(--cds-text-helper, $gray-40);
+      }
+
+      &:last-child::after {
+        content: '';
+      }
+    }
+  }
+
+  &__profile-family {
+    margin-top: auto;
+  }
+
+  &__profile-costs {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-02;
+    padding-top: $spacing-03;
+    border-top: 1px solid var(--cds-border-subtle-01, $gray-30);
+  }
+
+  &__profile-cost-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__profile-cost-label {
+    @include type-style('label-01');
+    color: var(--cds-text-secondary, $gray-60);
+  }
+
+  &__profile-cost-value {
+    @include type-style('heading-compact-01');
+    color: var(--cds-text-primary);
+
+    &--annual {
+      @include type-style('heading-compact-02');
+    }
+  }
+
+  &__profile-savings {
+    @include type-style('label-01');
+    color: var(--cds-support-success, $green-60);
+    background-color: rgba($green-60, 0.1);
+    padding: $spacing-02 $spacing-03;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: 600;
+  }
 }

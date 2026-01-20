@@ -115,19 +115,24 @@
     padding: spacing.$spacing-04;
     border-radius: 4px;
     margin: spacing.$spacing-04 0;
+    color: var(--cds-text-primary, #161616);
+
+    strong {
+      color: var(--cds-text-primary, #161616);
+    }
 
     &--info {
-      background-color: var(--cds-highlight, #d0e2ff);
+      background-color: var(--cds-layer-02, #e0e0e0);
       border-left: 4px solid var(--cds-support-info, #0043ce);
     }
 
     &--warning {
-      background-color: #fff8e1;
+      background-color: var(--cds-layer-02, #e0e0e0);
       border-left: 4px solid var(--cds-support-warning, #f1c21b);
     }
 
     &--success {
-      background-color: #defbe6;
+      background-color: var(--cds-layer-02, #e0e0e0);
       border-left: 4px solid var(--cds-support-success, #24a148);
     }
   }

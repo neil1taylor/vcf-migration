@@ -80,6 +80,7 @@ export interface TransformedProfile {
   nvmeDisks?: number;
   nvmeSizeGiB?: number;
   totalNvmeGiB?: number;
+  roksSupported?: boolean;  // Whether this profile is available for ROKS/Kubernetes worker nodes
 }
 
 // ===== CONSTANTS =====

@@ -15,7 +15,7 @@
   justify-content: center;
   align-items: center;
   height: 200px;
-  color: #a8a8a8;
+  color: var(--cds-text-secondary, #a8a8a8);
   font-size: 14px;
 }
 
@@ -69,6 +69,6 @@
 
   &__label {
     @include type-style('label-01');
-    color: #525252;
+    color: var(--cds-text-secondary, #525252);
   }
 }

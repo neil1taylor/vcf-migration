@@ -544,34 +544,38 @@ export function DocumentationPage() {
             <AccordionItem title="ODF Storage Sizing">
               <div className="documentation-page__section">
                 <Tile className="documentation-page__metric-card">
-                  <h4>RVTools Storage Metrics</h4>
-                  <p>For ODF capacity sizing, use the correct RVTools metric:</p>
+                  <h4>Storage Calculation Methods</h4>
+                  <p>The ROKS Sizing Calculator offers three storage calculation methods. Choose based on your migration strategy:</p>
                   <table style={{ width: '100%', marginTop: '0.5rem', borderCollapse: 'collapse' }}>
                     <thead>
                       <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
-                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>RVTools Field</th>
-                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Use It?</th>
-                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Why</th>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Method</th>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>RVTools Source</th>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>When to Use</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
-                        <td style={{ padding: '0.5rem' }}><strong>In Use MiB</strong></td>
-                        <td style={{ padding: '0.5rem' }}><Tag type="green">YES</Tag></td>
-                        <td style={{ padding: '0.5rem' }}>Actual data written inside VMDKs</td>
+                        <td style={{ padding: '0.5rem' }}><strong>Disk Capacity</strong></td>
+                        <td style={{ padding: '0.5rem' }}>vDisk sheet &rarr; Capacity MiB</td>
+                        <td style={{ padding: '0.5rem' }}>Full disk size. Use when VMs may grow to use their full allocated capacity.</td>
                       </tr>
                       <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
-                        <td style={{ padding: '0.5rem' }}>Provisioned MiB</td>
-                        <td style={{ padding: '0.5rem' }}><Tag type="red">No</Tag></td>
-                        <td style={{ padding: '0.5rem' }}>Thin disks inflate this 2-5×</td>
+                        <td style={{ padding: '0.5rem' }}><strong>In Use</strong> <Tag type="green" size="sm">Recommended</Tag></td>
+                        <td style={{ padding: '0.5rem' }}>vInfo sheet &rarr; In Use MiB</td>
+                        <td style={{ padding: '0.5rem' }}>Actual consumed storage including snapshots. Best for accurate sizing based on current usage.</td>
                       </tr>
                       <tr>
-                        <td style={{ padding: '0.5rem' }}>Datastore Consumed</td>
-                        <td style={{ padding: '0.5rem' }}><Tag type="red">No</Tag></td>
-                        <td style={{ padding: '0.5rem' }}>Includes snapshots, swap, temp files</td>
+                        <td style={{ padding: '0.5rem' }}><strong>Provisioned</strong></td>
+                        <td style={{ padding: '0.5rem' }}>vInfo sheet &rarr; Provisioned MiB</td>
+                        <td style={{ padding: '0.5rem' }}>Allocated capacity including thin-provisioned promises. Most conservative - use when you must guarantee space for all promised capacity.</td>
                       </tr>
                     </tbody>
                   </table>
+                  <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#525252' }}>
+                    <strong>Note:</strong> Provisioned storage can be 2-5× larger than In Use for thin-provisioned environments.
+                    Disk Capacity reflects the actual VMDK sizes without snapshot overhead.
+                  </p>
                 </Tile>
 
                 <Tile className="documentation-page__metric-card">

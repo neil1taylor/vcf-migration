@@ -211,7 +211,7 @@ describe('Cost Estimation Service', () => {
   describe('calculateROKSCost', () => {
     const basicROKSInput: ROKSSizingInput = {
       computeNodes: 3,
-      computeProfile: 'bx2d.metal.96x384', // Note: dots, not dashes
+      computeProfile: 'bx2d-metal-96x384', // Hyphenated format
       storageNodes: 3,
       storageProfile: 'bx2-16x64',
       storageTiB: 20,

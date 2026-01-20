@@ -23,10 +23,11 @@ const mockVsiProfiles: VSIProfilesByFamily = {
 
 const mockBareMetalProfiles: BareMetalProfilesByFamily = {
   balanced: [
-    { name: 'bx2d-metal-96x384', vcpus: 96, memoryGiB: 384, family: 'balanced' },
+    { name: 'bx2d-metal-96x384', vcpus: 96, memoryGiB: 384, family: 'balanced', roksSupported: true },
   ],
   compute: [],
   memory: [],
+  veryHighMemory: [],
 };
 
 const mockStaticProfiles: IBMCloudProfiles = {
