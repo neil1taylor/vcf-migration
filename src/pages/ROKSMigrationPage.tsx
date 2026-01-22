@@ -426,7 +426,7 @@ export function ROKSMigrationPage() {
 
               {/* OS Compatibility Panel - Using shared component */}
               <TabPanel>
-                <OSCompatibilityPanel mode="roks" osStatusCounts={osStatusCounts} />
+                <OSCompatibilityPanel mode="roks" osStatusCounts={osStatusCounts} vms={poweredOnVMs} />
               </TabPanel>
 
               {/* Complexity Panel - Using shared component */}

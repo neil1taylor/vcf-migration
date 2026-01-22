@@ -1,7 +1,7 @@
 // Vertical bar chart component
 import { Bar } from 'react-chartjs-2';
 import { ChartWrapper } from './ChartWrapper';
-import { defaultBarOptions, getBarColors } from '@/utils/chartConfig';
+import { defaultBarOptions, getBarColors, getChartColors } from '@/utils/chartConfig';
 import type { ChartOptions } from 'chart.js';
 
 interface DataPoint {
@@ -49,6 +49,8 @@ export function VerticalBarChart({
     ],
   };
 
+  const chartColors = getChartColors();
+
   const options: ChartOptions<'bar'> = {
     ...defaultBarOptions,
     indexAxis: 'x', // Vertical bars
@@ -67,6 +69,7 @@ export function VerticalBarChart({
       },
       tooltip: {
         ...defaultBarOptions.plugins?.tooltip,
+        backgroundColor: chartColors.tooltipBg,
         callbacks: formatValue
           ? {
               label: (context) => {
@@ -83,15 +86,15 @@ export function VerticalBarChart({
           display: false,
         },
         ticks: {
-          color: '#525252',
+          color: chartColors.text,
         },
       },
       y: {
         grid: {
-          color: '#e0e0e0',
+          color: chartColors.grid,
         },
         ticks: {
-          color: '#525252',
+          color: chartColors.text,
         },
       },
     },

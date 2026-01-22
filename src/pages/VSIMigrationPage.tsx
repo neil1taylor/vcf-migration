@@ -21,7 +21,7 @@ const CustomProfileEditor = lazy(() =>
 );
 import type { VSISizingInput } from '@/services/costEstimation';
 import type { VMDetail } from '@/services/export';
-import { mapVMToVSIProfile, getVSIProfiles } from '@/services/migration';
+import { mapVMToVSIProfile, getVSIProfiles, classifyVMForBurstable, findBurstableProfile, isBurstableProfile } from '@/services/migration';
 import './MigrationPage.scss';
 
 export function VSIMigrationPage() {
@@ -110,7 +110,20 @@ export function VSIMigrationPage() {
   const vsiProfiles = getVSIProfiles();
 
   const vmProfileMappings = useMemo(() => poweredOnVMs.map(vm => {
-    const autoProfile = mapVMToVSIProfile(vm.cpus, mibToGiB(vm.memory));
+    const memoryGiB = mibToGiB(vm.memory);
+
+    // Classify VM for burstable eligibility
+    const classification = classifyVMForBurstable(vm.vmName, vm.guestOS, vm.nics);
+
+    // Get both standard and burstable profiles
+    const standardProfile = mapVMToVSIProfile(vm.cpus, memoryGiB);
+    const burstableProfile = findBurstableProfile(vm.cpus, memoryGiB);
+
+    // Default auto profile based on classification
+    const autoProfile = classification.recommendation === 'burstable' && burstableProfile
+      ? burstableProfile
+      : standardProfile;
+
     const effectiveProfileName = getEffectiveProfile(vm.vmName, autoProfile.name);
     const isOverridden = hasOverride(vm.vmName);
 
@@ -128,19 +141,23 @@ export function VSIMigrationPage() {
         };
       } else {
         const allProfiles = [...vsiProfiles.balanced, ...vsiProfiles.compute, ...vsiProfiles.memory];
-        const standardProfile = allProfiles.find(p => p.name === effectiveProfileName);
-        if (standardProfile) effectiveProfile = standardProfile;
+        const matchedProfile = allProfiles.find(p => p.name === effectiveProfileName);
+        if (matchedProfile) effectiveProfile = matchedProfile;
       }
     }
 
     return {
       vmName: vm.vmName,
       vcpus: vm.cpus,
-      memoryGiB: Math.round(mibToGiB(vm.memory)),
+      memoryGiB: Math.round(memoryGiB),
+      nics: vm.nics,
+      guestOS: vm.guestOS,
       autoProfile,
+      burstableProfile,
       profile: effectiveProfile,
       effectiveProfileName,
       isOverridden,
+      classification,
     };
   }), [poweredOnVMs, customProfiles, getEffectiveProfile, hasOverride, vsiProfiles]);
 
@@ -212,6 +229,37 @@ export function VSIMigrationPage() {
     { accessorKey: 'vmName', header: 'VM Name', enableSorting: true },
     { accessorKey: 'vcpus', header: 'Source vCPUs', enableSorting: true },
     { accessorKey: 'memoryGiB', header: 'Source Memory (GiB)', enableSorting: true },
+    { accessorKey: 'nics', header: 'NICs', enableSorting: true },
+    {
+      id: 'recommendation',
+      header: 'Recommendation',
+      enableSorting: true,
+      accessorFn: (row) => row.classification.recommendation,
+      cell: ({ row }) => {
+        const { recommendation, reasons } = row.original.classification;
+        const isBurstable = recommendation === 'burstable';
+        const currentIsBurstable = isBurstableProfile(row.original.profile.name);
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+            <Tag
+              type={isBurstable ? 'cyan' : 'purple'}
+              size="sm"
+              title={row.original.classification.note}
+            >
+              {isBurstable ? 'Burstable' : 'Standard'}
+            </Tag>
+            {!isBurstable && reasons.length > 0 && (
+              <Tag type="gray" size="sm" title={reasons.join(', ')}>
+                {reasons[0]}
+              </Tag>
+            )}
+            {currentIsBurstable !== isBurstable && row.original.isOverridden && (
+              <Tag type="teal" size="sm">Override</Tag>
+            )}
+          </span>
+        );
+      },
+    },
     {
       id: 'profile', header: 'Target Profile', enableSorting: true,
       accessorFn: (row) => row.profile.name,
@@ -490,6 +538,10 @@ export function VSIMigrationPage() {
                           <span className="migration-page__recommendation-key">Memory (mx2)</span>
                           <span className="migration-page__recommendation-value">1:8 vCPU:Memory ratio - Memory-intensive workloads</span>
                         </div>
+                        <div className="migration-page__recommendation-item">
+                          <span className="migration-page__recommendation-key">Burstable (bxf, cxf, mxf)</span>
+                          <span className="migration-page__recommendation-value">Flex profiles with burstable CPU - Cost-effective for variable workloads that don't require sustained high CPU performance. Not recommended for enterprise apps, network appliances, or VMs with multiple NICs.</span>
+                        </div>
                       </div>
                     </Tile>
                   </Column>
@@ -537,7 +589,7 @@ export function VSIMigrationPage() {
 
               {/* OS Compatibility Panel - Using shared component */}
               <TabPanel>
-                <OSCompatibilityPanel mode="vsi" osStatusCounts={osStatusCounts} />
+                <OSCompatibilityPanel mode="vsi" osStatusCounts={osStatusCounts} vms={poweredOnVMs} />
               </TabPanel>
 
               {/* Complexity Panel - Using shared component */}

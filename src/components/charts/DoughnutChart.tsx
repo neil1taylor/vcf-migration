@@ -6,7 +6,7 @@ import {
   ArcElement,
 } from 'chart.js';
 import { ChartWrapper } from './ChartWrapper';
-import { defaultDoughnutOptions, getPieColors } from '@/utils/chartConfig';
+import { defaultDoughnutOptions, getPieColors, getChartColors } from '@/utils/chartConfig';
 import type { ChartOptions } from 'chart.js';
 
 // Register doughnut controller
@@ -57,6 +57,8 @@ export function DoughnutChart({
     ],
   };
 
+  const chartColors = getChartColors();
+
   const options: ChartOptions<'doughnut'> = {
     ...defaultDoughnutOptions,
     onClick: onSegmentClick
@@ -73,7 +75,7 @@ export function DoughnutChart({
         display: showLegend,
         position: legendPosition,
         labels: {
-          color: '#525252',
+          color: chartColors.text,
           padding: 12,
           usePointStyle: true,
           pointStyle: 'rect',
@@ -81,6 +83,7 @@ export function DoughnutChart({
       },
       tooltip: {
         ...defaultDoughnutOptions.plugins?.tooltip,
+        backgroundColor: chartColors.tooltipBg,
         callbacks: formatValue
           ? {
               label: (context) => {

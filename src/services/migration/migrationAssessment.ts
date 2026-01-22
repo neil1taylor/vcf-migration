@@ -48,9 +48,9 @@ export function calculateVSIComplexityScore(
   if (compat.status === 'unsupported') {
     score += 40;
     factors.push('Unsupported OS (+40)');
-  } else if (compat.status === 'community') {
+  } else if (compat.status === 'byol') {
     score += 15;
-    factors.push('Community OS (+15)');
+    factors.push('BYOL custom image (+15)');
   }
 
   // Network complexity

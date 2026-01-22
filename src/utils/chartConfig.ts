@@ -87,7 +87,20 @@ export const POWER_STATE_CHART_COLORS = {
   suspended: CARBON_COLORS.yellow30,
 };
 
-// Default chart options
+// Theme-aware colors for charts
+// These adapt to light/dark mode based on the data-theme attribute
+export function getChartColors() {
+  const isDark = document.body.getAttribute('data-theme') === 'dark';
+  return {
+    text: isDark ? '#c6c6c6' : '#525252',
+    textSecondary: isDark ? '#a8a8a8' : '#6f6f6f',
+    grid: isDark ? '#525252' : '#e0e0e0',
+    tooltipBg: isDark ? '#262626' : '#161616',
+    tooltipText: '#f4f4f4',
+  };
+}
+
+// Default chart options - use getChartColors() at runtime for theme-aware colors
 export const defaultBarOptions: ChartOptions<'bar'> = {
   responsive: true,
   maintainAspectRatio: false,

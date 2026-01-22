@@ -3,13 +3,15 @@ import { useContext } from 'react';
 import { DataContext } from '@/context/DataContext';
 
 /**
- * Detects NSX-T edge appliances that should be excluded from migration.
- * These are infrastructure VMs (T0/T1 gateways) that won't migrate to IBM Cloud.
+ * Detects VMware/VCF infrastructure VMs that should be excluded from migration.
+ * These are infrastructure components that won't migrate to IBM Cloud.
  */
-function isNSXEdgeAppliance(vmName: string): boolean {
+function isVMwareInfrastructureVM(vmName: string, guestOS?: string): boolean {
   const name = vmName.toLowerCase();
-  // Common NSX-T edge naming patterns
-  return (
+  const os = guestOS?.toLowerCase() ?? '';
+
+  // NSX-T edge appliances (T0/T1 gateways)
+  if (
     name.includes('cust-edge') ||
     name.includes('service-edge') ||
     name.includes('nsx-edge') ||
@@ -17,7 +19,32 @@ function isNSXEdgeAppliance(vmName: string): boolean {
     // Match patterns like "edge-01", "edge01", "t0-edge", "t1-edge"
     /\bedge[-_]?\d/.test(name) ||
     /t[01][-_]?edge/.test(name)
-  );
+  ) {
+    return true;
+  }
+
+  // NSX-T controller/manager VMs
+  if (name.includes('nsxt-ctrlmgr') || name.includes('nsx-manager') || name.includes('nsx-controller')) {
+    return true;
+  }
+
+  // VMware usage meter (license tracking)
+  if (name.includes('usage-meter') || name.includes('usagemeter')) {
+    return true;
+  }
+
+  // vCenter Server Appliance (VCSA)
+  // - Names containing vcenter or vcsa
+  // - Names ending in -vc with Photon OS (reported as "Other 3.x or later Linux")
+  if (
+    name.includes('vcenter') ||
+    name.includes('vcsa') ||
+    (name.endsWith('-vc') && os.includes('other') && os.includes('linux'))
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 export function useData() {
@@ -36,17 +63,17 @@ export function useHasData() {
   return rawData !== null;
 }
 
-// Hook to get VM count (excludes NSX edge appliances)
+// Hook to get VM count (excludes VMware infrastructure VMs)
 export function useVMCount() {
   const { rawData } = useData();
-  return rawData?.vInfo.filter(vm => !isNSXEdgeAppliance(vm.vmName)).length ?? 0;
+  return rawData?.vInfo.filter(vm => !isVMwareInfrastructureVM(vm.vmName, vm.guestOS)).length ?? 0;
 }
 
-// Hook to get powered on VMs (excludes NSX edge appliances)
+// Hook to get powered on VMs (excludes VMware infrastructure VMs)
 export function usePoweredOnVMs() {
   const { rawData } = useData();
   return rawData?.vInfo.filter(vm =>
-    vm.powerState === 'poweredOn' && !isNSXEdgeAppliance(vm.vmName)
+    vm.powerState === 'poweredOn' && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS)
   ) ?? [];
 }
 
@@ -56,14 +83,17 @@ export function useTemplates() {
   return rawData?.vInfo.filter(vm => vm.template) ?? [];
 }
 
-// Hook to get non-template VMs (excludes NSX edge appliances)
+// Hook to get non-template VMs (excludes VMware infrastructure VMs)
 export function useVMs() {
   const { rawData } = useData();
-  return rawData?.vInfo.filter(vm => !vm.template && !isNSXEdgeAppliance(vm.vmName)) ?? [];
+  return rawData?.vInfo.filter(vm => !vm.template && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS)) ?? [];
 }
 
-// Hook to get NSX edge appliances (for reporting purposes)
-export function useNSXEdgeAppliances() {
+// Hook to get VMware infrastructure VMs excluded from migration (for reporting purposes)
+export function useVMwareInfrastructureVMs() {
   const { rawData } = useData();
-  return rawData?.vInfo.filter(vm => !vm.template && isNSXEdgeAppliance(vm.vmName)) ?? [];
+  return rawData?.vInfo.filter(vm => !vm.template && isVMwareInfrastructureVM(vm.vmName, vm.guestOS)) ?? [];
 }
+
+// Legacy alias for backwards compatibility
+export const useNSXEdgeAppliances = useVMwareInfrastructureVMs;

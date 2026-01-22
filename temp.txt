@@ -71,10 +71,3 @@ Storage utilization = 386,776 / 278,880 = 139%
 Usable ODF capacity per node ≈ 5.3 TiB (5,827 GB)
 Required storage = 761 × 508.25 = 386,776 GB
 Storage utilization = 386,776 / 262,215 = 148%
-
-
-
-Utilization
-CPU: 4,262 / 8,640 = 49.33% utilized
-Memory: 16,101 / 17,280 = 93.18% utilized
-Storage: 386,776 / 398,400 = 97.08% utilized

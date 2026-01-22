@@ -1,26 +1,18 @@
 // OS compatibility services for VSI and ROKS migrations
 
-import osCompatibilityData from '@/data/redhatOSCompatibility.json';
+import roksOSCompatibilityData from '@/data/redhatOSCompatibility.json';
+import ibmCloudOSCompatibilityData from '@/data/ibmCloudOSCompatibility.json';
 
 export type MigrationMode = 'vsi' | 'roks';
 
-// IBM Cloud VPC supported guest OS mapping
-const ibmCloudOSSupport: Record<string, { status: 'supported' | 'community' | 'unsupported'; notes: string }> = {
-  'rhel': { status: 'supported', notes: 'RHEL 7.x, 8.x, 9.x supported' },
-  'centos': { status: 'community', notes: 'CentOS 7.x, 8.x - community supported' },
-  'ubuntu': { status: 'supported', notes: 'Ubuntu 18.04, 20.04, 22.04 supported' },
-  'debian': { status: 'community', notes: 'Debian 10, 11 - community supported' },
-  'windows 2016': { status: 'supported', notes: 'Windows Server 2016 supported' },
-  'windows 2019': { status: 'supported', notes: 'Windows Server 2019 supported' },
-  'windows 2022': { status: 'supported', notes: 'Windows Server 2022 supported' },
-  'sles': { status: 'supported', notes: 'SUSE Linux Enterprise Server supported' },
-  'rocky': { status: 'community', notes: 'Rocky Linux - community supported' },
-  'alma': { status: 'community', notes: 'AlmaLinux - community supported' },
-};
-
 export interface VSIOSCompatibility {
-  status: 'supported' | 'community' | 'unsupported';
+  id: string;
+  displayName: string;
+  status: 'supported' | 'byol' | 'unsupported';
+  imageType: 'stock' | 'custom' | 'none';
   notes: string;
+  documentationLink?: string;
+  eolDate?: string;
 }
 
 export interface ROKSOSCompatibility {
@@ -40,12 +32,31 @@ export interface ROKSOSCompatibility {
  */
 export function getVSIOSCompatibility(guestOS: string): VSIOSCompatibility {
   const osLower = guestOS.toLowerCase();
-  for (const [pattern, support] of Object.entries(ibmCloudOSSupport)) {
-    if (osLower.includes(pattern)) {
-      return support;
+
+  for (const entry of ibmCloudOSCompatibilityData.osEntries) {
+    if (entry.patterns.some((p: string) => osLower.includes(p))) {
+      return {
+        id: entry.id,
+        displayName: entry.displayName,
+        status: entry.status as VSIOSCompatibility['status'],
+        imageType: entry.imageType as VSIOSCompatibility['imageType'],
+        notes: entry.notes,
+        documentationLink: entry.documentationLink,
+        eolDate: (entry as { eolDate?: string }).eolDate,
+      };
     }
   }
-  return { status: 'unsupported', notes: 'Not validated for IBM Cloud VPC' };
+
+  // Default entry for unknown OS
+  const defaultEntry = ibmCloudOSCompatibilityData.defaultEntry;
+  return {
+    id: defaultEntry.id,
+    displayName: defaultEntry.displayName,
+    status: defaultEntry.status as VSIOSCompatibility['status'],
+    imageType: defaultEntry.imageType as VSIOSCompatibility['imageType'],
+    notes: defaultEntry.notes,
+    documentationLink: defaultEntry.documentationLink,
+  };
 }
 
 /**
@@ -53,8 +64,8 @@ export function getVSIOSCompatibility(guestOS: string): VSIOSCompatibility {
  */
 export function getROKSOSCompatibility(guestOS: string): ROKSOSCompatibility {
   const osLower = guestOS.toLowerCase();
-  for (const entry of osCompatibilityData.osEntries) {
-    if (entry.patterns.some(p => osLower.includes(p))) {
+  for (const entry of roksOSCompatibilityData.osEntries) {
+    if (entry.patterns.some((p: string) => osLower.includes(p))) {
       return {
         id: entry.id,
         displayName: entry.displayName,
@@ -69,7 +80,7 @@ export function getROKSOSCompatibility(guestOS: string): ROKSOSCompatibility {
     }
   }
   // Default entry doesn't have patterns array
-  const defaultEntry = osCompatibilityData.defaultEntry;
+  const defaultEntry = roksOSCompatibilityData.defaultEntry;
   return {
     id: defaultEntry.id,
     displayName: defaultEntry.displayName,
@@ -107,7 +118,7 @@ export function getNormalizedOSStatus(guestOS: string, mode: MigrationMode): 'su
   if (mode === 'vsi') {
     const compat = getVSIOSCompatibility(guestOS);
     if (compat.status === 'supported') return 'supported';
-    if (compat.status === 'community') return 'partial';
+    if (compat.status === 'byol') return 'partial';
     return 'unsupported';
   }
 

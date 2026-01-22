@@ -223,7 +223,8 @@ function transformVPCProfiles(profiles: VPCInstanceProfile[], existingConfig: an
     grouped[family].push({
       name: profile.name,
       vcpus: profile.vcpu_count.value || profile.vcpu_count.min || 0,
-      memoryGiB: Math.round((profile.memory.value || profile.memory.min || 0) / 1024),
+      // VPC API returns memory in GiB, not MiB
+      memoryGiB: profile.memory.value || profile.memory.min || 0,
       bandwidthGbps: profile.bandwidth?.value || 0,
       hourlyRate: existing?.hourlyRate || 0,
       monthlyRate: existing?.monthlyRate || 0,

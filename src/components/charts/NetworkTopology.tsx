@@ -2,6 +2,7 @@
 import { useRef, useEffect } from 'react';
 import * as d3 from 'd3';
 import { ChartWrapper } from './ChartWrapper';
+import { getChartColors } from '@/utils/chartConfig';
 import './NetworkTopology.scss';
 
 export interface TopologyNode {
@@ -162,6 +163,9 @@ export function NetworkTopology({
       n.type !== 'vm' || (n.value !== undefined && n.value > 1)
     );
 
+    // Get theme-aware colors for labels
+    const chartColors = getChartColors();
+
     const labels = g.append('g')
       .attr('class', 'labels')
       .selectAll('text')
@@ -171,7 +175,7 @@ export function NetworkTopology({
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'middle')
       .attr('dy', d => nodeSizes[d.type] + 12)
-      .attr('fill', d => d.type === 'vm' ? '#0f62fe' : '#525252')
+      .attr('fill', d => d.type === 'vm' ? '#0f62fe' : chartColors.text)
       .style('font-size', d => d.type === 'vm' ? '9px' : '10px')
       .style('font-weight', d => d.type === 'vm' ? '500' : 'normal')
       .style('pointer-events', 'none')

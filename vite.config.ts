@@ -1,17 +1,56 @@
 /// <reference types="vitest/config" />
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import fs from 'fs'
+
+// Plugin to serve IBM Plex fonts from node_modules
+// Carbon styles reference fonts with ~@ibm/plex paths which Vite doesn't handle by default
+function ibmPlexFontsPlugin(): Plugin {
+  return {
+    name: 'ibm-plex-fonts',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        if (req.url?.startsWith('/~@ibm/plex')) {
+          const fontPath = req.url.replace('/~@ibm/plex', '/node_modules/@ibm/plex')
+          const absolutePath = path.join(process.cwd(), fontPath)
+
+          if (fs.existsSync(absolutePath)) {
+            const ext = path.extname(absolutePath).toLowerCase()
+            const mimeTypes: Record<string, string> = {
+              '.woff2': 'font/woff2',
+              '.woff': 'font/woff',
+              '.ttf': 'font/ttf',
+              '.eot': 'application/vnd.ms-fontobject',
+            }
+
+            res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream')
+            res.setHeader('Cache-Control', 'public, max-age=31536000')
+            fs.createReadStream(absolutePath).pipe(res)
+            return
+          }
+        }
+        next()
+      })
+    },
+  }
+}
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), ibmPlexFontsPlugin()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      // Resolve SCSS ~ prefix for node_modules (used by @carbon/styles for fonts)
+      '~@ibm/plex': path.resolve(__dirname, 'node_modules/@ibm/plex'),
     },
   },
   server: {
+    fs: {
+      // Allow serving files from node_modules for IBM Plex fonts
+      allow: ['..'],
+    },
     proxy: {
       // Proxy IBM Cloud Global Catalog API to avoid CORS issues
       '/api/globalcatalog': {

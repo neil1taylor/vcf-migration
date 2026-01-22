@@ -536,7 +536,8 @@ export IBM_CLOUD_API_KEY="your-api-key-from-step-1"
 ```
 
 The script will output a URL like:
-```
+
+```bash
 https://vcf-pricing-proxy.xxxx.us-south.codeengine.appdomain.cloud
 ```
 
@@ -546,6 +547,7 @@ Add the proxy URL to your `.env` file:
 
 ```bash
 VITE_PRICING_PROXY_URL=https://vcf-pricing-proxy.xxxx.us-south.codeengine.appdomain.cloud
+VITE_PROFILES_PROXY_URL=https://vcf-profiles-proxy.xxxx.us-south.codeengine.appdomain.cloud
 ```
 
 ### Step 4: Rebuild and Deploy
@@ -670,7 +672,8 @@ export IBM_CLOUD_API_KEY="your-api-key"
 ```
 
 The script will output a URL like:
-```
+
+```bash
 https://vcf-profiles-proxy.xxxx.us-south.codeengine.appdomain.cloud
 ```
 
@@ -724,17 +727,20 @@ IBM Cloud Internet Services (CIS) provides DNS management, CDN, SSL, and DDoS pr
 If you don't want to purchase a domain, you can still deploy with these options:
 
 **Code Engine (Recommended)** — Provides a free IBM-managed subdomain with valid SSL:
-```
+
+```bash
 https://vcf-migration.xxxx.us-south.codeengine.appdomain.cloud
 ```
 
 **VPC Floating IP** — Access via IP with self-signed certificate:
-```
+
+```bash
 https://169.48.x.x
 ```
 
 **Cloud Object Storage** — Long URL but functional:
-```
+
+```bash
 https://s3.us-south.cloud-object-storage.appdomain.cloud/your-bucket/index.html
 ```
 
@@ -768,7 +774,8 @@ ibmcloud cis domain-add vcf-migration-tool.com
 ```
 
 CIS will provide nameservers like:
-```
+
+```bash
 ns006.name.cloud.ibm.com
 ns017.name.cloud.ibm.com
 ```
@@ -1039,39 +1046,6 @@ ssh -i ~/.ssh/ibm_vcf_migration root@<floating-ip> "echo 'Connection OK'"
 # Verify disk space
 df -h /var/www/
 ```
-
----
-
-## Data Privacy
-
-This application is designed to keep your infrastructure data private and secure.
-
-### User Data Handling
-
-| Component | Data Processed | Data Stored | Data Transmitted |
-|-----------|----------------|-------------|------------------|
-| **Frontend (Browser)** | RVTools files, VM analysis | localStorage cache only | Never to external servers |
-| **Pricing Proxy** | None | Pricing cache (1hr) | IBM Cloud Catalog API only |
-| **Profiles Proxy** | None | Profiles cache (1hr) | IBM Cloud VPC/ROKS APIs only |
-
-### Key Privacy Principles
-
-1. **Client-Side Processing**: All RVTools file parsing and VM analysis occurs entirely in the user's browser. No infrastructure data is ever uploaded to any server.
-
-2. **No Data Collection**: The application does not collect, store, or transmit any user data or infrastructure information. There is no analytics, telemetry, or tracking.
-
-3. **Proxy Isolation**: The Code Engine proxies only fetch public IBM Cloud pricing and profile data. They never receive or process any user infrastructure data.
-
-4. **Local Storage**: Browser localStorage is used only for caching pricing/profile data and user preferences. Users can clear this data at any time.
-
-5. **Self-Contained**: When deployed, the application is fully self-contained within your IBM Cloud account with no external dependencies.
-
-### Communicating to Users
-
-Consider adding a privacy notice to your deployment:
-- Add a "Privacy" link in the app footer
-- Include privacy information in user documentation
-- Reference the client-side architecture in security reviews
 
 ---
 

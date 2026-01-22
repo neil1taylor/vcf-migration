@@ -48,7 +48,8 @@
       "Bash(npm run update-profiles:*)",
       "Bash(npm run update-pricing:*)",
       "Bash(npx tsc:*)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "Bash(npm run lint:*)"
     ]
   }
 }

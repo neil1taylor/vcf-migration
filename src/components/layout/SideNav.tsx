@@ -14,7 +14,7 @@ import {
   SoftwareResourceCluster,
   Chip,
   GroupResource,
-  Kubernetes,
+  LogoKubernetes,
   VirtualMachine,
   TaskComplete,
   Search,
@@ -134,7 +134,7 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
         </SideNavLink>
 
         <SideNavLink
-          renderIcon={Kubernetes}
+          renderIcon={LogoKubernetes}
           href="#"
           onClick={(e) => handleNavClick(e, ROUTES.roksMigration, true)}
           isActive={isActive(ROUTES.roksMigration)}

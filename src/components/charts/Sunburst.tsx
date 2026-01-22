@@ -2,6 +2,7 @@
 import { useRef, useEffect, useMemo } from 'react';
 import * as d3 from 'd3';
 import { ChartWrapper } from './ChartWrapper';
+import { getChartColors } from '@/utils/chartConfig';
 import './Sunburst.scss';
 
 export interface HierarchyNode {
@@ -162,11 +163,13 @@ export function Sunburst({
         }
       });
 
-    // Add center text
+    // Add center text with theme-aware colors
+    const chartColors = getChartColors();
+
     svg.append('text')
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'middle')
-      .attr('fill', '#525252')
+      .attr('fill', chartColors.text)
       .style('font-size', '14px')
       .style('font-weight', '600')
       .text(root.value?.toString() || '0');
@@ -175,7 +178,7 @@ export function Sunburst({
       .attr('text-anchor', 'middle')
       .attr('dominant-baseline', 'middle')
       .attr('y', 18)
-      .attr('fill', '#a8a8a8')
+      .attr('fill', chartColors.textSecondary)
       .style('font-size', '11px')
       .text('Total');
 

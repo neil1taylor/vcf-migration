@@ -31,6 +31,7 @@ import {
   getRegions,
   getDiscountOptions,
   formatCurrency,
+  formatCurrencyPrecise,
   getBareMetalProfiles,
 } from '@/services/costEstimation';
 import { downloadBOM, downloadVSIBOMExcel, downloadROKSBOMExcel } from '@/services/export';
@@ -159,7 +160,8 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
     category: item.category,
     description: item.description,
     quantity: `${item.quantity.toLocaleString()} ${item.unit}`,
-    unitCost: formatCurrency(item.unitCost),
+    // Use precise formatting for small unit costs (e.g., per-GB storage costs)
+    unitCost: item.unitCost < 1 ? formatCurrencyPrecise(item.unitCost) : formatCurrency(item.unitCost),
     monthlyCost: formatCurrency(item.monthlyCost),
     annualCost: formatCurrency(item.annualCost),
     notes: item.notes,

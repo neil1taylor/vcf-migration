@@ -2,6 +2,7 @@
 import { useRef, useEffect, useMemo } from 'react';
 import * as d3 from 'd3';
 import { ChartWrapper } from './ChartWrapper';
+import { getChartColors } from '@/utils/chartConfig';
 import './Heatmap.scss';
 
 export interface HeatmapCell {
@@ -188,6 +189,9 @@ export function Heatmap({
       .style('pointer-events', 'none')
       .text((d) => d.label || valueFormat(d.value));
 
+    // Get theme-aware colors
+    const chartColors = getChartColors();
+
     // Draw row labels
     g.selectAll('.heatmap-row-label')
       .data(rows)
@@ -198,7 +202,7 @@ export function Heatmap({
       .attr('y', (_, i) => i * cellHeight + cellHeight / 2)
       .attr('text-anchor', 'end')
       .attr('dominant-baseline', 'middle')
-      .attr('fill', '#525252')
+      .attr('fill', chartColors.text)
       .style('font-size', '12px')
       .text((d) => d.length > 20 ? d.substring(0, 18) + '...' : d);
 
@@ -211,7 +215,7 @@ export function Heatmap({
       .attr('x', (_, i) => i * cellWidth + (cellWidth - 2) / 2)
       .attr('y', -10)
       .attr('text-anchor', 'middle')
-      .attr('fill', '#525252')
+      .attr('fill', chartColors.text)
       .style('font-size', '12px')
       .text((d) => d);
 

@@ -1,7 +1,7 @@
 // Pie chart component
 import { Pie } from 'react-chartjs-2';
 import { ChartWrapper } from './ChartWrapper';
-import { defaultPieOptions, getPieColors } from '@/utils/chartConfig';
+import { defaultPieOptions, getPieColors, getChartColors } from '@/utils/chartConfig';
 import type { ChartOptions } from 'chart.js';
 
 interface DataPoint {
@@ -47,6 +47,8 @@ export function PieChart({
     ],
   };
 
+  const chartColors = getChartColors();
+
   const options: ChartOptions<'pie'> = {
     ...defaultPieOptions,
     onClick: onSegmentClick
@@ -63,7 +65,7 @@ export function PieChart({
         display: showLegend,
         position: legendPosition,
         labels: {
-          color: '#525252',
+          color: chartColors.text,
           padding: 12,
           usePointStyle: true,
           pointStyle: 'rect',
@@ -71,6 +73,7 @@ export function PieChart({
       },
       tooltip: {
         ...defaultPieOptions.plugins?.tooltip,
+        backgroundColor: chartColors.tooltipBg,
         callbacks: formatValue
           ? {
               label: (context) => {

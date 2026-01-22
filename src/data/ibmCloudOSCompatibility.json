@@ -1,0 +1,394 @@
+{
+  "metadata": {
+    "lastUpdated": "2025-01-22",
+    "source": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images",
+    "customImagesSource": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images",
+    "notes": "Based on IBM Cloud VPC documentation for stock and custom images"
+  },
+  "osEntries": [
+    {
+      "id": "rhel-9",
+      "displayName": "Red Hat Enterprise Linux 9.x",
+      "patterns": ["red hat enterprise linux 9", "rhel 9", "rhel9", "red hat 9"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "rhel-8",
+      "displayName": "Red Hat Enterprise Linux 8.x",
+      "patterns": ["red hat enterprise linux 8", "rhel 8", "rhel8", "red hat 8"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "rhel-7",
+      "displayName": "Red Hat Enterprise Linux 7.x",
+      "patterns": ["red hat enterprise linux 7", "rhel 7", "rhel7", "red hat 7"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "Stock image available - consider upgrading to RHEL 8/9 for longer support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "ubuntu-24",
+      "displayName": "Ubuntu 24.04 LTS (Noble Numbat)",
+      "patterns": ["ubuntu 24", "ubuntu-24", "ubuntu server 24", "noble numbat"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "ubuntu-22",
+      "displayName": "Ubuntu 22.04 LTS (Jammy Jellyfish)",
+      "patterns": ["ubuntu 22", "ubuntu-22", "ubuntu server 22", "jammy"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "ubuntu-20",
+      "displayName": "Ubuntu 20.04 LTS (Focal Fossa)",
+      "patterns": ["ubuntu 20", "ubuntu-20", "ubuntu server 20", "focal"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "ubuntu-18",
+      "displayName": "Ubuntu 18.04 LTS (Bionic Beaver)",
+      "patterns": ["ubuntu 18", "ubuntu-18", "ubuntu server 18", "bionic"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "End of standard support - upgrade to Ubuntu 20.04 or later recommended",
+      "eolDate": "2023-05-31"
+    },
+    {
+      "id": "windows-2022",
+      "displayName": "Windows Server 2022",
+      "patterns": ["windows server 2022", "windows 2022", "microsoft windows server 2022", "win2022", "win 2022"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "windows-2019",
+      "displayName": "Windows Server 2019",
+      "patterns": ["windows server 2019", "windows 2019", "microsoft windows server 2019", "win2019", "win 2019"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "windows-2016",
+      "displayName": "Windows Server 2016",
+      "patterns": ["windows server 2016", "windows 2016", "microsoft windows server 2016", "win2016", "win 2016"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available - consider upgrading to Windows Server 2019/2022",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "windows-2012-r2",
+      "displayName": "Windows Server 2012 R2",
+      "patterns": ["windows server 2012 r2", "windows 2012 r2", "microsoft windows server 2012 r2", "win2012r2", "win 2012 r2"],
+      "status": "byol",
+      "imageType": "custom",
+      "notes": "BYOL only - extended security updates may apply. Upgrade to Windows Server 2019/2022 recommended",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+    },
+    {
+      "id": "windows-2012",
+      "displayName": "Windows Server 2012",
+      "patterns": ["windows server 2012", "windows 2012", "microsoft windows server 2012", "win2012", "win 2012"],
+      "status": "byol",
+      "imageType": "custom",
+      "notes": "BYOL only - end of extended support. Upgrade to Windows Server 2019/2022 strongly recommended",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+    },
+    {
+      "id": "windows-2008",
+      "displayName": "Windows Server 2008/2008 R2",
+      "patterns": ["windows server 2008", "windows 2008", "microsoft windows server 2008", "win2008", "win 2008"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "End of life - not supported on IBM Cloud VPC",
+      "eolDate": "2020-01-14"
+    },
+    {
+      "id": "windows-11",
+      "displayName": "Windows 11",
+      "patterns": ["windows 11", "microsoft windows 11", "win11", "win 11"],
+      "status": "byol",
+      "imageType": "custom",
+      "notes": "BYOL custom image only - use windows-2019-amd64-byol operating system type",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+    },
+    {
+      "id": "windows-10",
+      "displayName": "Windows 10",
+      "patterns": ["windows 10", "microsoft windows 10", "win10", "win 10"],
+      "status": "byol",
+      "imageType": "custom",
+      "notes": "BYOL custom image only - use windows-2019-amd64-byol operating system type",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+    },
+    {
+      "id": "sles-15",
+      "displayName": "SUSE Linux Enterprise Server 15",
+      "patterns": ["suse linux enterprise server 15", "sles 15", "sles15", "suse 15"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available (x86). BYOL also supported for s390x (LinuxONE)",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-byol-vpc-about#byol-vpc-suse"
+    },
+    {
+      "id": "sles-12",
+      "displayName": "SUSE Linux Enterprise Server 12",
+      "patterns": ["suse linux enterprise server 12", "sles 12", "sles12", "suse 12"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available - consider upgrading to SLES 15. BYOL also supported",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-byol-vpc-about#byol-vpc-suse"
+    },
+    {
+      "id": "sles-11",
+      "displayName": "SUSE Linux Enterprise Server 11",
+      "patterns": ["suse linux enterprise server 11", "sles 11", "sles11", "suse 11"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "End of general support - upgrade to SLES 15 recommended",
+      "eolDate": "2022-03-31"
+    },
+    {
+      "id": "debian-12",
+      "displayName": "Debian 12 (Bookworm)",
+      "patterns": ["debian 12", "debian-12", "debian gnu/linux 12", "bookworm"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "debian-11",
+      "displayName": "Debian 11 (Bullseye)",
+      "patterns": ["debian 11", "debian-11", "debian gnu/linux 11", "bullseye"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "debian-10",
+      "displayName": "Debian 10 (Buster)",
+      "patterns": ["debian 10", "debian-10", "debian gnu/linux 10", "buster"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available - consider upgrading to Debian 11/12",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "debian-9",
+      "displayName": "Debian 9 (Stretch)",
+      "patterns": ["debian 9", "debian-9", "debian gnu/linux 9", "stretch"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "End of life - upgrade to Debian 11 or later recommended",
+      "eolDate": "2022-06-30"
+    },
+    {
+      "id": "centos-stream-9",
+      "displayName": "CentOS Stream 9",
+      "patterns": ["centos stream 9", "centos-stream-9", "centos 9 stream"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "centos-stream-8",
+      "displayName": "CentOS Stream 8",
+      "patterns": ["centos stream 8", "centos-stream-8", "centos 8 stream"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available - consider upgrading to CentOS Stream 9",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "centos-8",
+      "displayName": "CentOS 8",
+      "patterns": ["centos 8", "centos-8", "centos linux 8"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "End of life Dec 2021 - migrate to CentOS Stream, Rocky Linux, or AlmaLinux",
+      "eolDate": "2021-12-31"
+    },
+    {
+      "id": "centos-7",
+      "displayName": "CentOS 7",
+      "patterns": ["centos 7", "centos-7", "centos linux 7"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "End of life June 2024 - migrate to CentOS Stream 9, Rocky Linux 9, or AlmaLinux 9",
+      "eolDate": "2024-06-30"
+    },
+    {
+      "id": "rocky-9",
+      "displayName": "Rocky Linux 9",
+      "patterns": ["rocky linux 9", "rocky 9", "rocky-9"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "rocky-8",
+      "displayName": "Rocky Linux 8",
+      "patterns": ["rocky linux 8", "rocky 8", "rocky-8"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available with full support",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "alma-9",
+      "displayName": "AlmaLinux 9",
+      "patterns": ["almalinux 9", "alma linux 9", "alma 9", "alma-9"],
+      "status": "byol",
+      "imageType": "custom",
+      "notes": "Custom image supported - RHEL-compatible distribution",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+    },
+    {
+      "id": "alma-8",
+      "displayName": "AlmaLinux 8",
+      "patterns": ["almalinux 8", "alma linux 8", "alma 8", "alma-8"],
+      "status": "byol",
+      "imageType": "custom",
+      "notes": "Custom image supported - RHEL-compatible distribution",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+    },
+    {
+      "id": "fedora-coreos",
+      "displayName": "Fedora CoreOS",
+      "patterns": ["fedora coreos", "fedora-coreos", "fcos"],
+      "status": "supported",
+      "imageType": "stock",
+      "notes": "IBM stock image available for container-optimized workloads",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+    },
+    {
+      "id": "fedora",
+      "displayName": "Fedora",
+      "patterns": ["fedora linux", "fedora server", "fedora workstation"],
+      "status": "byol",
+      "imageType": "custom",
+      "notes": "Custom image may work - not an IBM stock image",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+    },
+    {
+      "id": "oracle-linux-9",
+      "displayName": "Oracle Linux 9",
+      "patterns": ["oracle linux 9", "oracle 9", "ol9"],
+      "status": "byol",
+      "imageType": "custom",
+      "notes": "Custom image supported - RHEL-compatible distribution",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+    },
+    {
+      "id": "oracle-linux-8",
+      "displayName": "Oracle Linux 8",
+      "patterns": ["oracle linux 8", "oracle 8", "ol8"],
+      "status": "byol",
+      "imageType": "custom",
+      "notes": "Custom image supported - RHEL-compatible distribution",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+    },
+    {
+      "id": "oracle-linux-7",
+      "displayName": "Oracle Linux 7",
+      "patterns": ["oracle linux 7", "oracle 7", "ol7"],
+      "status": "byol",
+      "imageType": "custom",
+      "notes": "Custom image may work - consider upgrading to Oracle Linux 8/9",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+    },
+    {
+      "id": "freebsd",
+      "displayName": "FreeBSD",
+      "patterns": ["freebsd"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "Not supported on IBM Cloud VPC"
+    },
+    {
+      "id": "openbsd",
+      "displayName": "OpenBSD",
+      "patterns": ["openbsd"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "Not supported on IBM Cloud VPC"
+    },
+    {
+      "id": "solaris",
+      "displayName": "Oracle Solaris",
+      "patterns": ["solaris", "sunos", "sun solaris"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "Not supported on IBM Cloud VPC - x86 architecture only"
+    },
+    {
+      "id": "aix",
+      "displayName": "IBM AIX",
+      "patterns": ["aix", "ibm aix"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "Not supported on IBM Cloud VPC - use IBM Power Virtual Server for AIX workloads"
+    },
+    {
+      "id": "hpux",
+      "displayName": "HP-UX",
+      "patterns": ["hp-ux", "hpux", "hp ux"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "Not supported on IBM Cloud VPC"
+    },
+    {
+      "id": "vmware-photon",
+      "displayName": "VMware Photon OS",
+      "patterns": ["photon", "vmware photon"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "Not supported on IBM Cloud VPC - migrate to supported Linux distribution"
+    },
+    {
+      "id": "esxi",
+      "displayName": "VMware ESXi",
+      "patterns": ["esxi", "vmware esxi", "vmkernel"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "Hypervisor - not a guest OS for migration"
+    }
+  ],
+  "defaultEntry": {
+    "id": "unknown",
+    "displayName": "Unknown Operating System",
+    "status": "unsupported",
+    "imageType": "none",
+    "notes": "Operating system not recognized - verify compatibility with IBM Cloud VPC documentation",
+    "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+  },
+  "statusDescriptions": {
+    "supported": "IBM stock image available with full IBM support",
+    "byol": "Bring Your Own License - custom image supported but requires your own OS license",
+    "unsupported": "Not supported on IBM Cloud VPC or end-of-life"
+  }
+}

@@ -1,7 +1,7 @@
 // Horizontal bar chart component
 import { Bar } from 'react-chartjs-2';
 import { ChartWrapper } from './ChartWrapper';
-import { defaultBarOptions, getBarColors } from '@/utils/chartConfig';
+import { defaultBarOptions, getBarColors, getChartColors } from '@/utils/chartConfig';
 import type { ChartOptions } from 'chart.js';
 
 interface DataPoint {
@@ -49,6 +49,8 @@ export function HorizontalBarChart({
     ],
   };
 
+  const chartColors = getChartColors();
+
   const options: ChartOptions<'bar'> = {
     ...defaultBarOptions,
     onClick: onBarClick
@@ -66,6 +68,7 @@ export function HorizontalBarChart({
       },
       tooltip: {
         ...defaultBarOptions.plugins?.tooltip,
+        backgroundColor: chartColors.tooltipBg,
         callbacks: formatValue
           ? {
               label: (context) => {
@@ -74,6 +77,24 @@ export function HorizontalBarChart({
               },
             }
           : undefined,
+      },
+    },
+    scales: {
+      x: {
+        grid: {
+          color: chartColors.grid,
+        },
+        ticks: {
+          color: chartColors.text,
+        },
+      },
+      y: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: chartColors.text,
+        },
       },
     },
   };

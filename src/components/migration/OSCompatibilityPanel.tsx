@@ -1,21 +1,87 @@
 // OS Compatibility Panel - shared component for OS compatibility analysis
 
-import { Grid, Column, Tile } from '@carbon/react';
+import { useMemo } from 'react';
+import { Grid, Column, Tile, Tag } from '@carbon/react';
+import type { ColumnDef } from '@tanstack/react-table';
 import { DoughnutChart } from '@/components/charts';
+import { EnhancedDataTable } from '@/components/tables';
 import type { MigrationMode } from '@/services/migration';
+import { getOSCompatibilityResults, type OSCompatibilityResult, type VSIOSCompatibility, type ROKSOSCompatibility } from '@/services/migration/osCompatibility';
 import { formatNumber } from '@/utils/formatters';
 
 export interface OSCompatibilityPanelProps {
   mode: MigrationMode;
   osStatusCounts: Record<string, number>;
+  vms?: Array<{ vmName: string; guestOS: string }>;
 }
 
-export function OSCompatibilityPanel({ mode, osStatusCounts }: OSCompatibilityPanelProps) {
+export function OSCompatibilityPanel({ mode, osStatusCounts, vms }: OSCompatibilityPanelProps) {
+  // Calculate OS compatibility results for each VM
+  const osCompatibilityResults = useMemo(() => {
+    if (!vms || vms.length === 0) return [];
+    return getOSCompatibilityResults(vms, mode);
+  }, [vms, mode]);
+
+  // Define table columns based on mode
+  const tableColumns = useMemo((): ColumnDef<OSCompatibilityResult, unknown>[] => {
+    const getStatusTag = (result: OSCompatibilityResult) => {
+      if (mode === 'vsi') {
+        const status = (result.compatibility as VSIOSCompatibility).status;
+        const tagType = status === 'supported' ? 'green' : status === 'byol' ? 'teal' : 'red';
+        const label = status === 'supported' ? 'Stock Image' : status === 'byol' ? 'BYOL' : 'Unsupported';
+        return <Tag type={tagType} size="sm">{label}</Tag>;
+      } else {
+        const status = (result.compatibility as ROKSOSCompatibility).compatibilityStatus;
+        const tagType = status === 'fully-supported' ? 'green' : status === 'supported-with-caveats' ? 'teal' : 'red';
+        const label = status === 'fully-supported' ? 'Fully Supported' : status === 'supported-with-caveats' ? 'Supported (Caveats)' : 'Unsupported';
+        return <Tag type={tagType} size="sm">{label}</Tag>;
+      }
+    };
+
+    return [
+      {
+        id: 'vmName',
+        accessorKey: 'vmName',
+        header: 'VM Name',
+        enableSorting: true,
+      },
+      {
+        id: 'guestOS',
+        accessorKey: 'guestOS',
+        header: 'Operating System',
+        enableSorting: true,
+      },
+      {
+        id: 'status',
+        accessorFn: (row) => {
+          if (mode === 'vsi') {
+            return (row.compatibility as VSIOSCompatibility).status;
+          }
+          return (row.compatibility as ROKSOSCompatibility).compatibilityStatus;
+        },
+        header: 'Compatibility Status',
+        cell: ({ row }) => getStatusTag(row.original),
+        enableSorting: true,
+      },
+      {
+        id: 'notes',
+        accessorFn: (row) => {
+          if (mode === 'vsi') {
+            return (row.compatibility as VSIOSCompatibility).notes;
+          }
+          return (row.compatibility as ROKSOSCompatibility).notes;
+        },
+        header: 'Notes',
+        enableSorting: false,
+      },
+    ];
+  }, [mode]);
+
   // Build chart data based on mode
   const chartData = mode === 'vsi'
     ? [
-        { label: 'Supported', value: osStatusCounts['supported'] || 0 },
-        { label: 'Community', value: osStatusCounts['community'] || 0 },
+        { label: 'Stock Image', value: osStatusCounts['supported'] || 0 },
+        { label: 'BYOL', value: osStatusCounts['byol'] || 0 },
         { label: 'Unsupported', value: osStatusCounts['unsupported'] || 0 },
       ].filter(d => d.value > 0)
     : [
@@ -32,8 +98,8 @@ export function OSCompatibilityPanel({ mode, osStatusCounts }: OSCompatibilityPa
   // Summary labels based on mode
   const summaryLabels = mode === 'vsi'
     ? [
-        { label: 'Supported', key: 'supported', tagType: 'green' as const },
-        { label: 'Community', key: 'community', tagType: 'magenta' as const },
+        { label: 'Stock Image', key: 'supported', tagType: 'green' as const },
+        { label: 'BYOL (Custom Image)', key: 'byol', tagType: 'magenta' as const },
         { label: 'Unsupported', key: 'unsupported', tagType: 'red' as const },
       ]
     : [
@@ -86,16 +152,16 @@ export function OSCompatibilityPanel({ mode, osStatusCounts }: OSCompatibilityPa
             <h4>IBM Cloud VPC OS Support</h4>
             <div className="migration-page__recommendation-grid">
               <div className="migration-page__recommendation-item">
-                <span className="migration-page__recommendation-key">Supported</span>
-                <span className="migration-page__recommendation-value">IBM-validated images with full support (RHEL, Ubuntu, Windows Server)</span>
+                <span className="migration-page__recommendation-key">Stock Image</span>
+                <span className="migration-page__recommendation-value">IBM-provided stock images with full support (RHEL, Ubuntu, Windows Server, SLES, Debian, Rocky Linux, CentOS Stream)</span>
               </div>
               <div className="migration-page__recommendation-item">
-                <span className="migration-page__recommendation-key">Community</span>
-                <span className="migration-page__recommendation-value">Community-supported images that work but have limited IBM support</span>
+                <span className="migration-page__recommendation-key">BYOL (Custom Image)</span>
+                <span className="migration-page__recommendation-value">Bring Your Own License - custom image supported but requires your own OS license (Windows 10/11, AlmaLinux, Oracle Linux)</span>
               </div>
               <div className="migration-page__recommendation-item">
                 <span className="migration-page__recommendation-key">Unsupported</span>
-                <span className="migration-page__recommendation-value">OS may work but is not validated - migration requires evaluation</span>
+                <span className="migration-page__recommendation-value">OS not supported on IBM Cloud VPC or end-of-life - upgrade required before migration</span>
               </div>
             </div>
           </Tile>
@@ -120,6 +186,26 @@ export function OSCompatibilityPanel({ mode, osStatusCounts }: OSCompatibilityPa
                 <span className="migration-page__recommendation-value">OS upgrade required before migration to OpenShift Virtualization</span>
               </div>
             </div>
+          </Tile>
+        </Column>
+      )}
+
+      {vms && vms.length > 0 && (
+        <Column lg={16} md={8} sm={4}>
+          <Tile className="migration-page__table-tile">
+            <EnhancedDataTable
+              data={osCompatibilityResults}
+              columns={tableColumns}
+              title="VM OS Compatibility Details"
+              description={`Compatibility assessment for ${vms.length} virtual machines`}
+              ariaLabel="VM OS Compatibility Table"
+              enableSearch={true}
+              enablePagination={true}
+              enableSorting={true}
+              enableExport={true}
+              defaultPageSize={25}
+              exportFilename={`os-compatibility-${mode}`}
+            />
           </Tile>
         </Column>
       )}
