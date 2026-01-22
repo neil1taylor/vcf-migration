@@ -142,6 +142,86 @@ Open browser DevTools Console to see detailed profile logs:
 - `[IBM Cloud API] ROKS Bare Metal Flavors` - ROKS machine types
 - `[Dynamic Profiles] FINAL Bare Metal Profiles in App` - Merged profiles used by the app
 
+## Updating OS Compatibility Data
+
+OS compatibility matrices are **manually maintained** (no automated scripts). Update when IBM Cloud or Red Hat changes supported OS versions.
+
+### Data Files
+
+| File | Purpose | Source |
+|------|---------|--------|
+| `src/data/ibmCloudOSCompatibility.json` | VPC VSI image support | [IBM Cloud VPC Images](https://cloud.ibm.com/docs/vpc?topic=vpc-about-images) |
+| `src/data/redhatOSCompatibility.json` | ROKS/OpenShift Virtualization support | [Red Hat Certified Guest OS](https://access.redhat.com/articles/973163) |
+
+### When to Update
+
+- New OS versions released (e.g., RHEL 10, Ubuntu 26.04)
+- OS reaches end-of-life
+- IBM Cloud adds/removes stock images
+- Red Hat updates OpenShift Virtualization compatibility matrix
+
+### File Structure
+
+**IBM Cloud VSI (`ibmCloudOSCompatibility.json`):**
+```json
+{
+  "metadata": {
+    "lastUpdated": "2025-01-22",
+    "source": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+  },
+  "osEntries": [
+    {
+      "id": "rhel-9",
+      "displayName": "Red Hat Enterprise Linux 9.x",
+      "patterns": ["red hat enterprise linux 9", "rhel 9", "rhel9"],
+      "status": "supported",        // supported | byol | unsupported
+      "imageType": "stock",         // stock | custom | none
+      "notes": "IBM stock image available",
+      "documentationLink": "...",
+      "eolDate": "2036-05-31"       // optional
+    }
+  ]
+}
+```
+
+**ROKS (`redhatOSCompatibility.json`):**
+```json
+{
+  "osEntries": [
+    {
+      "id": "rhel-9",
+      "displayName": "Red Hat Enterprise Linux 9.x",
+      "patterns": ["red hat enterprise linux 9", "rhel 9"],
+      "compatibilityStatus": "fully-supported",  // fully-supported | supported-with-caveats | unsupported
+      "compatibilityScore": 100,
+      "notes": "Optimal for OpenShift Virtualization",
+      "recommendedUpgrade": null    // or target OS id
+    }
+  ]
+}
+```
+
+### Update Process
+
+1. Check the official documentation links above for changes
+2. Edit the appropriate JSON file in `src/data/`
+3. Update the `metadata.lastUpdated` field
+4. Add new entries or modify existing ones:
+   - Add patterns that match RVTools guest OS strings (case-insensitive)
+   - Set appropriate status and notes
+   - Include EOL dates where known
+5. Test by uploading an RVTools file with affected OS types
+6. Commit changes
+
+### Pattern Matching
+
+The `patterns` array contains lowercase strings matched against RVTools "Guest OS" field. Include common variations:
+```json
+"patterns": ["red hat enterprise linux 9", "rhel 9", "rhel9", "red hat 9"]
+```
+
+The service (`src/services/migration/osCompatibility.ts`) performs case-insensitive substring matching.
+
 ## Utilities
 
 ### Retry Logic (`src/utils/retry.ts`)
