@@ -45,6 +45,24 @@ vi.mock('./utils/calculations', () => ({
   })),
 }));
 
+// Mock helpers
+vi.mock('./utils/helpers', () => ({
+  resetCaptionCounters: vi.fn(),
+  createTableCaption: vi.fn(() => []),
+  createFigureCaption: vi.fn(() => []),
+  createTableDescription: vi.fn(() => []),
+  createTableLabel: vi.fn(() => ({})),
+  createFigureDescription: vi.fn(() => []),
+  createFigureLabel: vi.fn(() => ({})),
+  createHeading: vi.fn(() => ({})),
+  createParagraph: vi.fn(() => ({})),
+  createBulletList: vi.fn(() => []),
+  createStyledTable: vi.fn(() => ({})),
+  createTableCell: vi.fn(() => ({})),
+  getCurrentTableNumber: vi.fn(() => 0),
+  getCurrentFigureNumber: vi.fn(() => 0),
+}));
+
 // Mock docx library
 vi.mock('docx', () => {
   return {
@@ -66,9 +84,16 @@ vi.mock('docx', () => {
     Footer: class MockFooter {
       constructor() {}
     },
+    TableOfContents: class MockTableOfContents {
+      constructor() {}
+    },
+    PageBreak: class MockPageBreak {
+      constructor() {}
+    },
     PageNumber: {},
     NumberFormat: { DECIMAL: 'decimal' },
     AlignmentType: { CENTER: 'center', LEFT: 'left', RIGHT: 'right', JUSTIFIED: 'justified' },
+    HeadingLevel: { HEADING_1: 'heading1', HEADING_2: 'heading2', HEADING_3: 'heading3' },
     convertInchesToTwip: vi.fn((inches: number) => inches * 1440),
   };
 });

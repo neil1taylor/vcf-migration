@@ -3,10 +3,16 @@
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle, AlignmentType } from 'docx';
 import reportTemplates from '@/data/reportTemplates.json';
 import { STYLES, type DocumentContent, type VSIMapping } from '../types';
-import { createHeading, createParagraph, createBulletList, createTableCell } from '../utils/helpers';
+import { createHeading, createParagraph, createBulletList, createTableCell, createTableDescription, createTableLabel } from '../utils/helpers';
+
+// Type assertion for templates with table/figure descriptions
+const templates = reportTemplates as typeof reportTemplates & {
+  tableDescriptions: Record<string, { title: string; description: string }>;
+  figureDescriptions: Record<string, { title: string; description: string }>;
+};
 
 export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): DocumentContent[] {
-  const templates = reportTemplates.vsiOverview;
+  const vsiTemplates = reportTemplates.vsiOverview;
 
   const profileDistribution = mappings.reduce((acc, m) => {
     acc[m.family] = (acc[m.family] || 0) + 1;
@@ -14,18 +20,24 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
   }, {} as Record<string, number>);
 
   return [
-    createHeading('7. ' + templates.title, HeadingLevel.HEADING_1),
-    createParagraph(templates.introduction),
+    createHeading('7. ' + vsiTemplates.title, HeadingLevel.HEADING_1),
+    createParagraph(vsiTemplates.introduction),
 
-    createHeading('7.1 ' + templates.whatIsVsi.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.whatIsVsi.content),
+    createHeading('7.1 ' + vsiTemplates.whatIsVsi.title, HeadingLevel.HEADING_2),
+    createParagraph(vsiTemplates.whatIsVsi.content),
 
-    createHeading('7.2 ' + templates.architecture.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.architecture.content),
-    ...createBulletList(templates.architecture.components),
+    createHeading('7.2 ' + vsiTemplates.architecture.title, HeadingLevel.HEADING_2),
+    createParagraph(vsiTemplates.architecture.content),
+    ...createBulletList(vsiTemplates.architecture.components),
 
-    createHeading('7.3 ' + templates.profileFamilies.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.profileFamilies.description),
+    createHeading('7.3 ' + vsiTemplates.profileFamilies.title, HeadingLevel.HEADING_2),
+    createParagraph(vsiTemplates.profileFamilies.description),
+
+    // VSI profile families table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.vsiProfileFamilies.title,
+      templates.tableDescriptions.vsiProfileFamilies.description
+    ),
     new Table({
       width: { size: 100, type: 'pct' as const },
       borders: {
@@ -44,7 +56,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
             createTableCell('Use Case', { header: true }),
           ],
         }),
-        ...templates.profileFamilies.families.map(
+        ...vsiTemplates.profileFamilies.families.map(
           (f) =>
             new TableRow({
               children: [
@@ -56,18 +68,19 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
         ),
       ],
     }),
+    createTableLabel(templates.tableDescriptions.vsiProfileFamilies.title),
 
-    createHeading('7.4 ' + templates.benefits.title, HeadingLevel.HEADING_2),
-    ...templates.benefits.items.flatMap((b) => [
+    createHeading('7.4 ' + vsiTemplates.benefits.title, HeadingLevel.HEADING_2),
+    ...vsiTemplates.benefits.items.flatMap((b) => [
       createParagraph(b.title, { bold: true }),
       createParagraph(b.description),
     ]),
 
-    createHeading('7.5 ' + templates.considerations.title, HeadingLevel.HEADING_2),
-    ...createBulletList(templates.considerations.items),
+    createHeading('7.5 ' + vsiTemplates.considerations.title, HeadingLevel.HEADING_2),
+    ...createBulletList(vsiTemplates.considerations.items),
 
-    createHeading('7.6 ' + templates.sizing.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.sizing.description),
+    createHeading('7.6 ' + vsiTemplates.sizing.title, HeadingLevel.HEADING_2),
+    createParagraph(vsiTemplates.sizing.description),
 
     createHeading('7.6.1 Profile Distribution', HeadingLevel.HEADING_3),
     new Table({
@@ -101,6 +114,11 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
 
     new Paragraph({ spacing: { before: 240 } }),
     createHeading('7.6.2 Sample VM to VSI Mappings', HeadingLevel.HEADING_3),
+    // VSI mappings table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.vsiMappings.title,
+      templates.tableDescriptions.vsiMappings.description
+    ),
     new Table({
       width: { size: 100, type: 'pct' as const },
       borders: {
@@ -133,6 +151,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
         ),
       ],
     }),
+    createTableLabel(templates.tableDescriptions.vsiMappings.title),
     mappings.length > maxVMs
       ? createParagraph(`Note: Showing ${maxVMs} of ${mappings.length} VM mappings.`, { spacing: { before: 120 } })
       : new Paragraph({}),

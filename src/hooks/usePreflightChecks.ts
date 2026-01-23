@@ -6,6 +6,7 @@ import { HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED, SNAPSHOT_BLOCKER_AGE_DAYS }
 import {
   type MigrationMode,
   type PreflightCheckCounts,
+  VPC_BOOT_DISK_MIN_GB,
   VPC_BOOT_DISK_MAX_GB,
   VPC_MAX_DISKS_PER_VM,
   generateRemediationItems,
@@ -35,6 +36,7 @@ export interface UsePreflightChecksConfig {
   cdDrives?: VCDInfo[];
   cpuInfo?: VCPUInfo[];
   memoryInfo?: VMemoryInfo[];
+  includeAllChecks?: boolean; // Whether to include all checks (including passed) for display
 }
 
 export interface UsePreflightChecksReturn {
@@ -78,6 +80,7 @@ export function usePreflightChecks(config: UsePreflightChecksConfig): UsePreflig
     cdDrives = [],
     cpuInfo = [],
     memoryInfo = [],
+    includeAllChecks = false,
   } = config;
 
   // Calculate all pre-flight check counts
@@ -143,7 +146,18 @@ export function usePreflightChecks(config: UsePreflightChecksConfig): UsePreflig
 
     // VSI-specific checks
     if (mode === 'vsi') {
-      // Boot disk size check
+      // Boot disk minimum size check
+      const vmsWithSmallBootDiskList = poweredOnVMs.filter(vm => {
+        const vmDisks = disks.filter(d => d.vmName === vm.vmName);
+        if (vmDisks.length === 0) return false;
+        const sortedDisks = [...vmDisks].sort((a, b) => (a.diskKey || 0) - (b.diskKey || 0));
+        const bootDisk = sortedDisks[0];
+        return bootDisk && mibToGiB(bootDisk.capacityMiB) < VPC_BOOT_DISK_MIN_GB;
+      }).map(vm => vm.vmName);
+      checkCounts.vmsWithSmallBootDisk = vmsWithSmallBootDiskList.length;
+      checkCounts.vmsWithSmallBootDiskList = vmsWithSmallBootDiskList;
+
+      // Boot disk maximum size check
       const vmsWithLargeBootDiskList = poweredOnVMs.filter(vm => {
         const vmDisks = disks.filter(d => d.vmName === vm.vmName);
         if (vmDisks.length === 0) return false;
@@ -240,8 +254,8 @@ export function usePreflightChecks(config: UsePreflightChecksConfig): UsePreflig
 
   // Generate remediation items
   const remediationItems = useMemo(
-    () => generateRemediationItems(counts, mode),
-    [counts, mode]
+    () => generateRemediationItems(counts, mode, includeAllChecks),
+    [counts, mode, includeAllChecks]
   );
 
   // Count blockers and warnings

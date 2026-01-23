@@ -2,6 +2,7 @@
 
 import type { RVToolsData, VirtualMachine, VDiskInfo, VSnapshotInfo, VToolsInfo } from '@/types/rvtools';
 import { mibToGiB, getHardwareVersionNumber } from '@/utils/formatters';
+import { isVMwareInfrastructureVM } from '@/hooks/useData';
 import { HW_VERSION_MINIMUM, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import osCompatibilityData from '@/data/redhatOSCompatibility.json';
@@ -37,17 +38,29 @@ function mapVMToVSIProfile(vcpus: number, memoryGiB: number) {
 }
 
 function getVSIPricing(profileName: string): number {
-  const pricing = ibmCloudConfig.vsiPricing as Record<string, { monthlyRate: number }>;
-  return pricing[profileName]?.monthlyRate || 0;
+  // Look up pricing from the profile definitions
+  const allProfiles = [
+    ...ibmCloudConfig.vsiProfiles.balanced,
+    ...ibmCloudConfig.vsiProfiles.compute,
+    ...ibmCloudConfig.vsiProfiles.memory,
+  ];
+  const profile = allProfiles.find((p: { name: string; monthlyRate?: number }) => p.name === profileName);
+  return profile?.monthlyRate || 0;
 }
 
 function getBaremetalPricing(profileName: string): number {
-  const pricing = ibmCloudConfig.bareMetalPricing as Record<string, { monthlyRate: number }>;
-  return pricing[profileName]?.monthlyRate || 0;
+  // Look up pricing from the bare metal profile definitions
+  const allProfiles = [
+    ...ibmCloudConfig.bareMetalProfiles.balanced,
+    ...ibmCloudConfig.bareMetalProfiles.compute,
+    ...ibmCloudConfig.bareMetalProfiles.memory,
+  ];
+  const profile = allProfiles.find((p: { name: string; monthlyRate?: number }) => p.name === profileName);
+  return profile?.monthlyRate || 0;
 }
 
 export function calculateVMReadiness(rawData: RVToolsData): VMReadiness[] {
-  const vms = rawData.vInfo.filter((vm) => vm.powerState === 'poweredOn' && !vm.template);
+  const vms = rawData.vInfo.filter((vm) => vm.powerState === 'poweredOn' && !vm.template && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS));
   const toolsMap = new Map(rawData.vTools.map((t: VToolsInfo) => [t.vmName, t]));
   const snapshotSet = new Set(
     rawData.vSnapshot
@@ -112,7 +125,7 @@ export function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
     ...bmProfiles.memory,
   ];
   const poweredOnVMs = rawData.vInfo.filter(
-    (vm: VirtualMachine) => vm.powerState === 'poweredOn' && !vm.template
+    (vm: VirtualMachine) => vm.powerState === 'poweredOn' && !vm.template && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS)
   );
 
   const totalVCPUs = poweredOnVMs.reduce((sum: number, vm: VirtualMachine) => sum + vm.cpus, 0);
@@ -134,7 +147,7 @@ export function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
   const adjustedVCPUs = Math.ceil(totalVCPUs / ocpVirtSizing.cpuOvercommitConservative);
 
   const recommendedProfile = bareMetalProfiles.find(
-    (p: { name: string }) => p.name === 'bx2d.metal.96x384'
+    (p: { name: string }) => p.name === 'bx2d-metal-96x384'
   ) || bareMetalProfiles[0];
 
   const usableThreadsPerNode = Math.floor(recommendedProfile.vcpus * 0.85);
@@ -151,7 +164,7 @@ export function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
   const odfUsableTiB =
     ((totalClusterNvmeGiB / replicaFactor) * operationalCapacity * cephEfficiency) / 1024;
 
-  const monthlyCost = recommendedWorkers * getBaremetalPricing('bx2d.metal.96x384');
+  const monthlyCost = recommendedWorkers * getBaremetalPricing(recommendedProfile.name);
 
   return {
     workerNodes: recommendedWorkers,
@@ -167,7 +180,7 @@ export function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
 
 export function calculateVSIMappings(rawData: RVToolsData): VSIMapping[] {
   const poweredOnVMs = rawData.vInfo.filter(
-    (vm: VirtualMachine) => vm.powerState === 'poweredOn' && !vm.template
+    (vm: VirtualMachine) => vm.powerState === 'poweredOn' && !vm.template && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS)
   );
 
   return poweredOnVMs.map((vm: VirtualMachine) => {

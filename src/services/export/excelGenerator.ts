@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import type { RVToolsData, VirtualMachine, VHostInfo, VDatastoreInfo, VSnapshotInfo, VCDInfo, VDiskInfo, VNetworkInfo, VToolsInfo } from '@/types/rvtools';
 import { mibToGiB, formatHardwareVersion, getHardwareVersionNumber } from '@/utils/formatters';
 import { HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
+import { isVMwareInfrastructureVM } from '@/hooks/useData';
 import osCompatibilityData from '@/data/redhatOSCompatibility.json';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import type { VMCheckResults, CheckMode } from '@/services/preflightChecks';
@@ -39,8 +40,8 @@ function mapVMToVSIProfile(vcpus: number, memoryGiB: number) {
 export function generateExcelReport(rawData: RVToolsData): XLSX.WorkBook {
   const workbook = XLSX.utils.book_new();
 
-  // Filter to non-template VMs
-  const vms = rawData.vInfo.filter((vm: VirtualMachine) => !vm.template);
+  // Filter to non-template VMs, excluding VMware infrastructure (edges, NSX controllers, vCenter, etc.)
+  const vms = rawData.vInfo.filter((vm: VirtualMachine) => !vm.template && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS));
   const poweredOnVMs = vms.filter((vm: VirtualMachine) => vm.powerState === 'poweredOn');
 
   // ===== Executive Summary Sheet =====

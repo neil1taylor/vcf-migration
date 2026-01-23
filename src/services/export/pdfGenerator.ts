@@ -1,106 +1,164 @@
-// PDF generation service using jsPDF
+// Enhanced PDF generation service using jsPDF with visualizations
 import jsPDF from 'jspdf';
-import type { RVToolsData } from '@/types/rvtools';
+import type { RVToolsData, VirtualMachine, VHostInfo, VDatastoreInfo, VNetworkInfo } from '@/types/rvtools';
 import { mibToGiB, mibToTiB, formatNumber } from '@/utils/formatters';
+import { isVMwareInfrastructureVM } from '@/hooks/useData';
 
-interface PDFOptions {
-  includeExecutiveSummary: boolean;
-  includeComputeAnalysis: boolean;
-  includeStorageAnalysis: boolean;
-  includeMTVReadiness: boolean;
-  includeVMList: boolean;
+// Export options interface
+export interface PDFExportOptions {
+  includeDashboard?: boolean;
+  includeCompute?: boolean;
+  includeStorage?: boolean;
+  includeNetwork?: boolean;
+  includeClusters?: boolean;
+  includeHosts?: boolean;
+  includeResourcePools?: boolean;
 }
 
-const DEFAULT_OPTIONS: PDFOptions = {
-  includeExecutiveSummary: true,
-  includeComputeAnalysis: true,
-  includeStorageAnalysis: true,
-  includeMTVReadiness: true,
-  includeVMList: false, // Can be large
+const DEFAULT_OPTIONS: Required<PDFExportOptions> = {
+  includeDashboard: true,
+  includeCompute: true,
+  includeStorage: true,
+  includeNetwork: true,
+  includeClusters: true,
+  includeHosts: true,
+  includeResourcePools: true,
 };
 
-// PDF styling constants
+// IBM Carbon Design System Colors
 const COLORS = {
-  primary: [15, 98, 254] as [number, number, number], // IBM Blue 60
-  secondary: [82, 82, 82] as [number, number, number], // Gray 70
-  success: [36, 161, 72] as [number, number, number], // Green 50
-  warning: [240, 171, 0] as [number, number, number], // Yellow 40
-  error: [218, 30, 40] as [number, number, number], // Red 50
-  text: [22, 22, 22] as [number, number, number], // Gray 100
-  lightText: [82, 82, 82] as [number, number, number], // Gray 70
-  border: [224, 224, 224] as [number, number, number], // Gray 20
+  // Primary
+  blue60: '#0f62fe',
+  blue50: '#4589ff',
+  blue40: '#78a9ff',
+  // Teal
+  teal50: '#009d9a',
+  teal40: '#08bdba',
+  // Green
+  green50: '#24a148',
+  green40: '#42be65',
+  // Yellow
+  yellow40: '#f1c21b',
+  // Orange
+  orange40: '#ff832b',
+  // Red
+  red60: '#da1e28',
+  red50: '#fa4d56',
+  // Purple
+  purple60: '#8a3ffc',
+  purple50: '#a56eff',
+  // Magenta
+  magenta50: '#ee5396',
+  // Grays
+  gray100: '#161616',
+  gray80: '#393939',
+  gray70: '#525252',
+  gray60: '#6f6f6f',
+  gray50: '#8d8d8d',
+  gray30: '#c6c6c6',
+  gray20: '#e0e0e0',
+  gray10: '#f4f4f4',
+  white: '#ffffff',
 };
 
-const FONTS = {
+// Chart color palettes
+const CHART_COLORS = [
+  COLORS.blue60, COLORS.teal50, COLORS.purple60, COLORS.green50,
+  COLORS.magenta50, COLORS.orange40, COLORS.blue40, COLORS.teal40,
+  COLORS.purple50, COLORS.green40, COLORS.red50, COLORS.yellow40,
+];
+
+const POWER_STATE_COLORS = {
+  poweredOn: COLORS.green50,
+  poweredOff: COLORS.gray60,
+  suspended: COLORS.yellow40,
+};
+
+// PDF Constants
+const PAGE_WIDTH = 210; // A4 width in mm
+const PAGE_HEIGHT = 297; // A4 height in mm
+const MARGIN = 15;
+const CONTENT_WIDTH = PAGE_WIDTH - (MARGIN * 2);
+
+// Font sizes
+const FONT = {
   title: 24,
-  heading: 16,
-  subheading: 12,
+  sectionTitle: 16,
+  subsectionTitle: 12,
   body: 10,
   small: 8,
+  tiny: 7,
 };
 
-const MARGINS = {
-  left: 20,
-  right: 20,
-  top: 20,
-  bottom: 20,
-};
+// Helper to convert hex to RGB
+function hexToRgb(hex: string): [number, number, number] {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result
+    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
+    : [0, 0, 0];
+}
 
-export class PDFGenerator {
+export class EnhancedPDFGenerator {
   private doc: jsPDF;
-  private pageWidth: number;
-  private pageHeight: number;
-  private contentWidth: number;
   private currentY: number;
+  private pageNumber: number;
 
   constructor() {
     this.doc = new jsPDF('p', 'mm', 'a4');
-    this.pageWidth = this.doc.internal.pageSize.getWidth();
-    this.pageHeight = this.doc.internal.pageSize.getHeight();
-    this.contentWidth = this.pageWidth - MARGINS.left - MARGINS.right;
-    this.currentY = MARGINS.top;
+    this.currentY = MARGIN;
+    this.pageNumber = 1;
   }
 
-  async generate(data: RVToolsData, options: Partial<PDFOptions> = {}): Promise<Blob> {
+  async generate(data: RVToolsData, options: PDFExportOptions = {}): Promise<Blob> {
     const opts = { ...DEFAULT_OPTIONS, ...options };
 
-    // Title page
-    this.addTitlePage(data);
+    // Filter VMs
+    const allVMs = data.vInfo.filter(vm => !vm.template && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS));
+    const poweredOnVMs = allVMs.filter(vm => vm.powerState === 'poweredOn');
 
-    // Executive Summary
-    if (opts.includeExecutiveSummary) {
+    // Cover page
+    this.addCoverPage(data, allVMs);
+
+    // Dashboard section
+    if (opts.includeDashboard) {
       this.addNewPage();
-      this.addExecutiveSummary(data);
+      this.addDashboardSection(data, allVMs, poweredOnVMs);
     }
 
-    // Compute Analysis
-    if (opts.includeComputeAnalysis) {
+    // Compute section
+    if (opts.includeCompute) {
       this.addNewPage();
-      this.addComputeAnalysis(data);
+      this.addComputeSection(allVMs, poweredOnVMs);
     }
 
-    // Storage Analysis
-    if (opts.includeStorageAnalysis) {
+    // Storage section
+    if (opts.includeStorage) {
       this.addNewPage();
-      this.addStorageAnalysis(data);
+      this.addStorageSection(data, allVMs);
     }
 
-    // MTV Readiness
-    if (opts.includeMTVReadiness) {
+    // Network section
+    if (opts.includeNetwork) {
       this.addNewPage();
-      this.addMTVReadiness(data);
+      this.addNetworkSection(data, poweredOnVMs);
     }
 
-    // Infrastructure Discovery (always included with MTV Readiness)
-    if (opts.includeMTVReadiness) {
+    // Clusters section
+    if (opts.includeClusters) {
       this.addNewPage();
-      this.addInfrastructureDiscovery(data);
+      this.addClustersSection(data, allVMs);
     }
 
-    // VM List (optional, can be very long)
-    if (opts.includeVMList) {
+    // Hosts section
+    if (opts.includeHosts) {
       this.addNewPage();
-      this.addVMList(data);
+      this.addHostsSection(data);
+    }
+
+    // Resource Pools section
+    if (opts.includeResourcePools && data.vResourcePool && data.vResourcePool.length > 0) {
+      this.addNewPage();
+      this.addResourcePoolsSection(data);
     }
 
     // Add page numbers
@@ -109,802 +167,948 @@ export class PDFGenerator {
     return this.doc.output('blob');
   }
 
-  private addTitlePage(data: RVToolsData): void {
-    const centerX = this.pageWidth / 2;
+  // ===== COVER PAGE =====
+  private addCoverPage(data: RVToolsData, vms: VirtualMachine[]): void {
+    // Background gradient effect (using rectangles)
+    this.doc.setFillColor(...hexToRgb(COLORS.blue60));
+    this.doc.rect(0, 0, PAGE_WIDTH, 100, 'F');
+
+    // Decorative element
+    this.doc.setFillColor(...hexToRgb(COLORS.teal50));
+    this.doc.rect(0, 95, PAGE_WIDTH, 5, 'F');
 
     // Title
-    this.currentY = 80;
-    this.doc.setFontSize(FONTS.title);
-    this.doc.setTextColor(...COLORS.primary);
-    this.doc.text('RVTools Analysis Report', centerX, this.currentY, { align: 'center' });
+    this.doc.setTextColor(...hexToRgb(COLORS.white));
+    this.doc.setFontSize(28);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.text('VMware Infrastructure', PAGE_WIDTH / 2, 45, { align: 'center' });
+    this.doc.text('Analysis Report', PAGE_WIDTH / 2, 58, { align: 'center' });
 
     // Subtitle
-    this.currentY += 15;
-    this.doc.setFontSize(FONTS.heading);
-    this.doc.setTextColor(...COLORS.secondary);
-    this.doc.text('VMware Infrastructure Assessment', centerX, this.currentY, { align: 'center' });
+    this.doc.setFontSize(14);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.text('Comprehensive Environment Assessment', PAGE_WIDTH / 2, 75, { align: 'center' });
 
-    // File info
-    this.currentY += 30;
-    this.doc.setFontSize(FONTS.body);
-    this.doc.setTextColor(...COLORS.text);
-    this.doc.text(`Source File: ${data.metadata.fileName}`, centerX, this.currentY, { align: 'center' });
+    // Reset text color
+    this.doc.setTextColor(...hexToRgb(COLORS.gray100));
 
-    if (data.metadata.collectionDate) {
-      this.currentY += 8;
-      this.doc.text(
-        `Collection Date: ${data.metadata.collectionDate.toLocaleDateString()}`,
-        centerX,
-        this.currentY,
-        { align: 'center' }
-      );
-    }
+    // File info box
+    this.currentY = 120;
+    this.doc.setFillColor(...hexToRgb(COLORS.gray10));
+    this.doc.roundedRect(MARGIN, this.currentY, CONTENT_WIDTH, 45, 3, 3, 'F');
 
-    // Report generation date
+    this.doc.setFontSize(FONT.body);
+    this.doc.setTextColor(...hexToRgb(COLORS.gray70));
+    this.currentY += 10;
+    this.doc.text(`Source File: ${data.metadata.fileName}`, MARGIN + 10, this.currentY);
     this.currentY += 8;
-    this.doc.text(
-      `Report Generated: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}`,
-      centerX,
-      this.currentY,
-      { align: 'center' }
-    );
+    if (data.metadata.collectionDate) {
+      this.doc.text(`Collection Date: ${data.metadata.collectionDate.toLocaleDateString()}`, MARGIN + 10, this.currentY);
+      this.currentY += 8;
+    }
+    this.doc.text(`Report Generated: ${new Date().toLocaleString()}`, MARGIN + 10, this.currentY);
+    this.currentY += 8;
+    this.doc.text(`Total VMs Analyzed: ${formatNumber(vms.length)}`, MARGIN + 10, this.currentY);
 
-    // Summary box
-    this.currentY += 30;
-    const vms = data.vInfo.filter(vm => !vm.template);
-    const boxY = this.currentY;
-    const boxHeight = 50;
-
-    this.doc.setDrawColor(...COLORS.border);
-    this.doc.setFillColor(248, 248, 248);
-    this.doc.roundedRect(MARGINS.left, boxY, this.contentWidth, boxHeight, 3, 3, 'FD');
-
-    // Quick stats in box
-    this.currentY = boxY + 15;
-    this.doc.setFontSize(FONTS.subheading);
-    this.doc.setTextColor(...COLORS.text);
-
+    // Quick stats grid
+    this.currentY = 185;
     const stats = [
-      `${formatNumber(vms.length)} Virtual Machines`,
-      `${formatNumber(data.vHost.length)} ESXi Hosts`,
-      `${formatNumber(data.vCluster.length)} Clusters`,
-      `${formatNumber(data.vDatastore.length)} Datastores`,
+      { label: 'Virtual Machines', value: formatNumber(vms.length), color: COLORS.blue60 },
+      { label: 'ESXi Hosts', value: formatNumber(data.vHost.length), color: COLORS.teal50 },
+      { label: 'Clusters', value: formatNumber(data.vCluster.length), color: COLORS.purple60 },
+      { label: 'Datastores', value: formatNumber(data.vDatastore.length), color: COLORS.green50 },
     ];
 
-    const statWidth = this.contentWidth / stats.length;
+    const statWidth = (CONTENT_WIDTH - 15) / 4;
     stats.forEach((stat, i) => {
-      const x = MARGINS.left + statWidth * i + statWidth / 2;
-      this.doc.text(stat, x, this.currentY, { align: 'center' });
+      const x = MARGIN + (i * (statWidth + 5));
+      this.drawMetricCard(x, this.currentY, statWidth, 35, stat.value, stat.label, stat.color);
     });
 
     // Footer
-    this.doc.setFontSize(FONTS.small);
-    this.doc.setTextColor(...COLORS.lightText);
-    this.doc.text(
-      'Generated by RVTools Analyzer',
-      centerX,
-      this.pageHeight - MARGINS.bottom,
-      { align: 'center' }
-    );
+    this.doc.setFontSize(FONT.small);
+    this.doc.setTextColor(...hexToRgb(COLORS.gray60));
+    this.doc.text('Generated by VCF Migration Tool', PAGE_WIDTH / 2, PAGE_HEIGHT - 20, { align: 'center' });
   }
 
-  private addExecutiveSummary(data: RVToolsData): void {
-    this.addSectionTitle('Executive Summary');
+  // ===== DASHBOARD SECTION =====
+  private addDashboardSection(data: RVToolsData, vms: VirtualMachine[], poweredOnVMs: VirtualMachine[]): void {
+    this.addSectionTitle('Dashboard Overview');
 
-    const vms = data.vInfo.filter(vm => !vm.template);
-    const poweredOn = vms.filter(vm => vm.powerState === 'poweredOn');
-    const poweredOff = vms.filter(vm => vm.powerState === 'poweredOff');
-    const templates = data.vInfo.filter(vm => vm.template);
-
+    // Calculate metrics
     const totalVCPUs = vms.reduce((sum, vm) => sum + vm.cpus, 0);
-    const totalMemoryMiB = vms.reduce((sum, vm) => sum + vm.memory, 0);
-    const totalStorageMiB = vms.reduce((sum, vm) => sum + vm.provisionedMiB, 0);
+    const totalMemoryGiB = Math.round(vms.reduce((sum, vm) => sum + mibToGiB(vm.memory), 0));
+    const totalStorageTiB = (vms.reduce((sum, vm) => sum + mibToGiB(vm.provisionedMiB), 0) / 1024).toFixed(1);
+    const poweredOff = vms.filter(vm => vm.powerState === 'poweredOff').length;
+    const suspended = vms.filter(vm => vm.powerState === 'suspended').length;
 
-    // VM Overview
-    this.addSubsectionTitle('Virtual Machine Overview');
-    this.addMetricRow([
-      { label: 'Total VMs', value: formatNumber(vms.length) },
-      { label: 'Powered On', value: formatNumber(poweredOn.length) },
-      { label: 'Powered Off', value: formatNumber(poweredOff.length) },
-      { label: 'Templates', value: formatNumber(templates.length) },
-    ]);
+    // Metric cards row
+    const metrics = [
+      { label: 'Total VMs', value: formatNumber(vms.length), color: COLORS.blue60 },
+      { label: 'Powered On', value: formatNumber(poweredOnVMs.length), color: COLORS.green50 },
+      { label: 'Total vCPUs', value: formatNumber(totalVCPUs), color: COLORS.teal50 },
+      { label: 'Total Memory', value: `${formatNumber(totalMemoryGiB)} GiB`, color: COLORS.purple60 },
+    ];
 
-    this.currentY += 10;
-
-    // Resource Summary
-    this.addSubsectionTitle('Resource Summary');
-    this.addMetricRow([
-      { label: 'Total vCPUs', value: formatNumber(totalVCPUs) },
-      { label: 'Total Memory', value: `${mibToGiB(totalMemoryMiB).toFixed(0)} GiB` },
-      { label: 'Total Storage', value: `${mibToTiB(totalStorageMiB).toFixed(1)} TiB` },
-    ]);
-
-    this.currentY += 10;
-
-    // Infrastructure
-    this.addSubsectionTitle('Infrastructure');
-    const uniqueDatacenters = new Set(vms.map(vm => vm.datacenter).filter(Boolean)).size;
-    this.addMetricRow([
-      { label: 'Datacenters', value: formatNumber(uniqueDatacenters) },
-      { label: 'Clusters', value: formatNumber(data.vCluster.length) },
-      { label: 'ESXi Hosts', value: formatNumber(data.vHost.length) },
-      { label: 'Datastores', value: formatNumber(data.vDatastore.length) },
-    ]);
-
-    this.currentY += 10;
-
-    // OS Distribution
-    this.addSubsectionTitle('Top Operating Systems');
-    const osDistribution = this.getOSDistribution(vms);
-    const topOS = osDistribution.slice(0, 5);
-
-    topOS.forEach(({ os, count }) => {
-      this.addTextLine(`${os}: ${count} VMs (${((count / vms.length) * 100).toFixed(1)}%)`);
+    const cardWidth = (CONTENT_WIDTH - 15) / 4;
+    metrics.forEach((m, i) => {
+      this.drawMetricCard(MARGIN + (i * (cardWidth + 5)), this.currentY, cardWidth, 28, m.value, m.label, m.color);
     });
+    this.currentY += 35;
+
+    // Second row of metrics
+    const metrics2 = [
+      { label: 'Provisioned Storage', value: `${totalStorageTiB} TiB`, color: COLORS.purple60 },
+      { label: 'Powered Off', value: formatNumber(poweredOff), color: COLORS.gray60 },
+      { label: 'ESXi Hosts', value: formatNumber(data.vHost.length), color: COLORS.teal50 },
+      { label: 'Clusters', value: formatNumber(data.vCluster.length), color: COLORS.blue60 },
+    ];
+    metrics2.forEach((m, i) => {
+      this.drawMetricCard(MARGIN + (i * (cardWidth + 5)), this.currentY, cardWidth, 28, m.value, m.label, m.color);
+    });
+    this.currentY += 38;
+
+    // Charts row - Power State and OS Distribution
+    const chartWidth = (CONTENT_WIDTH - 10) / 2;
+    const chartHeight = 65;
+
+    // Check if we need a page break
+    this.ensureSpace(chartHeight + 10);
+
+    // Power State Pie Chart
+    const powerStateData = [
+      { label: 'Powered On', value: poweredOnVMs.length, color: POWER_STATE_COLORS.poweredOn },
+      { label: 'Powered Off', value: poweredOff, color: POWER_STATE_COLORS.poweredOff },
+      { label: 'Suspended', value: suspended, color: POWER_STATE_COLORS.suspended },
+    ].filter(d => d.value > 0);
+
+    this.drawPieChart(MARGIN, this.currentY, chartWidth, chartHeight, 'Power State Distribution', powerStateData);
+
+    // OS Distribution Bar Chart
+    const osDistribution = this.getOSDistribution(vms).slice(0, 8);
+    this.drawHorizontalBarChart(
+      MARGIN + chartWidth + 10, this.currentY, chartWidth, chartHeight,
+      'Top Operating Systems', osDistribution, 'VMs'
+    );
+    this.currentY += chartHeight + 10;
+
+    // Second charts row - VMs by Cluster and Hardware Version
+    this.ensureSpace(chartHeight + 10);
+
+    const clusterDistribution = this.getClusterDistribution(vms).slice(0, 8);
+    this.drawHorizontalBarChart(
+      MARGIN, this.currentY, chartWidth, chartHeight,
+      'VMs by Cluster', clusterDistribution, 'VMs'
+    );
+
+    // Hardware Version Distribution
+    const hwVersionData = this.getHardwareVersionDistribution(vms);
+    this.drawPieChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, chartHeight, 'Hardware Versions', hwVersionData);
+    this.currentY += chartHeight + 10;
+
+    // VMware Tools Status
+    this.ensureSpace(chartHeight + 10);
+    const toolsData = this.getToolsStatusDistribution(data, poweredOnVMs);
+    this.drawPieChart(MARGIN, this.currentY, chartWidth, chartHeight, 'VMware Tools Status', toolsData);
   }
 
-  private addComputeAnalysis(data: RVToolsData): void {
+  // ===== COMPUTE SECTION =====
+  private addComputeSection(vms: VirtualMachine[], poweredOnVMs: VirtualMachine[]): void {
     this.addSectionTitle('Compute Analysis');
 
-    const vms = data.vInfo.filter(vm => !vm.template);
-    const poweredOn = vms.filter(vm => vm.powerState === 'poweredOn');
-
     const totalVCPUs = vms.reduce((sum, vm) => sum + vm.cpus, 0);
-    const poweredOnVCPUs = poweredOn.reduce((sum, vm) => sum + vm.cpus, 0);
-    const totalMemoryGiB = mibToGiB(vms.reduce((sum, vm) => sum + vm.memory, 0));
-    const poweredOnMemoryGiB = mibToGiB(poweredOn.reduce((sum, vm) => sum + vm.memory, 0));
+    const poweredOnVCPUs = poweredOnVMs.reduce((sum, vm) => sum + vm.cpus, 0);
+    const totalMemoryGiB = Math.round(vms.reduce((sum, vm) => sum + mibToGiB(vm.memory), 0));
+    const poweredOnMemoryGiB = Math.round(poweredOnVMs.reduce((sum, vm) => sum + mibToGiB(vm.memory), 0));
+    const avgVCPU = vms.length > 0 ? (totalVCPUs / vms.length).toFixed(1) : '0';
+    const avgMemory = vms.length > 0 ? (totalMemoryGiB / vms.length).toFixed(1) : '0';
 
-    // CPU Summary
-    this.addSubsectionTitle('CPU Summary');
-    this.addMetricRow([
-      { label: 'Total vCPUs', value: formatNumber(totalVCPUs) },
-      { label: 'Powered On vCPUs', value: formatNumber(poweredOnVCPUs) },
-      { label: 'Avg vCPUs/VM', value: (totalVCPUs / vms.length).toFixed(1) },
-    ]);
-
-    this.currentY += 10;
-
-    // Memory Summary
-    this.addSubsectionTitle('Memory Summary');
-    this.addMetricRow([
-      { label: 'Total Memory', value: `${totalMemoryGiB.toFixed(0)} GiB` },
-      { label: 'Powered On', value: `${poweredOnMemoryGiB.toFixed(0)} GiB` },
-      { label: 'Avg Memory/VM', value: `${(totalMemoryGiB / vms.length).toFixed(1)} GiB` },
-    ]);
-
-    this.currentY += 10;
-
-    // CPU Distribution
-    this.addSubsectionTitle('vCPU Distribution');
-    const cpuDist = this.getCPUDistribution(vms);
-    cpuDist.forEach(({ bucket, count }) => {
-      const pct = ((count / vms.length) * 100).toFixed(1);
-      this.addTextLine(`${bucket} vCPUs: ${count} VMs (${pct}%)`);
+    // Metric cards
+    const cardWidth = (CONTENT_WIDTH - 15) / 4;
+    const metrics = [
+      { label: 'Total vCPUs', value: formatNumber(totalVCPUs), color: COLORS.blue60 },
+      { label: 'Powered On vCPUs', value: formatNumber(poweredOnVCPUs), color: COLORS.green50 },
+      { label: 'Total Memory', value: `${formatNumber(totalMemoryGiB)} GiB`, color: COLORS.purple60 },
+      { label: 'Powered On Memory', value: `${formatNumber(poweredOnMemoryGiB)} GiB`, color: COLORS.teal50 },
+    ];
+    metrics.forEach((m, i) => {
+      this.drawMetricCard(MARGIN + (i * (cardWidth + 5)), this.currentY, cardWidth, 28, m.value, m.label, m.color);
     });
+    this.currentY += 35;
 
-    this.currentY += 10;
+    // Averages row
+    const metrics2 = [
+      { label: 'Avg vCPU/VM', value: avgVCPU, color: COLORS.blue60 },
+      { label: 'Avg Memory/VM', value: `${avgMemory} GiB`, color: COLORS.purple60 },
+    ];
+    const cardWidth2 = (CONTENT_WIDTH - 5) / 2;
+    metrics2.forEach((m, i) => {
+      this.drawMetricCard(MARGIN + (i * (cardWidth2 + 5)), this.currentY, cardWidth2, 25, m.value, m.label, m.color);
+    });
+    this.currentY += 35;
+
+    // CPU Distribution Chart
+    const chartHeight = 65;
+    this.ensureSpace(chartHeight + 10);
+
+    const cpuDistribution = this.getCPUDistribution(vms);
+    const chartWidth = (CONTENT_WIDTH - 10) / 2;
+    this.drawVerticalBarChart(MARGIN, this.currentY, chartWidth, chartHeight, 'vCPU Distribution', cpuDistribution, 'VMs');
+
+    // Memory Distribution Chart
+    const memoryDistribution = this.getMemoryDistribution(vms);
+    this.drawVerticalBarChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, chartHeight, 'Memory Distribution', memoryDistribution, 'VMs');
+    this.currentY += chartHeight + 10;
 
     // Top CPU Consumers
-    this.addSubsectionTitle('Top 10 CPU Consumers');
-    const topCPU = [...vms].sort((a, b) => b.cpus - a.cpus).slice(0, 10);
-    topCPU.forEach((vm, i) => {
-      this.addTextLine(`${i + 1}. ${vm.vmName}: ${vm.cpus} vCPUs`);
-    });
+    const topChartHeight = 70;
+    this.ensureSpace(topChartHeight + 10);
+
+    const topCPU = [...vms].sort((a, b) => b.cpus - a.cpus).slice(0, 10)
+      .map(vm => ({ label: vm.vmName.substring(0, 25), value: vm.cpus }));
+    this.drawHorizontalBarChart(MARGIN, this.currentY, chartWidth, topChartHeight, 'Top 10 CPU Consumers', topCPU, 'vCPUs');
+
+    // Top Memory Consumers
+    const topMemory = [...vms].sort((a, b) => b.memory - a.memory).slice(0, 10)
+      .map(vm => ({ label: vm.vmName.substring(0, 25), value: Math.round(mibToGiB(vm.memory)) }));
+    this.drawHorizontalBarChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, topChartHeight, 'Top 10 Memory Consumers', topMemory, 'GiB');
   }
 
-  private addStorageAnalysis(data: RVToolsData): void {
+  // ===== STORAGE SECTION =====
+  private addStorageSection(data: RVToolsData, vms: VirtualMachine[]): void {
     this.addSectionTitle('Storage Analysis');
 
     const datastores = data.vDatastore;
     const totalCapacityTiB = mibToTiB(datastores.reduce((sum, ds) => sum + ds.capacityMiB, 0));
     const totalUsedTiB = mibToTiB(datastores.reduce((sum, ds) => sum + ds.inUseMiB, 0));
     const totalFreeTiB = mibToTiB(datastores.reduce((sum, ds) => sum + ds.freeMiB, 0));
-    const avgUtilization = totalCapacityTiB > 0 ? (totalUsedTiB / totalCapacityTiB) * 100 : 0;
+    const avgUtilization = totalCapacityTiB > 0 ? ((totalUsedTiB / totalCapacityTiB) * 100).toFixed(1) : '0';
 
-    // Storage Summary
-    this.addSubsectionTitle('Storage Summary');
-    this.addMetricRow([
-      { label: 'Total Capacity', value: `${totalCapacityTiB.toFixed(1)} TiB` },
-      { label: 'Used', value: `${totalUsedTiB.toFixed(1)} TiB` },
-      { label: 'Free', value: `${totalFreeTiB.toFixed(1)} TiB` },
-      { label: 'Avg Utilization', value: `${avgUtilization.toFixed(1)}%` },
-    ]);
+    const vmProvisionedTiB = mibToTiB(vms.reduce((sum, vm) => sum + vm.provisionedMiB, 0));
+    const vmInUseTiB = mibToTiB(vms.reduce((sum, vm) => sum + vm.inUseMiB, 0));
 
-    this.currentY += 10;
+    // Metric cards
+    const cardWidth = (CONTENT_WIDTH - 15) / 4;
+    const metrics = [
+      { label: 'Total Capacity', value: `${totalCapacityTiB.toFixed(1)} TiB`, color: COLORS.blue60 },
+      { label: 'Used Storage', value: `${totalUsedTiB.toFixed(1)} TiB`, color: COLORS.purple60 },
+      { label: 'Free Storage', value: `${totalFreeTiB.toFixed(1)} TiB`, color: COLORS.green50 },
+      { label: 'Avg Utilization', value: `${avgUtilization}%`, color: COLORS.teal50 },
+    ];
+    metrics.forEach((m, i) => {
+      this.drawMetricCard(MARGIN + (i * (cardWidth + 5)), this.currentY, cardWidth, 28, m.value, m.label, m.color);
+    });
+    this.currentY += 35;
 
-    // Datastore Types
-    this.addSubsectionTitle('Datastore Types');
-    const typeDistribution = datastores.reduce((acc, ds) => {
-      const type = ds.type || 'Unknown';
-      if (!acc[type]) acc[type] = { count: 0, capacityMiB: 0 };
-      acc[type].count++;
-      acc[type].capacityMiB += ds.capacityMiB;
-      return acc;
-    }, {} as Record<string, { count: number; capacityMiB: number }>);
+    // VM storage metrics
+    const metrics2 = [
+      { label: 'VM Provisioned', value: `${vmProvisionedTiB.toFixed(1)} TiB`, color: COLORS.purple60 },
+      { label: 'VM In-Use', value: `${vmInUseTiB.toFixed(1)} TiB`, color: COLORS.blue60 },
+      { label: 'Datastores', value: formatNumber(datastores.length), color: COLORS.teal50 },
+    ];
+    const cardWidth2 = (CONTENT_WIDTH - 10) / 3;
+    metrics2.forEach((m, i) => {
+      this.drawMetricCard(MARGIN + (i * (cardWidth2 + 5)), this.currentY, cardWidth2, 25, m.value, m.label, m.color);
+    });
+    this.currentY += 35;
 
-    Object.entries(typeDistribution)
-      .sort((a, b) => b[1].capacityMiB - a[1].capacityMiB)
-      .forEach(([type, info]) => {
-        this.addTextLine(`${type}: ${info.count} datastores (${mibToTiB(info.capacityMiB).toFixed(1)} TiB)`);
-      });
+    // Storage by Type Pie Chart
+    const chartWidth = (CONTENT_WIDTH - 10) / 2;
+    const chartHeight = 65;
+    this.ensureSpace(chartHeight + 10);
 
-    this.currentY += 10;
+    const typeDistribution = this.getDatastoreTypeDistribution(datastores);
+    this.drawPieChart(MARGIN, this.currentY, chartWidth, chartHeight, 'Storage by Type', typeDistribution);
 
     // High Utilization Datastores
-    this.addSubsectionTitle('High Utilization Datastores (>80%)');
     const highUtil = datastores
-      .filter(ds => ds.capacityMiB > 0 && (ds.inUseMiB / ds.capacityMiB) * 100 > 80)
-      .sort((a, b) => {
-        const utilA = (a.inUseMiB / a.capacityMiB) * 100;
-        const utilB = (b.inUseMiB / b.capacityMiB) * 100;
-        return utilB - utilA;
-      })
-      .slice(0, 10);
+      .filter(ds => ds.capacityMiB > 0)
+      .map(ds => ({
+        label: ds.name.substring(0, 20),
+        value: Math.round((ds.inUseMiB / ds.capacityMiB) * 100),
+      }))
+      .filter(d => d.value > 70)
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
 
-    if (highUtil.length === 0) {
-      this.addTextLine('No datastores with utilization above 80%');
+    if (highUtil.length > 0) {
+      this.drawHorizontalBarChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, chartHeight, 'High Utilization (>70%)', highUtil, '%');
     } else {
-      highUtil.forEach(ds => {
-        const util = ((ds.inUseMiB / ds.capacityMiB) * 100).toFixed(1);
-        this.addTextLine(`${ds.name}: ${util}% utilized`);
-      });
+      // No high utilization - show top datastores instead
+      const topDS = datastores
+        .sort((a, b) => b.capacityMiB - a.capacityMiB)
+        .slice(0, 8)
+        .map(ds => ({ label: ds.name.substring(0, 20), value: Math.round(mibToGiB(ds.capacityMiB)) }));
+      this.drawHorizontalBarChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, chartHeight, 'Top Datastores by Capacity', topDS, 'GiB');
     }
+    this.currentY += chartHeight + 10;
+
+    // Top VMs by Storage
+    const topChartHeight = 70;
+    this.ensureSpace(topChartHeight + 10);
+
+    const topStorage = [...vms].sort((a, b) => b.provisionedMiB - a.provisionedMiB).slice(0, 10)
+      .map(vm => ({ label: vm.vmName.substring(0, 25), value: Math.round(mibToGiB(vm.provisionedMiB)) }));
+    this.drawHorizontalBarChart(MARGIN, this.currentY, CONTENT_WIDTH, topChartHeight, 'Top 10 VMs by Storage', topStorage, 'GiB');
   }
 
-  private addMTVReadiness(data: RVToolsData): void {
-    this.addSectionTitle('Migration Readiness Assessment');
+  // ===== NETWORK SECTION =====
+  private addNetworkSection(data: RVToolsData, poweredOnVMs: VirtualMachine[]): void {
+    this.addSectionTitle('Network Analysis');
 
-    const vms = data.vInfo.filter(vm => !vm.template && vm.powerState === 'poweredOn');
+    const networks = data.vNetwork;
+    const totalNICs = networks.length;
+    const connectedNICs = networks.filter(n => n.connected).length;
+    const uniquePortGroups = new Set(networks.map(n => n.networkName)).size;
+    const uniqueSwitches = new Set(networks.map(n => n.switchName).filter(Boolean)).size;
+    const avgNICs = poweredOnVMs.length > 0 ? (totalNICs / poweredOnVMs.length).toFixed(1) : '0';
 
-    // VMware Tools Status
-    this.addSubsectionTitle('VMware Tools Status');
-    const toolsStatus = this.analyzeToolsStatus(data);
-    this.addMetricRow([
-      { label: 'Tools Running', value: formatNumber(toolsStatus.running) },
-      { label: 'Tools Outdated', value: formatNumber(toolsStatus.outdated) },
-      { label: 'Not Installed', value: formatNumber(toolsStatus.notInstalled) },
-    ]);
+    // Metric cards
+    const cardWidth = (CONTENT_WIDTH - 15) / 4;
+    const metrics = [
+      { label: 'Total NICs', value: formatNumber(totalNICs), color: COLORS.blue60 },
+      { label: 'Connected NICs', value: formatNumber(connectedNICs), color: COLORS.green50 },
+      { label: 'Port Groups', value: formatNumber(uniquePortGroups), color: COLORS.teal50 },
+      { label: 'Virtual Switches', value: formatNumber(uniqueSwitches), color: COLORS.purple60 },
+    ];
+    metrics.forEach((m, i) => {
+      this.drawMetricCard(MARGIN + (i * (cardWidth + 5)), this.currentY, cardWidth, 28, m.value, m.label, m.color);
+    });
+    this.currentY += 35;
 
-    this.currentY += 10;
+    // Avg NICs
+    this.drawMetricCard(MARGIN, this.currentY, (CONTENT_WIDTH - 5) / 2, 25, avgNICs, 'Avg NICs per VM', COLORS.blue60);
+    this.currentY += 35;
 
-    // Snapshots
-    this.addSubsectionTitle('Snapshot Analysis');
-    const snapshotVMs = new Set(data.vSnapshot.map(s => s.vmName)).size;
-    const oldSnapshots = data.vSnapshot.filter(s => s.ageInDays > 7).length;
-    this.addMetricRow([
-      { label: 'VMs with Snapshots', value: formatNumber(snapshotVMs) },
-      { label: 'Total Snapshots', value: formatNumber(data.vSnapshot.length) },
-      { label: 'Snapshots >7 days', value: formatNumber(oldSnapshots) },
-    ]);
+    // Adapter Type Distribution
+    const chartWidth = (CONTENT_WIDTH - 10) / 2;
+    const chartHeight = 65;
+    this.ensureSpace(chartHeight + 10);
 
-    this.currentY += 10;
+    const adapterTypes = this.getAdapterTypeDistribution(networks);
+    this.drawPieChart(MARGIN, this.currentY, chartWidth, chartHeight, 'NIC Adapter Types', adapterTypes);
 
-    // CD-ROM Status
-    this.addSubsectionTitle('CD-ROM Status');
-    const connectedCDs = data.vCD.filter(cd => cd.connected).length;
-    this.addTextLine(`VMs with connected CD-ROM: ${connectedCDs}`);
-    if (connectedCDs > 0) {
-      this.doc.setTextColor(...COLORS.warning);
-      this.addTextLine('Warning: Disconnect CD-ROMs before migration');
-      this.doc.setTextColor(...COLORS.text);
-    }
+    // Connection Status
+    const connectionData = [
+      { label: 'Connected', value: connectedNICs, color: COLORS.green50 },
+      { label: 'Disconnected', value: totalNICs - connectedNICs, color: COLORS.red60 },
+    ].filter(d => d.value > 0);
+    this.drawPieChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, chartHeight, 'Connection Status', connectionData);
+    this.currentY += chartHeight + 10;
 
-    this.currentY += 10;
+    // VMs by NIC Count
+    const smallChartHeight = 60;
+    this.ensureSpace(smallChartHeight + 10);
 
-    // Hardware Version
-    this.addSubsectionTitle('Hardware Version Distribution');
-    const hwVersions = vms.reduce((acc, vm) => {
-      const version = vm.hardwareVersion || 'Unknown';
-      acc[version] = (acc[version] || 0) + 1;
+    const nicCountDist = this.getVMsByNICCount(networks, poweredOnVMs);
+    this.drawVerticalBarChart(MARGIN, this.currentY, chartWidth, smallChartHeight, 'VMs by NIC Count', nicCountDist, 'VMs');
+
+    // Top Port Groups
+    const portGroupCounts = networks.reduce((acc, n) => {
+      acc[n.networkName] = (acc[n.networkName] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
-
-    Object.entries(hwVersions)
+    const topPortGroups = Object.entries(portGroupCounts)
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .forEach(([version, count]) => {
-        this.addTextLine(`${version}: ${count} VMs`);
-      });
-
-    this.currentY += 10;
-
-    // RDM Check
-    this.addSubsectionTitle('Storage Blockers');
-    const rdmDisks = new Set(data.vDisk.filter(d => d.raw).map(d => d.vmName)).size;
-    const sharedDisks = new Set(data.vDisk.filter(d => d.sharingMode && d.sharingMode.toLowerCase() !== 'sharingnone').map(d => d.vmName)).size;
-    const independentDisks = new Set(data.vDisk.filter(d => d.diskMode?.toLowerCase().includes('independent')).map(d => d.vmName)).size;
-
-    if (rdmDisks === 0 && sharedDisks === 0 && independentDisks === 0) {
-      this.doc.setTextColor(...COLORS.success);
-      this.addTextLine('No storage blockers detected - Ready for migration');
-    } else {
-      if (rdmDisks > 0) {
-        this.doc.setTextColor(...COLORS.error);
-        this.addTextLine(`${rdmDisks} VMs with RDM disks - Requires remediation`);
-      }
-      if (sharedDisks > 0) {
-        this.doc.setTextColor(...COLORS.error);
-        this.addTextLine(`${sharedDisks} VMs with shared/multi-writer disks - Requires remediation`);
-      }
-      if (independentDisks > 0) {
-        this.doc.setTextColor(...COLORS.error);
-        this.addTextLine(`${independentDisks} VMs with independent disk mode - Cannot be transferred`);
-      }
-    }
-    this.doc.setTextColor(...COLORS.text);
-
-    this.currentY += 10;
-
-    // CBT (Changed Block Tracking)
-    this.addSubsectionTitle('Changed Block Tracking (CBT)');
-    const vmsWithoutCBT = vms.filter(vm => !vm.cbtEnabled).length;
-    if (vmsWithoutCBT === 0) {
-      this.doc.setTextColor(...COLORS.success);
-      this.addTextLine('All VMs have CBT enabled - Ready for warm migration');
-    } else {
-      this.doc.setTextColor(...COLORS.warning);
-      this.addTextLine(`${vmsWithoutCBT} VMs without CBT enabled - Warm migration may be slower`);
-      this.addTextLine('Enable CBT for incremental data transfer during warm migration');
-    }
-    this.doc.setTextColor(...COLORS.text);
-
-    this.currentY += 10;
-
-    // VM Name RFC 1123 Compliance
-    this.addSubsectionTitle('VM Name Compliance (RFC 1123)');
-    const rfc1123Pattern = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
-    const vmsWithInvalidNames = vms.filter(vm => !vm.vmName || vm.vmName.length > 63 || !rfc1123Pattern.test(vm.vmName.toLowerCase())).length;
-    if (vmsWithInvalidNames === 0) {
-      this.doc.setTextColor(...COLORS.success);
-      this.addTextLine('All VM names are RFC 1123 compliant');
-    } else {
-      this.doc.setTextColor(...COLORS.warning);
-      this.addTextLine(`${vmsWithInvalidNames} VMs with non-compliant names`);
-      this.addTextLine('Names must be: lowercase, max 63 chars, alphanumeric + hyphens');
-    }
-    this.doc.setTextColor(...COLORS.text);
-
-    this.currentY += 10;
-
-    // Hot Plug Configuration
-    this.addSubsectionTitle('Hot Plug Configuration');
-    const vCPUMap = new Map(data.vCPU.map(c => [c.vmName, c]));
-    const vMemoryMap = new Map(data.vMemory.map(m => [m.vmName, m]));
-    const vmsWithCPUHotPlug = vms.filter(vm => vCPUMap.get(vm.vmName)?.hotAddEnabled).length;
-    const vmsWithMemHotPlug = vms.filter(vm => vMemoryMap.get(vm.vmName)?.hotAddEnabled).length;
-
-    if (vmsWithCPUHotPlug === 0 && vmsWithMemHotPlug === 0) {
-      this.doc.setTextColor(...COLORS.success);
-      this.addTextLine('No VMs with hot plug enabled');
-    } else {
-      this.doc.setTextColor(...COLORS.warning);
-      if (vmsWithCPUHotPlug > 0) {
-        this.addTextLine(`${vmsWithCPUHotPlug} VMs with CPU hot plug - Will be disabled post-migration`);
-      }
-      if (vmsWithMemHotPlug > 0) {
-        this.addTextLine(`${vmsWithMemHotPlug} VMs with memory hot plug - Will be disabled post-migration`);
-      }
-    }
-    this.doc.setTextColor(...COLORS.text);
-
-    this.currentY += 10;
-
-    // Hostname Status
-    this.addSubsectionTitle('Guest Hostname Status');
-    const vmsWithInvalidHostname = vms.filter(vm => {
-      const hostname = vm.guestHostname?.toLowerCase()?.trim();
-      return !hostname || hostname === '' || hostname === 'localhost' ||
-             hostname === 'localhost.localdomain' || hostname === 'localhost.local';
-    }).length;
-    if (vmsWithInvalidHostname === 0) {
-      this.doc.setTextColor(...COLORS.success);
-      this.addTextLine('All VMs have valid hostnames configured');
-    } else {
-      this.doc.setTextColor(...COLORS.warning);
-      this.addTextLine(`${vmsWithInvalidHostname} VMs with missing/invalid hostnames`);
-      this.addTextLine('Configure proper hostname before migration');
-    }
-    this.doc.setTextColor(...COLORS.text);
+      .slice(0, 8)
+      .map(([label, value]) => ({ label: label.substring(0, 20), value }));
+    this.drawHorizontalBarChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, smallChartHeight, 'Top Port Groups', topPortGroups, 'NICs');
   }
 
-  private addInfrastructureDiscovery(data: RVToolsData): void {
-    this.addSectionTitle('Infrastructure Discovery');
+  // ===== CLUSTERS SECTION =====
+  private addClustersSection(data: RVToolsData, vms: VirtualMachine[]): void {
+    this.addSectionTitle('Cluster Analysis');
 
-    const vms = data.vInfo.filter(vm => !vm.template && vm.powerState === 'poweredOn');
-    const hosts = data.vHost;
     const clusters = data.vCluster;
+    const totalHosts = clusters.reduce((sum, c) => sum + c.hostCount, 0);
+    const haEnabled = clusters.filter(c => c.haEnabled).length;
+    const drsEnabled = clusters.filter(c => c.drsEnabled).length;
+    const avgHostsPerCluster = clusters.length > 0 ? (totalHosts / clusters.length).toFixed(1) : '0';
 
-    // Workload Detection Patterns
-    const workloadPatterns: Record<string, { name: string; patterns: string[] }> = {
-      databases: { name: 'Databases', patterns: ['oracle', 'postgres', 'mysql', 'mssql', 'mongodb', 'redis', 'sql'] },
-      middleware: { name: 'Middleware', patterns: ['jboss', 'tomcat', 'weblogic', 'websphere', 'nginx', 'apache'] },
-      enterprise: { name: 'Enterprise Apps', patterns: ['sap', 'sharepoint', 'exchange', 'dynamics'] },
-      backup: { name: 'Backup/Recovery', patterns: ['veeam', 'veritas', 'commvault', 'avamar', 'rubrik'] },
-      security: { name: 'Security', patterns: ['paloalto', 'qualys', 'cyberark', 'fortinet', 'crowdstrike'] },
-      virtualization: { name: 'Virtualization', patterns: ['vcenter', 'nsx', 'vrops', 'vra', 'horizon'] },
-    };
+    // Metric cards
+    const cardWidth = (CONTENT_WIDTH - 15) / 4;
+    const metrics = [
+      { label: 'Total Clusters', value: formatNumber(clusters.length), color: COLORS.blue60 },
+      { label: 'Total Hosts', value: formatNumber(totalHosts), color: COLORS.teal50 },
+      { label: 'HA Enabled', value: formatNumber(haEnabled), color: COLORS.green50 },
+      { label: 'DRS Enabled', value: formatNumber(drsEnabled), color: COLORS.purple60 },
+    ];
+    metrics.forEach((m, i) => {
+      this.drawMetricCard(MARGIN + (i * (cardWidth + 5)), this.currentY, cardWidth, 28, m.value, m.label, m.color);
+    });
+    this.currentY += 35;
 
-    // Detect workloads
-    const workloadCounts: Record<string, number> = {};
-    for (const [, config] of Object.entries(workloadPatterns)) {
-      const count = vms.filter(vm => {
-        const vmNameLower = vm.vmName.toLowerCase();
-        return config.patterns.some(p => vmNameLower.includes(p));
-      }).length;
-      if (count > 0) {
-        workloadCounts[config.name] = count;
+    // Averages
+    const avgVMsPerCluster = clusters.length > 0 ? (vms.length / clusters.length).toFixed(1) : '0';
+    const cardWidth2 = (CONTENT_WIDTH - 5) / 2;
+    this.drawMetricCard(MARGIN, this.currentY, cardWidth2, 25, avgHostsPerCluster, 'Avg Hosts/Cluster', COLORS.teal50);
+    this.drawMetricCard(MARGIN + cardWidth2 + 5, this.currentY, cardWidth2, 25, avgVMsPerCluster, 'Avg VMs/Cluster', COLORS.blue60);
+    this.currentY += 35;
+
+    // HA Status Pie
+    const chartWidth = (CONTENT_WIDTH - 10) / 2;
+    const chartHeight = 60;
+    this.ensureSpace(chartHeight + 10);
+
+    const haData = [
+      { label: 'HA Enabled', value: haEnabled, color: COLORS.green50 },
+      { label: 'HA Disabled', value: clusters.length - haEnabled, color: COLORS.red60 },
+    ].filter(d => d.value > 0);
+    this.drawPieChart(MARGIN, this.currentY, chartWidth, chartHeight, 'High Availability (HA)', haData);
+
+    // DRS Status Pie
+    const drsData = [
+      { label: 'DRS Enabled', value: drsEnabled, color: COLORS.blue60 },
+      { label: 'DRS Disabled', value: clusters.length - drsEnabled, color: COLORS.gray60 },
+    ].filter(d => d.value > 0);
+    this.drawPieChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, chartHeight, 'Distributed Resource Scheduler', drsData);
+    this.currentY += chartHeight + 10;
+
+    // Clusters by Host Count
+    const barChartHeight = 65;
+    this.ensureSpace(barChartHeight + 10);
+
+    const clustersByHosts = clusters
+      .sort((a, b) => b.hostCount - a.hostCount)
+      .slice(0, 10)
+      .map(c => ({ label: c.name.substring(0, 20), value: c.hostCount }));
+    this.drawHorizontalBarChart(MARGIN, this.currentY, chartWidth, barChartHeight, 'Clusters by Host Count', clustersByHosts, 'Hosts');
+
+    // Clusters by VM Count
+    const vmsByCluster = vms.reduce((acc, vm) => {
+      const cluster = vm.cluster || 'Unknown';
+      acc[cluster] = (acc[cluster] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    const clustersByVMs = Object.entries(vmsByCluster)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10)
+      .map(([label, value]) => ({ label: label.substring(0, 20), value }));
+    this.drawHorizontalBarChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, barChartHeight, 'Clusters by VM Count', clustersByVMs, 'VMs');
+  }
+
+  // ===== HOSTS SECTION =====
+  private addHostsSection(data: RVToolsData): void {
+    this.addSectionTitle('Host Analysis');
+
+    const hosts = data.vHost;
+    const totalCores = hosts.reduce((sum, h) => sum + (h.totalCpuCores || 0), 0);
+    const totalMemoryTiB = mibToTiB(hosts.reduce((sum, h) => sum + (h.memoryMiB || 0), 0));
+    const totalVMs = hosts.reduce((sum, h) => sum + (h.vmCount || 0), 0);
+    const avgVMsPerHost = hosts.length > 0 ? (totalVMs / hosts.length).toFixed(1) : '0';
+
+    // Metric cards
+    const cardWidth = (CONTENT_WIDTH - 15) / 4;
+    const metrics = [
+      { label: 'ESXi Hosts', value: formatNumber(hosts.length), color: COLORS.blue60 },
+      { label: 'Total CPU Cores', value: formatNumber(totalCores), color: COLORS.teal50 },
+      { label: 'Total Memory', value: `${totalMemoryTiB.toFixed(1)} TiB`, color: COLORS.purple60 },
+      { label: 'Avg VMs/Host', value: avgVMsPerHost, color: COLORS.green50 },
+    ];
+    metrics.forEach((m, i) => {
+      this.drawMetricCard(MARGIN + (i * (cardWidth + 5)), this.currentY, cardWidth, 28, m.value, m.label, m.color);
+    });
+    this.currentY += 38;
+
+    // ESXi Version Distribution
+    const chartWidth = (CONTENT_WIDTH - 10) / 2;
+    const chartHeight = 65;
+    this.ensureSpace(chartHeight + 10);
+
+    const versionData = this.getESXiVersionDistribution(hosts);
+    this.drawPieChart(MARGIN, this.currentY, chartWidth, chartHeight, 'ESXi Version Distribution', versionData);
+
+    // Vendor Distribution
+    const vendorData = this.getVendorDistribution(hosts);
+    this.drawPieChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, chartHeight, 'Hardware Vendors', vendorData);
+    this.currentY += chartHeight + 10;
+
+    // Top Hosts by VM Count
+    this.ensureSpace(chartHeight + 10);
+
+    const topByVMs = [...hosts].sort((a, b) => (b.vmCount || 0) - (a.vmCount || 0)).slice(0, 10)
+      .map(h => ({ label: h.name.substring(0, 25), value: h.vmCount || 0 }));
+    this.drawHorizontalBarChart(MARGIN, this.currentY, chartWidth, chartHeight, 'Top Hosts by VM Count', topByVMs, 'VMs');
+
+    // Top Hosts by Memory
+    const topByMemory = [...hosts].sort((a, b) => (b.memoryMiB || 0) - (a.memoryMiB || 0)).slice(0, 10)
+      .map(h => ({ label: h.name.substring(0, 25), value: Math.round(mibToGiB(h.memoryMiB || 0)) }));
+    this.drawHorizontalBarChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, chartHeight, 'Top Hosts by Memory', topByMemory, 'GiB');
+  }
+
+  // ===== RESOURCE POOLS SECTION =====
+  private addResourcePoolsSection(data: RVToolsData): void {
+    this.addSectionTitle('Resource Pool Analysis');
+
+    const pools = data.vResourcePool;
+    const totalVMs = pools.reduce((sum, p) => sum + (p.vmCount || 0), 0);
+    const poolsWithCpuReservation = pools.filter(p => (p.cpuReservation || 0) > 0).length;
+    const poolsWithMemReservation = pools.filter(p => (p.memoryReservation || 0) > 0).length;
+
+    // Metric cards
+    const cardWidth = (CONTENT_WIDTH - 15) / 4;
+    const metrics = [
+      { label: 'Resource Pools', value: formatNumber(pools.length), color: COLORS.blue60 },
+      { label: 'VMs in Pools', value: formatNumber(totalVMs), color: COLORS.teal50 },
+      { label: 'CPU Reservations', value: formatNumber(poolsWithCpuReservation), color: COLORS.green50 },
+      { label: 'Memory Reservations', value: formatNumber(poolsWithMemReservation), color: COLORS.purple60 },
+    ];
+    metrics.forEach((m, i) => {
+      this.drawMetricCard(MARGIN + (i * (cardWidth + 5)), this.currentY, cardWidth, 28, m.value, m.label, m.color);
+    });
+    this.currentY += 38;
+
+    // Reservation Status Charts
+    const chartWidth = (CONTENT_WIDTH - 10) / 2;
+    const chartHeight = 60;
+    this.ensureSpace(chartHeight + 10);
+
+    const cpuResData = [
+      { label: 'With CPU Reservation', value: poolsWithCpuReservation, color: COLORS.green50 },
+      { label: 'No CPU Reservation', value: pools.length - poolsWithCpuReservation, color: COLORS.gray60 },
+    ].filter(d => d.value > 0);
+    this.drawPieChart(MARGIN, this.currentY, chartWidth, chartHeight, 'CPU Reservation Status', cpuResData);
+
+    const memResData = [
+      { label: 'With Memory Reservation', value: poolsWithMemReservation, color: COLORS.purple60 },
+      { label: 'No Memory Reservation', value: pools.length - poolsWithMemReservation, color: COLORS.gray60 },
+    ].filter(d => d.value > 0);
+    this.drawPieChart(MARGIN + chartWidth + 10, this.currentY, chartWidth, chartHeight, 'Memory Reservation Status', memResData);
+    this.currentY += chartHeight + 10;
+
+    // Top Pools by VM Count
+    const barChartHeight = 65;
+    this.ensureSpace(barChartHeight + 10);
+
+    const topPools = [...pools].sort((a, b) => (b.vmCount || 0) - (a.vmCount || 0)).slice(0, 10)
+      .map(p => ({ label: p.name.substring(0, 25), value: p.vmCount || 0 }));
+    this.drawHorizontalBarChart(MARGIN, this.currentY, CONTENT_WIDTH, barChartHeight, 'Resource Pools by VM Count', topPools, 'VMs');
+  }
+
+  // ===== DRAWING HELPERS =====
+
+  private drawMetricCard(x: number, y: number, width: number, height: number, value: string, label: string, color: string): void {
+    // Card background
+    this.doc.setFillColor(...hexToRgb(COLORS.white));
+    this.doc.setDrawColor(...hexToRgb(COLORS.gray20));
+    this.doc.roundedRect(x, y, width, height, 2, 2, 'FD');
+
+    // Color accent bar
+    this.doc.setFillColor(...hexToRgb(color));
+    this.doc.rect(x, y, 3, height, 'F');
+
+    // Value
+    this.doc.setFontSize(FONT.sectionTitle);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setTextColor(...hexToRgb(COLORS.gray100));
+    this.doc.text(value, x + 8, y + height / 2 - 2);
+
+    // Label
+    this.doc.setFontSize(FONT.small);
+    this.doc.setFont('helvetica', 'normal');
+    this.doc.setTextColor(...hexToRgb(COLORS.gray60));
+    this.doc.text(label, x + 8, y + height / 2 + 6);
+  }
+
+  private drawPieChart(x: number, y: number, width: number, height: number, title: string, data: { label: string; value: number; color?: string }[]): void {
+    // Background and border
+    this.doc.setFillColor(...hexToRgb(COLORS.white));
+    this.doc.setDrawColor(...hexToRgb(COLORS.gray20));
+    this.doc.roundedRect(x, y, width, height, 2, 2, 'FD');
+
+    // Title
+    this.doc.setFontSize(FONT.body);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setTextColor(...hexToRgb(COLORS.gray100));
+    this.doc.text(title, x + 5, y + 8);
+
+    const total = data.reduce((sum, d) => sum + d.value, 0);
+    if (total === 0) return;
+
+    // Pie chart center and radius
+    const centerX = x + width * 0.35;
+    const centerY = y + height * 0.55;
+    const radius = Math.min(width * 0.25, height * 0.35);
+
+    let startAngle = -Math.PI / 2; // Start from top
+
+    // Draw each slice
+    data.forEach((d, i) => {
+      const sliceAngle = (d.value / total) * 2 * Math.PI;
+      const endAngle = startAngle + sliceAngle;
+      const color = d.color || CHART_COLORS[i % CHART_COLORS.length];
+
+      // Set fill color
+      this.doc.setFillColor(...hexToRgb(color));
+
+      // Use more steps for smoother arcs
+      const steps = Math.max(20, Math.ceil(sliceAngle * 30));
+
+      // Fill the arc area with triangles (no stroke)
+      for (let j = 0; j < steps; j++) {
+        const a1 = startAngle + (j / steps) * sliceAngle;
+        const a2 = startAngle + ((j + 1) / steps) * sliceAngle;
+
+        // Draw triangle from center to arc segment
+        this.doc.triangle(
+          centerX, centerY,
+          centerX + radius * Math.cos(a1), centerY + radius * Math.sin(a1),
+          centerX + radius * Math.cos(a2), centerY + radius * Math.sin(a2),
+          'F'  // Fill only, no stroke
+        );
       }
-    }
 
-    this.addSubsectionTitle('Detected Workloads');
-    if (Object.keys(workloadCounts).length > 0) {
-      Object.entries(workloadCounts)
-        .sort((a, b) => b[1] - a[1])
-        .forEach(([name, count]) => {
-          this.addTextLine(`${name}: ${count} VM${count !== 1 ? 's' : ''}`);
-        });
-    } else {
-      this.addTextLine('No specific workloads detected from VM naming patterns');
-    }
-
-    this.currentY += 10;
-
-    // Appliance Detection
-    this.addSubsectionTitle('Virtual Appliances');
-    const appliancePatterns = ['appliance', 'ova', 'vcsa', 'vcenter', 'nsx-manager', 'vrops', 'vra'];
-    const appliances = vms.filter(vm => {
-      const vmNameLower = vm.vmName.toLowerCase();
-      const annotationLower = (vm.annotation || '').toLowerCase();
-      return appliancePatterns.some(p => vmNameLower.includes(p) || annotationLower.includes(p));
+      startAngle = endAngle;
     });
 
-    if (appliances.length > 0) {
-      this.doc.setTextColor(...COLORS.warning);
-      this.addTextLine(`${appliances.length} virtual appliances detected`);
-      this.addTextLine('Appliances may require vendor-specific migration paths');
-    } else {
-      this.doc.setTextColor(...COLORS.success);
-      this.addTextLine('No virtual appliances detected');
-    }
-    this.doc.setTextColor(...COLORS.text);
+    // Legend
+    const legendX = x + width * 0.6;
+    let legendY = y + 18;
+    const legendBoxSize = 3;
 
-    this.currentY += 10;
+    this.doc.setFontSize(FONT.tiny);
+    data.slice(0, 5).forEach((d, i) => {
+      const color = d.color || CHART_COLORS[i % CHART_COLORS.length];
+      this.doc.setFillColor(...hexToRgb(color));
+      this.doc.rect(legendX, legendY - 2.5, legendBoxSize, legendBoxSize, 'F');
 
-    // ESXi Version Status
-    this.addSubsectionTitle('ESXi Version Analysis');
-    const esxiVersions = hosts.reduce((acc, host) => {
-      const version = host.esxiVersion || 'Unknown';
-      acc[version] = (acc[version] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const eolVersions = ['5.0', '5.1', '5.5', '6.0', '6.5', '6.7'];
-    let eolHostCount = 0;
-
-    Object.entries(esxiVersions)
-      .sort((a, b) => b[1] - a[1])
-      .forEach(([version, count]) => {
-        const isEOL = eolVersions.some(v => version.includes(v));
-        if (isEOL) {
-          eolHostCount += count;
-          this.doc.setTextColor(...COLORS.error);
-        } else {
-          this.doc.setTextColor(...COLORS.success);
-        }
-        this.addTextLine(`${version}: ${count} host${count !== 1 ? 's' : ''} ${isEOL ? '(EOL)' : ''}`);
-      });
-    this.doc.setTextColor(...COLORS.text);
-
-    if (eolHostCount > 0) {
-      this.doc.setTextColor(...COLORS.warning);
-      this.addTextLine(`Warning: ${eolHostCount} hosts running end-of-life ESXi versions`);
-      this.doc.setTextColor(...COLORS.text);
-    }
-
-    this.currentY += 10;
-
-    // Cluster HA Risk
-    this.addSubsectionTitle('Cluster HA Analysis');
-    const clustersUnder3Hosts = clusters.filter(c => c.hostCount < 3);
-    if (clustersUnder3Hosts.length === 0) {
-      this.doc.setTextColor(...COLORS.success);
-      this.addTextLine('All clusters have 3+ hosts for proper HA');
-    } else {
-      this.doc.setTextColor(...COLORS.warning);
-      this.addTextLine(`${clustersUnder3Hosts.length} cluster${clustersUnder3Hosts.length !== 1 ? 's' : ''} with fewer than 3 hosts:`);
-      clustersUnder3Hosts.forEach(c => {
-        this.addTextLine(`  - ${c.name}: ${c.hostCount} host${c.hostCount !== 1 ? 's' : ''}`);
-      });
-    }
-    this.doc.setTextColor(...COLORS.text);
-
-    this.currentY += 10;
-
-    // Large Memory/Core Checks
-    this.addSubsectionTitle('Compute Edge Cases');
-    const MEMORY_2TB_MIB = 2 * 1024 * 1024;
-    const largeMemoryVMs = vms.filter(vm => vm.memory >= MEMORY_2TB_MIB);
-    const largeHostCores = hosts.filter(h => h.totalCpuCores > 64);
-    const veryLargeHostCores = hosts.filter(h => h.totalCpuCores > 128);
-
-    if (largeMemoryVMs.length > 0) {
-      this.doc.setTextColor(...COLORS.warning);
-      this.addTextLine(`${largeMemoryVMs.length} VM${largeMemoryVMs.length !== 1 ? 's' : ''} with 2TB+ memory`);
-    }
-    if (largeHostCores.length > 0) {
-      this.addTextLine(`${largeHostCores.length} host${largeHostCores.length !== 1 ? 's' : ''} with 64+ CPU cores`);
-    }
-    if (veryLargeHostCores.length > 0) {
-      this.addTextLine(`${veryLargeHostCores.length} host${veryLargeHostCores.length !== 1 ? 's' : ''} with 128+ CPU cores`);
-    }
-    if (largeMemoryVMs.length === 0 && largeHostCores.length === 0) {
-      this.doc.setTextColor(...COLORS.success);
-      this.addTextLine('No compute edge cases detected');
-    }
-    this.doc.setTextColor(...COLORS.text);
-
-    // Memory Balloon Check
-    this.currentY += 10;
-    this.addSubsectionTitle('Memory Ballooning');
-    const vMemoryMap = new Map(data.vMemory.map(m => [m.vmName, m]));
-    const balloonedVMs = vms.filter(vm => {
-      const memInfo = vMemoryMap.get(vm.vmName);
-      return memInfo && (memInfo.ballooned || 0) > 0;
+      this.doc.setTextColor(...hexToRgb(COLORS.gray70));
+      const pct = total > 0 ? ((d.value / total) * 100).toFixed(0) : '0';
+      const legendText = `${d.label.substring(0, 12)} (${pct}%)`;
+      this.doc.text(legendText, legendX + legendBoxSize + 2, legendY);
+      legendY += 6;
     });
-
-    if (balloonedVMs.length === 0) {
-      this.doc.setTextColor(...COLORS.success);
-      this.addTextLine('No VMs with active memory ballooning');
-    } else {
-      this.doc.setTextColor(...COLORS.warning);
-      this.addTextLine(`${balloonedVMs.length} VMs with active memory ballooning`);
-      this.addTextLine('Review memory allocation before migration');
-    }
-    this.doc.setTextColor(...COLORS.text);
-
-    // Host Hardware Models
-    this.currentY += 10;
-    this.addSubsectionTitle('Host Hardware Models');
-    const hostModels = hosts.reduce((acc, host) => {
-      const model = `${host.vendor || ''} ${host.model || ''}`.trim() || 'Unknown';
-      acc[model] = (acc[model] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    Object.entries(hostModels)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
-      .forEach(([model, count]) => {
-        this.addTextLine(`${model}: ${count} host${count !== 1 ? 's' : ''}`);
-      });
   }
 
-  private addVMList(data: RVToolsData): void {
-    this.addSectionTitle('Virtual Machine Inventory');
+  private drawHorizontalBarChart(x: number, y: number, width: number, height: number, title: string, data: { label: string; value: number }[], _unit: string): void {
+    // Background and border
+    this.doc.setFillColor(...hexToRgb(COLORS.white));
+    this.doc.setDrawColor(...hexToRgb(COLORS.gray20));
+    this.doc.roundedRect(x, y, width, height, 2, 2, 'FD');
 
-    const vms = data.vInfo.filter(vm => !vm.template);
+    // Title
+    this.doc.setFontSize(FONT.body);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setTextColor(...hexToRgb(COLORS.gray100));
+    this.doc.text(title, x + 5, y + 8);
 
-    // Table header
-    const headers = ['VM Name', 'Power', 'vCPUs', 'Memory', 'Storage', 'OS'];
-    const colWidths = [50, 20, 15, 20, 20, 45];
+    if (data.length === 0) return;
 
-    this.addTableHeader(headers, colWidths);
+    const maxValue = Math.max(...data.map(d => d.value));
+    const chartX = x + 35;
+    const chartWidth = width - 50;
+    const chartY = y + 14;
+    const barHeight = Math.min(6, (height - 20) / data.length - 1);
+    const barGap = 1;
 
-    // Table rows
-    vms.slice(0, 50).forEach(vm => { // Limit to 50 VMs to avoid huge PDFs
-      this.checkPageBreak(8);
-
-      const row = [
-        vm.vmName.substring(0, 25),
-        vm.powerState === 'poweredOn' ? 'On' : 'Off',
-        vm.cpus.toString(),
-        `${mibToGiB(vm.memory).toFixed(0)} GB`,
-        `${mibToGiB(vm.provisionedMiB).toFixed(0)} GB`,
-        (vm.guestOS || 'Unknown').substring(0, 25),
-      ];
-
-      this.addTableRow(row, colWidths);
-    });
-
-    if (vms.length > 50) {
-      this.currentY += 5;
-      this.doc.setFontSize(FONTS.small);
-      this.doc.setTextColor(...COLORS.lightText);
-      this.doc.text(`... and ${vms.length - 50} more VMs (truncated for PDF)`, MARGINS.left, this.currentY);
-    }
-  }
-
-  // Helper methods
-  private addNewPage(): void {
-    this.doc.addPage();
-    this.currentY = MARGINS.top;
-  }
-
-  private checkPageBreak(neededSpace: number): void {
-    if (this.currentY + neededSpace > this.pageHeight - MARGINS.bottom) {
-      this.addNewPage();
-    }
-  }
-
-  private addSectionTitle(title: string): void {
-    this.doc.setFontSize(FONTS.heading);
-    this.doc.setTextColor(...COLORS.primary);
-    this.doc.text(title, MARGINS.left, this.currentY);
-    this.currentY += 3;
-
-    // Underline
-    this.doc.setDrawColor(...COLORS.primary);
-    this.doc.setLineWidth(0.5);
-    this.doc.line(MARGINS.left, this.currentY, MARGINS.left + 60, this.currentY);
-    this.currentY += 10;
-  }
-
-  private addSubsectionTitle(title: string): void {
-    this.checkPageBreak(15);
-    this.doc.setFontSize(FONTS.subheading);
-    this.doc.setTextColor(...COLORS.secondary);
-    this.doc.text(title, MARGINS.left, this.currentY);
-    this.currentY += 8;
-  }
-
-  private addTextLine(text: string): void {
-    this.checkPageBreak(6);
-    this.doc.setFontSize(FONTS.body);
-    this.doc.setTextColor(...COLORS.text);
-    this.doc.text(text, MARGINS.left + 5, this.currentY);
-    this.currentY += 6;
-  }
-
-  private addMetricRow(metrics: { label: string; value: string }[]): void {
-    this.checkPageBreak(20);
-
-    const boxHeight = 15;
-    const boxWidth = this.contentWidth / metrics.length - 2;
-
-    metrics.forEach((metric, i) => {
-      const x = MARGINS.left + i * (boxWidth + 2);
-
-      // Box
-      this.doc.setDrawColor(...COLORS.border);
-      this.doc.setFillColor(248, 248, 248);
-      this.doc.roundedRect(x, this.currentY, boxWidth, boxHeight, 2, 2, 'FD');
-
-      // Value
-      this.doc.setFontSize(FONTS.subheading);
-      this.doc.setTextColor(...COLORS.primary);
-      this.doc.text(metric.value, x + boxWidth / 2, this.currentY + 6, { align: 'center' });
+    data.slice(0, 8).forEach((d, i) => {
+      const barY = chartY + i * (barHeight + barGap);
+      const barWidth = maxValue > 0 ? (d.value / maxValue) * chartWidth : 0;
 
       // Label
-      this.doc.setFontSize(FONTS.small);
-      this.doc.setTextColor(...COLORS.lightText);
-      this.doc.text(metric.label, x + boxWidth / 2, this.currentY + 12, { align: 'center' });
+      this.doc.setFontSize(FONT.tiny);
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setTextColor(...hexToRgb(COLORS.gray70));
+      this.doc.text(d.label.substring(0, 12), x + 3, barY + barHeight - 1);
+
+      // Bar
+      const color = CHART_COLORS[i % CHART_COLORS.length];
+      this.doc.setFillColor(...hexToRgb(color));
+      this.doc.roundedRect(chartX, barY, Math.max(barWidth, 1), barHeight, 1, 1, 'F');
+
+      // Value
+      this.doc.setFontSize(FONT.tiny);
+      this.doc.setTextColor(...hexToRgb(COLORS.gray100));
+      this.doc.text(`${formatNumber(d.value)}`, chartX + barWidth + 2, barY + barHeight - 1);
     });
-
-    this.currentY += boxHeight + 5;
   }
 
-  private addTableHeader(headers: string[], colWidths: number[]): void {
-    this.checkPageBreak(10);
+  private drawVerticalBarChart(x: number, y: number, width: number, height: number, title: string, data: { label: string; value: number }[], _unit: string): void {
+    // Background and border
+    this.doc.setFillColor(...hexToRgb(COLORS.white));
+    this.doc.setDrawColor(...hexToRgb(COLORS.gray20));
+    this.doc.roundedRect(x, y, width, height, 2, 2, 'FD');
 
-    let x = MARGINS.left;
-    this.doc.setFontSize(FONTS.small);
-    this.doc.setTextColor(255, 255, 255);
-    this.doc.setFillColor(...COLORS.primary);
+    // Title
+    this.doc.setFontSize(FONT.body);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setTextColor(...hexToRgb(COLORS.gray100));
+    this.doc.text(title, x + 5, y + 8);
 
-    // Header background
-    this.doc.rect(MARGINS.left, this.currentY - 4, this.contentWidth, 7, 'F');
+    if (data.length === 0) return;
 
-    headers.forEach((header, i) => {
-      this.doc.text(header, x + 2, this.currentY);
-      x += colWidths[i];
+    const maxValue = Math.max(...data.map(d => d.value));
+    const chartX = x + 8;
+    const chartWidth = width - 16;
+    const chartY = y + 14;
+    const chartHeight = height - 28;
+    const barWidth = Math.min(15, chartWidth / data.length - 2);
+    const barGap = 2;
+
+    data.forEach((d, i) => {
+      const barX = chartX + i * (barWidth + barGap);
+      const barHeight = maxValue > 0 ? (d.value / maxValue) * chartHeight : 0;
+      const barY = chartY + chartHeight - barHeight;
+
+      // Bar
+      const color = CHART_COLORS[i % CHART_COLORS.length];
+      this.doc.setFillColor(...hexToRgb(color));
+      this.doc.roundedRect(barX, barY, barWidth, barHeight, 1, 1, 'F');
+
+      // Label
+      this.doc.setFontSize(FONT.tiny);
+      this.doc.setFont('helvetica', 'normal');
+      this.doc.setTextColor(...hexToRgb(COLORS.gray70));
+      this.doc.text(d.label, barX + barWidth / 2, chartY + chartHeight + 5, { align: 'center', maxWidth: barWidth + barGap });
+
+      // Value on top
+      this.doc.setTextColor(...hexToRgb(COLORS.gray100));
+      this.doc.text(`${d.value}`, barX + barWidth / 2, barY - 1, { align: 'center' });
     });
-
-    this.currentY += 5;
   }
 
-  private addTableRow(cells: string[], colWidths: number[]): void {
-    let x = MARGINS.left;
-    this.doc.setFontSize(FONTS.small);
-    this.doc.setTextColor(...COLORS.text);
+  // ===== DATA HELPERS =====
 
-    cells.forEach((cell, i) => {
-      this.doc.text(cell, x + 2, this.currentY);
-      x += colWidths[i];
-    });
-
-    // Row border
-    this.doc.setDrawColor(...COLORS.border);
-    this.doc.line(MARGINS.left, this.currentY + 2, MARGINS.left + this.contentWidth, this.currentY + 2);
-
-    this.currentY += 6;
-  }
-
-  private addPageNumbers(): void {
-    const totalPages = this.doc.getNumberOfPages();
-
-    for (let i = 1; i <= totalPages; i++) {
-      this.doc.setPage(i);
-      this.doc.setFontSize(FONTS.small);
-      this.doc.setTextColor(...COLORS.lightText);
-      this.doc.text(
-        `Page ${i} of ${totalPages}`,
-        this.pageWidth / 2,
-        this.pageHeight - 10,
-        { align: 'center' }
-      );
-    }
-  }
-
-  // Analysis helpers
-  private getOSDistribution(vms: { guestOS: string }[]): { os: string; count: number }[] {
+  private getOSDistribution(vms: VirtualMachine[]): { label: string; value: number }[] {
     const distribution = vms.reduce((acc, vm) => {
       let os = vm.guestOS || 'Unknown';
-
       // Simplify OS names
-      if (os.toLowerCase().includes('windows server 2019')) os = 'Windows Server 2019';
-      else if (os.toLowerCase().includes('windows server 2016')) os = 'Windows Server 2016';
-      else if (os.toLowerCase().includes('windows server 2022')) os = 'Windows Server 2022';
-      else if (os.toLowerCase().includes('windows server')) os = 'Windows Server (Other)';
+      if (os.toLowerCase().includes('windows server 2022')) os = 'Win Server 2022';
+      else if (os.toLowerCase().includes('windows server 2019')) os = 'Win Server 2019';
+      else if (os.toLowerCase().includes('windows server 2016')) os = 'Win Server 2016';
+      else if (os.toLowerCase().includes('windows server')) os = 'Windows Server';
       else if (os.toLowerCase().includes('rhel') || os.toLowerCase().includes('red hat')) os = 'RHEL';
       else if (os.toLowerCase().includes('centos')) os = 'CentOS';
       else if (os.toLowerCase().includes('ubuntu')) os = 'Ubuntu';
       else if (os.toLowerCase().includes('sles') || os.toLowerCase().includes('suse')) os = 'SLES';
       else if (os.toLowerCase().includes('linux')) os = 'Linux (Other)';
-
+      else if (os.length > 20) os = os.substring(0, 17) + '...';
       acc[os] = (acc[os] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
     return Object.entries(distribution)
-      .map(([os, count]) => ({ os, count }))
-      .sort((a, b) => b.count - a.count);
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, value]) => ({ label, value }));
   }
 
-  private getCPUDistribution(vms: { cpus: number }[]): { bucket: string; count: number }[] {
-    const buckets = [
-      { bucket: '1-2', min: 1, max: 2 },
-      { bucket: '3-4', min: 3, max: 4 },
-      { bucket: '5-8', min: 5, max: 8 },
-      { bucket: '9-16', min: 9, max: 16 },
-      { bucket: '17-32', min: 17, max: 32 },
-      { bucket: '33+', min: 33, max: Infinity },
-    ];
+  private getClusterDistribution(vms: VirtualMachine[]): { label: string; value: number }[] {
+    const distribution = vms.reduce((acc, vm) => {
+      const cluster = vm.cluster || 'Unknown';
+      acc[cluster] = (acc[cluster] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-    return buckets.map(({ bucket, min, max }) => ({
-      bucket,
-      count: vms.filter(vm => vm.cpus >= min && vm.cpus <= max).length,
-    })).filter(b => b.count > 0);
+    return Object.entries(distribution)
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, value]) => ({ label: label.substring(0, 20), value }));
   }
 
-  private analyzeToolsStatus(data: RVToolsData): { running: number; outdated: number; notInstalled: number } {
-    const vms = data.vInfo.filter(vm => !vm.template && vm.powerState === 'poweredOn');
+  private getHardwareVersionDistribution(vms: VirtualMachine[]): { label: string; value: number; color?: string }[] {
+    const distribution = vms.reduce((acc, vm) => {
+      const version = vm.hardwareVersion || 'Unknown';
+      acc[version] = (acc[version] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(distribution)
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .slice(0, 8)
+      .map(([label, value]) => ({ label, value }));
+  }
+
+  private getToolsStatusDistribution(data: RVToolsData, vms: VirtualMachine[]): { label: string; value: number; color?: string }[] {
     const toolsMap = new Map(data.vTools.map(t => [t.vmName, t]));
-
-    let running = 0;
-    let outdated = 0;
-    let notInstalled = 0;
+    const statusCounts = { current: 0, outdated: 0, notRunning: 0, notInstalled: 0 };
 
     vms.forEach(vm => {
       const tools = toolsMap.get(vm.vmName);
       if (!tools) {
-        notInstalled++;
+        statusCounts.notInstalled++;
       } else if (tools.toolsStatus === 'toolsOk') {
-        running++;
+        statusCounts.current++;
       } else if (tools.toolsStatus === 'toolsOld') {
-        outdated++;
+        statusCounts.outdated++;
       } else if (tools.toolsStatus === 'toolsNotInstalled') {
-        notInstalled++;
+        statusCounts.notInstalled++;
       } else {
-        outdated++;
+        statusCounts.notRunning++;
       }
     });
 
-    return { running, outdated, notInstalled };
+    return [
+      { label: 'Current', value: statusCounts.current, color: COLORS.green50 },
+      { label: 'Outdated', value: statusCounts.outdated, color: COLORS.yellow40 },
+      { label: 'Not Running', value: statusCounts.notRunning, color: COLORS.orange40 },
+      { label: 'Not Installed', value: statusCounts.notInstalled, color: COLORS.red60 },
+    ].filter(d => d.value > 0);
+  }
+
+  private getCPUDistribution(vms: VirtualMachine[]): { label: string; value: number }[] {
+    const buckets = [
+      { label: '1-2', min: 1, max: 2 },
+      { label: '3-4', min: 3, max: 4 },
+      { label: '5-8', min: 5, max: 8 },
+      { label: '9-16', min: 9, max: 16 },
+      { label: '17-32', min: 17, max: 32 },
+      { label: '33+', min: 33, max: Infinity },
+    ];
+
+    return buckets.map(b => ({
+      label: b.label,
+      value: vms.filter(vm => vm.cpus >= b.min && vm.cpus <= b.max).length,
+    })).filter(b => b.value > 0);
+  }
+
+  private getMemoryDistribution(vms: VirtualMachine[]): { label: string; value: number }[] {
+    const buckets = [
+      { label: '0-4', min: 0, max: 4 },
+      { label: '5-8', min: 5, max: 8 },
+      { label: '9-16', min: 9, max: 16 },
+      { label: '17-32', min: 17, max: 32 },
+      { label: '33-64', min: 33, max: 64 },
+      { label: '65+', min: 65, max: Infinity },
+    ];
+
+    return buckets.map(b => ({
+      label: b.label,
+      value: vms.filter(vm => {
+        const memGiB = mibToGiB(vm.memory);
+        return memGiB >= b.min && memGiB <= b.max;
+      }).length,
+    })).filter(b => b.value > 0);
+  }
+
+  private getDatastoreTypeDistribution(datastores: VDatastoreInfo[]): { label: string; value: number }[] {
+    const distribution = datastores.reduce((acc, ds) => {
+      const type = ds.type || 'Unknown';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(distribution)
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, value]) => ({ label, value }));
+  }
+
+  private getAdapterTypeDistribution(networks: VNetworkInfo[]): { label: string; value: number }[] {
+    const distribution = networks.reduce((acc, n) => {
+      const type = n.adapterType || 'Unknown';
+      acc[type] = (acc[type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(distribution)
+      .sort((a, b) => b[1] - a[1])
+      .map(([label, value]) => ({ label, value }));
+  }
+
+  private getVMsByNICCount(networks: VNetworkInfo[], vms: VirtualMachine[]): { label: string; value: number }[] {
+    const nicCountByVM = networks.reduce((acc, n) => {
+      acc[n.vmName] = (acc[n.vmName] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const buckets = [
+      { label: '0', min: 0, max: 0 },
+      { label: '1', min: 1, max: 1 },
+      { label: '2', min: 2, max: 2 },
+      { label: '3', min: 3, max: 3 },
+      { label: '4-5', min: 4, max: 5 },
+      { label: '6+', min: 6, max: Infinity },
+    ];
+
+    return buckets.map(b => ({
+      label: b.label,
+      value: vms.filter(vm => {
+        const count = nicCountByVM[vm.vmName] || 0;
+        return count >= b.min && count <= b.max;
+      }).length,
+    })).filter(b => b.value > 0);
+  }
+
+  private getESXiVersionDistribution(hosts: VHostInfo[]): { label: string; value: number }[] {
+    const distribution = hosts.reduce((acc, h) => {
+      const version = h.esxiVersion || 'Unknown';
+      acc[version] = (acc[version] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(distribution)
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .slice(0, 6)
+      .map(([label, value]) => ({ label: label.substring(0, 15), value }));
+  }
+
+  private getVendorDistribution(hosts: VHostInfo[]): { label: string; value: number }[] {
+    const distribution = hosts.reduce((acc, h) => {
+      let vendor = h.vendor || 'Unknown';
+      if (vendor.toLowerCase().includes('dell')) vendor = 'Dell';
+      else if (vendor.toLowerCase().includes('hp') || vendor.toLowerCase().includes('hewlett')) vendor = 'HPE';
+      else if (vendor.toLowerCase().includes('lenovo')) vendor = 'Lenovo';
+      else if (vendor.toLowerCase().includes('cisco')) vendor = 'Cisco';
+      else if (vendor.toLowerCase().includes('supermicro')) vendor = 'Supermicro';
+      acc[vendor] = (acc[vendor] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(distribution)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([label, value]) => ({ label, value }));
+  }
+
+  // ===== PAGE HELPERS =====
+
+  private addNewPage(): void {
+    this.doc.addPage();
+    this.pageNumber++;
+    this.currentY = MARGIN;
+  }
+
+  private ensureSpace(neededSpace: number): void {
+    if (this.currentY + neededSpace > PAGE_HEIGHT - MARGIN) {
+      this.addNewPage();
+    }
+  }
+
+  private addSectionTitle(title: string): void {
+    // Section header bar
+    this.doc.setFillColor(...hexToRgb(COLORS.blue60));
+    this.doc.rect(MARGIN, this.currentY, CONTENT_WIDTH, 10, 'F');
+
+    this.doc.setFontSize(FONT.sectionTitle);
+    this.doc.setFont('helvetica', 'bold');
+    this.doc.setTextColor(...hexToRgb(COLORS.white));
+    this.doc.text(title, MARGIN + 5, this.currentY + 7);
+
+    this.currentY += 18;
+  }
+
+  private addPageNumbers(): void {
+    const totalPages = this.doc.getNumberOfPages();
+
+    for (let i = 2; i <= totalPages; i++) {
+      this.doc.setPage(i);
+      this.doc.setFontSize(FONT.small);
+      this.doc.setTextColor(...hexToRgb(COLORS.gray60));
+      this.doc.text(`Page ${i - 1} of ${totalPages - 1}`, PAGE_WIDTH / 2, PAGE_HEIGHT - 8, { align: 'center' });
+
+      // Header line
+      this.doc.setDrawColor(...hexToRgb(COLORS.gray20));
+      this.doc.setLineWidth(0.5);
+      this.doc.line(MARGIN, 8, PAGE_WIDTH - MARGIN, 8);
+
+      // Header text
+      this.doc.setFontSize(FONT.tiny);
+      this.doc.text('VMware Infrastructure Analysis Report', PAGE_WIDTH - MARGIN, 6, { align: 'right' });
+    }
   }
 }
 
-export async function generatePDF(data: RVToolsData, options?: Partial<PDFOptions>): Promise<Blob> {
-  const generator = new PDFGenerator();
+// Main export function
+export async function generatePDF(data: RVToolsData, options?: PDFExportOptions): Promise<Blob> {
+  const generator = new EnhancedPDFGenerator();
   return generator.generate(data, options);
 }
 
@@ -918,3 +1122,6 @@ export function downloadPDF(blob: Blob, filename: string): void {
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+// Backwards compatibility alias
+export { EnhancedPDFGenerator as PDFGenerator };

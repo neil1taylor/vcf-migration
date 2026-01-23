@@ -3,13 +3,19 @@
 import { Paragraph, Table, TableRow, TextRun, PageBreak, HeadingLevel, BorderStyle, ShadingType, AlignmentType } from 'docx';
 import reportTemplates from '@/data/reportTemplates.json';
 import { STYLES, type DocumentContent, type ROKSSizing, type VSIMapping } from '../types';
-import { createHeading, createParagraph, createBulletList, createTableCell } from '../utils/helpers';
+import { createHeading, createParagraph, createBulletList, createTableCell, createTableDescription, createTableLabel } from '../utils/helpers';
+
+// Type assertion for templates with table/figure descriptions
+const templates = reportTemplates as typeof reportTemplates & {
+  tableDescriptions: Record<string, { title: string; description: string }>;
+  figureDescriptions: Record<string, { title: string; description: string }>;
+};
 
 export function buildCostEstimation(
   roksSizing: ROKSSizing,
   vsiMappings: VSIMapping[]
 ): DocumentContent[] {
-  const templates = reportTemplates.costEstimation;
+  const costTemplates = reportTemplates.costEstimation;
 
   const totalVSIComputeCost = vsiMappings.reduce((sum, m) => sum + m.computeCost, 0);
   const totalBootStorageCost = vsiMappings.reduce((sum, m) => sum + m.bootStorageCost, 0);
@@ -25,12 +31,18 @@ export function buildCostEstimation(
   const annualDifference = (roksMonthlyCost - totalVSIMonthlyCost) * 12;
 
   return [
-    createHeading('8. ' + templates.title, HeadingLevel.HEADING_1),
-    createParagraph(templates.introduction),
-    createParagraph(templates.disclaimer, { spacing: { after: 240 } }),
+    createHeading('8. ' + costTemplates.title, HeadingLevel.HEADING_1),
+    createParagraph(costTemplates.introduction),
+    createParagraph(costTemplates.disclaimer, { spacing: { after: 240 } }),
 
-    createHeading('8.1 ' + templates.sections.comparison.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.sections.comparison.description),
+    createHeading('8.1 ' + costTemplates.sections.comparison.title, HeadingLevel.HEADING_2),
+    createParagraph(costTemplates.sections.comparison.description),
+
+    // Cost comparison table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.costComparison.title,
+      templates.tableDescriptions.costComparison.description
+    ),
     new Table({
       width: { size: 100, type: 'pct' as const },
       borders: {
@@ -71,9 +83,14 @@ export function buildCostEstimation(
         }),
       ],
     }),
+    createTableLabel(templates.tableDescriptions.costComparison.title),
 
     new Paragraph({ spacing: { before: 200 } }),
-    createParagraph('VSI Block Storage Breakdown', { bold: true }),
+    // VSI Storage breakdown table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.vsiStorageBreakdown.title,
+      templates.tableDescriptions.vsiStorageBreakdown.description
+    ),
     new Table({
       width: { size: 100, type: 'pct' as const },
       borders: {
@@ -119,6 +136,7 @@ export function buildCostEstimation(
         }),
       ],
     }),
+    createTableLabel(templates.tableDescriptions.vsiStorageBreakdown.title),
 
     new Paragraph({ spacing: { before: 160 } }),
     createParagraph('Data Volume Storage Tier Assumptions:', { bold: true }),
@@ -167,8 +185,8 @@ export function buildCostEstimation(
     ]),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('8.3 ' + templates.notes.title, HeadingLevel.HEADING_2),
-    ...createBulletList(templates.notes.items),
+    createHeading('8.3 ' + costTemplates.notes.title, HeadingLevel.HEADING_2),
+    ...createBulletList(costTemplates.notes.items),
 
     new Paragraph({ children: [new PageBreak()] }),
   ];

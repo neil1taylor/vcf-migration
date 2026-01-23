@@ -1,8 +1,30 @@
 // About page with version info, changelog, and technology stack
 import { Grid, Column, Tile, Accordion, AccordionItem, Tag, Link } from '@carbon/react';
 import { LogoGithub, Launch, Document } from '@carbon/icons-react';
-import changelog from '@/data/changelog.json';
+import changelogData from '@/data/changelog.json';
 import './AboutPage.scss';
+
+// Type definition for changelog sections
+interface ChangelogSections {
+  added?: string[];
+  changed?: string[];
+  fixed?: string[];
+  removed?: string[];
+  deprecated?: string[];
+  security?: string[];
+}
+
+interface ChangelogRelease {
+  version: string;
+  date: string;
+  sections: ChangelogSections;
+}
+
+interface Changelog {
+  releases: ChangelogRelease[];
+}
+
+const changelog = changelogData as Changelog;
 
 // Technology stack information
 const techStack = [
@@ -149,6 +171,66 @@ export function AboutPage() {
                         </h4>
                         <ul>
                           {release.sections.added.map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {release.sections.changed && release.sections.changed.length > 0 && (
+                      <div className="about-page__release-section">
+                        <h4>
+                          <Tag type="blue" size="sm">Changed</Tag>
+                        </h4>
+                        <ul>
+                          {release.sections.changed.map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {release.sections.fixed && release.sections.fixed.length > 0 && (
+                      <div className="about-page__release-section">
+                        <h4>
+                          <Tag type="purple" size="sm">Fixed</Tag>
+                        </h4>
+                        <ul>
+                          {release.sections.fixed.map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {release.sections.removed && release.sections.removed.length > 0 && (
+                      <div className="about-page__release-section">
+                        <h4>
+                          <Tag type="red" size="sm">Removed</Tag>
+                        </h4>
+                        <ul>
+                          {release.sections.removed.map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {release.sections.deprecated && release.sections.deprecated.length > 0 && (
+                      <div className="about-page__release-section">
+                        <h4>
+                          <Tag type="magenta" size="sm">Deprecated</Tag>
+                        </h4>
+                        <ul>
+                          {release.sections.deprecated.map((item, index) => (
+                            <li key={index}>{item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {release.sections.security && release.sections.security.length > 0 && (
+                      <div className="about-page__release-section">
+                        <h4>
+                          <Tag type="red" size="sm">Security</Tag>
+                        </h4>
+                        <ul>
+                          {release.sections.security.map((item, index) => (
                             <li key={index}>{item}</li>
                           ))}
                         </ul>

@@ -6,11 +6,11 @@ import {
   UnorderedList,
   ListItem,
 } from '@carbon/react';
-import { Warning, ErrorFilled, InformationFilled } from '@carbon/icons-react';
+import { Warning, ErrorFilled, InformationFilled, CheckmarkFilled } from '@carbon/icons-react';
 import { RedHatDocLink } from './RedHatDocLink';
 import './RemediationPanel.scss';
 
-export type RemediationSeverity = 'blocker' | 'warning' | 'info';
+export type RemediationSeverity = 'blocker' | 'warning' | 'info' | 'success' | 'unknown';
 
 export interface RemediationItem {
   id: string;
@@ -21,6 +21,8 @@ export interface RemediationItem {
   documentationLink?: string;
   affectedCount: number;
   affectedVMs?: string[];
+  /** If true, show "Unknown" tag instead of VM count (for checks not verifiable via RVTools) */
+  isUnverifiable?: boolean;
 }
 
 interface RemediationPanelProps {
@@ -31,7 +33,7 @@ interface RemediationPanelProps {
 }
 
 const severityConfig: Record<RemediationSeverity, {
-  tagType: 'red' | 'magenta' | 'blue';
+  tagType: 'red' | 'magenta' | 'blue' | 'green' | 'purple';
   icon: typeof ErrorFilled;
   label: string;
 }> = {
@@ -50,11 +52,21 @@ const severityConfig: Record<RemediationSeverity, {
     icon: InformationFilled,
     label: 'Info',
   },
+  success: {
+    tagType: 'green',
+    icon: CheckmarkFilled,
+    label: 'Passed',
+  },
+  unknown: {
+    tagType: 'purple',
+    icon: InformationFilled,
+    label: 'Unknown',
+  },
 };
 
 export function RemediationPanel({
   items,
-  title = 'Remediation Required',
+  title = 'Remediation',
   showAffectedVMs = false,
   maxVMsToShow = 5,
 }: RemediationPanelProps) {
@@ -62,14 +74,15 @@ export function RemediationPanel({
     return null;
   }
 
-  // Sort by severity: blockers first, then warnings, then info
+  // Sort by severity: blockers first, then warnings, then unknown, then info, then success
   const sortedItems = [...items].sort((a, b) => {
-    const order: RemediationSeverity[] = ['blocker', 'warning', 'info'];
+    const order: RemediationSeverity[] = ['blocker', 'warning', 'unknown', 'info', 'success'];
     return order.indexOf(a.severity) - order.indexOf(b.severity);
   });
 
   const blockerCount = items.filter(i => i.severity === 'blocker').length;
   const warningCount = items.filter(i => i.severity === 'warning').length;
+  const successCount = items.filter(i => i.severity === 'success').length;
 
   return (
     <div className="remediation-panel">
@@ -86,6 +99,11 @@ export function RemediationPanel({
               {warningCount} {warningCount === 1 ? 'Warning' : 'Warnings'}
             </Tag>
           )}
+          {successCount > 0 && blockerCount === 0 && warningCount === 0 && (
+            <Tag type="green" size="sm">
+              All Checks Passed
+            </Tag>
+          )}
         </div>
       </div>
 
@@ -93,6 +111,18 @@ export function RemediationPanel({
         {sortedItems.map((item) => {
           const config = severityConfig[item.severity];
           const Icon = config.icon;
+          const isSuccess = item.severity === 'success';
+          const isUnverifiable = item.isUnverifiable || item.severity === 'unknown';
+
+          // Determine tag text
+          let tagText: string;
+          if (isUnverifiable) {
+            tagText = 'Unknown';
+          } else if (isSuccess) {
+            tagText = 'Passed';
+          } else {
+            tagText = `${item.affectedCount} ${item.affectedCount === 1 ? 'VM' : 'VMs'}`;
+          }
 
           return (
             <AccordionItem
@@ -105,7 +135,7 @@ export function RemediationPanel({
                   />
                   <span className="remediation-panel__item-name">{item.name}</span>
                   <Tag type={config.tagType} size="sm">
-                    {item.affectedCount} {item.affectedCount === 1 ? 'VM' : 'VMs'}
+                    {tagText}
                   </Tag>
                 </div>
               }
@@ -114,23 +144,25 @@ export function RemediationPanel({
               <div className="remediation-panel__item-content">
                 <p className="remediation-panel__description">{item.description}</p>
 
-                <div className="remediation-panel__remediation">
-                  <h4>Remediation Steps</h4>
-                  <p>{item.remediation}</p>
-                </div>
+                {item.remediation && (
+                  <div className="remediation-panel__remediation">
+                    <h4>Remediation Steps</h4>
+                    <p>{item.remediation}</p>
+                  </div>
+                )}
 
                 {item.documentationLink && (
                   <div className="remediation-panel__docs">
                     <RedHatDocLink
                       href={item.documentationLink}
                       label="View Documentation"
-                      description="Official documentation for this remediation"
+                      description={isSuccess ? 'Learn more about this check' : 'Official documentation for this remediation'}
                       size="sm"
                     />
                   </div>
                 )}
 
-                {showAffectedVMs && item.affectedVMs && item.affectedVMs.length > 0 && (
+                {showAffectedVMs && item.affectedVMs && item.affectedVMs.length > 0 && !isSuccess && !isUnverifiable && (
                   <div className="remediation-panel__vms">
                     <h4>Affected VMs</h4>
                     <UnorderedList>

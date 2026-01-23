@@ -5,6 +5,7 @@ import {
   Content,
   Modal,
   Checkbox,
+  Button,
   InlineLoading,
   InlineNotification,
 } from '@carbon/react';
@@ -12,22 +13,17 @@ import { TopNav } from './TopNav';
 import { SideNav } from './SideNav';
 import { ROUTES } from '@/utils/constants';
 import { useData, usePDFExport, useExcelExport, useDocxExport } from '@/hooks';
+import type { PDFExportOptions } from '@/hooks/usePDFExport';
 import './AppLayout.scss';
 
-interface ExportOptions {
-  includeExecutiveSummary: boolean;
-  includeComputeAnalysis: boolean;
-  includeStorageAnalysis: boolean;
-  includeMTVReadiness: boolean;
-  includeVMList: boolean;
-}
-
-const DEFAULT_OPTIONS: ExportOptions = {
-  includeExecutiveSummary: true,
-  includeComputeAnalysis: true,
-  includeStorageAnalysis: true,
-  includeMTVReadiness: true,
-  includeVMList: false,
+const DEFAULT_OPTIONS: PDFExportOptions = {
+  includeDashboard: true,
+  includeCompute: true,
+  includeStorage: true,
+  includeNetwork: true,
+  includeClusters: true,
+  includeHosts: true,
+  includeResourcePools: true,
 };
 
 export function AppLayout() {
@@ -38,7 +34,7 @@ export function AppLayout() {
   const { exportDocx } = useDocxExport();
   const [isSideNavExpanded] = useState(true);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [exportOptions, setExportOptions] = useState<ExportOptions>(DEFAULT_OPTIONS);
+  const [exportOptions, setExportOptions] = useState<PDFExportOptions>(DEFAULT_OPTIONS);
 
   const handleUploadClick = useCallback(() => {
     navigate(ROUTES.home);
@@ -68,12 +64,38 @@ export function AppLayout() {
     setIsExportModalOpen(false);
   }, []);
 
-  const handleOptionChange = useCallback((key: keyof ExportOptions) => {
+  const handleOptionChange = useCallback((key: keyof PDFExportOptions) => {
     setExportOptions(prev => ({
       ...prev,
       [key]: !prev[key],
     }));
   }, []);
+
+  const handleSelectAll = useCallback(() => {
+    setExportOptions({
+      includeDashboard: true,
+      includeCompute: true,
+      includeStorage: true,
+      includeNetwork: true,
+      includeClusters: true,
+      includeHosts: true,
+      includeResourcePools: true,
+    });
+  }, []);
+
+  const handleSelectNone = useCallback(() => {
+    setExportOptions({
+      includeDashboard: false,
+      includeCompute: false,
+      includeStorage: false,
+      includeNetwork: false,
+      includeClusters: false,
+      includeHosts: false,
+      includeResourcePools: false,
+    });
+  }, []);
+
+  const hasAnySelected = Object.values(exportOptions).some(v => v);
 
   const handleExport = useCallback(async () => {
     if (!rawData) return;
@@ -108,9 +130,9 @@ export function AppLayout() {
         primaryButtonText={isExporting ? 'Generating...' : 'Export'}
         secondaryButtonText="Cancel"
         onRequestSubmit={handleExport}
-        primaryButtonDisabled={isExporting}
+        primaryButtonDisabled={isExporting || !hasAnySelected}
         size="sm"
-        selectorPrimaryFocus="#opt-executive"
+        selectorPrimaryFocus="#opt-dashboard"
         aria-describedby="export-modal-description"
       >
         <div className="pdf-export-modal">
@@ -118,36 +140,57 @@ export function AppLayout() {
             Select the sections to include in your PDF report.
           </p>
 
+          <div className="pdf-export-modal__actions">
+            <Button kind="ghost" size="sm" onClick={handleSelectAll}>
+              Select All
+            </Button>
+            <Button kind="ghost" size="sm" onClick={handleSelectNone}>
+              Select None
+            </Button>
+          </div>
+
           <div className="pdf-export-modal__options">
             <Checkbox
-              id="opt-executive"
-              labelText="Executive Summary"
-              checked={exportOptions.includeExecutiveSummary}
-              onChange={() => handleOptionChange('includeExecutiveSummary')}
+              id="opt-dashboard"
+              labelText="Dashboard Overview"
+              checked={exportOptions.includeDashboard}
+              onChange={() => handleOptionChange('includeDashboard')}
             />
             <Checkbox
               id="opt-compute"
               labelText="Compute Analysis"
-              checked={exportOptions.includeComputeAnalysis}
-              onChange={() => handleOptionChange('includeComputeAnalysis')}
+              checked={exportOptions.includeCompute}
+              onChange={() => handleOptionChange('includeCompute')}
             />
             <Checkbox
               id="opt-storage"
               labelText="Storage Analysis"
-              checked={exportOptions.includeStorageAnalysis}
-              onChange={() => handleOptionChange('includeStorageAnalysis')}
+              checked={exportOptions.includeStorage}
+              onChange={() => handleOptionChange('includeStorage')}
             />
             <Checkbox
-              id="opt-mtv"
-              labelText="Migration Readiness (MTV)"
-              checked={exportOptions.includeMTVReadiness}
-              onChange={() => handleOptionChange('includeMTVReadiness')}
+              id="opt-network"
+              labelText="Network Analysis"
+              checked={exportOptions.includeNetwork}
+              onChange={() => handleOptionChange('includeNetwork')}
             />
             <Checkbox
-              id="opt-vmlist"
-              labelText="VM Inventory List (first 50)"
-              checked={exportOptions.includeVMList}
-              onChange={() => handleOptionChange('includeVMList')}
+              id="opt-clusters"
+              labelText="Clusters Analysis"
+              checked={exportOptions.includeClusters}
+              onChange={() => handleOptionChange('includeClusters')}
+            />
+            <Checkbox
+              id="opt-hosts"
+              labelText="Hosts Analysis"
+              checked={exportOptions.includeHosts}
+              onChange={() => handleOptionChange('includeHosts')}
+            />
+            <Checkbox
+              id="opt-resourcepools"
+              labelText="Resource Pools"
+              checked={exportOptions.includeResourcePools}
+              onChange={() => handleOptionChange('includeResourcePools')}
             />
           </div>
 

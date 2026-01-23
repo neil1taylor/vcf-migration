@@ -38,6 +38,14 @@
     &--info {
       border-left: 3px solid $blue-60;
     }
+
+    &--success {
+      border-left: 3px solid $green-50;
+    }
+
+    &--unknown {
+      border-left: 3px solid $purple-50;
+    }
   }
 
   &__item-header {
@@ -59,6 +67,14 @@
 
     &--info {
       fill: $blue-60;
+    }
+
+    &--success {
+      fill: $green-50;
+    }
+
+    &--unknown {
+      fill: $purple-50;
     }
   }
 

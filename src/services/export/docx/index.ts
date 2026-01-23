@@ -12,11 +12,15 @@ import {
   NumberFormat,
   AlignmentType,
   convertInchesToTwip,
+  TableOfContents,
+  HeadingLevel,
+  PageBreak,
 } from 'docx';
 import type { RVToolsData } from '@/types/rvtools';
 import reportTemplates from '@/data/reportTemplates.json';
 import { type DocxExportOptions, type DocumentContent, FONT_FAMILY, STYLES } from './types';
 import { calculateVMReadiness, calculateROKSSizing, calculateVSIMappings } from './utils/calculations';
+import { resetCaptionCounters } from './utils/helpers';
 import {
   buildCoverPage,
   buildExecutiveSummary,
@@ -52,6 +56,9 @@ export async function generateDocxReport(
     maxIssueVMs: options.maxIssueVMs ?? 20,
   };
 
+  // Reset caption counters for fresh document
+  resetCaptionCounters();
+
   // Calculate all data
   const readiness = calculateVMReadiness(rawData);
   const roksSizing = calculateROKSSizing(rawData);
@@ -61,8 +68,47 @@ export async function generateDocxReport(
   const executiveSummary = await buildExecutiveSummary(rawData, readiness);
   const environmentAnalysis = await buildEnvironmentAnalysis(rawData);
 
+  // Build Table of Contents section
+  const tableOfContents: DocumentContent[] = [
+    new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 0, after: 200 },
+      children: [
+        new TextRun({
+          text: 'Table of Contents',
+          bold: true,
+          color: STYLES.primaryColor,
+          font: FONT_FAMILY,
+        }),
+      ],
+    }),
+    new TableOfContents('Table of Contents', {
+      hyperlink: true,
+      headingStyleRange: '1-3',
+      stylesWithLevels: [
+        { level: 1, styleName: 'Heading1' },
+        { level: 2, styleName: 'Heading2' },
+        { level: 3, styleName: 'Heading3' },
+      ],
+    }),
+    new Paragraph({
+      spacing: { before: 120, after: 120 },
+      children: [
+        new TextRun({
+          text: 'Note: To update the Table of Contents in Microsoft Word, right-click on it and select "Update Field" → "Update entire table".',
+          size: 18,
+          italics: true,
+          color: STYLES.secondaryColor,
+          font: FONT_FAMILY,
+        }),
+      ],
+    }),
+    new Paragraph({ children: [new PageBreak()] }),
+  ];
+
   const sections: DocumentContent[] = [
     ...buildCoverPage(finalOptions),
+    ...tableOfContents,
     ...executiveSummary,
     ...buildAssumptionsAndScope(),
     ...environmentAnalysis,

@@ -1,6 +1,28 @@
 {
   "releases": [
     {
+      "version": "1.0.1",
+      "date": "2026-01-23",
+      "sections": {
+        "added": [
+          "VPC VSI pre-flight checks for boot disk limits (10GB min, 250GB max)",
+          "VPC VSI pre-flight check for maximum 12 disks per instance",
+          "Unknown severity status for checks not verifiable via RVTools (Virtio Drivers, Cloud-init, Migration Downtime)",
+          "Comprehensive remediation steps for all pre-flight checks including passed checks"
+        ],
+        "changed": [
+          "Renamed 'Remediation Required' section to 'Remediation' with expandable dropdowns for all checks",
+          "Updated memory limit warning to reference Ultra High Memory profiles (ux2d family up to 5.6TB)",
+          "Enhanced OS compatibility messaging to clarify IBM stock images vs customer-imported custom images",
+          "Improved DOCX export table descriptions by removing inline references (labels remain below tables)"
+        ],
+        "fixed": [
+          "DOCX export now correctly calculates VSI and bare metal pricing from profile definitions",
+          "Fixed bare metal profile name lookup (bx2d-metal-96x384 format)"
+        ]
+      }
+    },
+    {
       "version": "1.0.0",
       "date": "2026-01-22",
       "sections": {

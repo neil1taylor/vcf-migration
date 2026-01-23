@@ -4,11 +4,13 @@ import { generatePDF, downloadPDF } from '@/services/export';
 import type { RVToolsData } from '@/types/rvtools';
 
 export interface PDFExportOptions {
-  includeExecutiveSummary?: boolean;
-  includeComputeAnalysis?: boolean;
-  includeStorageAnalysis?: boolean;
-  includeMTVReadiness?: boolean;
-  includeVMList?: boolean;
+  includeDashboard?: boolean;
+  includeCompute?: boolean;
+  includeStorage?: boolean;
+  includeNetwork?: boolean;
+  includeClusters?: boolean;
+  includeHosts?: boolean;
+  includeResourcePools?: boolean;
 }
 
 export interface UsePDFExportReturn {
@@ -31,7 +33,7 @@ export function usePDFExport(): UsePDFExportReturn {
     try {
       setProgress(10);
 
-      // Generate PDF
+      // Generate PDF with options
       const blob = await generatePDF(data, options);
       setProgress(80);
 

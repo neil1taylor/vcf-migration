@@ -11,9 +11,271 @@ import {
   BorderStyle,
   ShadingType,
   HeadingLevel,
+  Bookmark,
 } from 'docx';
 import type { ITableCellOptions } from 'docx';
-import { STYLES } from '../types';
+import { STYLES, FONT_FAMILY } from '../types';
+
+// ===== CAPTION COUNTERS =====
+// These track table and figure numbers across the document
+let tableCounter = 0;
+let figureCounter = 0;
+
+/**
+ * Reset counters (call at start of document generation)
+ */
+export function resetCaptionCounters(): void {
+  tableCounter = 0;
+  figureCounter = 0;
+}
+
+/**
+ * Create a table description to appear ABOVE the table
+ * Increments the table counter and returns description text only (no table reference inline)
+ * @param _title - The table title (used for label below table, not in description)
+ * @param description - Description of what the table shows and its significance
+ * @returns Array of paragraphs for the description block (appears above table)
+ */
+export function createTableDescription(_title: string, description: string): Paragraph[] {
+  tableCounter++;
+  const paragraphs: Paragraph[] = [];
+
+  // Description paragraph only (table reference appears in label below table)
+  paragraphs.push(
+    new Paragraph({
+      spacing: { before: 200, after: 120 },
+      children: [
+        new TextRun({
+          text: description,
+          size: STYLES.bodySize,
+          font: FONT_FAMILY,
+        }),
+      ],
+    })
+  );
+
+  return paragraphs;
+}
+
+/**
+ * Create a table label to appear BELOW the table (centered, just the reference)
+ * Uses the current table counter value (call after createTableDescription)
+ * @param title - The table title
+ * @returns Paragraph for the centered label below table
+ */
+export function createTableLabel(title: string): Paragraph {
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 120, after: 200 },
+    children: [
+      new Bookmark({
+        id: `table_${tableCounter}`,
+        children: [
+          new TextRun({
+            text: `Table ${tableCounter}: `,
+            bold: true,
+            size: STYLES.smallSize,
+            color: STYLES.primaryColor,
+            font: FONT_FAMILY,
+          }),
+          new TextRun({
+            text: title,
+            bold: true,
+            size: STYLES.smallSize,
+            font: FONT_FAMILY,
+          }),
+        ],
+      }),
+    ],
+  });
+}
+
+/**
+ * @deprecated Use createTableDescription and createTableLabel instead
+ * Create a table caption with automatic numbering (legacy function)
+ */
+export function createTableCaption(title: string, description?: string): Paragraph[] {
+  tableCounter++;
+  const paragraphs: Paragraph[] = [];
+
+  paragraphs.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 120, after: 60 },
+      children: [
+        new Bookmark({
+          id: `table_${tableCounter}`,
+          children: [
+            new TextRun({
+              text: `Table ${tableCounter}: `,
+              bold: true,
+              size: STYLES.smallSize,
+              color: STYLES.primaryColor,
+              font: FONT_FAMILY,
+            }),
+            new TextRun({
+              text: title,
+              bold: true,
+              size: STYLES.smallSize,
+              font: FONT_FAMILY,
+            }),
+          ],
+        }),
+      ],
+    })
+  );
+
+  if (description) {
+    paragraphs.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 120 },
+        children: [
+          new TextRun({
+            text: description,
+            size: STYLES.smallSize,
+            italics: true,
+            color: STYLES.secondaryColor,
+            font: FONT_FAMILY,
+          }),
+        ],
+      })
+    );
+  }
+
+  return paragraphs;
+}
+
+/**
+ * Create a figure description to appear ABOVE the chart
+ * Increments the figure counter and returns description text only (no figure reference inline)
+ * @param _title - The figure title (used for label below chart, not in description)
+ * @param description - Description of what the chart shows and its significance
+ * @returns Array of paragraphs for the description block (appears above chart)
+ */
+export function createFigureDescription(_title: string, description: string): Paragraph[] {
+  figureCounter++;
+  const paragraphs: Paragraph[] = [];
+
+  // Description paragraph only (figure reference appears in label below chart)
+  paragraphs.push(
+    new Paragraph({
+      spacing: { before: 200, after: 120 },
+      children: [
+        new TextRun({
+          text: description,
+          size: STYLES.bodySize,
+          font: FONT_FAMILY,
+        }),
+      ],
+    })
+  );
+
+  return paragraphs;
+}
+
+/**
+ * Create a figure label to appear BELOW the chart (centered, just the reference)
+ * Uses the current figure counter value (call after createFigureDescription)
+ * @param title - The figure title
+ * @returns Paragraph for the centered label below chart
+ */
+export function createFigureLabel(title: string): Paragraph {
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 120, after: 200 },
+    children: [
+      new Bookmark({
+        id: `figure_${figureCounter}`,
+        children: [
+          new TextRun({
+            text: `Figure ${figureCounter}: `,
+            bold: true,
+            size: STYLES.smallSize,
+            color: STYLES.primaryColor,
+            font: FONT_FAMILY,
+          }),
+          new TextRun({
+            text: title,
+            bold: true,
+            size: STYLES.smallSize,
+            font: FONT_FAMILY,
+          }),
+        ],
+      }),
+    ],
+  });
+}
+
+/**
+ * @deprecated Use createFigureDescription and createFigureLabel instead
+ * Create a figure caption with automatic numbering (legacy function)
+ */
+export function createFigureCaption(title: string, description?: string): Paragraph[] {
+  figureCounter++;
+  const paragraphs: Paragraph[] = [];
+
+  paragraphs.push(
+    new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 120, after: 60 },
+      children: [
+        new Bookmark({
+          id: `figure_${figureCounter}`,
+          children: [
+            new TextRun({
+              text: `Figure ${figureCounter}: `,
+              bold: true,
+              size: STYLES.smallSize,
+              color: STYLES.primaryColor,
+              font: FONT_FAMILY,
+            }),
+            new TextRun({
+              text: title,
+              bold: true,
+              size: STYLES.smallSize,
+              font: FONT_FAMILY,
+            }),
+          ],
+        }),
+      ],
+    })
+  );
+
+  if (description) {
+    paragraphs.push(
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { after: 180 },
+        children: [
+          new TextRun({
+            text: description,
+            size: STYLES.smallSize,
+            italics: true,
+            color: STYLES.secondaryColor,
+            font: FONT_FAMILY,
+          }),
+        ],
+      })
+    );
+  }
+
+  return paragraphs;
+}
+
+/**
+ * Get current table count (for reference in text)
+ */
+export function getCurrentTableNumber(): number {
+  return tableCounter;
+}
+
+/**
+ * Get current figure count (for reference in text)
+ */
+export function getCurrentFigureNumber(): number {
+  return figureCounter;
+}
 
 export function createTableCell(
   text: string,

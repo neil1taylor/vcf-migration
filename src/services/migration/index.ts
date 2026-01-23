@@ -51,10 +51,13 @@ export {
 
 // Remediation
 export {
+  VPC_BOOT_DISK_MIN_GB,
   VPC_BOOT_DISK_MAX_GB,
   VPC_MAX_DISKS_PER_VM,
+  VPC_DOCS,
   type PreflightCheckCounts,
   generateVSIRemediationItems,
+  generateVSIAllChecks,
   generateROKSRemediationItems,
   generateRemediationItems,
   countRemediationSeverity,

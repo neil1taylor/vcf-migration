@@ -67,6 +67,7 @@ export function VSIMigrationPage() {
     snapshots: snapshots,
     tools: tools,
     networks: networks,
+    includeAllChecks: true, // Show all VPC checks as dropdowns
   });
 
   // Additional display-only counts
@@ -430,6 +431,10 @@ export function VSIMigrationPage() {
                           <Tag type={(preflightCounts.vmsWithVeryLargeMemory || 0) === 0 ? 'green' : 'red'}>{formatNumber(preflightCounts.vmsWithVeryLargeMemory || 0)}</Tag>
                         </div>
                         <div className="migration-page__check-item">
+                          <span>Boot Disk &lt;10GB</span>
+                          <Tag type={(preflightCounts.vmsWithSmallBootDisk || 0) === 0 ? 'green' : 'red'}>{formatNumber(preflightCounts.vmsWithSmallBootDisk || 0)}</Tag>
+                        </div>
+                        <div className="migration-page__check-item">
                           <span>Boot Disk &gt;250GB</span>
                           <Tag type={(preflightCounts.vmsWithLargeBootDisk || 0) === 0 ? 'green' : 'red'}>{formatNumber(preflightCounts.vmsWithLargeBootDisk || 0)}</Tag>
                         </div>
@@ -461,11 +466,9 @@ export function VSIMigrationPage() {
                     </Tile>
                   </Column>
 
-                  {remediationItems.length > 0 && (
-                    <Column lg={16} md={8} sm={4}>
-                      <RemediationPanel items={remediationItems} title="Remediation Required" showAffectedVMs={true} />
-                    </Column>
-                  )}
+                  <Column lg={16} md={8} sm={4}>
+                    <RemediationPanel items={remediationItems} title="Remediation" showAffectedVMs={true} />
+                  </Column>
                 </Grid>
               </TabPanel>
 

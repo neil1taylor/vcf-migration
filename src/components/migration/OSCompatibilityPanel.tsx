@@ -150,18 +150,21 @@ export function OSCompatibilityPanel({ mode, osStatusCounts, vms }: OSCompatibil
         <Column lg={16} md={8} sm={4}>
           <Tile className="migration-page__recommendation-tile">
             <h4>IBM Cloud VPC OS Support</h4>
+            <p className="migration-page__os-note" style={{ marginBottom: '1rem' }}>
+              Most 64-bit operating systems built for the x86-64 architecture can run on IBM Cloud VPC Virtual Server Instances (VSIs). IBM provides and validates support for a set of stock x86-64 OS images that are tested to boot and operate on VSIs. While you can import and use your own custom images (including unsupported operating systems), it is the customer's responsibility to validate functionality and compatibility for those imported or unsupported OS images.
+            </p>
             <div className="migration-page__recommendation-grid">
               <div className="migration-page__recommendation-item">
                 <span className="migration-page__recommendation-key">Stock Image</span>
-                <span className="migration-page__recommendation-value">IBM-provided stock images with full support (RHEL, Ubuntu, Windows Server, SLES, Debian, Rocky Linux, CentOS Stream)</span>
+                <span className="migration-page__recommendation-value">IBM-provided stock images with full support and validation (RHEL, Ubuntu, Windows Server, SLES, Debian, Rocky Linux, CentOS Stream)</span>
               </div>
               <div className="migration-page__recommendation-item">
                 <span className="migration-page__recommendation-key">BYOL (Custom Image)</span>
-                <span className="migration-page__recommendation-value">Bring Your Own License - custom image supported but requires your own OS license (Windows 10/11, AlmaLinux, Oracle Linux)</span>
+                <span className="migration-page__recommendation-value">Bring Your Own License - customer imports custom image and is responsible for validation and compatibility (Windows 10/11, AlmaLinux, Oracle Linux)</span>
               </div>
               <div className="migration-page__recommendation-item">
                 <span className="migration-page__recommendation-key">Unsupported</span>
-                <span className="migration-page__recommendation-value">OS not supported on IBM Cloud VPC or end-of-life - upgrade required before migration</span>
+                <span className="migration-page__recommendation-value">No IBM stock image available - customer can import custom images but must validate functionality and accept responsibility for compatibility</span>
               </div>
             </div>
           </Tile>

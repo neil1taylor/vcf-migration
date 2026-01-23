@@ -6,7 +6,7 @@ import { DataContext } from '@/context/DataContext';
  * Detects VMware/VCF infrastructure VMs that should be excluded from migration.
  * These are infrastructure components that won't migrate to IBM Cloud.
  */
-function isVMwareInfrastructureVM(vmName: string, guestOS?: string): boolean {
+export function isVMwareInfrastructureVM(vmName: string, guestOS?: string): boolean {
   const name = vmName.toLowerCase();
   const os = guestOS?.toLowerCase() ?? '';
 

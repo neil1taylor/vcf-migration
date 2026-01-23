@@ -186,9 +186,18 @@ export const CHECK_DEFINITIONS: CheckDefinition[] = [
 
   // VSI checks (IBM Cloud VPC)
   {
+    id: 'boot-disk-size-min',
+    name: 'Boot Disk ≥10GB',
+    shortName: 'Boot Min',
+    category: 'storage',
+    severity: 'blocker',
+    description: 'VPC VSI boot disk requires minimum 10GB',
+    modes: ['vsi'],
+  },
+  {
     id: 'boot-disk-size',
     name: 'Boot Disk ≤250GB',
-    shortName: 'Boot Disk',
+    shortName: 'Boot Max',
     category: 'storage',
     severity: 'blocker',
     description: 'VPC VSI boot disk limited to 250GB maximum',
@@ -227,7 +236,7 @@ export const CHECK_DEFINITIONS: CheckDefinition[] = [
     shortName: 'Disk 2TB',
     category: 'storage',
     severity: 'warning',
-    description: 'Disks larger than 2TB may require splitting',
+    description: 'Disks larger than 2TB may require splitting or multiple volumes',
     modes: ['vsi'],
   },
   {
@@ -245,7 +254,7 @@ export const CHECK_DEFINITIONS: CheckDefinition[] = [
     shortName: 'Tools',
     category: 'tools',
     severity: 'warning',
-    description: 'VMware Tools needed for clean VM export',
+    description: 'VMware Tools needed for clean VM export and shutdown',
     modes: ['vsi'],
   },
 ];
@@ -426,6 +435,26 @@ function evaluateCheck(
         };
       }
       return { status: 'pass', value: 'No independent disks' };
+    }
+
+    case 'boot-disk-size-min': {
+      const VPC_BOOT_DISK_MIN_GB = 10;
+      if (context.disks.length === 0) {
+        return { status: 'na', message: 'No disk info available' };
+      }
+      // Sort by disk key to find boot disk (typically key 0 or 2000)
+      const sortedDisks = [...context.disks].sort((a, b) => (a.diskKey || 0) - (b.diskKey || 0));
+      const bootDisk = sortedDisks[0];
+      const bootDiskGB = Math.round(mibToGiB(bootDisk.capacityMiB));
+      if (bootDiskGB < VPC_BOOT_DISK_MIN_GB) {
+        return {
+          status: 'fail',
+          value: `${bootDiskGB} GB`,
+          threshold: `${VPC_BOOT_DISK_MIN_GB} GB`,
+          message: `Boot disk below VPC minimum`,
+        };
+      }
+      return { status: 'pass', value: `${bootDiskGB} GB` };
     }
 
     case 'boot-disk-size': {

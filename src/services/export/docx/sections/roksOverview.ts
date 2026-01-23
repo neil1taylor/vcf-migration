@@ -3,34 +3,40 @@
 import { Paragraph, PageBreak, HeadingLevel, AlignmentType } from 'docx';
 import reportTemplates from '@/data/reportTemplates.json';
 import { type DocumentContent, type ROKSSizing } from '../types';
-import { createHeading, createParagraph, createBulletList, createStyledTable } from '../utils/helpers';
+import { createHeading, createParagraph, createBulletList, createStyledTable, createTableDescription, createTableLabel } from '../utils/helpers';
+
+// Type assertion for templates with table/figure descriptions
+const templates = reportTemplates as typeof reportTemplates & {
+  tableDescriptions: Record<string, { title: string; description: string }>;
+  figureDescriptions: Record<string, { title: string; description: string }>;
+};
 
 export function buildROKSOverview(sizing: ROKSSizing): DocumentContent[] {
-  const templates = reportTemplates.roksOverview;
+  const roksTemplates = reportTemplates.roksOverview;
 
   return [
-    createHeading('6. ' + templates.title, HeadingLevel.HEADING_1),
-    createParagraph(templates.introduction),
+    createHeading('6. ' + roksTemplates.title, HeadingLevel.HEADING_1),
+    createParagraph(roksTemplates.introduction),
 
-    createHeading('6.1 ' + templates.whatIsRoks.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.whatIsRoks.content),
+    createHeading('6.1 ' + roksTemplates.whatIsRoks.title, HeadingLevel.HEADING_2),
+    createParagraph(roksTemplates.whatIsRoks.content),
 
-    createHeading('6.2 ' + templates.architecture.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.architecture.content),
-    ...createBulletList(templates.architecture.components),
+    createHeading('6.2 ' + roksTemplates.architecture.title, HeadingLevel.HEADING_2),
+    createParagraph(roksTemplates.architecture.content),
+    ...createBulletList(roksTemplates.architecture.components),
 
-    createHeading('6.3 ' + templates.benefits.title, HeadingLevel.HEADING_2),
-    ...templates.benefits.items.flatMap((b) => [
+    createHeading('6.3 ' + roksTemplates.benefits.title, HeadingLevel.HEADING_2),
+    ...roksTemplates.benefits.items.flatMap((b) => [
       createParagraph(b.title, { bold: true }),
       createParagraph(b.description),
     ]),
 
-    createHeading('6.4 ' + templates.considerations.title, HeadingLevel.HEADING_2),
-    ...createBulletList(templates.considerations.items),
+    createHeading('6.4 ' + roksTemplates.considerations.title, HeadingLevel.HEADING_2),
+    ...createBulletList(roksTemplates.considerations.items),
 
-    createHeading('6.5 ' + templates.sizing.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.sizing.description),
-    createParagraph(templates.sizing.methodology, { spacing: { after: 120 } }),
+    createHeading('6.5 ' + roksTemplates.sizing.title, HeadingLevel.HEADING_2),
+    createParagraph(roksTemplates.sizing.description),
+    createParagraph(roksTemplates.sizing.methodology, { spacing: { after: 120 } }),
 
     createHeading('6.5.1 ODF Storage Sizing', HeadingLevel.HEADING_3),
     createParagraph(
@@ -69,6 +75,11 @@ export function buildROKSOverview(sizing: ROKSSizing): DocumentContent[] {
 
     new Paragraph({ spacing: { before: 240 } }),
     createHeading('6.5.4 Recommended Configuration', HeadingLevel.HEADING_3),
+    // ROKS sizing table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.roksSizing.title,
+      templates.tableDescriptions.roksSizing.description
+    ),
     createStyledTable(
       ['Configuration', 'Value'],
       [
@@ -82,6 +93,7 @@ export function buildROKSOverview(sizing: ROKSSizing): DocumentContent[] {
       ],
       { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT] }
     ),
+    createTableLabel(templates.tableDescriptions.roksSizing.title),
 
     new Paragraph({ children: [new PageBreak()] }),
   ];

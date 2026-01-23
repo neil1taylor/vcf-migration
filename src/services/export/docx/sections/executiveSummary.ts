@@ -5,15 +5,21 @@ import type { RVToolsData } from '@/types/rvtools';
 import { mibToTiB } from '@/utils/formatters';
 import reportTemplates from '@/data/reportTemplates.json';
 import { STYLES, CHART_COLORS, type DocumentContent, type VMReadiness, type ChartData } from '../types';
-import { createHeading, createParagraph, createBulletList, createStyledTable } from '../utils/helpers';
+import { createHeading, createParagraph, createBulletList, createStyledTable, createTableDescription, createTableLabel, createFigureDescription, createFigureLabel } from '../utils/helpers';
 import { generatePieChart, createChartParagraph } from '../utils/charts';
 import { AlignmentType } from 'docx';
+
+// Type assertion for templates with table/figure descriptions
+const templates = reportTemplates as typeof reportTemplates & {
+  tableDescriptions: Record<string, { title: string; description: string }>;
+  figureDescriptions: Record<string, { title: string; description: string }>;
+};
 
 export async function buildExecutiveSummary(
   rawData: RVToolsData,
   readiness: VMReadiness[]
 ): Promise<DocumentContent[]> {
-  const templates = reportTemplates.executiveSummary;
+  const execTemplates = reportTemplates.executiveSummary;
   const vms = rawData.vInfo.filter((vm) => !vm.template);
   const poweredOnVMs = vms.filter((vm) => vm.powerState === 'poweredOn');
 
@@ -47,8 +53,8 @@ export async function buildExecutiveSummary(
   const powerStateChart = await generatePieChart(powerStateChartData, 'VM Power State Distribution');
 
   const sections: DocumentContent[] = [
-    createHeading('1. ' + templates.title, HeadingLevel.HEADING_1),
-    createParagraph(templates.introduction),
+    createHeading('1. ' + execTemplates.title, HeadingLevel.HEADING_1),
+    createParagraph(execTemplates.introduction),
 
     // At-a-Glance Summary Box
     createHeading('Assessment At-a-Glance', HeadingLevel.HEADING_2),
@@ -116,10 +122,14 @@ export async function buildExecutiveSummary(
       ],
     }),
 
-    createHeading(templates.keyFindings.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.keyFindings.environmentOverview),
+    createHeading(execTemplates.keyFindings.title, HeadingLevel.HEADING_2),
+    createParagraph(execTemplates.keyFindings.environmentOverview),
 
-    // Environment Summary Table
+    // Environment Summary Table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.environmentSummary.title,
+      templates.tableDescriptions.environmentSummary.description
+    ),
     createStyledTable(
       ['Metric', 'Value'],
       [
@@ -132,13 +142,24 @@ export async function buildExecutiveSummary(
       ],
       { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT] }
     ),
+    createTableLabel(templates.tableDescriptions.environmentSummary.title),
 
-    // Power State Chart
-    new Paragraph({ spacing: { before: 240 } }),
+    // Power State Chart - description above, label below
+    ...createFigureDescription(
+      templates.figureDescriptions.powerStateDistribution.title,
+      templates.figureDescriptions.powerStateDistribution.description
+    ),
     createChartParagraph(powerStateChart, 480, 260),
+    createFigureLabel(templates.figureDescriptions.powerStateDistribution.title),
 
     new Paragraph({ spacing: { before: 240 } }),
     createHeading('Migration Readiness Overview', HeadingLevel.HEADING_2),
+
+    // Migration Readiness Table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.migrationReadiness.title,
+      templates.tableDescriptions.migrationReadiness.description
+    ),
     createStyledTable(
       ['Status', 'VM Count', 'Percentage'],
       [
@@ -148,25 +169,31 @@ export async function buildExecutiveSummary(
       ],
       { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT, AlignmentType.RIGHT] }
     ),
+    createTableLabel(templates.tableDescriptions.migrationReadiness.title),
 
-    // Readiness Chart
+    // Readiness Chart - description above, label below
+    ...createFigureDescription(
+      templates.figureDescriptions.migrationReadiness.title,
+      templates.figureDescriptions.migrationReadiness.description
+    ),
     createChartParagraph(readinessChart, 480, 260),
+    createFigureLabel(templates.figureDescriptions.migrationReadiness.title),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading(templates.recommendations.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.recommendations.intro),
+    createHeading(execTemplates.recommendations.title, HeadingLevel.HEADING_2),
+    createParagraph(execTemplates.recommendations.intro),
 
     // ROKS Recommendations
     new Paragraph({ spacing: { before: 200 } }),
-    createParagraph(templates.recommendations.roksTitle, { bold: true }),
-    createParagraph(templates.recommendations.roksRecommended),
-    ...createBulletList(templates.recommendations.roksReasons),
+    createParagraph(execTemplates.recommendations.roksTitle, { bold: true }),
+    createParagraph(execTemplates.recommendations.roksRecommended),
+    ...createBulletList(execTemplates.recommendations.roksReasons),
 
     // VSI Recommendations
     new Paragraph({ spacing: { before: 200 } }),
-    createParagraph(templates.recommendations.vsiTitle, { bold: true }),
-    createParagraph(templates.recommendations.vsiRecommended),
-    ...createBulletList(templates.recommendations.vsiReasons),
+    createParagraph(execTemplates.recommendations.vsiTitle, { bold: true }),
+    createParagraph(execTemplates.recommendations.vsiRecommended),
+    ...createBulletList(execTemplates.recommendations.vsiReasons),
 
     new Paragraph({ children: [new PageBreak()] }),
   ];

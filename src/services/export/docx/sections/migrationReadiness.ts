@@ -3,28 +3,39 @@
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle } from 'docx';
 import reportTemplates from '@/data/reportTemplates.json';
 import { STYLES, type DocumentContent, type VMReadiness } from '../types';
-import { createHeading, createParagraph, createBulletList, createTableCell } from '../utils/helpers';
+import { createHeading, createParagraph, createBulletList, createTableCell, createTableDescription, createTableLabel } from '../utils/helpers';
+
+// Type assertion for templates with table/figure descriptions
+const templates = reportTemplates as typeof reportTemplates & {
+  tableDescriptions: Record<string, { title: string; description: string }>;
+  figureDescriptions: Record<string, { title: string; description: string }>;
+};
 
 export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: number): DocumentContent[] {
-  const templates = reportTemplates.migrationReadiness;
+  const readinessTemplates = reportTemplates.migrationReadiness;
   const blockerVMs = readiness.filter((r) => r.hasBlocker).slice(0, maxIssueVMs);
   const warningVMs = readiness.filter((r) => r.hasWarning && !r.hasBlocker).slice(0, maxIssueVMs);
 
   const sections: DocumentContent[] = [
-    createHeading('3. ' + templates.title, HeadingLevel.HEADING_1),
-    createParagraph(templates.introduction),
-    createHeading('3.1 ' + templates.checksPerformed.title, HeadingLevel.HEADING_2),
+    createHeading('3. ' + readinessTemplates.title, HeadingLevel.HEADING_1),
+    createParagraph(readinessTemplates.introduction),
+    createHeading('3.1 ' + readinessTemplates.checksPerformed.title, HeadingLevel.HEADING_2),
     ...createBulletList(
-      templates.checksPerformed.checks.map((c) => `${c.name}: ${c.description}`)
+      readinessTemplates.checksPerformed.checks.map((c) => `${c.name}: ${c.description}`)
     ),
   ];
 
-  // Blockers table
+  // Blockers table - description above, label below
   if (blockerVMs.length > 0) {
     sections.push(
       new Paragraph({ spacing: { before: 240 } }),
-      createHeading('3.2 ' + templates.blockersSummary.title, HeadingLevel.HEADING_2),
-      createParagraph(templates.blockersSummary.description),
+      createHeading('3.2 ' + readinessTemplates.blockersSummary.title, HeadingLevel.HEADING_2),
+      createParagraph(readinessTemplates.blockersSummary.description),
+      // Description above table
+      ...createTableDescription(
+        templates.tableDescriptions.blockerVMs.title,
+        templates.tableDescriptions.blockerVMs.description
+      ),
       new Table({
         width: { size: 100, type: 'pct' as const },
         columnWidths: [3000, 2000, 4000],
@@ -55,7 +66,9 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
               })
           ),
         ],
-      })
+      }),
+      // Label below table
+      createTableLabel(templates.tableDescriptions.blockerVMs.title)
     );
     if (readiness.filter((r) => r.hasBlocker).length > maxIssueVMs) {
       sections.push(
@@ -67,12 +80,17 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
     }
   }
 
-  // Warnings table
+  // Warnings table - description above, label below
   if (warningVMs.length > 0) {
     sections.push(
       new Paragraph({ spacing: { before: 240 } }),
-      createHeading('3.3 ' + templates.warningsSummary.title, HeadingLevel.HEADING_2),
-      createParagraph(templates.warningsSummary.description),
+      createHeading('3.3 ' + readinessTemplates.warningsSummary.title, HeadingLevel.HEADING_2),
+      createParagraph(readinessTemplates.warningsSummary.description),
+      // Description above table
+      ...createTableDescription(
+        templates.tableDescriptions.warningVMs.title,
+        templates.tableDescriptions.warningVMs.description
+      ),
       new Table({
         width: { size: 100, type: 'pct' as const },
         columnWidths: [3000, 2000, 4000],
@@ -103,7 +121,9 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
               })
           ),
         ],
-      })
+      }),
+      // Label below table
+      createTableLabel(templates.tableDescriptions.warningVMs.title)
     );
     if (readiness.filter((r) => r.hasWarning && !r.hasBlocker).length > maxIssueVMs) {
       sections.push(

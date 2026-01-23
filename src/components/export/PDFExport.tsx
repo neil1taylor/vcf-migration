@@ -9,22 +9,27 @@ import {
 } from '@carbon/react';
 import { DocumentPdf } from '@carbon/icons-react';
 import { useData, usePDFExport } from '@/hooks';
+import type { PDFExportOptions } from '@/hooks/usePDFExport';
 import './PDFExport.scss';
 
 interface ExportOptions {
-  includeExecutiveSummary: boolean;
-  includeComputeAnalysis: boolean;
-  includeStorageAnalysis: boolean;
-  includeMTVReadiness: boolean;
-  includeVMList: boolean;
+  includeDashboard: boolean;
+  includeCompute: boolean;
+  includeStorage: boolean;
+  includeNetwork: boolean;
+  includeClusters: boolean;
+  includeHosts: boolean;
+  includeResourcePools: boolean;
 }
 
 const DEFAULT_OPTIONS: ExportOptions = {
-  includeExecutiveSummary: true,
-  includeComputeAnalysis: true,
-  includeStorageAnalysis: true,
-  includeMTVReadiness: true,
-  includeVMList: false,
+  includeDashboard: true,
+  includeCompute: true,
+  includeStorage: true,
+  includeNetwork: true,
+  includeClusters: true,
+  includeHosts: true,
+  includeResourcePools: true,
 };
 
 interface PDFExportProps {
@@ -53,16 +58,51 @@ export function PDFExport({ variant = 'primary', size = 'md' }: PDFExportProps) 
     }));
   };
 
+  const handleSelectAll = () => {
+    setOptions({
+      includeDashboard: true,
+      includeCompute: true,
+      includeStorage: true,
+      includeNetwork: true,
+      includeClusters: true,
+      includeHosts: true,
+      includeResourcePools: true,
+    });
+  };
+
+  const handleSelectNone = () => {
+    setOptions({
+      includeDashboard: false,
+      includeCompute: false,
+      includeStorage: false,
+      includeNetwork: false,
+      includeClusters: false,
+      includeHosts: false,
+      includeResourcePools: false,
+    });
+  };
+
   const handleExport = async () => {
     if (!rawData) return;
 
     try {
-      await exportPDF(rawData, options);
+      const pdfOptions: PDFExportOptions = {
+        includeDashboard: options.includeDashboard,
+        includeCompute: options.includeCompute,
+        includeStorage: options.includeStorage,
+        includeNetwork: options.includeNetwork,
+        includeClusters: options.includeClusters,
+        includeHosts: options.includeHosts,
+        includeResourcePools: options.includeResourcePools,
+      };
+      await exportPDF(rawData, pdfOptions);
       handleCloseModal();
     } catch {
       // Error is handled by the hook
     }
   };
+
+  const hasAnySelected = Object.values(options).some(v => v);
 
   if (!rawData) {
     return null;
@@ -88,9 +128,9 @@ export function PDFExport({ variant = 'primary', size = 'md' }: PDFExportProps) 
         primaryButtonText={isExporting ? 'Generating...' : 'Export'}
         secondaryButtonText="Cancel"
         onRequestSubmit={handleExport}
-        primaryButtonDisabled={isExporting}
+        primaryButtonDisabled={isExporting || !hasAnySelected}
         size="sm"
-        selectorPrimaryFocus="#pdf-opt-executive"
+        selectorPrimaryFocus="#pdf-opt-dashboard"
         aria-describedby="pdf-export-description"
       >
         <div className="pdf-export-modal">
@@ -98,36 +138,57 @@ export function PDFExport({ variant = 'primary', size = 'md' }: PDFExportProps) 
             Select the sections to include in your PDF report.
           </p>
 
+          <div className="pdf-export-modal__actions">
+            <Button kind="ghost" size="sm" onClick={handleSelectAll}>
+              Select All
+            </Button>
+            <Button kind="ghost" size="sm" onClick={handleSelectNone}>
+              Select None
+            </Button>
+          </div>
+
           <div className="pdf-export-modal__options">
             <Checkbox
-              id="pdf-opt-executive"
-              labelText="Executive Summary"
-              checked={options.includeExecutiveSummary}
-              onChange={() => handleOptionChange('includeExecutiveSummary')}
+              id="pdf-opt-dashboard"
+              labelText="Dashboard Overview"
+              checked={options.includeDashboard}
+              onChange={() => handleOptionChange('includeDashboard')}
             />
             <Checkbox
               id="pdf-opt-compute"
               labelText="Compute Analysis"
-              checked={options.includeComputeAnalysis}
-              onChange={() => handleOptionChange('includeComputeAnalysis')}
+              checked={options.includeCompute}
+              onChange={() => handleOptionChange('includeCompute')}
             />
             <Checkbox
               id="pdf-opt-storage"
               labelText="Storage Analysis"
-              checked={options.includeStorageAnalysis}
-              onChange={() => handleOptionChange('includeStorageAnalysis')}
+              checked={options.includeStorage}
+              onChange={() => handleOptionChange('includeStorage')}
             />
             <Checkbox
-              id="pdf-opt-mtv"
-              labelText="Migration Readiness (MTV)"
-              checked={options.includeMTVReadiness}
-              onChange={() => handleOptionChange('includeMTVReadiness')}
+              id="pdf-opt-network"
+              labelText="Network Analysis"
+              checked={options.includeNetwork}
+              onChange={() => handleOptionChange('includeNetwork')}
             />
             <Checkbox
-              id="pdf-opt-vmlist"
-              labelText="VM Inventory List (first 50)"
-              checked={options.includeVMList}
-              onChange={() => handleOptionChange('includeVMList')}
+              id="pdf-opt-clusters"
+              labelText="Clusters Analysis"
+              checked={options.includeClusters}
+              onChange={() => handleOptionChange('includeClusters')}
+            />
+            <Checkbox
+              id="pdf-opt-hosts"
+              labelText="Hosts Analysis"
+              checked={options.includeHosts}
+              onChange={() => handleOptionChange('includeHosts')}
+            />
+            <Checkbox
+              id="pdf-opt-resourcepools"
+              labelText="Resource Pools"
+              checked={options.includeResourcePools}
+              onChange={() => handleOptionChange('includeResourcePools')}
             />
           </div>
 

@@ -5,11 +5,17 @@ import type { RVToolsData, VirtualMachine, VNetworkInfo } from '@/types/rvtools'
 import { mibToGiB, mibToTiB } from '@/utils/formatters';
 import reportTemplates from '@/data/reportTemplates.json';
 import { CHART_COLORS, type DocumentContent, type ChartData } from '../types';
-import { createHeading, createParagraph, createStyledTable } from '../utils/helpers';
+import { createHeading, createParagraph, createStyledTable, createTableDescription, createTableLabel, createFigureDescription, createFigureLabel } from '../utils/helpers';
 import { generatePieChart, createChartParagraph } from '../utils/charts';
 
+// Type assertion for templates with table/figure descriptions
+const templates = reportTemplates as typeof reportTemplates & {
+  tableDescriptions: Record<string, { title: string; description: string }>;
+  figureDescriptions: Record<string, { title: string; description: string }>;
+};
+
 export async function buildEnvironmentAnalysis(rawData: RVToolsData): Promise<DocumentContent[]> {
-  const templates = reportTemplates.environmentAnalysis;
+  const envTemplates = reportTemplates.environmentAnalysis;
   const vms = rawData.vInfo.filter((vm) => !vm.template);
   const poweredOnVMs = vms.filter((vm) => vm.powerState === 'poweredOn');
 
@@ -77,11 +83,17 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData): Promise<Do
   const dsTypeChart = await generatePieChart(dsTypeData, 'Storage by Type (GiB)');
 
   return [
-    createHeading('2. ' + templates.title, HeadingLevel.HEADING_1),
-    createParagraph(templates.introduction),
+    createHeading('2. ' + envTemplates.title, HeadingLevel.HEADING_1),
+    createParagraph(envTemplates.introduction),
 
-    createHeading('2.1 ' + templates.sections.infrastructure.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.sections.infrastructure.description),
+    createHeading('2.1 ' + envTemplates.sections.infrastructure.title, HeadingLevel.HEADING_2),
+    createParagraph(envTemplates.sections.infrastructure.description),
+
+    // Infrastructure table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.infrastructureOverview.title,
+      templates.tableDescriptions.infrastructureOverview.description
+    ),
     createStyledTable(
       ['Component', 'Count'],
       [
@@ -93,10 +105,17 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData): Promise<Do
       ],
       { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT] }
     ),
+    createTableLabel(templates.tableDescriptions.infrastructureOverview.title),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('2.2 ' + templates.sections.compute.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.sections.compute.description),
+    createHeading('2.2 ' + envTemplates.sections.compute.title, HeadingLevel.HEADING_2),
+    createParagraph(envTemplates.sections.compute.description),
+
+    // Compute resources table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.computeResources.title,
+      templates.tableDescriptions.computeResources.description
+    ),
     createStyledTable(
       ['Resource', 'Value'],
       [
@@ -107,13 +126,33 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData): Promise<Do
       ],
       { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT] }
     ),
+    createTableLabel(templates.tableDescriptions.computeResources.title),
 
+    // vCPU distribution chart - description above, label below
+    ...createFigureDescription(
+      templates.figureDescriptions.vcpuDistribution.title,
+      templates.figureDescriptions.vcpuDistribution.description
+    ),
     createChartParagraph(vcpuChart, 480, 260),
+    createFigureLabel(templates.figureDescriptions.vcpuDistribution.title),
+
+    // Memory distribution chart - description above, label below
+    ...createFigureDescription(
+      templates.figureDescriptions.memoryDistribution.title,
+      templates.figureDescriptions.memoryDistribution.description
+    ),
     createChartParagraph(memChart, 480, 260),
+    createFigureLabel(templates.figureDescriptions.memoryDistribution.title),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('2.3 ' + templates.sections.storage.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.sections.storage.description),
+    createHeading('2.3 ' + envTemplates.sections.storage.title, HeadingLevel.HEADING_2),
+    createParagraph(envTemplates.sections.storage.description),
+
+    // Storage metrics table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.storageMetrics.title,
+      templates.tableDescriptions.storageMetrics.description
+    ),
     createStyledTable(
       ['Metric', 'Value'],
       [
@@ -125,12 +164,25 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData): Promise<Do
       ],
       { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT] }
     ),
+    createTableLabel(templates.tableDescriptions.storageMetrics.title),
 
+    // Storage by type chart - description above, label below
+    ...createFigureDescription(
+      templates.figureDescriptions.storageByType.title,
+      templates.figureDescriptions.storageByType.description
+    ),
     createChartParagraph(dsTypeChart, 480, 260),
+    createFigureLabel(templates.figureDescriptions.storageByType.title),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('2.4 ' + templates.sections.network.title, HeadingLevel.HEADING_2),
-    createParagraph(templates.sections.network.description),
+    createHeading('2.4 ' + envTemplates.sections.network.title, HeadingLevel.HEADING_2),
+    createParagraph(envTemplates.sections.network.description),
+
+    // Network components table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.networkComponents.title,
+      templates.tableDescriptions.networkComponents.description
+    ),
     createStyledTable(
       ['Component', 'Count'],
       [
@@ -140,6 +192,7 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData): Promise<Do
       ],
       { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT] }
     ),
+    createTableLabel(templates.tableDescriptions.networkComponents.title),
 
     new Paragraph({ children: [new PageBreak()] }),
   ];

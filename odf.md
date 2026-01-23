@@ -108,3 +108,31 @@ Total nodes = Nodes + 2
 2. **Max per node** clarifies what raw capacity exists before OpCap.
 3. **Per-node utilization check** confirms 74% < 75% → safe.
 4. **HA tolerance** adds 2 nodes → total **42 nodes**.
+
+
+
+Boot Disk Exceeds 250GB Limit
+VPC VSI boot volumes are limited to 250GB maximum. VMs with larger boot disks cannot be migrated directly.
+Reduce boot disk size by moving data to secondary disks, or restructure the VM to use a smaller boot volume with separate data volumes.
+
+RDM Disks Detected
+Raw Device Mapping disks cannot be migrated to VPC VSI.
+Convert RDM disks to VMDK before migration.
+
+Unsupported Operating System
+These VMs have operating systems that are not supported for VPC VSI migration. Windows must be Server 2008 R2+ or Windows 7+.
+Upgrade the operating system to a supported version before migration, or consider alternative migration strategies.
+
+VMware Tools Not Installed
+VMware Tools required for clean VM export and proper shutdown.
+Install VMware Tools before exporting the VM. Windows VMs must be shut down cleanly for virt-v2v processing.
+
+Large Disks (>2TB)
+Disks larger than 2TB may require multiple block volumes.
+Plan for disk splitting or use file storage for large data volumes.
+
+Old Snapshots
+Snapshots should be consolidated before export for best results.
+Delete or consolidate snapshots before VM export.
+
+12

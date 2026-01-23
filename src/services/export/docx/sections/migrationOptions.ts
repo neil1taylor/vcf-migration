@@ -3,15 +3,27 @@
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle } from 'docx';
 import reportTemplates from '@/data/reportTemplates.json';
 import { STYLES, type DocumentContent } from '../types';
-import { createHeading, createParagraph, createTableCell } from '../utils/helpers';
+import { createHeading, createParagraph, createTableCell, createTableDescription, createTableLabel } from '../utils/helpers';
+
+// Type assertion for templates with table/figure descriptions
+const templates = reportTemplates as typeof reportTemplates & {
+  tableDescriptions: Record<string, { title: string; description: string }>;
+  figureDescriptions: Record<string, { title: string; description: string }>;
+};
 
 export function buildMigrationOptions(): DocumentContent[] {
-  const templates = reportTemplates.migrationOptions;
+  const optTemplates = reportTemplates.migrationOptions;
 
   return [
-    createHeading('4. ' + templates.title, HeadingLevel.HEADING_1),
-    createParagraph(templates.introduction),
-    createParagraph(templates.comparisonIntro),
+    createHeading('4. ' + optTemplates.title, HeadingLevel.HEADING_1),
+    createParagraph(optTemplates.introduction),
+    createParagraph(optTemplates.comparisonIntro),
+
+    // Migration comparison table - description above, label below
+    ...createTableDescription(
+      templates.tableDescriptions.migrationComparison.title,
+      templates.tableDescriptions.migrationComparison.description
+    ),
     new Table({
       width: { size: 100, type: 'pct' as const },
       borders: {
@@ -74,6 +86,7 @@ export function buildMigrationOptions(): DocumentContent[] {
         }),
       ],
     }),
+    createTableLabel(templates.tableDescriptions.migrationComparison.title),
     new Paragraph({ children: [new PageBreak()] }),
   ];
 }
