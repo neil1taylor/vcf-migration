@@ -1,0 +1,107 @@
+@use '@carbon/styles/scss/spacing';
+@use '@carbon/styles/scss/type';
+
+.vm-management-tab {
+  &__summary {
+    margin-bottom: spacing.$spacing-05;
+  }
+
+  &__summary-tile {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$spacing-02;
+    height: 100%;
+    padding: spacing.$spacing-04;
+
+    &--actions {
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-end;
+      gap: spacing.$spacing-03;
+    }
+  }
+
+  &__summary-label {
+    @include type.type-style('label-01');
+    color: var(--cds-text-secondary, #525252);
+  }
+
+  &__summary-value {
+    @include type.type-style('heading-03');
+    color: var(--cds-text-primary, #161616);
+
+    &--included {
+      color: var(--cds-support-success, #24a148);
+    }
+
+    &--excluded {
+      color: var(--cds-text-secondary, #525252);
+    }
+  }
+
+  &__mismatch-warning {
+    margin-bottom: spacing.$spacing-04;
+  }
+
+  &__mismatch-actions {
+    display: flex;
+    gap: spacing.$spacing-03;
+    margin-top: spacing.$spacing-03;
+    justify-content: flex-end;
+  }
+
+  &__row--excluded {
+    opacity: 0.6;
+    background-color: var(--cds-layer-01, #f4f4f4);
+  }
+
+  &__unclassified {
+    @include type.type-style('body-compact-01');
+    color: var(--cds-text-secondary, #525252);
+    font-style: italic;
+  }
+
+  &__pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: spacing.$spacing-05;
+    padding: spacing.$spacing-03 0;
+    border-top: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  }
+
+  &__pagination-info {
+    display: flex;
+    gap: spacing.$spacing-03;
+  }
+
+  &__modal-description {
+    @include type.type-style('body-01');
+    color: var(--cds-text-secondary, #525252);
+    margin-bottom: spacing.$spacing-05;
+  }
+
+  // Carbon DataTable overrides
+  :global {
+    .cds--data-table-container {
+      margin-top: spacing.$spacing-04;
+    }
+
+    .cds--data-table th,
+    .cds--data-table td {
+      vertical-align: middle;
+    }
+
+    .cds--batch-actions {
+      z-index: 1;
+    }
+
+    .cds--table-toolbar {
+      background-color: var(--cds-layer-01, #f4f4f4);
+    }
+
+    .cds--overflow-menu {
+      width: auto;
+    }
+  }
+}

@@ -101,7 +101,7 @@ export async function parseApiError(response: Response, operation: string): Prom
  */
 export function isAuthError(error: Error | ApiError): boolean {
   const message = 'message' in error ? error.message.toLowerCase() : '';
-  const code = 'code' in error ? error.code?.toLowerCase() : '';
+  const code = 'code' in error && typeof error.code === 'string' ? error.code.toLowerCase() : '';
   const status = 'status' in error ? error.status : undefined;
 
   return (

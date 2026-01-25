@@ -30,7 +30,7 @@ export interface IBMCloudProfiles {
   zone: string;
 }
 
-export type ProfilesSource = 'api' | 'static' | 'cached' | 'proxy';
+export type ProfilesSource = 'proxy' | 'static' | 'cached';
 
 export interface CachedProfiles {
   data: IBMCloudProfiles;

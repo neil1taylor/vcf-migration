@@ -1,0 +1,74 @@
+@use '@carbon/styles/scss/spacing' as *;
+@use '@carbon/styles/scss/type' as *;
+@use '@carbon/styles/scss/theme' as *;
+
+.workload-vm-table {
+  &__filters {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-03;
+    margin-bottom: $spacing-05;
+    padding: $spacing-04;
+    background: $layer-01;
+    border-radius: 4px;
+  }
+
+  &__filters-label {
+    @include type-style('label-01');
+    color: $text-secondary;
+  }
+
+  &__filter-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-03;
+    align-items: center;
+  }
+
+  &__filter-tile {
+    display: flex;
+    align-items: center;
+    gap: $spacing-03;
+    padding: $spacing-02 $spacing-04;
+    min-height: auto;
+    border: 1px solid $border-subtle-01;
+    background: $layer-02;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover {
+      background: $layer-hover-02;
+    }
+
+    &--selected {
+      border-color: $link-primary;
+      background: $layer-selected-02;
+    }
+  }
+
+  &__filter-name {
+    @include type-style('body-compact-01');
+  }
+
+  &__pattern {
+    @include type-style('code-01');
+    padding: $spacing-01 $spacing-02;
+    background: $layer-02;
+    border-radius: 2px;
+  }
+
+  &__pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: $spacing-04;
+    margin-top: $spacing-04;
+    padding: $spacing-03 0;
+  }
+
+  &__pagination-info {
+    display: flex;
+    gap: $spacing-03;
+  }
+}

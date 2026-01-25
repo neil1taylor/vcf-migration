@@ -4,9 +4,10 @@ import { useState, useCallback, useMemo } from 'react';
 import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, UnorderedList, ListItem, Button, InlineNotification } from '@carbon/react';
 import { Download } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
-import { useData, useVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning } from '@/hooks';
+import { useData, useVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides } from '@/hooks';
 import { ROUTES, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS, HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED } from '@/utils/constants';
 import { formatNumber, mibToGiB } from '@/utils/formatters';
+import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { MetricCard, RedHatDocLink, RemediationPanel } from '@/components/common';
 import { SizingCalculator } from '@/components/sizing';
 import type { SizingResult } from '@/components/sizing';
@@ -21,10 +22,21 @@ import './MigrationPage.scss';
 
 export function ROKSMigrationPage() {
   const { rawData } = useData();
-  const vms = useVMs();
+  const allVms = useVMs();
   const [yamlExporting, setYamlExporting] = useState(false);
   const [yamlExportSuccess, setYamlExportSuccess] = useState(false);
   const [calculatorSizing, setCalculatorSizing] = useState<SizingResult | null>(null);
+
+  // VM overrides for exclusions
+  const vmOverrides = useVMOverrides();
+
+  // Filter out excluded VMs
+  const vms = useMemo(() => {
+    return allVms.filter(vm => {
+      const vmId = getVMIdentifier(vm);
+      return !vmOverrides.isExcluded(vmId);
+    });
+  }, [allVms, vmOverrides]);
 
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;

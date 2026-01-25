@@ -2,6 +2,10 @@
 export { useData, useHasData, useVMCount, usePoweredOnVMs, useTemplates, useVMs, useNSXEdgeAppliances } from './useData';
 export { useChartFilter } from './useChartFilter';
 export type { ChartFilter } from './useChartFilter';
+export { useVMOverrides } from './useVMOverrides';
+export type { VMOverride, VMOverridesData, UseVMOverridesReturn } from './useVMOverrides';
+export { useSubnetOverrides, isValidCIDR, isValidCIDRList, parseCIDRList } from './useSubnetOverrides';
+export type { SubnetOverride, SubnetOverridesData, UseSubnetOverridesReturn } from './useSubnetOverrides';
 
 // Export hooks
 export { usePDFExport } from './usePDFExport';

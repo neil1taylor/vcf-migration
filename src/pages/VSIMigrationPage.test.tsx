@@ -12,6 +12,14 @@ vi.mock('@/hooks', () => ({
   usePreflightChecks: vi.fn(),
   useMigrationAssessment: vi.fn(),
   useWavePlanning: vi.fn(),
+  useVMOverrides: vi.fn(() => ({
+    overrides: {},
+    isExcluded: () => false,
+    getWorkloadType: () => undefined,
+    getNotes: () => undefined,
+    excludedCount: 0,
+    overrideCount: 0,
+  })),
 }));
 
 // Mock services
@@ -29,6 +37,13 @@ vi.mock('@/services/migration', () => ({
     compute: [],
     memory: [],
   })),
+  classifyVMForBurstable: vi.fn(() => ({
+    classification: 'standard',
+    reason: 'Test classification',
+    burstableEligible: false,
+  })),
+  mapVMToBurstableProfile: vi.fn(() => null),
+  findBurstableProfile: vi.fn(() => null),
 }));
 
 // Mock components

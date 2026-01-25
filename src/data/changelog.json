@@ -1,6 +1,54 @@
 {
   "releases": [
     {
+      "version": "1.0.3",
+      "date": "2026-01-25",
+      "sections": {
+        "added": [
+          "Editable subnet column in Network Summary table with inline editing and localStorage persistence",
+          "Support for multiple CIDRs per port group (comma-separated format)",
+          "Guessed tag indicator showing auto-detected vs manually entered subnets",
+          "Edit icon and visual styling for editable subnet cells with hover effects",
+          "Instruction banner above Network Summary table explaining inline editing",
+          "Toggle control on Network page to show all VM labels in network topology diagram",
+          "VMs with Multiple NICs table now filters by migration scope (excluded VMs hidden)",
+          "Wave Planning panel displays all waves (removed previous 8-10 wave limit)",
+          "WaveVMTable component with clickable wave filters and VM details table",
+          "Clusters page VM table showing VMs filtered by selected cluster",
+          "Storage page VM table showing VMs filtered by selected datastore (derived from vDisk paths)",
+          "FilterableVMTable reusable component for entity-based VM filtering"
+        ],
+        "changed": [
+          "Renamed Network Summary column from 'Subnet (Guess)' to 'Subnet'",
+          "Wave Planning 'Overview' renamed to 'All' and now displays all VMs in table"
+        ]
+      }
+    },
+    {
+      "version": "1.0.2",
+      "date": "2026-01-24",
+      "sections": {
+        "added": [
+          "VM Management tab in Workload Discovery for customizing migration scope",
+          "Exclude/include individual VMs from migration analysis",
+          "Bulk exclude/include VMs using checkbox selection",
+          "Override auto-detected workload types with predefined or custom categories",
+          "Add user notes per VM for migration planning",
+          "Export/import VM override settings as JSON for sharing across sessions",
+          "Environment fingerprinting to sync overrides with RVTools data sources",
+          "Persistent VM customizations via localStorage across browser sessions",
+          "Enhanced Workloads tab with clickable category filters and Carbon DataTable",
+          "Enhanced Appliances tab with clickable type filters and Carbon DataTable",
+          "Enhanced Network Equipment tab with clickable type filters and Carbon DataTable",
+          "Custom tab in Workload Discovery showing VMs with manual workload type assignments",
+          "CSV export functionality for Workloads, Appliances, Network Equipment, and Custom tables"
+        ],
+        "fixed": [
+          "Pricing/profile label logic correctly shows 'Live API' when proxy is available (regardless of cache status). Shows 'Cache' when proxy is unavailable"
+        ]
+      }
+    },   
+    {
       "version": "1.0.1",
       "date": "2026-01-23",
       "sections": {

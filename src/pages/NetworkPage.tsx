@@ -1,8 +1,10 @@
 // Network analysis page
-import { useMemo } from 'react';
-import { Grid, Column, Tile, Tag } from '@carbon/react';
+import { useMemo, useState, useCallback } from 'react';
+import { Grid, Column, Tile, Tag, TextInput, Toggle, InlineNotification } from '@carbon/react';
+import { Edit } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
-import { useData } from '@/hooks';
+import { useData, useSubnetOverrides, isValidCIDRList, useVMOverrides } from '@/hooks';
+import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { ROUTES } from '@/utils/constants';
 import { formatNumber } from '@/utils/formatters';
 import { HorizontalBarChart, DoughnutChart, VerticalBarChart, Sunburst, NetworkTopology } from '@/components/charts';
@@ -14,6 +16,11 @@ import './NetworkPage.scss';
 
 export function NetworkPage() {
   const { rawData } = useData();
+  const subnetOverrides = useSubnetOverrides();
+  const vmOverrides = useVMOverrides();
+  const [showAllVMLabels, setShowAllVMLabels] = useState(false);
+  const [editingPortGroup, setEditingPortGroup] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
 
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
@@ -104,8 +111,31 @@ export function NetworkPage() {
     vmCount: number;
     nicCount: number;
     guessedSubnet: string;
+    subnet: string;        // Final subnet (override or guessed)
+    hasOverride: boolean;  // Whether user has set a manual subnet
     sampleIPs: string;
   }
+
+  // Handlers for inline subnet editing
+  const handleStartEdit = useCallback((portGroup: string, currentSubnet: string) => {
+    setEditingPortGroup(portGroup);
+    setEditValue(currentSubnet === 'N/A' ? '' : currentSubnet);
+  }, []);
+
+  const handleSaveEdit = useCallback((portGroup: string) => {
+    if (editValue.trim() === '' || editValue === 'N/A') {
+      subnetOverrides.removeOverride(portGroup);
+    } else if (isValidCIDRList(editValue.trim())) {
+      subnetOverrides.setSubnet(portGroup, editValue.trim());
+    }
+    setEditingPortGroup(null);
+    setEditValue('');
+  }, [editValue, subnetOverrides]);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingPortGroup(null);
+    setEditValue('');
+  }, []);
 
   const networkSummaryData = useMemo(() => {
     // Group NICs by port group
@@ -137,30 +167,31 @@ export function NetworkPage() {
     // Convert to array and guess subnets
     const result: NetworkSummaryRow[] = [];
     portGroupMap.forEach((data, portGroup) => {
-      // Simple subnet guessing: find most common first 3 octets
+      // Subnet guessing: find ALL unique prefixes (first 3 octets)
       let guessedSubnet = 'N/A';
       if (data.ips.length > 0) {
-        const prefixCounts = new Map<string, number>();
+        const uniquePrefixes = new Set<string>();
         data.ips.forEach(ip => {
           const parts = ip.split('.');
           if (parts.length >= 3) {
             const prefix = `${parts[0]}.${parts[1]}.${parts[2]}`;
-            prefixCounts.set(prefix, (prefixCounts.get(prefix) || 0) + 1);
+            uniquePrefixes.add(prefix);
           }
         });
-        // Find most common prefix
-        let maxCount = 0;
-        let mostCommonPrefix = '';
-        prefixCounts.forEach((count, prefix) => {
-          if (count > maxCount) {
-            maxCount = count;
-            mostCommonPrefix = prefix;
-          }
-        });
-        if (mostCommonPrefix) {
-          guessedSubnet = `${mostCommonPrefix}.0/24`;
+        // Convert all unique prefixes to CIDR notation
+        const subnets = Array.from(uniquePrefixes)
+          .sort()
+          .map(prefix => `${prefix}.0/24`);
+        if (subnets.length > 0) {
+          guessedSubnet = subnets.join(', ');
         }
       }
+
+      // Check for user override
+      const hasOverride = subnetOverrides.hasOverride(portGroup);
+      const subnet = hasOverride
+        ? subnetOverrides.getSubnet(portGroup)!
+        : guessedSubnet;
 
       result.push({
         portGroup,
@@ -168,21 +199,98 @@ export function NetworkPage() {
         vmCount: data.vmNames.size,
         nicCount: data.nicCount,
         guessedSubnet,
+        subnet,
+        hasOverride,
         sampleIPs: data.ips.slice(0, 3).join(', ') || 'N/A',
       });
     });
 
     return result.sort((a, b) => b.vmCount - a.vmCount);
-  }, [networks]);
+  }, [networks, subnetOverrides]);
 
   const networkSummaryColumns: ColumnDef<NetworkSummaryRow>[] = useMemo(() => [
     { accessorKey: 'portGroup', header: 'Port Group' },
     { accessorKey: 'vSwitch', header: 'vSwitch' },
     { accessorKey: 'vmCount', header: 'VMs' },
     { accessorKey: 'nicCount', header: 'NICs' },
-    { accessorKey: 'guessedSubnet', header: 'Subnet (Guess)' },
+    {
+      accessorKey: 'subnet',
+      header: 'Subnet',
+      cell: ({ row }) => {
+        const portGroup = row.original.portGroup;
+        const subnet = row.original.subnet;
+        const hasOverride = row.original.hasOverride;
+        const isEditing = editingPortGroup === portGroup;
+
+        // Parse subnets for display
+        const subnets = subnet === 'N/A' ? [] : subnet.split(',').map(s => s.trim());
+        const hasMultiple = subnets.length > 1;
+
+        if (isEditing) {
+          return (
+            <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+              <TextInput
+                id={`subnet-edit-${portGroup}`}
+                labelText=""
+                hideLabel
+                size="sm"
+                value={editValue}
+                onChange={(e) => setEditValue(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveEdit(portGroup);
+                  if (e.key === 'Escape') handleCancelEdit();
+                }}
+                placeholder="e.g., 10.0.1.0/24, 10.0.2.0/24"
+                invalid={editValue.trim() !== '' && editValue !== 'N/A' && !isValidCIDRList(editValue.trim())}
+                invalidText="Invalid CIDR format (use comma to separate multiple)"
+                style={{ width: '220px' }}
+                autoFocus
+              />
+              <button
+                onClick={() => handleSaveEdit(portGroup)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#24a148', fontSize: '1rem' }}
+                title="Save"
+              >
+                ✓
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#da1e28', fontSize: '1rem' }}
+                title="Cancel"
+              >
+                ✗
+              </button>
+            </div>
+          );
+        }
+
+        return (
+          <div
+            className="network-page__editable-cell"
+            onClick={() => handleStartEdit(portGroup, subnet)}
+            title="Click to edit subnet"
+          >
+            <div className="network-page__editable-cell-content">
+              {subnet === 'N/A' ? (
+                <span style={{ color: '#6f6f6f' }}>N/A</span>
+              ) : (
+                subnets.map((s, idx) => (
+                  <Tag key={idx} type={hasMultiple ? 'purple' : 'gray'} size="sm">
+                    {s}
+                  </Tag>
+                ))
+              )}
+              {!hasOverride && subnet !== 'N/A' && (
+                <Tag type="outline" size="sm">Guessed</Tag>
+              )}
+            </div>
+            <Edit size={14} className="network-page__edit-icon" />
+          </div>
+        );
+      },
+    },
     { accessorKey: 'sampleIPs', header: 'Sample IPs' },
-  ], []);
+  ], [editingPortGroup, editValue, handleStartEdit, handleSaveEdit, handleCancelEdit]);
 
   // Multi-NIC VMs Table: VMs with more than 1 NIC
   interface MultiNicVMRow {
@@ -200,6 +308,15 @@ export function NetworkPage() {
 
     multiNicVMs.forEach(({ vmName, nicCount }) => {
       const vmInfo = vms.find(v => v.vmName === vmName);
+
+      // Filter out excluded VMs
+      if (vmInfo) {
+        const vmId = getVMIdentifier(vmInfo);
+        if (vmOverrides.isExcluded(vmId)) {
+          return; // Skip excluded VMs
+        }
+      }
+
       const vmNetworks = networks.filter(n => n.vmName.toLowerCase() === vmName.toLowerCase());
       const uniqueNetworkNames = [...new Set(vmNetworks.map(n => n.networkName))];
 
@@ -213,7 +330,7 @@ export function NetworkPage() {
     });
 
     return result.sort((a, b) => b.nicCount - a.nicCount);
-  }, [vmNicCounts, vms, networks]);
+  }, [vmNicCounts, vms, networks, vmOverrides]);
 
   const multiNicVMColumns: ColumnDef<MultiNicVMRow>[] = useMemo(() => [
     { accessorKey: 'vmName', header: 'VM Name' },
@@ -631,12 +748,24 @@ export function NetworkPage() {
         {/* Network Topology Force-Directed Graph */}
         <Column lg={16} md={8} sm={4}>
           <Tile className="network-page__topology-tile">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+              <Toggle
+                id="show-all-vm-labels"
+                size="sm"
+                labelText="Show all VM labels"
+                labelA="Off"
+                labelB="On"
+                toggled={showAllVMLabels}
+                onToggle={(checked) => setShowAllVMLabels(checked)}
+              />
+            </div>
             <NetworkTopology
               title="Network Topology"
               subtitle={`Interactive view of ${topologyNodes.filter(n => n.type === 'switch').length} switches, ${topologyNodes.filter(n => n.type === 'portgroup').length} port groups, and ${topologyNodes.filter(n => n.type === 'vm').length} VMs (drag to reposition, scroll to zoom)`}
               nodes={topologyNodes}
               links={topologyLinks}
               height={550}
+              showAllVMLabels={showAllVMLabels}
             />
           </Tile>
         </Column>
@@ -683,6 +812,14 @@ export function NetworkPage() {
           <Tile className="network-page__table-tile">
             <h4 className="network-page__table-title">Network Summary</h4>
             <p className="network-page__table-subtitle">Port groups with VM counts and estimated IP subnets</p>
+            <InlineNotification
+              kind="info"
+              lowContrast
+              hideCloseButton
+              title="Editable subnets:"
+              subtitle="Click any subnet cell to manually enter or correct the CIDR notation. Use commas to specify multiple subnets. Your changes are saved automatically."
+              className="network-page__edit-instruction"
+            />
             <EnhancedDataTable
               data={networkSummaryData}
               columns={networkSummaryColumns}

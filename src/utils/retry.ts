@@ -22,15 +22,23 @@ const DEFAULT_OPTIONS: Required<Omit<RetryOptions, 'onRetry' | 'retryableErrors'
  * - Timeout errors
  * - 5xx server errors
  * - 429 rate limiting
+ *
+ * NOTE: AbortErrors are NOT retryable - they are intentional cancellations
+ * (e.g., React StrictMode cleanup, user navigation, etc.)
  */
 export function isRetryableError(error: Error): boolean {
+  // AbortErrors are intentional cancellations, not transient failures
+  // Do NOT retry them
+  if (error.name === 'AbortError') {
+    return false;
+  }
+
   const message = error.message.toLowerCase();
 
-  // Network/fetch errors
+  // Network/fetch errors (but not AbortErrors which are handled above)
   if (message.includes('failed to fetch') ||
       message.includes('network') ||
       message.includes('timeout') ||
-      message.includes('aborted') ||
       message.includes('econnrefused') ||
       message.includes('econnreset') ||
       message.includes('etimedout')) {

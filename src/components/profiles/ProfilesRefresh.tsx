@@ -36,18 +36,30 @@ function formatLastUpdated(date: Date | null): string {
   });
 }
 
-function getSourceDisplay(source: ProfilesSource): { label: string; kind: 'blue' | 'green' | 'gray' } {
-  switch (source) {
-    case 'api':
-      return { label: 'Live API', kind: 'green' };
-    case 'proxy':
-      return { label: 'Live Proxy', kind: 'green' };
-    case 'cached':
-      return { label: 'Cached', kind: 'blue' };
-    case 'static':
-    default:
-      return { label: 'Static', kind: 'gray' };
+function getSourceDisplay(
+  source: ProfilesSource,
+  isApiAvailable: boolean | null | undefined,
+  lastUpdated: Date | null
+): { label: string; kind: 'green' | 'gray' } {
+  // If the proxy is confirmed available, show "Live API"
+  if (isApiAvailable === true) {
+    return { label: 'Live API', kind: 'green' };
   }
+
+  // If the proxy is confirmed unavailable, show "Cache"
+  if (isApiAvailable === false) {
+    return { label: 'Cache', kind: 'gray' };
+  }
+
+  // If isApiAvailable is null (test was cancelled or pending), check if we have
+  // cached data from the proxy. If so, assume the proxy is still available since
+  // the data came from the live API.
+  if ((source === 'proxy' || source === 'cached') && lastUpdated) {
+    return { label: 'Live API', kind: 'green' };
+  }
+
+  // Default to "Cache" (static data or unknown state)
+  return { label: 'Cache', kind: 'gray' };
 }
 
 export function ProfilesRefresh({
@@ -60,7 +72,7 @@ export function ProfilesRefresh({
   compact = false,
   profileCounts,
 }: ProfilesRefreshProps) {
-  const sourceDisplay = getSourceDisplay(source);
+  const sourceDisplay = getSourceDisplay(source, isApiAvailable, lastUpdated);
 
   if (compact) {
     const tooltipText = lastUpdated
@@ -91,10 +103,10 @@ export function ProfilesRefresh({
     <div className="profiles-refresh">
       <div className="profiles-refresh__status">
         <div className="profiles-refresh__source">
-          {isApiAvailable === false ? (
-            <CloudOffline size={16} className="profiles-refresh__icon profiles-refresh__icon--offline" />
-          ) : source === 'api' || source === 'proxy' ? (
+          {sourceDisplay.kind === 'green' ? (
             <Checkmark size={16} className="profiles-refresh__icon profiles-refresh__icon--api" />
+          ) : isApiAvailable === false ? (
+            <CloudOffline size={16} className="profiles-refresh__icon profiles-refresh__icon--offline" />
           ) : (
             <Warning size={16} className="profiles-refresh__icon profiles-refresh__icon--static" />
           )}
@@ -135,11 +147,7 @@ export function ProfilesRefresh({
 
       {error && (
         <span className="profiles-refresh__error" title={error}>
-          {error.includes('not_authorized') || error.includes('403')
-            ? 'API key lacks VPC permissions'
-            : error.includes('API key required')
-              ? 'API key not configured'
-              : 'API unavailable - using fallback data'}
+          Proxy unavailable - using cached data
         </span>
       )}
     </div>

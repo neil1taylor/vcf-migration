@@ -4,9 +4,10 @@ import { useState, useMemo, lazy, Suspense } from 'react';
 import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, Button, InlineNotification, Loading } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
 import { Settings, Reset, ArrowUp, ArrowDown } from '@carbon/icons-react';
-import { useData, useVMs, useCustomProfiles, usePreflightChecks, useMigrationAssessment, useWavePlanning } from '@/hooks';
+import { useData, useVMs, useCustomProfiles, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides } from '@/hooks';
 import { ROUTES, HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
 import { formatNumber, mibToGiB } from '@/utils/formatters';
+import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { DoughnutChart, HorizontalBarChart } from '@/components/charts';
 import { EnhancedDataTable } from '@/components/tables';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -26,8 +27,11 @@ import './MigrationPage.scss';
 
 export function VSIMigrationPage() {
   const { rawData } = useData();
-  const vms = useVMs();
+  const allVms = useVMs();
   const [showCustomProfileEditor, setShowCustomProfileEditor] = useState(false);
+
+  // VM overrides for exclusions
+  const vmOverrides = useVMOverrides();
 
   // Custom profiles state
   const {
@@ -41,6 +45,14 @@ export function VSIMigrationPage() {
     updateCustomProfile,
     removeCustomProfile,
   } = useCustomProfiles();
+
+  // Filter out excluded VMs
+  const vms = useMemo(() => {
+    return allVms.filter(vm => {
+      const vmId = getVMIdentifier(vm);
+      return !vmOverrides.isExcluded(vmId);
+    });
+  }, [allVms, vmOverrides]);
 
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;

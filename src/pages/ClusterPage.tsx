@@ -1,4 +1,5 @@
 // Cluster analysis page
+import { useState, useMemo } from 'react';
 import { Grid, Column, Tile, Tag } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
 import { useData } from '@/hooks';
@@ -6,13 +7,15 @@ import { ROUTES } from '@/utils/constants';
 import { formatNumber, formatMiB } from '@/utils/formatters';
 import { HorizontalBarChart, DoughnutChart, VerticalBarChart } from '@/components/charts';
 import { MetricCard, RedHatDocLinksGroup } from '@/components/common';
-import { EnhancedDataTable } from '@/components/tables';
+import { EnhancedDataTable, FilterableVMTable } from '@/components/tables';
+import type { FilterOption } from '@/components/tables';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { VClusterInfo } from '@/types';
 import './ClusterPage.scss';
 
 export function ClusterPage() {
   const { rawData } = useData();
+  const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
 
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
@@ -44,6 +47,23 @@ export function ClusterPage() {
     vmCount: c.vmCount || vmCountsByCluster[c.name] || 0,
     datacenter: c.datacenter || datacenterByCluster[c.name] || '',
   }));
+
+  // Build filter options for the VM table
+  const clusterFilterOptions: FilterOption[] = useMemo(() => {
+    return clusters
+      .map(c => ({
+        value: c.name,
+        label: c.name,
+        count: c.vmCount,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [clusters]);
+
+  // Filter VMs by selected cluster
+  const filteredVMs = useMemo(() => {
+    if (!selectedCluster) return vms;
+    return vms.filter(vm => vm.cluster === selectedCluster);
+  }, [vms, selectedCluster]);
 
   // Summary metrics
   const totalClusters = clusters.length;
@@ -527,6 +547,22 @@ export function ClusterPage() {
               enableColumnVisibility
               defaultPageSize={25}
               exportFilename="cluster-details"
+            />
+          </Tile>
+        </Column>
+
+        {/* VM Table by Cluster */}
+        <Column lg={16} md={8} sm={4}>
+          <Tile className="cluster-page__vm-table-tile">
+            <h4 className="cluster-page__table-title">VMs by Cluster</h4>
+            <p className="cluster-page__table-subtitle">Click a cluster to filter VMs</p>
+            <FilterableVMTable
+              vms={filteredVMs}
+              filterOptions={clusterFilterOptions}
+              selectedFilter={selectedCluster}
+              onFilterChange={setSelectedCluster}
+              filterLabel="Cluster"
+              title="Virtual Machines"
             />
           </Tile>
         </Column>

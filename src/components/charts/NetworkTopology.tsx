@@ -26,6 +26,7 @@ interface NetworkTopologyProps {
   links: TopologyLink[];
   height?: number;
   onNodeClick?: (node: TopologyNode) => void;
+  showAllVMLabels?: boolean;
 }
 
 // Node colors by type
@@ -53,6 +54,7 @@ export function NetworkTopology({
   links,
   height = 500,
   onNodeClick,
+  showAllVMLabels = false,
 }: NetworkTopologyProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -158,9 +160,10 @@ export function NetworkTopology({
       });
 
     // Add labels for all nodes (including VMs)
-    // Filter to show labels for: switches, port groups, and VMs with value > 1 (multiple NICs)
+    // Filter to show labels for: switches, port groups, and optionally all VMs
+    // By default, only show VM labels for VMs with multiple NICs (value > 1)
     const nodesWithLabels = nodesCopy.filter(n =>
-      n.type !== 'vm' || (n.value !== undefined && n.value > 1)
+      n.type !== 'vm' || showAllVMLabels || (n.value !== undefined && n.value > 1)
     );
 
     // Get theme-aware colors for labels
@@ -227,7 +230,7 @@ export function NetworkTopology({
     return () => {
       simulation.stop();
     };
-  }, [nodes, links, height, onNodeClick]);
+  }, [nodes, links, height, onNodeClick, showAllVMLabels]);
 
   if (nodes.length === 0) {
     return (

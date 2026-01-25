@@ -188,9 +188,18 @@ interface AnalysisBundle {
 | 7 | Dependency Mapping | 3-4 days | Medium | None |
 
 
-### Fix Updates
+**Current Gap** Unable to manually remove VM from migration scope or add a VM that was previously removed. **Proposal** In the workload discovery have a tab named VMs that contains details of the VMs and the ability to add or remove from migration, as well as to change its workload type or add additional notes. This information will need to be stored so that when the RVtools data is reloaded this information is available, We will expand this to include the ability to add subnets and assign them to port groups. Can we store this info in a tab in the spreadsheet or are there better options
 
-Remove API capability. The updates are to be done as follows
+On the Workload tab replace the the Identified workloads VM table with a table like on the VM tab. Make the Detected Workloads by Category clickable and used to filter the table. Use the same table type in appliances and network equipment. And a new tab called custom and use to display the custom workload types and include a clickable Custom Workload Type and a filtered table.
 
-Maintainer runs the update scripts to update the pricing, vpc profiles and ROKS profiles before updating code engine
-User browses to website and app tries to update using the proxy. If succedees the app is labelled with Live API, if not labbeled with cache
+Add the ability to add subnets and assign them to port groups. Use the Network Summary table and make the subnet editable. Remove guess from the column header and add it as a tag unless the subnet is entered manually
+
+VMs with Multiple NICs table should show only VMs selected for migration
+
+On the Network Topology, all VMs should have their names displayed
+
+Wave planning should display all waves. We also need to display a table of VMs filtered by wave
+
+On the Clusters tab we need a table that shows VMs on a selected cluster
+
+On the datastores tab we need a table that shows VMs on a selected datastore

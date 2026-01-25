@@ -96,7 +96,7 @@ export interface IBMCloudPricing {
   }>;
 }
 
-export type PricingSource = 'api' | 'static' | 'cached' | 'proxy';
+export type PricingSource = 'proxy' | 'static' | 'cached';
 
 export interface CachedPricing {
   data: IBMCloudPricing;

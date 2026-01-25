@@ -6,5 +6,7 @@ export type { ComplexityAssessmentPanelProps } from './ComplexityAssessmentPanel
 export { WavePlanningPanel } from './WavePlanningPanel';
 export type { WavePlanningPanelProps, WavePlanningMode } from './WavePlanningPanel';
 
+export { WaveVMTable } from './WaveVMTable';
+
 export { OSCompatibilityPanel } from './OSCompatibilityPanel';
 export type { OSCompatibilityPanelProps } from './OSCompatibilityPanel';

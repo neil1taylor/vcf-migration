@@ -18,6 +18,14 @@ vi.mock('@/hooks', () => ({
     error: null,
     profileCounts: { balanced: 0, compute: 0, memory: 0 },
   })),
+  useVMOverrides: vi.fn(() => ({
+    overrides: {},
+    isExcluded: () => false,
+    getWorkloadType: () => undefined,
+    getNotes: () => undefined,
+    excludedCount: 0,
+    overrideCount: 0,
+  })),
 }));
 
 // Mock services

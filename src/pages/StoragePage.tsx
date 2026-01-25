@@ -1,6 +1,6 @@
 // Storage analysis page
-import { useMemo } from 'react';
-import { Grid, Column, Tile } from '@carbon/react';
+import { useMemo, useState } from 'react';
+import { Grid, Column, Tile, InlineNotification } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
 import { useData, useChartFilter } from '@/hooks';
 import { ROUTES } from '@/utils/constants';
@@ -8,13 +8,15 @@ import { mibToGiB, mibToTiB, formatNumber } from '@/utils/formatters';
 import { HorizontalBarChart, DoughnutChart, Heatmap } from '@/components/charts';
 import type { HeatmapCell } from '@/components/charts';
 import { FilterBadge, MetricCard } from '@/components/common';
-import { EnhancedDataTable } from '@/components/tables/EnhancedDataTable';
+import { EnhancedDataTable, FilterableVMTable } from '@/components/tables';
+import type { FilterOption } from '@/components/tables';
 import type { ColumnDef } from '@tanstack/react-table';
 import './StoragePage.scss';
 
 export function StoragePage() {
   const { rawData } = useData();
   const { chartFilter, setFilter, clearFilter } = useChartFilter();
+  const [selectedDatastore, setSelectedDatastore] = useState<string | null>(null);
 
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
@@ -22,6 +24,7 @@ export function StoragePage() {
 
   const datastores = rawData.vDatastore;
   const vms = rawData.vInfo.filter(vm => !vm.template);
+  const vDisks = rawData.vDisk || [];
 
   // Calculate datastore-level storage metrics
   const totalCapacityTiB = mibToTiB(datastores.reduce((sum, ds) => sum + ds.capacityMiB, 0));
@@ -35,6 +38,52 @@ export function StoragePage() {
   const vmProvisionedTiB = mibToTiB(vmProvisionedMiB);
   const vmInUseTiB = mibToTiB(vmInUseMiB);
   const vmStorageEfficiency = vmProvisionedMiB > 0 ? (vmInUseMiB / vmProvisionedMiB) * 100 : 0;
+
+  // Build VM-to-datastore mapping from vDisk data
+  const vmToDatastores = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    vDisks.forEach(disk => {
+      if (disk.vmName && disk.diskPath) {
+        // Extract datastore from diskPath: "[datastore-name] folder/file.vmdk"
+        const match = disk.diskPath.match(/^\[([^\]]+)\]/);
+        if (match) {
+          const dsName = match[1];
+          if (!map.has(disk.vmName)) {
+            map.set(disk.vmName, new Set());
+          }
+          map.get(disk.vmName)!.add(dsName);
+        }
+      }
+    });
+    return map;
+  }, [vDisks]);
+
+  // Build datastore filter options (count VMs per datastore)
+  const datastoreFilterOptions: FilterOption[] = useMemo(() => {
+    const dsVMCount = new Map<string, number>();
+    vmToDatastores.forEach((datastoreSet) => {
+      datastoreSet.forEach(ds => {
+        dsVMCount.set(ds, (dsVMCount.get(ds) || 0) + 1);
+      });
+    });
+
+    return Array.from(dsVMCount.entries())
+      .map(([name, count]) => ({
+        value: name,
+        label: name,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count);
+  }, [vmToDatastores]);
+
+  // Filter VMs by selected datastore
+  const filteredVMsByDatastore = useMemo(() => {
+    if (!selectedDatastore) return vms;
+    return vms.filter(vm => {
+      const vmDatastores = vmToDatastores.get(vm.vmName);
+      return vmDatastores && vmDatastores.has(selectedDatastore);
+    });
+  }, [vms, selectedDatastore, vmToDatastores]);
 
   // Datastore type distribution
   const typeDistribution = datastores.reduce((acc, ds) => {
@@ -477,6 +526,31 @@ export function StoragePage() {
                 data={datastoreUtilHeatmap}
                 height={Math.min(600, 100 + datastoreUtilHeatmap.length * 28)}
                 colorScale="utilization"
+              />
+            </Tile>
+          </Column>
+        )}
+
+        {/* VM Table by Datastore */}
+        {datastoreFilterOptions.length > 0 && (
+          <Column lg={16} md={8} sm={4}>
+            <Tile className="storage-page__vm-table-tile">
+              <h3>VMs by Datastore</h3>
+              <InlineNotification
+                kind="info"
+                lowContrast
+                hideCloseButton
+                title="Note:"
+                subtitle="VM-datastore mapping is derived from vDisk paths. A VM may appear in multiple datastores if its disks span multiple datastores."
+                style={{ marginBottom: '1rem' }}
+              />
+              <FilterableVMTable
+                vms={filteredVMsByDatastore}
+                filterOptions={datastoreFilterOptions}
+                selectedFilter={selectedDatastore}
+                onFilterChange={setSelectedDatastore}
+                filterLabel="Datastore"
+                title="Virtual Machines"
               />
             </Tile>
           </Column>

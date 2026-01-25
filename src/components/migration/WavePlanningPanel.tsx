@@ -6,6 +6,7 @@ import { Download } from '@carbon/icons-react';
 import { HorizontalBarChart } from '@/components/charts';
 import { RedHatDocLink } from '@/components/common';
 import { RackwareExportModal } from '@/components/export';
+import { WaveVMTable } from './WaveVMTable';
 import { formatNumber } from '@/utils/formatters';
 import { downloadWavePlanningExcel } from '@/services/export';
 import type { VMDetail } from '@/services/export';
@@ -49,6 +50,7 @@ export function WavePlanningPanel({
 }: WavePlanningPanelProps) {
   const isNetworkMode = wavePlanningMode === 'network';
   const [showRackwareModal, setShowRackwareModal] = useState(false);
+  const [selectedWave, setSelectedWave] = useState<string | null>(null);
 
   // Get active waves based on mode
   const activeWaves = isNetworkMode ? networkWaves : complexityWaves;
@@ -183,28 +185,31 @@ export function WavePlanningPanel({
       <Column lg={8} md={8} sm={4}>
         <Tile className="migration-page__checks-tile">
           <h3>{isNetworkMode ? (networkGroupBy === 'cluster' ? 'Clusters' : 'Port Groups') : 'Wave Descriptions'}</h3>
-          <div className="migration-page__check-items">
-            {waveResources.slice(0, 8).map((wave, idx) => (
-              <div key={idx} className="migration-page__check-item">
+          <div className="migration-page__check-items" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            {waveResources.map((wave, idx) => (
+              <div
+                key={idx}
+                className={`migration-page__check-item ${selectedWave === wave.name ? 'migration-page__check-item--selected' : ''}`}
+                onClick={() => setSelectedWave(selectedWave === wave.name ? null : wave.name)}
+                style={{ cursor: 'pointer' }}
+              >
                 <span>{wave.name.length > 30 ? wave.name.substring(0, 27) + '...' : wave.name}</span>
-                <Tag type={wave.hasBlockers ? 'red' : isNetworkMode ? 'blue' : (idx === 4 ? 'red' : idx === 3 ? 'magenta' : 'blue')}>
+                <Tag type={wave.hasBlockers ? 'red' : selectedWave === wave.name ? 'blue' : isNetworkMode ? 'blue' : (idx === 4 ? 'red' : idx === 3 ? 'magenta' : 'blue')}>
                   {formatNumber(wave.vmCount)}
                 </Tag>
               </div>
             ))}
-            {waveResources.length > 8 && (
-              <div className="migration-page__check-item">
-                <span>+ {waveResources.length - 8} more {isNetworkMode ? 'groups' : 'waves'}</span>
-                <Tag type="gray">{formatNumber(waveResources.slice(8).reduce((sum, w) => sum + w.vmCount, 0))}</Tag>
-              </div>
-            )}
           </div>
         </Tile>
       </Column>
 
-      {waveResources.slice(0, 10).map((wave, idx) => (
+      {waveResources.map((wave, idx) => (
         <Column key={idx} lg={8} md={8} sm={4}>
-          <Tile className={`migration-page__wave-tile ${wave.hasBlockers ? 'migration-page__wave-tile--warning' : ''}`}>
+          <Tile
+            className={`migration-page__wave-tile ${wave.hasBlockers ? 'migration-page__wave-tile--warning' : ''} ${selectedWave === wave.name ? 'migration-page__wave-tile--selected' : ''}`}
+            onClick={() => setSelectedWave(selectedWave === wave.name ? null : wave.name)}
+            style={{ cursor: 'pointer' }}
+          >
             <h4>{wave.name}</h4>
             {wave.description && (
               <p className="migration-page__wave-description">{wave.description}</p>
@@ -233,6 +238,18 @@ export function WavePlanningPanel({
           </Tile>
         </Column>
       ))}
+
+      {/* Wave VM Table - shows VMs when a wave is selected */}
+      <Column lg={16} md={8} sm={4}>
+        <Tile className="migration-page__wave-vm-table">
+          <WaveVMTable
+            waves={activeWaves}
+            selectedWave={selectedWave}
+            onWaveSelect={setSelectedWave}
+            mode={wavePlanningMode}
+          />
+        </Tile>
+      </Column>
 
       {/* Workflow section for VSI mode */}
       {mode === 'vsi' && workflowSteps.length > 0 && (
