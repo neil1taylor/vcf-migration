@@ -1,8 +1,8 @@
 // ROKS (OpenShift Virtualization) Migration page - Refactored with shared hooks and components
 
 import { useState, useCallback, useMemo } from 'react';
-import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, UnorderedList, ListItem, Button, InlineNotification } from '@carbon/react';
-import { Download } from '@carbon/icons-react';
+import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, UnorderedList, ListItem, Button, InlineNotification, Tooltip } from '@carbon/react';
+import { Download, Information } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
 import { useData, useVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides } from '@/hooks';
 import { ROUTES, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS, HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED } from '@/utils/constants';
@@ -197,7 +197,31 @@ export function ROKSMigrationPage() {
         {/* Readiness Score */}
         <Column lg={4} md={4} sm={4}>
           <Tile className="migration-page__score-tile">
-            <span className="migration-page__score-label">Readiness Score</span>
+            <div className="migration-page__score-header">
+              <span className="migration-page__score-label">Readiness Score</span>
+              <Tooltip
+                label={
+                  <span>
+                    Measures migration readiness based on pre-flight check results.
+                    <br /><br />
+                    <strong>Scoring:</strong>
+                    <br />• Blockers: -50 points per affected VM
+                    <br />• Warnings: -30 points per affected VM
+                    <br />• Unsupported OS: -20 points per VM
+                    <br /><br />
+                    <strong>Thresholds:</strong>
+                    <br />• Green (≥80%): Ready for migration
+                    <br />• Orange (60-79%): Preparation needed
+                    <br />• Red (&lt;60%): Blockers must be resolved
+                  </span>
+                }
+                align="bottom"
+              >
+                <button type="button" className="migration-page__score-info-button" aria-label="More information about Readiness Score">
+                  <Information size={16} aria-hidden="true" />
+                </button>
+              </Tooltip>
+            </div>
             <span className={`migration-page__score-value migration-page__score-value--${
               readinessScore >= 80 ? 'good' : readinessScore >= 60 ? 'warning' : 'critical'
             }`}>

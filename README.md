@@ -88,6 +88,26 @@ See [TECHNOLOGIES.md](TECHNOLOGIES.md) for detailed technology documentation.
 
 ---
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [README.md](README.md) | This file - project overview and getting started |
+| [User Guide](docs/USER_GUIDE.md) | Comprehensive step-by-step usage instructions |
+| [TECHNOLOGIES.md](TECHNOLOGIES.md) | Detailed technology stack documentation |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Production deployment guides for IBM Cloud |
+| [CLAUDE.md](CLAUDE.md) | Development guidelines and architecture reference |
+| [PRD.md](PRD.md) | Product Requirements Document |
+
+### In-App Documentation
+
+The application also includes built-in documentation accessible from the sidebar:
+- **/user-guide** - Interactive User Guide with the same content as `docs/USER_GUIDE.md`
+- **/about** - Application version, changelog, and technology stack
+- **/overhead-reference** - OpenShift Virtualization overhead calculation reference
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -132,6 +152,7 @@ For deploying to IBM Cloud, see [DEPLOYMENT.md](DEPLOYMENT.md) which covers:
 ```
 vcf-migration/
 ├── public/                    # Static assets
+│   └── favicon.png            # IBM Cloud favicon (from cloud.ibm.com)
 ├── src/
 │   ├── components/
 │   │   ├── charts/           # Visualization components
@@ -172,6 +193,23 @@ vcf-migration/
 
 ---
 
+## User Guide
+
+For comprehensive step-by-step instructions, see the **[User Guide](docs/USER_GUIDE.md)**.
+
+The guide covers:
+- Quick start (5-step overview)
+- Importing RVTools data
+- Understanding the Dashboard
+- Infrastructure analysis (Compute, Storage, Network, Clusters, Hosts)
+- Workload discovery and VM management
+- Migration assessment (ROKS and VSI)
+- Wave planning
+- Cost estimation
+- Generating reports (PDF, Excel, Word, BOM, YAML)
+
+---
+
 ## Usage
 
 ### 1. Import RVTools Data
@@ -204,6 +242,18 @@ Navigate to either:
 - **Export BOM** — Excel spreadsheet with formulas and styling
 - **Export PDF** — Professional assessment report
 - **Export Excel** — Complete analysis workbook
+
+---
+
+## Branding
+
+The application uses official IBM Cloud branding:
+
+- **Page Title**: "VCF Migration Planning"
+- **Favicon**: Official IBM Cloud favicon (`public/favicon.png`) downloaded from `https://cloud.ibm.com`
+- **UI Components**: IBM Carbon Design System
+
+To update the favicon, replace `public/favicon.png` with your desired icon (48x48 PNG recommended).
 
 ---
 

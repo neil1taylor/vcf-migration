@@ -21,6 +21,7 @@ import {
   Table,
   Upload,
   Information,
+  Notebook,
   Book,
   DataShare,
   Migrate,
@@ -193,6 +194,15 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
           isActive={isActive(ROUTES.info)}
         >
           Sizing Guide
+        </SideNavLink>
+
+        <SideNavLink
+          renderIcon={Notebook}
+          href="#"
+          onClick={(e) => handleNavClick(e, ROUTES.userGuide)}
+          isActive={isActive(ROUTES.userGuide)}
+        >
+          User Guide
         </SideNavLink>
 
         <SideNavLink

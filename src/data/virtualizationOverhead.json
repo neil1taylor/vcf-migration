@@ -1,0 +1,176 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "lastUpdated": "2026-01-26",
+    "description": "OpenShift Virtualization (KubeVirt) resource overhead configuration",
+    "sources": [
+      "Red Hat OpenShift Virtualization documentation",
+      "KubeVirt community best practices",
+      "IBM Cloud ROKS sizing guides"
+    ]
+  },
+  "cpuOverhead": {
+    "description": "CPU overhead for running VMs on OpenShift Virtualization",
+    "perVM": {
+      "virtLauncher": {
+        "value": 0.1,
+        "unit": "vCPU",
+        "description": "virt-launcher pod base CPU for libvirt daemon"
+      },
+      "qemuBase": {
+        "value": 0.1,
+        "unit": "vCPU",
+        "description": "QEMU process base CPU overhead"
+      },
+      "ioThreads": {
+        "value": 0.05,
+        "unit": "vCPU",
+        "description": "I/O thread CPU for disk/network operations"
+      },
+      "kubeletTracking": {
+        "value": 0.02,
+        "unit": "vCPU",
+        "description": "Kubelet cgroups and container tracking"
+      }
+    },
+    "totalFixedPerVM": 0.27,
+    "proportional": {
+      "emulationOverhead": {
+        "percent": 3,
+        "description": "Device emulation overhead as percentage of guest vCPUs"
+      }
+    },
+    "formula": "Total CPU Overhead = (VM Count × 0.27 vCPU) + (Total Guest vCPUs × 3%)",
+    "notes": [
+      "CPU overhead is relatively low due to hardware virtualization (VT-x/AMD-V)",
+      "I/O-intensive workloads may see higher overhead",
+      "Passthrough devices (GPU, NIC) reduce emulation overhead"
+    ]
+  },
+  "memoryOverhead": {
+    "description": "Memory overhead for running VMs on OpenShift Virtualization",
+    "perVM": {
+      "virtLauncherBase": {
+        "value": 150,
+        "unit": "MiB",
+        "description": "virt-launcher container base memory"
+      },
+      "libvirtDaemon": {
+        "value": 50,
+        "unit": "MiB",
+        "description": "libvirt daemon memory"
+      },
+      "qemuFixed": {
+        "value": 128,
+        "unit": "MiB",
+        "description": "QEMU process fixed overhead (video RAM, BIOS, device state)"
+      },
+      "kubeletOverhead": {
+        "value": 50,
+        "unit": "MiB",
+        "description": "Kubelet tracking, cgroups overhead"
+      }
+    },
+    "totalFixedPerVM": 378,
+    "totalFixedPerVMGiB": 0.369,
+    "proportional": {
+      "qemuGuestOverhead": {
+        "percent": 2,
+        "description": "QEMU memory overhead as percentage of guest RAM (page tables, buffers)"
+      },
+      "guestStructures": {
+        "percent": 1,
+        "description": "Guest memory structures and mapping overhead"
+      }
+    },
+    "totalProportionalPercent": 3,
+    "formula": "Total Memory Overhead = (VM Count × 378 MiB) + (Total Guest Memory × 3%)",
+    "notes": [
+      "Memory overhead is more significant than CPU overhead",
+      "Large VMs (32+ GB) have proportionally less overhead percentage",
+      "Small VMs (1-4 GB) may see 10-15% effective overhead",
+      "Memory overcommit is generally not recommended for VM workloads"
+    ]
+  },
+  "storageOverhead": {
+    "totalPercent": 15,
+    "description": "Storage overhead for VM operations",
+    "components": [
+      {
+        "id": "snapshots",
+        "name": "VM Snapshots",
+        "description": "Point-in-time copies for backup and recovery"
+      },
+      {
+        "id": "clones",
+        "name": "Clone Operations",
+        "description": "Temporary storage during VM cloning"
+      },
+      {
+        "id": "live-migration",
+        "name": "Live Migration",
+        "description": "Scratch space for live migration operations"
+      },
+      {
+        "id": "cdi-imports",
+        "name": "CDI Imports",
+        "description": "Containerized Data Importer scratch space"
+      }
+    ]
+  },
+  "systemReserved": {
+    "description": "Fixed system resources reserved per node (kubelet, monitoring, etc.)",
+    "cpu": {
+      "value": 1,
+      "unit": "cores",
+      "description": "Reserved for OpenShift system processes"
+    },
+    "memory": {
+      "value": 4,
+      "unit": "GiB",
+      "description": "Reserved for kubelet, monitoring agents, etc."
+    }
+  },
+  "odfReserved": {
+    "description": "ODF/Ceph resources reserved per node (scales with NVMe devices)",
+    "base": {
+      "cpu": {
+        "value": 5,
+        "unit": "cores",
+        "description": "Base ODF CPU reservation"
+      },
+      "memory": {
+        "value": 21,
+        "unit": "GiB",
+        "description": "Base ODF memory reservation"
+      }
+    },
+    "perNvmeDevice": {
+      "cpu": {
+        "value": 2,
+        "unit": "cores",
+        "description": "Additional CPU per NVMe device"
+      },
+      "memory": {
+        "value": 5,
+        "unit": "GiB",
+        "description": "Additional memory per NVMe device"
+      }
+    },
+    "formula": "ODF Reserved = Base + (NVMe Devices × Per Device)"
+  },
+  "references": [
+    {
+      "title": "OpenShift Virtualization Planning Guide",
+      "url": "https://docs.openshift.com/container-platform/latest/virt/about_virt/virt-architecture.html"
+    },
+    {
+      "title": "KubeVirt User Guide - Resource Requirements",
+      "url": "https://kubevirt.io/user-guide/virtual_machines/resources/"
+    },
+    {
+      "title": "Red Hat - Sizing OpenShift Virtualization",
+      "url": "https://access.redhat.com/documentation/en-us/openshift_container_platform/latest/html/virtualization/about-virt"
+    }
+  ]
+}

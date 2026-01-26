@@ -1986,8 +1986,9 @@
     "cephOverheadPercent": 15
   },
   "ocpVirtSizing": {
-    "cpuOverhead": 0.15,
-    "memoryOverhead": 0.1,
+    "cpuOverheadPercent": 5,
+    "memoryOverheadPercent": 10,
+    "storageOverheadPercent": 15,
     "cpuOvercommitConservative": 4,
     "systemReservedMemoryGiB": 12,
     "nodeRedundancy": 2

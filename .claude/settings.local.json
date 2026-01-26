@@ -51,7 +51,10 @@
       "Bash(npx vite:*)",
       "Bash(npm run lint:*)",
       "Bash(timeout 10 npm run dev:*)",
-      "Bash(timeout 15 npm run dev:*)"
+      "Bash(timeout 15 npm run dev:*)",
+      "Bash(open -a \"Google Chrome\" \"http://localhost:5174/roks-migration\")",
+      "Bash(open -a \"Google Chrome\" \"http://localhost:5173/roks-migration\")",
+      "Bash(open:*)"
     ]
   }
 }

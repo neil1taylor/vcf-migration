@@ -16,6 +16,7 @@ import {
   testProfilesProxyConnection,
   type ProxyProfilesResponse,
 } from '@/services/ibmCloudProfilesApi';
+import staticConfig from '@/data/ibmCloudConfig.json';
 
 export interface UseDynamicProfilesConfig {
   region?: string;
@@ -217,6 +218,63 @@ export function useDynamicProfiles(
 }
 
 /**
+ * Build a lookup map of profile name -> roksSupported from static config
+ * This is used as fallback when proxy doesn't return ROKS support data
+ */
+function getStaticRoksSupportMap(): Map<string, boolean> {
+  const map = new Map<string, boolean>();
+  const bmProfiles = staticConfig.bareMetalProfiles as Record<string, Array<{ name: string; roksSupported?: boolean }>>;
+
+  for (const family of Object.keys(bmProfiles)) {
+    for (const profile of bmProfiles[family]) {
+      if (typeof profile.roksSupported === 'boolean') {
+        map.set(profile.name, profile.roksSupported);
+      }
+    }
+  }
+
+  return map;
+}
+
+/**
+ * NVMe data structure from static config
+ */
+interface StaticNvmeData {
+  hasNvme: boolean;
+  nvmeDisks?: number;
+  nvmeSizeGiB?: number;
+  totalNvmeGiB?: number;
+}
+
+/**
+ * Build a lookup map of profile name -> NVMe data from static config
+ * This is used as fallback when proxy doesn't return NVMe storage data
+ */
+function getStaticNvmeDataMap(): Map<string, StaticNvmeData> {
+  const map = new Map<string, StaticNvmeData>();
+  const bmProfiles = staticConfig.bareMetalProfiles as Record<string, Array<{
+    name: string;
+    hasNvme?: boolean;
+    nvmeDisks?: number;
+    nvmeSizeGiB?: number;
+    totalNvmeGiB?: number;
+  }>>;
+
+  for (const family of Object.keys(bmProfiles)) {
+    for (const profile of bmProfiles[family]) {
+      map.set(profile.name, {
+        hasNvme: profile.hasNvme ?? false,
+        nvmeDisks: profile.nvmeDisks,
+        nvmeSizeGiB: profile.nvmeSizeGiB,
+        totalNvmeGiB: profile.totalNvmeGiB,
+      });
+    }
+  }
+
+  return map;
+}
+
+/**
  * Transform proxy response to IBMCloudProfiles format
  */
 function transformProxyResponse(
@@ -248,6 +306,24 @@ function transformProxyResponse(
     }
   }
 
+  // Check if proxy returned any valid ROKS support data
+  // If not, we'll fall back to the static config
+  const proxyHasRoksData = (proxyData.bareMetalProfiles || []).some(p => p.roksSupported === true);
+  const staticRoksMap = proxyHasRoksData ? null : getStaticRoksSupportMap();
+
+  if (!proxyHasRoksData) {
+    console.log('[Dynamic Profiles] Proxy did not return ROKS support data, using static config as fallback');
+  }
+
+  // Check if proxy returned any valid NVMe data
+  // The IBM Cloud VPC API doesn't return detailed NVMe specs, so fall back to static config
+  const proxyHasNvmeData = (proxyData.bareMetalProfiles || []).some(p => p.hasNvme === true && p.nvmeDisks && p.nvmeDisks > 0);
+  const staticNvmeMap = proxyHasNvmeData ? null : getStaticNvmeDataMap();
+
+  if (!proxyHasNvmeData) {
+    console.log('[Dynamic Profiles] Proxy did not return NVMe data, using static config as fallback');
+  }
+
   // Group bare metal profiles by family
   const bareMetalByFamily: BareMetalProfilesByFamily = {
     balanced: [],
@@ -259,6 +335,18 @@ function transformProxyResponse(
   for (const profile of proxyData.bareMetalProfiles || []) {
     const familyKey = mapBareMetalFamilyToKey(profile.family);
     if (bareMetalByFamily[familyKey]) {
+      // Use proxy roksSupported if available, otherwise fall back to static config
+      const roksSupported = proxyHasRoksData
+        ? profile.roksSupported
+        : (staticRoksMap?.get(profile.name) ?? false);
+
+      // Use proxy NVMe data if available, otherwise fall back to static config
+      const staticNvme = staticNvmeMap?.get(profile.name);
+      const hasNvme = proxyHasNvmeData ? profile.hasNvme : (staticNvme?.hasNvme ?? false);
+      const nvmeDisks = proxyHasNvmeData ? profile.nvmeDisks : staticNvme?.nvmeDisks;
+      const nvmeSizeGiB = proxyHasNvmeData ? profile.nvmeSizeGiB : staticNvme?.nvmeSizeGiB;
+      const totalNvmeGiB = proxyHasNvmeData ? profile.totalNvmeGiB : staticNvme?.totalNvmeGiB;
+
       bareMetalByFamily[familyKey].push({
         name: profile.name,
         family: profile.family,
@@ -266,11 +354,11 @@ function transformProxyResponse(
         physicalCores: profile.physicalCores,
         memoryGiB: profile.memoryGiB,
         bandwidthGbps: profile.bandwidthGbps,
-        hasNvme: profile.hasNvme,
-        nvmeDisks: profile.nvmeDisks,
-        nvmeSizeGiB: profile.nvmeSizeGiB,
-        totalNvmeGiB: profile.totalNvmeGiB,
-        roksSupported: profile.roksSupported,
+        hasNvme,
+        nvmeDisks,
+        nvmeSizeGiB,
+        totalNvmeGiB,
+        roksSupported,
       });
     }
   }

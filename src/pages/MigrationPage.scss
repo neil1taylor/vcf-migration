@@ -3,6 +3,14 @@
 @use '@carbon/styles/scss/type';
 
 .migration-page {
+  // Add margin to all columns for vertical spacing between rows
+  :global {
+    .cds--css-grid-column,
+    [class*='cds--col'] {
+      margin-bottom: spacing.$spacing-05;
+    }
+  }
+
   &__title {
     @include type.type-style('heading-04');
     margin-bottom: spacing.$spacing-03;
@@ -25,11 +33,38 @@
     min-height: 140px;
   }
 
+  &__score-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: spacing.$spacing-02;
+    margin-bottom: spacing.$spacing-03;
+  }
+
   &__score-label {
     @include type.type-style('label-01');
-    display: block;
     color: theme.$text-secondary;
-    margin-bottom: spacing.$spacing-03;
+  }
+
+  &__score-info-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: theme.$text-secondary;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: theme.$link-primary;
+    }
+
+    &:focus {
+      outline: 2px solid theme.$focus;
+      outline-offset: 2px;
+    }
   }
 
   &__score-value {
@@ -94,6 +129,7 @@
 
   &__tab-content {
     padding-top: spacing.$spacing-05;
+    row-gap: spacing.$spacing-05;
   }
 
   &__checks-tile {
@@ -441,6 +477,7 @@
   // Cost estimation tile
   &__cost-tile {
     padding: spacing.$spacing-05;
+    margin-top: spacing.$spacing-07;
     margin-bottom: spacing.$spacing-05;
     background-color: theme.$layer-accent-01;
     border-left: 4px solid #0f62fe;

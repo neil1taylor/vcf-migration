@@ -23,9 +23,11 @@ const DiscoveryPage = lazy(() => import('@/pages/DiscoveryPage').then(m => ({ de
 const TablesPage = lazy(() => import('@/pages/TablesPage').then(m => ({ default: m.TablesPage })));
 const InfoPage = lazy(() => import('@/pages/InfoPage').then(m => ({ default: m.InfoPage })));
 const DocumentationPage = lazy(() => import('@/pages/DocumentationPage').then(m => ({ default: m.DocumentationPage })));
+const UserGuidePage = lazy(() => import('@/pages/UserGuidePage').then(m => ({ default: m.UserGuidePage })));
 const VSIMigrationMethodsPage = lazy(() => import('@/pages/VSIMigrationMethodsPage').then(m => ({ default: m.VSIMigrationMethodsPage })));
 const MTVDocumentationPage = lazy(() => import('@/pages/MTVDocumentationPage').then(m => ({ default: m.MTVDocumentationPage })));
 const AboutPage = lazy(() => import('@/pages/AboutPage').then(m => ({ default: m.AboutPage })));
+const OverheadReferencePage = lazy(() => import('@/pages/OverheadReferencePage').then(m => ({ default: m.OverheadReferencePage })));
 
 // Suspense wrapper for lazy-loaded pages
 function PageLoader({ children }: { children: React.ReactNode }) {
@@ -102,6 +104,10 @@ export const router = createBrowserRouter([
         element: <PageLoader><DocumentationPage /></PageLoader>,
       },
       {
+        path: ROUTES.userGuide.slice(1),
+        element: <PageLoader><UserGuidePage /></PageLoader>,
+      },
+      {
         path: ROUTES.vsiMigrationMethods.slice(1),
         element: <PageLoader><VSIMigrationMethodsPage /></PageLoader>,
       },
@@ -112,6 +118,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.about.slice(1),
         element: <PageLoader><AboutPage /></PageLoader>,
+      },
+      {
+        path: ROUTES.overheadReference.slice(1),
+        element: <PageLoader><OverheadReferencePage /></PageLoader>,
       },
       {
         path: '*',

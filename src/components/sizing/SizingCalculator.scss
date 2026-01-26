@@ -6,7 +6,7 @@
 .sizing-calculator {
   &__section {
     padding: spacing.$spacing-05;
-    margin-bottom: spacing.$spacing-05;
+    margin-bottom: spacing.$spacing-07;
     min-height: 200px;
   }
 
@@ -51,6 +51,20 @@
     border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
   }
 
+  &__subsection {
+    &:not(:last-child) {
+      margin-bottom: spacing.$spacing-05;
+      padding-bottom: spacing.$spacing-05;
+      border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+    }
+  }
+
+  &__subsection-title {
+    @include type.type-style('heading-compact-01');
+    color: var(--cds-text-secondary, #525252);
+    margin-bottom: spacing.$spacing-04;
+  }
+
   &__info-text {
     @include type.type-style('helper-text-01');
     color: var(--cds-text-secondary, #525252);
@@ -67,7 +81,7 @@
 
   &__results {
     padding: spacing.$spacing-05;
-    margin-bottom: spacing.$spacing-05;
+    margin-bottom: spacing.$spacing-07;
     background-color: var(--cds-layer-accent-01, #e0e0e0);
   }
 
@@ -125,7 +139,7 @@
 
   &__workload-results {
     padding: spacing.$spacing-05;
-    margin-bottom: spacing.$spacing-05;
+    margin-bottom: spacing.$spacing-07;
     background-color: var(--cds-layer-01, #ffffff);
     border: 2px solid var(--cds-border-strong-01, #8d8d8d);
   }
@@ -192,6 +206,26 @@
     margin-top: spacing.$spacing-02;
   }
 
+  &__breakdown-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: spacing.$spacing-05;
+    padding: spacing.$spacing-03 0;
+    margin-bottom: spacing.$spacing-05;
+    border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+    @include type.type-style('body-compact-01');
+    color: var(--cds-text-secondary, #525252);
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      gap: spacing.$spacing-02;
+    }
+
+    strong {
+      color: var(--cds-text-primary, #161616);
+    }
+  }
 
   &__no-data {
     padding: spacing.$spacing-05;
@@ -208,7 +242,7 @@
   // Cluster Efficiency Analysis styles
   &__efficiency-results {
     padding: spacing.$spacing-05;
-    margin-bottom: spacing.$spacing-05;
+    margin-bottom: spacing.$spacing-07;
     background-color: var(--cds-layer-01, #ffffff);
     border: 2px solid var(--cds-border-subtle-01, #e0e0e0);
   }
@@ -325,6 +359,24 @@
 
     &--critical {
       background-color: var(--cds-support-error, #da1e28);
+    }
+  }
+
+  // CSS Grid layout for equal-height tiles within each row
+  &__settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch; // Equal-height tiles per row
+    gap: spacing.$spacing-05;
+    margin-bottom: spacing.$spacing-07;
+
+    @media (max-width: 671px) {
+      grid-template-columns: 1fr;
+    }
+
+    // Tiles stretch to fill grid cell
+    .cds--tile {
+      height: 100%;
     }
   }
 

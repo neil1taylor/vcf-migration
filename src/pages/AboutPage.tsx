@@ -93,7 +93,7 @@ export function AboutPage() {
   return (
     <div className="about-page">
       <Grid>
-        <Column lg={16} md={8} sm={4}>
+        <Column lg={16} md={8} sm={4} style={{ marginBottom: '1rem' }}>
           <h1 className="about-page__title">About</h1>
           <p className="about-page__subtitle">
             VMware Cloud Foundation Migration Planning Tool
@@ -101,7 +101,7 @@ export function AboutPage() {
         </Column>
 
         {/* App Info */}
-        <Column lg={8} md={8} sm={4}>
+        <Column lg={8} md={8} sm={4} style={{ marginBottom: '1rem' }}>
           <Tile className="about-page__tile">
             <h2 className="about-page__section-title">Application Info</h2>
             <div className="about-page__info-grid">
@@ -131,7 +131,7 @@ export function AboutPage() {
         </Column>
 
         {/* Technology Stack */}
-        <Column lg={8} md={8} sm={4}>
+        <Column lg={8} md={8} sm={4} style={{ marginBottom: '1rem' }}>
           <Tile className="about-page__tile">
             <h2 className="about-page__section-title">Technology Stack</h2>
             <div className="about-page__tech-grid">
@@ -149,7 +149,7 @@ export function AboutPage() {
         </Column>
 
         {/* Changelog */}
-        <Column lg={16} md={8} sm={4}>
+        <Column lg={16} md={8} sm={4} style={{ marginBottom: '1rem' }}>
           <Tile className="about-page__tile">
             <h2 className="about-page__section-title">Changelog</h2>
             <Accordion>
@@ -244,7 +244,7 @@ export function AboutPage() {
         </Column>
 
         {/* Resources */}
-        <Column lg={16} md={8} sm={4}>
+        <Column lg={16} md={8} sm={4} style={{ marginBottom: '1rem' }}>
           <Tile className="about-page__tile about-page__tile--resources">
             <h2 className="about-page__section-title">Resources</h2>
             <div className="about-page__resources-grid">
@@ -274,7 +274,7 @@ export function AboutPage() {
         <Column lg={16} md={8} sm={4}>
           <div className="about-page__footer">
             <Link
-              href="https://github.com"
+              href="https://github.com/neilrtaylor/vcf-migration"
               target="_blank"
               rel="noopener noreferrer"
               className="about-page__github-link"

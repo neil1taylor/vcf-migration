@@ -12,12 +12,11 @@
   &__subtitle {
     @include type.type-style('body-01');
     color: var(--cds-text-secondary, #525252);
-    margin-bottom: spacing.$spacing-06;
+    margin-bottom: spacing.$spacing-05;
   }
 
   &__tile {
     padding: spacing.$spacing-05;
-    margin-bottom: spacing.$spacing-05;
     height: 100%;
 
     &--resources {

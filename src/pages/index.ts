@@ -13,4 +13,6 @@ export { PreFlightReportPage } from './PreFlightReportPage';
 export { DiscoveryPage } from './DiscoveryPage';
 export { TablesPage } from './TablesPage';
 export { InfoPage } from './InfoPage';
+export { UserGuidePage } from './UserGuidePage';
 export { DocumentationPage } from './DocumentationPage';
+export { OverheadReferencePage } from './OverheadReferencePage';

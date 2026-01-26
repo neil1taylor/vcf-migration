@@ -272,6 +272,29 @@ If adding new technologies then add these to TECHNOLOGIES.md. If the changes imp
 
 Add the changes, updates or fixes to the changelog. Only update the version if requested.
 
+### User Guide
+
+Comprehensive user documentation is available in two locations:
+
+| Location | Purpose |
+|----------|---------|
+| `docs/USER_GUIDE.md` | Standalone markdown for version control and external reference |
+| `/user-guide` route | In-app page (`src/pages/UserGuidePage.tsx`) with same content |
+
+The User Guide covers:
+- Quick start (5-step overview)
+- Getting started and prerequisites
+- Importing RVTools data
+- Understanding the Dashboard
+- Infrastructure analysis (Compute, Storage, Network, Clusters, Hosts, Resource Pools)
+- Workload discovery
+- VM management (exclude/include, workload overrides, notes)
+- Migration assessment (ROKS and VSI)
+- Wave planning
+- Cost estimation
+- Generating reports (PDF, Excel, Word, BOM, YAML, RackWare CSV)
+- Reference documentation and glossary
+
 ## Architecture Overview
 
 This is a React 18 + TypeScript + Vite application for VMware Cloud Foundation migration planning. It analyzes RVTools Excel exports and provides migration assessments for IBM Cloud ROKS (OpenShift) and VPC VSI targets.
@@ -377,6 +400,22 @@ for (const profile of bareMetalProfiles) {
 ```
 
 This data is used in the UI to show "ROKS" or "VPC Only" tags on bare metal profile cards.
+
+#### ROKS Support Fallback
+
+When the proxy doesn't return valid ROKS support data (i.e., no profiles have `roksSupported: true`), the `useDynamicProfiles` hook falls back to the static JSON configuration:
+
+```typescript
+// In transformProxyResponse() - src/hooks/useDynamicProfiles.ts
+const proxyHasRoksData = proxyData.bareMetalProfiles.some(p => p.roksSupported === true);
+if (!proxyHasRoksData) {
+  // Fall back to static config for roksSupported values
+  const staticRoksMap = getStaticRoksSupportMap();
+  roksSupported = staticRoksMap.get(profile.name) ?? false;
+}
+```
+
+This ensures the static JSON (`src/data/ibmCloudConfig.json`) remains the source of truth for ROKS support when the proxy's ROKS flavors API is unavailable.
 
 ### Pricing Update Script (`scripts/update-pricing.ts`)
 
@@ -490,6 +529,75 @@ The `patterns` array contains lowercase strings matched against RVTools "Guest O
 ```
 
 The service (`src/services/migration/osCompatibility.ts`) performs case-insensitive substring matching.
+
+## Virtualization Overhead Configuration
+
+OpenShift Virtualization (KubeVirt) resource overhead is configured in `src/data/virtualizationOverhead.json`. This data is used by the Sizing Calculator to account for additional resources required when running VMs.
+
+### Overhead Calculation
+
+Overhead is calculated using a **fixed + proportional** formula based on actual VM count and sizes:
+
+| Type | Fixed (per VM) | Proportional | Formula |
+|------|----------------|--------------|---------|
+| CPU | 0.27 vCPU | 3% of guest vCPUs | `(VM Count × 0.27) + (Guest vCPUs × 3%)` |
+| Memory | 378 MiB | 3% of guest RAM | `(VM Count × 378 MiB) + (Guest RAM × 3%)` |
+| Storage | N/A | 15% (user adjustable) | `Base Storage × 1.15` |
+
+### Configuration File Structure
+
+```json
+{
+  "cpuOverhead": {
+    "perVM": {
+      "virtLauncher": { "value": 0.1, "unit": "vCPU" },
+      "qemuBase": { "value": 0.1, "unit": "vCPU" },
+      "ioThreads": { "value": 0.05, "unit": "vCPU" },
+      "kubeletTracking": { "value": 0.02, "unit": "vCPU" }
+    },
+    "totalFixedPerVM": 0.27,
+    "proportional": { "emulationOverhead": { "percent": 3 } }
+  },
+  "memoryOverhead": {
+    "perVM": {
+      "virtLauncherBase": { "value": 150, "unit": "MiB" },
+      "libvirtDaemon": { "value": 50, "unit": "MiB" },
+      "qemuFixed": { "value": 128, "unit": "MiB" },
+      "kubeletOverhead": { "value": 50, "unit": "MiB" }
+    },
+    "totalFixedPerVM": 378,
+    "totalProportionalPercent": 3
+  },
+  "systemReserved": { "cpu": 1, "memory": 4 },
+  "odfReserved": {
+    "base": { "cpu": 5, "memory": 21 },
+    "perNvmeDevice": { "cpu": 2, "memory": 5 }
+  }
+}
+```
+
+### UI Integration
+
+The Sizing Calculator (`src/components/sizing/SizingCalculator.tsx`) displays:
+- **Storage overhead slider** (user adjustable, 0-25%)
+- **CPU/Memory overhead info box** with link to reference page (auto-calculated, not user adjustable)
+- **4-segment breakdown visualizations** showing: VM requirements, Virt overhead, ODF reserved, System reserved
+- Both per-node and total cluster overhead in breakdown tooltips
+
+### Overhead Reference Page
+
+The `/overhead-reference` page (`src/pages/OverheadReferencePage.tsx`) displays:
+- Detailed per-component values from the JSON file
+- Calculation formulas with copyable code snippets
+- ODF example calculations for 8 NVMe devices
+- External reference links to Red Hat/KubeVirt documentation
+
+### When to Update
+
+- Red Hat changes OpenShift Virtualization architecture
+- KubeVirt/QEMU resource requirements change
+- New overhead components are identified
+- Per-VM fixed values need adjustment based on production data
 
 ## Version Management
 
@@ -835,6 +943,81 @@ interface SubnetOverride {
   modifiedAt: string;
 }
 ```
+
+## UI Layout Terminology
+
+When describing layout requirements, use these standard terms for clarity:
+
+| Requirement | Description |
+|-------------|-------------|
+| **Equal-height tiles per row** | Cards/tiles in the same row should stretch to match the tallest one |
+| **Top-aligned tiles** | Cards start at the same vertical position but maintain their natural height |
+| **Same-width columns** | Columns should be equal width (use `grid-template-columns: 1fr 1fr`) |
+| **Responsive stacking** | Columns stack vertically on mobile/small screens |
+| **Vertical row spacing** | Space between rows of content in Carbon Grid layouts |
+
+### CSS Patterns
+
+**Equal-height tiles (CSS Grid):**
+```scss
+.settings-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: stretch; // Equal-height tiles per row
+  gap: 1rem;
+
+  .cds--tile {
+    height: 100%; // Tiles fill grid cell
+  }
+}
+```
+
+**Top-aligned tiles (Flexbox):**
+```scss
+.settings-row {
+  display: flex;
+  align-items: flex-start; // Top-aligned, natural height
+  gap: 1rem;
+}
+```
+
+### Carbon Grid Vertical Spacing
+
+Carbon Grid doesn't automatically add vertical spacing between rows. Use one of these approaches:
+
+**Option 1: Inline margin on Column components (Recommended for pages with mixed layouts)**
+```tsx
+<Column lg={8} md={8} sm={4} style={{ marginBottom: '1rem' }}>
+  <Tile>Content</Tile>
+</Column>
+```
+
+**Option 2: SCSS targeting column classes (For consistent page-wide spacing)**
+```scss
+.my-page {
+  // Target Carbon's column classes
+  :global {
+    .cds--css-grid-column,
+    [class*='cds--col'] {
+      margin-bottom: spacing.$spacing-05;
+    }
+  }
+}
+```
+
+**Option 3: Margin on content elements (For specific elements)**
+```scss
+.my-page {
+  &__tile {
+    margin-bottom: spacing.$spacing-05;
+  }
+}
+```
+
+**Important Notes:**
+- `height: 100%` on tiles can interfere with margin-based spacing
+- When using `height: 100%` for equal-height rows, prefer Option 1 (inline margin on Column)
+- Carbon spacing tokens: `spacing-05` = 1rem (16px), `spacing-07` = 2rem (32px)
 
 ## Reusable Components
 

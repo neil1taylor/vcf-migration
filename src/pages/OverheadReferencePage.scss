@@ -1,0 +1,188 @@
+// Overhead Reference Page styles
+@use '@carbon/styles/scss/spacing';
+@use '@carbon/styles/scss/type';
+
+.overhead-reference-page {
+  padding: spacing.$spacing-05;
+
+  // Add margin to all columns for vertical spacing between rows
+  :global {
+    .cds--css-grid-column,
+    [class*='cds--col'] {
+      margin-bottom: spacing.$spacing-05;
+    }
+  }
+  max-width: 1584px;
+  margin: 0 auto;
+
+  &__header {
+    margin-bottom: spacing.$spacing-06;
+  }
+
+  &__back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: spacing.$spacing-02;
+    @include type.type-style('body-compact-01');
+    color: var(--cds-link-primary, #0f62fe);
+    text-decoration: none;
+    margin-bottom: spacing.$spacing-04;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__subtitle {
+    @include type.type-style('body-long-01');
+    color: var(--cds-text-secondary, #525252);
+    margin-top: spacing.$spacing-03;
+    margin-bottom: spacing.$spacing-04;
+  }
+
+  &__meta {
+    display: flex;
+    gap: spacing.$spacing-03;
+    flex-wrap: wrap;
+  }
+
+  &__overview {
+    display: flex;
+    gap: spacing.$spacing-05;
+    align-items: flex-start;
+    background-color: var(--cds-layer-02, #e0e0e0);
+    margin-bottom: spacing.$spacing-05;
+
+    h3 {
+      @include type.type-style('heading-02');
+      margin-bottom: spacing.$spacing-03;
+    }
+
+    p {
+      @include type.type-style('body-long-01');
+      color: var(--cds-text-secondary, #525252);
+    }
+  }
+
+  &__overview-icon {
+    flex-shrink: 0;
+    color: var(--cds-support-info, #0f62fe);
+  }
+
+  &__section {
+    margin-bottom: spacing.$spacing-05;
+
+    h2 {
+      @include type.type-style('heading-03');
+      margin-bottom: spacing.$spacing-04;
+    }
+  }
+
+  &__section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: spacing.$spacing-04;
+    flex-wrap: wrap;
+    gap: spacing.$spacing-03;
+
+    h2 {
+      margin-bottom: 0;
+    }
+  }
+
+  &__section-desc {
+    @include type.type-style('body-long-01');
+    color: var(--cds-text-secondary, #525252);
+    margin-bottom: spacing.$spacing-05;
+  }
+
+  &__component-desc {
+    @include type.type-style('helper-text-01');
+    color: var(--cds-text-secondary, #525252);
+  }
+
+  &__notes {
+    margin-top: spacing.$spacing-05;
+    padding-top: spacing.$spacing-04;
+    border-top: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+
+    h4 {
+      @include type.type-style('label-01');
+      font-weight: 600;
+      margin-bottom: spacing.$spacing-03;
+    }
+
+    ul {
+      @include type.type-style('body-compact-01');
+      color: var(--cds-text-secondary, #525252);
+      list-style-type: disc;
+      padding-left: spacing.$spacing-05;
+
+      li {
+        margin-bottom: spacing.$spacing-02;
+      }
+    }
+  }
+
+  &__note {
+    @include type.type-style('helper-text-01');
+    color: var(--cds-text-secondary, #525252);
+    margin-top: spacing.$spacing-03;
+    font-style: italic;
+  }
+
+  &__formula {
+    margin-top: spacing.$spacing-05;
+    padding-top: spacing.$spacing-04;
+    border-top: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+
+    h4 {
+      @include type.type-style('label-01');
+      font-weight: 600;
+      margin-bottom: spacing.$spacing-03;
+    }
+  }
+
+  &__example {
+    margin-top: spacing.$spacing-05;
+    padding: spacing.$spacing-04;
+    background-color: var(--cds-layer-02, #e0e0e0);
+    border-radius: 4px;
+
+    h4 {
+      @include type.type-style('label-01');
+      font-weight: 600;
+      margin-bottom: spacing.$spacing-03;
+    }
+
+    ul {
+      @include type.type-style('body-compact-01');
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
+
+      li {
+        margin-bottom: spacing.$spacing-02;
+      }
+    }
+  }
+
+  &__references {
+    list-style-type: none;
+    padding: 0;
+    margin: spacing.$spacing-04 0;
+
+    li {
+      margin-bottom: spacing.$spacing-03;
+    }
+  }
+
+  &__sources {
+    @include type.type-style('helper-text-01');
+    color: var(--cds-text-secondary, #525252);
+    margin-top: spacing.$spacing-05;
+    padding-top: spacing.$spacing-04;
+    border-top: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  }
+}

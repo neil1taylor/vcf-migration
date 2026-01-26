@@ -1,10 +1,33 @@
 {
   "releases": [
     {
-      "version": "1.0.3",
-      "date": "2026-01-25",
+      "version": "1.0.4",
+      "date": "2026-01-26",
       "sections": {
         "added": [
+          "Readiness Score info tooltip on ROKS and VSI migration pages explaining score calculation and thresholds"
+        ],
+        "changed": [
+          "ROKS Sizing Calculator: Renamed 'Headroom' to 'Ceph Reserve' with clearer description of its relationship to Operational Capacity",
+          "ROKS Sizing Calculator: Total requirement cards now show combined workload + infrastructure requirements with breakdown details",
+          "About page footer now links to actual GitHub repository"
+        ],
+        "fixed": [
+          "Consistent vertical spacing between UI elements across all pages by adding margin to Carbon Grid columns",
+          "About page sections (Application Info, Technology Stack, Changelog, Resources) now have proper spacing between rows",
+          "ROKS Sizing Calculator: Storage overhead renamed from 'Virt. Overhead' to 'Storage Overhead' for clarity"
+        ]
+      }
+    },
+    {
+      "version": "1.0.3",
+      "date": "2026-01-26",
+      "sections": {
+        "added": [
+          "Comprehensive User Guide page with step-by-step instructions for all features",
+          "Standalone USER_GUIDE.md documentation in docs/ folder",
+          "User Guide navigation link in sidebar Reference section",
+          "Official IBM Cloud favicon for browser tab branding",
           "Editable subnet column in Network Summary table with inline editing and localStorage persistence",
           "Support for multiple CIDRs per port group (comma-separated format)",
           "Guessed tag indicator showing auto-detected vs manually entered subnets",
@@ -16,11 +39,35 @@
           "WaveVMTable component with clickable wave filters and VM details table",
           "Clusters page VM table showing VMs filtered by selected cluster",
           "Storage page VM table showing VMs filtered by selected datastore (derived from vDisk paths)",
-          "FilterableVMTable reusable component for entity-based VM filtering"
+          "FilterableVMTable reusable component for entity-based VM filtering",
+          "CPU virtualization overhead calculated automatically: 0.27 vCPU per VM (fixed) + 3% of guest vCPUs (proportional)",
+          "Memory virtualization overhead calculated automatically: 378 MiB per VM (fixed) + 3% of guest RAM (proportional)",
+          "CPU, Memory, and Storage cluster capacity visualizations with 5 segments: VM requirements, Virt overhead, ODF reserved, System reserved, Free capacity",
+          "Breakdown summary text below each visualization showing Total, Used, Free, and Utilization percentage",
+          "ResourceBreakdownBar reusable component for visualizing resource allocation with color-coded segments",
+          "Virtualization overhead configuration file (src/data/virtualizationOverhead.json) with detailed per-component values",
+          "Overhead Reference page (/overhead-reference) displaying actual overhead values from JSON with calculation formulas",
+          "Ceph Reserve display below Operational Capacity slider showing linked percentage value"
         ],
         "changed": [
+          "Updated page title from 'temp-app' to 'VCF Migration Planning'",
           "Renamed Network Summary column from 'Subnet (Guess)' to 'Subnet'",
-          "Wave Planning 'Overview' renamed to 'All' and now displays all VMs in table"
+          "Wave Planning 'Overview' renamed to 'All' and now displays all VMs in table",
+          "ROKS Sizing Calculator: Restructured settings into CSS Grid two-column layout with equal-height rows",
+          "ROKS Sizing Calculator: Combined 'Growth & Virtualization Overhead' and 'Redundancy Settings' into single 'Capacity Planning' tile",
+          "ROKS Sizing Calculator: Added informational content to Memory Settings (overcommit guidance) and ODF Storage (replica factor tradeoffs, NVMe benefits) tiles",
+          "ROKS Sizing Calculator: Total vCPUs and Memory now include virtualization overhead calculated from actual VM count and sizes",
+          "ROKS Sizing Calculator: Renamed 'OpenShift Virtualization Overhead' slider to 'Storage Virtualization Overhead' for clarity",
+          "ROKS Sizing Calculator: CPU/Memory overhead now auto-calculated (not user-adjustable) based on KubeVirt overhead formulas",
+          "ROKS Sizing Calculator: Renamed requirement cards to 'VM vCPU Requirements', 'VM Memory Requirements', 'VM Storage Requirements' for clarity",
+          "ROKS Sizing Calculator: Consolidated storage visualizations into single 'ODF Storage Cluster' bar showing complete breakdown from VM data to raw NVMe"
+        ],
+        "fixed": [
+          "ROKS bare metal profiles now correctly show 'ROKS' or 'VPC Only' tags by falling back to static JSON when proxy does not return ROKS support data",
+          "Bare metal profile NVMe storage data now correctly displays by falling back to static JSON when proxy does not return NVMe specifications",
+          "User Guide page list styling with improved spacing and visual separation for ordered and unordered lists",
+          "ROKS Sizing Calculator: Removed conflicting utilization percentages from requirement cards (utilization now shown consistently only in breakdown visualizations below)",
+          "ROKS Sizing Calculator: Aligned utilization percentages across breakdown bars and N+X Redundancy Validation (now all use workload / available capacity calculation)"
         ]
       }
     },

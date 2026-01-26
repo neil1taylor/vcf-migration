@@ -143,9 +143,11 @@ export const ROUTES = {
   discovery: '/discovery',
   tables: '/tables',
   info: '/info',
+  userGuide: '/user-guide',
   documentation: '/documentation',
   vsiMigrationMethods: '/vsi-migration-methods',
   mtvDocumentation: '/mtv-documentation',
+  overheadReference: '/overhead-reference',
   about: '/about',
 } as const;
 

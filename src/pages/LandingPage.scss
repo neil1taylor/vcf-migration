@@ -3,6 +3,14 @@
 @use '@carbon/styles/scss/type';
 
 .landing-page {
+  // Add margin to all columns for vertical spacing between rows
+  :global {
+    .cds--css-grid-column,
+    [class*='cds--col'] {
+      margin-bottom: spacing.$spacing-05;
+    }
+  }
+
   &__header {
     text-align: center;
     margin-bottom: spacing.$spacing-08;
