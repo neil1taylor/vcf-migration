@@ -1,6 +1,6 @@
 // Discovery page - Unified single-page layout for workload detection and VM management
 import { useState, useMemo } from 'react';
-import { Grid, Column, Tile, Accordion, AccordionItem, Tag } from '@carbon/react';
+import { Grid, Column, Tile, Accordion, AccordionItem, Tag, Tabs, TabList, Tab, TabPanels, TabPanel } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
 import { useData, useVMs, useAllVMs, useVMOverrides, useAIClassification, useAutoExclusion } from '@/hooks';
 import { ROUTES } from '@/utils/constants';
@@ -8,6 +8,7 @@ import { formatNumber } from '@/utils/formatters';
 import { HorizontalBarChart } from '@/components/charts';
 import { MetricCard } from '@/components/common';
 import { DiscoveryVMTable } from '@/components/discovery';
+import { NetworkSummaryTable } from '@/components/network';
 import type { WorkloadMatch } from '@/components/discovery';
 import { getVMIdentifier, getEnvironmentFingerprint } from '@/utils/vmIdentifier';
 import workloadPatterns from '@/data/workloadPatterns.json';
@@ -138,10 +139,6 @@ export function DiscoveryPage() {
     envFingerprint
   );
 
-  if (!rawData) {
-    return <Navigate to={ROUTES.home} replace />;
-  }
-
   // Filter out excluded VMs for analysis
   const includedVMs = useMemo(() => {
     return vms.filter(vm => {
@@ -150,13 +147,17 @@ export function DiscoveryPage() {
     });
   }, [vms, vmOverrides]);
 
-  const poweredOnVMs = includedVMs.filter(vm => vm.powerState === 'poweredOn');
+  const poweredOnVMs = useMemo(() => {
+    return includedVMs.filter(vm => vm.powerState === 'poweredOn');
+  }, [includedVMs]);
 
   // ===== WORKLOAD DETECTION =====
-  const ruleBasedMatches = detectWorkloads(poweredOnVMs.map(vm => ({
-    vmName: vm.vmName,
-    annotation: vm.annotation,
-  })));
+  const ruleBasedMatches = useMemo(() => {
+    return detectWorkloads(poweredOnVMs.map(vm => ({
+      vmName: vm.vmName,
+      annotation: vm.annotation,
+    })));
+  }, [poweredOnVMs]);
 
   // ===== UNIFIED CLASSIFICATION MERGE (User > Maintainer > AI > Rule-based) =====
   // Precedence:
@@ -251,22 +252,26 @@ export function DiscoveryPage() {
   }, [includedVMs, poweredOnVMs, vmOverrides, aiClassifications, ruleBasedMatches]);
 
   // Group by category (exclude _custom pseudo-category)
-  const workloadsByCategory = workloadMatches.reduce((acc, match) => {
-    if (match.category === '_custom') return acc;
-    if (!acc[match.category]) {
-      acc[match.category] = { name: match.categoryName, vms: new Set<string>() };
-    }
-    acc[match.category].vms.add(match.vmName);
-    return acc;
-  }, {} as Record<string, { name: string; vms: Set<string> }>);
+  const workloadsByCategory = useMemo(() => {
+    return workloadMatches.reduce((acc, match) => {
+      if (match.category === '_custom') return acc;
+      if (!acc[match.category]) {
+        acc[match.category] = { name: match.categoryName, vms: new Set<string>() };
+      }
+      acc[match.category].vms.add(match.vmName);
+      return acc;
+    }, {} as Record<string, { name: string; vms: Set<string> }>);
+  }, [workloadMatches]);
 
-  const workloadChartData = Object.entries(workloadsByCategory)
-    .map(([, data]) => ({
-      label: data.name,
-      value: data.vms.size,
-    }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 10);
+  const workloadChartData = useMemo(() => {
+    return Object.entries(workloadsByCategory)
+      .map(([, data]) => ({
+        label: data.name,
+        value: data.vms.size,
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+  }, [workloadsByCategory]);
 
   // ===== SUMMARY METRICS =====
   const totalClassifiedVMs = useMemo(() => {
@@ -275,7 +280,9 @@ export function DiscoveryPage() {
     return classified.size;
   }, [workloadMatches]);
 
-  const workloadCategories = Object.keys(workloadsByCategory).length;
+  const workloadCategories = useMemo(() => {
+    return Object.keys(workloadsByCategory).length;
+  }, [workloadsByCategory]);
 
   const unclassifiedCount = useMemo(() => {
     const classifiedNames = new Set(workloadMatches.map(m => m.vmName));
@@ -290,7 +297,14 @@ export function DiscoveryPage() {
     }).length;
   }, [allVMs, vmOverrides, autoExclusionMap]);
 
-  const totalExcludedCount = autoExcludedCount + vmOverrides.excludedCount;
+  const totalExcludedCount = useMemo(() => {
+    return autoExcludedCount + vmOverrides.excludedCount;
+  }, [autoExcludedCount, vmOverrides.excludedCount]);
+
+  // Early return AFTER all hooks have been called
+  if (!rawData) {
+    return <Navigate to={ROUTES.home} replace />;
+  }
 
   // Get patterns for display
   const categories = workloadPatterns.categories as Record<string, CategoryDef>;
@@ -312,11 +326,21 @@ export function DiscoveryPage() {
     <div className="discovery-page">
       <Grid>
         <Column lg={16} md={8} sm={4}>
-          <h1 className="discovery-page__title">Workload Discovery</h1>
+          <h1 className="discovery-page__title">Discovery</h1>
           <p className="discovery-page__subtitle">
-            Categorize VMs by workload type and manage migration scope. Click chart bars or workload type tiles to filter the table.
+            Explore workload types, manage migration scope, and analyze network configuration.
           </p>
         </Column>
+
+        <Column lg={16} md={8} sm={4}>
+          <Tabs>
+            <TabList aria-label="Discovery tabs" contained>
+              <Tab>Workload</Tab>
+              <Tab>Networks</Tab>
+            </TabList>
+            <TabPanels>
+              <TabPanel>
+                <Grid className="discovery-page__tab-content">
 
         {/* Metric Cards Row */}
         <Column lg={4} md={4} sm={2}>
@@ -445,6 +469,20 @@ export function DiscoveryPage() {
               </div>
             </AccordionItem>
           </Accordion>
+        </Column>
+                </Grid>
+              </TabPanel>
+              <TabPanel>
+                <div className="discovery-page__tab-content">
+                  <h3 className="discovery-page__section-title">Network Summary</h3>
+                  <p className="discovery-page__section-subtitle">
+                    Port groups with VM counts and estimated IP subnets. Click any subnet cell to edit.
+                  </p>
+                  <NetworkSummaryTable networks={rawData.vNetwork} />
+                </div>
+              </TabPanel>
+            </TabPanels>
+          </Tabs>
         </Column>
       </Grid>
     </div>

@@ -120,7 +120,15 @@ function transformStaticToProfiles(): IBMCloudProfiles {
   }
 
   // Transform custom bare metal profiles from static data
-  const customProfiles = (staticProfilesData as { customBareMetalProfiles?: Array<{
+  // Filter out custom profiles whose names already exist in standard profiles
+  const allStandardNames = new Set([
+    ...bareMetalProfiles.balanced.map(p => p.name),
+    ...bareMetalProfiles.compute.map(p => p.name),
+    ...bareMetalProfiles.memory.map(p => p.name),
+    ...bareMetalProfiles.veryHighMemory.map(p => p.name),
+  ]);
+
+  const allCustomProfiles = (staticProfilesData as { customBareMetalProfiles?: Array<{
     name: string;
     tag?: string;
     physicalCores: number;
@@ -132,6 +140,16 @@ function transformStaticToProfiles(): IBMCloudProfiles {
     totalNvmeGiB?: number;
     roksSupported?: boolean;
   }> }).customBareMetalProfiles || [];
+
+  // Only include custom profiles that don't duplicate standard profiles
+  const customProfiles = allCustomProfiles.filter(p => !allStandardNames.has(p.name));
+
+  console.log('[Profiles Cache] Custom profiles from static JSON:', {
+    total: allCustomProfiles.length,
+    afterDedup: customProfiles.length,
+    duplicatesRemoved: allCustomProfiles.length - customProfiles.length,
+    names: customProfiles.slice(0, 5).map(p => p.name),
+  });
 
   bareMetalProfiles.custom = customProfiles.map(p => ({
     name: p.name,

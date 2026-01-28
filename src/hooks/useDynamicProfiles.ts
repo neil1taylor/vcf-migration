@@ -365,7 +365,15 @@ function transformProxyResponse(
   }
 
   // Always include custom profiles from static config (never returned by proxy)
-  const customProfiles = (staticConfig as { customBareMetalProfiles?: Array<{
+  // Filter out custom profiles whose names already exist in standard profiles
+  const allStandardNames = new Set([
+    ...bareMetalByFamily.balanced.map(p => p.name),
+    ...bareMetalByFamily.compute.map(p => p.name),
+    ...bareMetalByFamily.memory.map(p => p.name),
+    ...bareMetalByFamily.veryHighMemory.map(p => p.name),
+  ]);
+
+  const allCustomProfiles = (staticConfig as { customBareMetalProfiles?: Array<{
     name: string;
     tag?: string;
     physicalCores: number;
@@ -377,6 +385,9 @@ function transformProxyResponse(
     totalNvmeGiB?: number;
     roksSupported?: boolean;
   }> }).customBareMetalProfiles || [];
+
+  // Only include custom profiles that don't duplicate standard profiles
+  const customProfiles = allCustomProfiles.filter(p => !allStandardNames.has(p.name));
 
   bareMetalByFamily.custom = customProfiles.map(p => ({
     name: p.name,
@@ -392,6 +403,14 @@ function transformProxyResponse(
     isCustom: true,
     tag: p.tag || 'Custom',
   }));
+
+  // Debug log for custom profiles
+  console.log('[Dynamic Profiles] Custom bare metal profiles loaded:', {
+    total: allCustomProfiles.length,
+    afterDedup: bareMetalByFamily.custom.length,
+    duplicatesRemoved: allCustomProfiles.length - bareMetalByFamily.custom.length,
+    profiles: bareMetalByFamily.custom.map(p => p.name),
+  });
 
   return {
     version: proxyData.version || new Date().toISOString().split('T')[0],

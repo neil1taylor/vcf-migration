@@ -354,6 +354,10 @@ The application includes optional AI-powered features using IBM watsonx.ai:
 - **Right-Sizing Recommendations** — AI-recommended VSI profiles considering workload context with source indicators
 - **Migration Insights** — Executive summaries, risk assessments, and actionable recommendations (shows "AI Unavailable" state with link to Settings when disabled)
 - **Chat Assistant** — Conversational interface for migration planning questions (disabled state with tooltip when AI toggled off)
+- **Wave Planning Analysis** — AI-powered wave strategy suggestions with per-wave risk narratives and dependency warnings
+- **Cost Optimization** — Prioritized cost reduction recommendations with estimated savings for VSI deployments
+- **Remediation Guidance** — Step-by-step AI-generated remediation instructions for migration blockers with alternatives
+- **AI-Enhanced Reports** — DOCX, PDF, Excel, and BOM exports include AI-generated insights (executive summary, risk assessment, recommendations, cost optimizations) with watsonx.ai disclaimer
 - **AI Settings Page** — Dedicated settings page (`/settings`) with AI toggle, proxy connectivity test, consent management, and cache controls
 - **AI Status Indicators** — Visual indicators across the app showing AI availability: SideNav "Off" tag, disabled chat widget, and AI source labels on classifications
 

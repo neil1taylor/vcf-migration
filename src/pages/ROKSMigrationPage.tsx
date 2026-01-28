@@ -14,8 +14,10 @@ import type { SizingResult } from '@/components/sizing';
 import { CostEstimation } from '@/components/cost';
 import { ComplexityAssessmentPanel, WavePlanningPanel, OSCompatibilityPanel } from '@/components/migration';
 import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel';
+import { AIWaveAnalysisPanel } from '@/components/ai/AIWaveAnalysisPanel';
+import { AIRemediationPanel } from '@/components/ai/AIRemediationPanel';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
-import type { InsightsInput, NetworkSummaryForAI } from '@/services/ai/types';
+import type { InsightsInput, NetworkSummaryForAI, WaveSuggestionInput, RemediationInput } from '@/services/ai/types';
 import type { ROKSSizingInput } from '@/services/costEstimation';
 import type { ROKSNodeDetail } from '@/services/export';
 import { MTVYAMLGenerator, downloadBlob } from '@/services/export';
@@ -29,6 +31,8 @@ export function ROKSMigrationPage() {
   const [yamlExporting, setYamlExporting] = useState(false);
   const [yamlExportSuccess, setYamlExportSuccess] = useState(false);
   const [calculatorSizing, setCalculatorSizing] = useState<SizingResult | null>(null);
+  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [requestedProfile, setRequestedProfile] = useState<string | null>(null);
 
   // VM overrides for exclusions
   const vmOverrides = useVMOverrides();
@@ -43,16 +47,13 @@ export function ROKSMigrationPage() {
     });
   }, [allVmsRaw, vmOverrides, getAutoExclusionById]);
 
-  if (!rawData) {
-    return <Navigate to={ROUTES.home} replace />;
-  }
-
-  const poweredOnVMs = vms.filter(vm => vm.powerState === 'poweredOn');
-  const snapshots = rawData.vSnapshot;
-  const tools = rawData.vTools;
-  const cdDrives = rawData.vCD;
-  const disks = rawData.vDisk;
-  const networks = rawData.vNetwork;
+  // Derive data from rawData - these are used by hooks below
+  const snapshots = useMemo(() => rawData?.vSnapshot ?? [], [rawData?.vSnapshot]);
+  const tools = useMemo(() => rawData?.vTools ?? [], [rawData?.vTools]);
+  const cdDrives = useMemo(() => rawData?.vCD ?? [], [rawData?.vCD]);
+  const disks = useMemo(() => rawData?.vDisk ?? [], [rawData?.vDisk]);
+  const networks = useMemo(() => rawData?.vNetwork ?? [], [rawData?.vNetwork]);
+  const poweredOnVMs = useMemo(() => vms.filter(vm => vm.powerState === 'poweredOn'), [vms]);
 
   // ===== PRE-FLIGHT CHECKS (using hook) =====
   const {
@@ -70,19 +71,9 @@ export function ROKSMigrationPage() {
     tools: tools,
     networks: networks,
     cdDrives: cdDrives,
-    cpuInfo: rawData.vCPU,
-    memoryInfo: rawData.vMemory,
+    cpuInfo: rawData?.vCPU ?? [],
+    memoryInfo: rawData?.vMemory ?? [],
   });
-
-  // Additional display-only counts
-  const vmsWithSnapshots = new Set(snapshots.map(s => s.vmName)).size;
-  const vmsWithWarningSnapshots = new Set(
-    snapshots.filter(s => s.ageInDays > SNAPSHOT_WARNING_AGE_DAYS && s.ageInDays <= SNAPSHOT_BLOCKER_AGE_DAYS).map(s => s.vmName)
-  ).size;
-  const vmsWithOutdatedTools = poweredOnVMs.filter(vm => {
-    const tool = tools.find(t => t.vmName === vm.vmName);
-    return tool && tool.toolsStatus === 'toolsOld';
-  }).length;
 
   // ===== MIGRATION ASSESSMENT (using hook) =====
   const {
@@ -110,6 +101,16 @@ export function ROKSMigrationPage() {
     tools: tools,
     networks: networks,
   });
+
+  // Additional display-only counts
+  const vmsWithSnapshots = new Set(snapshots.map(s => s.vmName)).size;
+  const vmsWithWarningSnapshots = new Set(
+    snapshots.filter(s => s.ageInDays > SNAPSHOT_WARNING_AGE_DAYS && s.ageInDays <= SNAPSHOT_BLOCKER_AGE_DAYS).map(s => s.vmName)
+  ).size;
+  const vmsWithOutdatedTools = poweredOnVMs.filter(vm => {
+    const tool = tools.find(t => t.vmName === vm.vmName);
+    return tool && tool.toolsStatus === 'toolsOld';
+  }).length;
 
   // ===== MTV YAML EXPORT =====
   const handleYAMLExport = useCallback(async () => {
@@ -144,7 +145,7 @@ export function ROKSMigrationPage() {
       const blob = await generator.generateBundle(
         waveExportData,
         networks,
-        rawData.vDatastore
+        rawData?.vDatastore ?? []
       );
 
       downloadBlob(blob, `mtv-migration-plan-${new Date().toISOString().split('T')[0]}.zip`);
@@ -154,7 +155,17 @@ export function ROKSMigrationPage() {
     } finally {
       setYamlExporting(false);
     }
-  }, [wavePlanning.activeWaves, poweredOnVMs, networks, rawData.vDatastore]);
+  }, [wavePlanning.activeWaves, poweredOnVMs, networks, rawData?.vDatastore]);
+
+  // Handle profile selection from Cost Estimation tiles
+  const handleProfileSelect = useCallback((profileId: string) => {
+    setRequestedProfile(profileId);
+    setActiveTabIndex(1); // Switch to Sizing tab
+  }, []);
+
+  const handleRequestedProfileHandled = useCallback(() => {
+    setRequestedProfile(null);
+  }, []);
 
   // ===== COST ESTIMATION SIZING =====
   const roksSizing = useMemo<ROKSSizingInput>(() => {
@@ -206,7 +217,7 @@ export function ROKSMigrationPage() {
     // Build network summary
     const networkSummary: NetworkSummaryForAI[] = [];
     const pgMap = new Map<string, { ips: Set<string>; vmNames: Set<string> }>();
-    rawData.vNetwork.forEach(nic => {
+    networks.forEach(nic => {
       const pg = nic.networkName || 'Unknown';
       if (!pgMap.has(pg)) pgMap.set(pg, { ips: new Set(), vmNames: new Set() });
       const entry = pgMap.get(pg)!;
@@ -229,15 +240,55 @@ export function ROKSMigrationPage() {
       totalMemoryGiB: Math.round(totalMemoryGiB),
       totalStorageTiB: Math.ceil(totalStorageGiB / 1024),
       clusterCount: new Set(poweredOnVMs.map(vm => vm.cluster).filter(Boolean)).size,
-      hostCount: rawData.vHost.length,
-      datastoreCount: rawData.vDatastore.length,
+      hostCount: rawData?.vHost.length ?? 0,
+      datastoreCount: rawData?.vDatastore.length ?? 0,
       workloadBreakdown: {},
       complexitySummary: { simple: complexSimple, moderate: complexModerate, complex: complexHigh, blocker: complexBlocker },
       blockerSummary,
       networkSummary,
       migrationTarget: 'roks',
     };
-  }, [poweredOnVMs, allVmsRaw.length, vms.length, complexityScores, blockerCount, warningCount, rawData]);
+  }, [poweredOnVMs, allVmsRaw.length, vms.length, complexityScores, blockerCount, warningCount, networks, rawData]);
+
+  // ===== AI WAVE SUGGESTIONS DATA =====
+  const waveSuggestionData = useMemo<WaveSuggestionInput | null>(() => {
+    if (!isAIProxyConfigured()) return null;
+    const activeWaves = wavePlanning.wavePlanningMode === 'network' ? wavePlanning.networkWaves : wavePlanning.complexityWaves;
+    if (!activeWaves || activeWaves.length === 0) return null;
+    return {
+      waves: wavePlanning.waveResources.map(w => ({
+        name: w.name,
+        vmCount: w.vmCount,
+        totalVCPUs: w.vcpus,
+        totalMemoryGiB: w.memoryGiB,
+        totalStorageGiB: w.storageGiB,
+        avgComplexity: 0,
+        hasBlockers: w.hasBlockers,
+        workloadTypes: [],
+      })),
+      totalVMs: poweredOnVMs.length,
+      migrationTarget: 'roks',
+    };
+  }, [wavePlanning.wavePlanningMode, wavePlanning.networkWaves, wavePlanning.complexityWaves, wavePlanning.waveResources, poweredOnVMs.length]);
+
+  // ===== AI REMEDIATION DATA =====
+  const remediationAIData = useMemo<RemediationInput | null>(() => {
+    if (!isAIProxyConfigured()) return null;
+    if (remediationItems.length === 0) return null;
+    return {
+      blockers: remediationItems.map(item => ({
+        type: item.name,
+        affectedVMCount: item.affectedCount,
+        details: item.description,
+      })),
+      migrationTarget: 'roks',
+    };
+  }, [remediationItems]);
+
+  // Early return if no data - placed after all hooks
+  if (!rawData) {
+    return <Navigate to={ROUTES.home} replace />;
+  }
 
   return (
     <div className="migration-page">
@@ -305,7 +356,7 @@ export function ROKSMigrationPage() {
 
         {/* Tabs */}
         <Column lg={16} md={8} sm={4}>
-          <Tabs>
+          <Tabs selectedIndex={activeTabIndex} onChange={({ selectedIndex }) => setActiveTabIndex(selectedIndex)}>
             <TabList aria-label="ROKS migration tabs">
               <Tab>Pre-Flight Checks</Tab>
               <Tab>Sizing</Tab>
@@ -313,6 +364,7 @@ export function ROKSMigrationPage() {
               <Tab>Wave Planning</Tab>
               <Tab>OS Compatibility</Tab>
               <Tab>Complexity</Tab>
+              <Tab>AI Insights</Tab>
               <Tab>MTV Workflow</Tab>
             </TabList>
             <TabPanels>
@@ -452,6 +504,10 @@ export function ROKSMigrationPage() {
                       <RemediationPanel items={remediationItems} title="Remediation Required" showAffectedVMs={true} />
                     </Column>
                   )}
+
+                  <Column lg={16} md={8} sm={4}>
+                    <AIRemediationPanel data={remediationAIData} title="AI Remediation Guidance (ROKS)" />
+                  </Column>
                 </Grid>
               </TabPanel>
 
@@ -459,16 +515,13 @@ export function ROKSMigrationPage() {
               <TabPanel>
                 <Grid className="migration-page__tab-content">
                   <Column lg={16} md={8} sm={4}>
-                    <AIInsightsPanel data={insightsData} title="AI Migration Insights (ROKS)" compact />
-                  </Column>
-                  <Column lg={16} md={8} sm={4}>
                     <Tile className="migration-page__sizing-header">
                       <h3>ROKS Bare Metal Cluster Sizing</h3>
                       <p>Interactive sizing calculator for OpenShift Virtualization with ODF storage on NVMe drives.</p>
                     </Tile>
                   </Column>
                   <Column lg={16} md={8} sm={4}>
-                    <SizingCalculator onSizingChange={setCalculatorSizing} />
+                    <SizingCalculator onSizingChange={setCalculatorSizing} requestedProfile={requestedProfile} onRequestedProfileHandled={handleRequestedProfileHandled} />
                   </Column>
                   <Column lg={16} md={8} sm={4}>
                     <Tile className="migration-page__cost-tile">
@@ -488,7 +541,7 @@ export function ROKSMigrationPage() {
               <TabPanel>
                 <Grid className="migration-page__tab-content">
                   <Column lg={16} md={8} sm={4}>
-                    <CostEstimation type="roks" roksSizing={roksSizing} roksNodeDetails={roksNodeDetails} title="ROKS Cluster Cost Estimation" />
+                    <CostEstimation type="roks" roksSizing={roksSizing} roksNodeDetails={roksNodeDetails} title="ROKS Cluster Cost Estimation" onProfileSelect={handleProfileSelect} />
                   </Column>
                   <Column lg={16} md={8} sm={4}>
                     <Tile className="migration-page__cost-tile">
@@ -516,6 +569,9 @@ export function ROKSMigrationPage() {
                   waveChartData={wavePlanning.waveChartData}
                   waveResources={wavePlanning.waveResources}
                 />
+                <div style={{ marginTop: '1rem' }}>
+                  <AIWaveAnalysisPanel data={waveSuggestionData} title="AI Wave Analysis (ROKS)" />
+                </div>
               </TabPanel>
 
               {/* OS Compatibility Panel - Using shared component */}
@@ -531,6 +587,15 @@ export function ROKSMigrationPage() {
                   chartData={complexityChartData}
                   topComplexVMs={topComplexVMs}
                 />
+              </TabPanel>
+
+              {/* AI Insights Panel */}
+              <TabPanel>
+                <Grid className="migration-page__tab-content">
+                  <Column lg={16} md={8} sm={4}>
+                    <AIInsightsPanel data={insightsData} title="AI Migration Insights (ROKS)" />
+                  </Column>
+                </Grid>
               </TabPanel>
 
               {/* MTV Workflow Panel */}

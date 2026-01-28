@@ -204,7 +204,7 @@ export function DiscoveryVMTable({
         notes,
       };
     });
-  }, [vms, vmOverrides.overrides, vmOverrides.getWorkloadType, vmOverrides.getNotes, vmOverrides.isExcluded, vmOverrides.isForceIncluded, vmOverrides.isEffectivelyExcluded, autoExclusionMap, vmCategoryMap]);
+  }, [vms, vmOverrides, autoExclusionMap, vmCategoryMap]);
 
   // Apply category filter
   const categoryFilteredRows = useMemo(() => {
@@ -316,7 +316,7 @@ export function DiscoveryVMTable({
       vmName: row.vmName,
       current: vmOverrides.getWorkloadType(row.id) || (row.categorySource !== 'none' ? row.categoryName : undefined),
     });
-  }, [vmOverrides.getWorkloadType]);
+  }, [vmOverrides]);
 
   const handleSaveWorkload = useCallback((item: { id: string; text: string } | string | null | undefined) => {
     if (editingWorkload) {

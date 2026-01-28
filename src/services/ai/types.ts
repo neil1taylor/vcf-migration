@@ -191,6 +191,109 @@ export interface ChatResponse {
   processingTimeMs: number;
 }
 
+// ===== WAVE SUGGESTIONS TYPES =====
+
+export interface WaveSuggestionInput {
+  waves: Array<{
+    name: string;
+    vmCount: number;
+    totalVCPUs: number;
+    totalMemoryGiB: number;
+    totalStorageGiB: number;
+    avgComplexity: number;
+    hasBlockers: boolean;
+    workloadTypes: string[];
+  }>;
+  totalVMs: number;
+  migrationTarget: 'roks' | 'vsi' | 'both';
+}
+
+export interface WaveSuggestionResult {
+  suggestions: string[];
+  riskNarratives: Array<{ waveName: string; narrative: string }>;
+  dependencyWarnings: string[];
+  source: AISource;
+}
+
+export interface WaveSuggestionRequest {
+  data: WaveSuggestionInput;
+}
+
+export interface WaveSuggestionResponse {
+  result: WaveSuggestionResult;
+  model: string;
+  processingTimeMs: number;
+}
+
+// ===== COST OPTIMIZATION TYPES =====
+
+export interface CostOptimizationInput {
+  vmProfiles: Array<{
+    profile: string;
+    count: number;
+    workloadType: string;
+  }>;
+  totalMonthlyCost: number;
+  migrationTarget: 'roks' | 'vsi' | 'both';
+  region: string;
+}
+
+export interface CostOptimizationRecommendation {
+  category: string;
+  description: string;
+  estimatedSavings: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
+export interface CostOptimizationResult {
+  recommendations: CostOptimizationRecommendation[];
+  architectureRecommendations: string[];
+  source: AISource;
+}
+
+export interface CostOptimizationRequest {
+  data: CostOptimizationInput;
+}
+
+export interface CostOptimizationResponse {
+  result: CostOptimizationResult;
+  model: string;
+  processingTimeMs: number;
+}
+
+// ===== REMEDIATION TYPES =====
+
+export interface RemediationInput {
+  blockers: Array<{
+    type: string;
+    affectedVMCount: number;
+    details: string;
+  }>;
+  migrationTarget: 'roks' | 'vsi';
+}
+
+export interface RemediationGuidance {
+  blockerType: string;
+  steps: string[];
+  estimatedEffort: string;
+  alternatives: string[];
+}
+
+export interface RemediationResult {
+  guidance: RemediationGuidance[];
+  source: AISource;
+}
+
+export interface RemediationRequest {
+  data: RemediationInput;
+}
+
+export interface RemediationResponse {
+  result: RemediationResult;
+  model: string;
+  processingTimeMs: number;
+}
+
 // ===== SETTINGS TYPES =====
 
 export interface AISettings {

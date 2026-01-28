@@ -188,7 +188,7 @@ export function VMManagementTab({ vms, vmOverrides, autoExclusionMap, poweredOnO
         notes,
       };
     });
-  }, [vms, poweredOnOnly, vmOverrides.overrides, vmOverrides.getWorkloadType, vmOverrides.getNotes, vmOverrides.isExcluded, vmOverrides.isForceIncluded, vmOverrides.isEffectivelyExcluded, autoExclusionMap]);
+  }, [vms, poweredOnOnly, vmOverrides, autoExclusionMap]);
 
   // Apply status filter
   const statusFilteredRows = useMemo(() => {
@@ -312,7 +312,7 @@ export function VMManagementTab({ vms, vmOverrides, autoExclusionMap, poweredOnO
       vmName: row.vmName,
       current: vmOverrides.getWorkloadType(row.id) || row.detectedWorkload || undefined,
     });
-  }, [vmOverrides.getWorkloadType]);
+  }, [vmOverrides]);
 
   const handleSaveWorkload = useCallback((item: { id: string; text: string } | string | null | undefined) => {
     if (editingWorkload) {

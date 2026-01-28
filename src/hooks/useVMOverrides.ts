@@ -227,7 +227,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
       // If all values are default, remove the override
       const isDefault = !override.excluded && !override.forceIncluded && !override.workloadType && !override.notes;
       if (isDefault && existing) {
-        const { [vmId]: _, ...rest } = prev.overrides;
+        const { [vmId]: _removed, ...rest } = prev.overrides;
+        void _removed; // Silence unused variable warning
         return {
           ...prev,
           overrides: rest,
@@ -268,7 +269,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
 
   const removeOverride = useCallback((vmId: string) => {
     setData(prev => {
-      const { [vmId]: _, ...rest } = prev.overrides;
+      const { [vmId]: _removed, ...rest } = prev.overrides;
+      void _removed; // Silence unused variable warning
       return {
         ...prev,
         overrides: rest,

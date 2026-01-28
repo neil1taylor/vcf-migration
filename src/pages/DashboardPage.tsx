@@ -29,17 +29,12 @@ export function DashboardPage() {
   const vmOverrides = useVMOverrides();
   const { autoExcludedCount, autoExcludedBreakdown } = useAutoExclusion();
 
-  // Redirect to landing if no data
-  if (!rawData) {
-    return <Navigate to={ROUTES.home} replace />;
-  }
-
-  // Calculate basic metrics
+  // Calculate basic metrics (safe with empty vms array)
   const totalVMs = vms.length;
   const poweredOnVMs = vms.filter(vm => vm.powerState === 'poweredOn').length;
   const poweredOffVMs = vms.filter(vm => vm.powerState === 'poweredOff').length;
   const suspendedVMs = vms.filter(vm => vm.powerState === 'suspended').length;
-  const templates = rawData.vInfo.filter(vm => vm.template).length;
+  const templates = (rawData?.vInfo ?? []).filter(vm => vm.template).length;
 
   const totalVCPUs = vms.reduce((sum, vm) => sum + vm.cpus, 0);
   const totalMemoryMiB = vms.reduce((sum, vm) => sum + vm.memory, 0);
@@ -53,7 +48,7 @@ export function DashboardPage() {
 
   // Disk capacity from vDisk sheet (filtered to non-template, powered-on VMs)
   const vmNames = new Set(vms.map(vm => vm.vmName));
-  const totalDiskCapacityMiB = (rawData.vDisk || [])
+  const totalDiskCapacityMiB = (rawData?.vDisk ?? [])
     .filter(disk => vmNames.has(disk.vmName))
     .reduce((sum, disk) => sum + disk.capacityMiB, 0);
   const totalDiskCapacityTiB = mibToTiB(totalDiskCapacityMiB);
@@ -62,7 +57,7 @@ export function DashboardPage() {
   const uniqueDatacenters = new Set(vms.map(vm => vm.datacenter).filter(Boolean)).size;
 
   // Cluster metrics from vHost data (memoized)
-  const hosts = rawData.vHost || [];
+  const hosts = useMemo(() => rawData?.vHost ?? [], [rawData?.vHost]);
   const clusterData = useMemo(() => {
     const data = new Map<string, { vmCount: number; totalCores: number; vmCpus: number; hostMemoryMiB: number; vmMemoryMiB: number }>();
 
@@ -188,12 +183,12 @@ export function DashboardPage() {
   }, [chartFilter, clearFilter, setFilter]);
 
   // vCenter source info
-  const vSources = rawData.vSource || [];
+  const vSources = useMemo(() => rawData?.vSource ?? [], [rawData?.vSource]);
 
   // ===== CONFIGURATION ANALYSIS =====
-  const tools = rawData.vTools || [];
-  const snapshots = rawData.vSnapshot || [];
-  const cdDrives = rawData.vCD || [];
+  const tools = useMemo(() => rawData?.vTools ?? [], [rawData?.vTools]);
+  const snapshots = useMemo(() => rawData?.vSnapshot ?? [], [rawData?.vSnapshot]);
+  const cdDrives = useMemo(() => rawData?.vCD ?? [], [rawData?.vCD]);
 
   // Configuration analysis metrics (memoized)
   const configAnalysis = useMemo(() => {
@@ -274,7 +269,7 @@ export function DashboardPage() {
 
   // AI Insights data (only compute when proxy is configured)
   const insightsData = useMemo<InsightsInput | null>(() => {
-    if (!isAIProxyConfigured()) return null;
+    if (!isAIProxyConfigured() || !rawData) return null;
 
     const excludedCount = vms.filter(vm => vmOverrides.isExcluded(getVMIdentifier(vm))).length;
 
@@ -314,8 +309,8 @@ export function DashboardPage() {
       totalVMs,
       totalExcluded: excludedCount,
       totalVCPUs,
-      totalMemoryGiB,
-      totalStorageTiB: totalInUseTiB,
+      totalMemoryGiB: Math.round(totalMemoryGiB),
+      totalStorageTiB: Math.round(totalInUseTiB * 100) / 100,
       clusterCount: uniqueClusters,
       hostCount: rawData.vHost.length,
       datastoreCount: rawData.vDatastore.length,
@@ -325,7 +320,8 @@ export function DashboardPage() {
       networkSummary,
       migrationTarget: 'both',
     };
-  }, [totalVMs, totalVCPUs, totalMemoryGiB, totalInUseTiB, uniqueClusters, rawData.vHost.length, rawData.vDatastore.length, rawData.vNetwork, vms, vmOverrides, configIssuesCount]);
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
+  }, [totalVMs, totalVCPUs, totalMemoryGiB, totalInUseTiB, uniqueClusters, rawData, vms, vmOverrides, configIssuesCount]);
 
   // Firmware type distribution for chart (memoized)
   const firmwareChartData = useMemo(() => {
@@ -340,6 +336,11 @@ export function DashboardPage() {
       .map(([label, value]) => ({ label, value }))
       .filter(d => d.value > 0);
   }, [vms]);
+
+  // Redirect to landing if no data (after all hooks)
+  if (!rawData) {
+    return <Navigate to={ROUTES.home} replace />;
+  }
 
   return (
     <div className="dashboard-page">

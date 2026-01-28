@@ -20,6 +20,9 @@ const {
   buildRightsizingPrompt,
   buildInsightsPrompt,
   buildChatSystemPrompt,
+  buildWaveSuggestionsPrompt,
+  buildCostOptimizationPrompt,
+  buildRemediationPrompt,
 } = require('./prompts');
 
 const app = express();
@@ -133,7 +136,96 @@ function setCache(key, data) {
 }
 
 /**
- * Parse JSON from LLM output, handling markdown code blocks
+ * Extract the first complete JSON object from text using brace-matching
+ * This handles cases where LLM adds text after the JSON
+ */
+function extractFirstJsonObject(text) {
+  const startIndex = text.indexOf('{');
+  if (startIndex === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = startIndex; i < text.length; i++) {
+    const char = text[i];
+
+    if (escape) {
+      escape = false;
+      continue;
+    }
+
+    if (char === '\\' && inString) {
+      escape = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) continue;
+
+    if (char === '{') {
+      depth++;
+    } else if (char === '}') {
+      depth--;
+      if (depth === 0) {
+        return text.substring(startIndex, i + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Extract the first complete JSON array from text using bracket-matching
+ */
+function extractFirstJsonArray(text) {
+  const startIndex = text.indexOf('[');
+  if (startIndex === -1) return null;
+
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = startIndex; i < text.length; i++) {
+    const char = text[i];
+
+    if (escape) {
+      escape = false;
+      continue;
+    }
+
+    if (char === '\\' && inString) {
+      escape = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) continue;
+
+    if (char === '[') {
+      depth++;
+    } else if (char === ']') {
+      depth--;
+      if (depth === 0) {
+        return text.substring(startIndex, i + 1);
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Parse JSON from LLM output, handling markdown code blocks and trailing text
  */
 function parseJSONResponse(text) {
   // Try direct parse first
@@ -143,17 +235,29 @@ function parseJSONResponse(text) {
     // Try extracting from markdown code block
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[1].trim());
+      try {
+        return JSON.parse(jsonMatch[1].trim());
+      } catch {
+        // Code block content wasn't valid JSON, continue to other methods
+      }
     }
-    // Try finding JSON array or object
-    const arrayMatch = text.match(/\[[\s\S]*\]/);
-    if (arrayMatch) {
-      return JSON.parse(arrayMatch[0]);
+
+    // Try finding JSON array using bracket-matching (handles trailing text)
+    const arrayStr = extractFirstJsonArray(text);
+    if (arrayStr) {
+      try {
+        return JSON.parse(arrayStr);
+      } catch {
+        // Continue to try object extraction
+      }
     }
-    const objectMatch = text.match(/\{[\s\S]*\}/);
-    if (objectMatch) {
-      return JSON.parse(objectMatch[0]);
+
+    // Try finding JSON object using brace-matching (handles trailing text)
+    const objectStr = extractFirstJsonObject(text);
+    if (objectStr) {
+      return JSON.parse(objectStr);
     }
+
     throw new Error('Could not parse JSON from LLM response');
   }
 }
@@ -333,9 +437,16 @@ app.post('/api/insights', async (req, res) => {
 
     // Check cache (use a hash of key metrics)
     const cacheKey = `insights:${data.totalVMs}:${data.totalVCPUs}:${data.totalMemoryGiB}:${data.migrationTarget || 'both'}`;
-    const cached = getCached(cacheKey);
-    if (cached) {
-      return res.json({ ...cached, cached: true });
+    const skipCache = req.headers['x-skip-cache'] === 'true';
+    if (!skipCache) {
+      const cached = getCached(cacheKey);
+      if (cached) {
+        console.log('[insights] Returning cached response');
+        return res.json({ ...cached, cached: true });
+      }
+    } else {
+      console.log('[insights] Skipping cache (X-Skip-Cache header)');
+      cache.delete(cacheKey);
     }
 
     const startTime = Date.now();
@@ -349,18 +460,69 @@ app.post('/api/insights', async (req, res) => {
       parameters: { max_new_tokens: 2048, temperature: 0.2 },
     });
 
-    const parsed = parseJSONResponse(rawResponse);
+    console.log('[insights] Raw LLM response length:', rawResponse?.length || 0);
+    let parsed = parseJSONResponse(rawResponse);
+
+    // Handle case where LLM returns an array instead of an object
+    // This can happen when the LLM misunderstands the prompt
+    if (Array.isArray(parsed)) {
+      console.warn('[insights] LLM returned array instead of object, attempting to restructure');
+      // Try to interpret array as recommendations
+      parsed = {
+        executiveSummary: 'Migration analysis complete. See recommendations below.',
+        riskAssessment: 'Please review the recommendations for risk details.',
+        recommendations: parsed.filter(item => typeof item === 'string'),
+        costOptimizations: [],
+        migrationStrategy: 'Review the recommendations and plan accordingly.',
+      };
+    }
+
+    // Normalize field names (handle snake_case and variations)
+    const normalizedInsights = {
+      executiveSummary: parsed.executiveSummary || parsed.executive_summary || parsed.summary || '',
+      riskAssessment: parsed.riskAssessment || parsed.risk_assessment || parsed.risks || '',
+      recommendations: parsed.recommendations || parsed.Recommendations || [],
+      costOptimizations: parsed.costOptimizations || parsed.cost_optimizations || parsed.costSavings || [],
+      migrationStrategy: parsed.migrationStrategy || parsed.migration_strategy || parsed.strategy || '',
+      source: 'watsonx',
+    };
+
+    // Ensure arrays are arrays
+    if (!Array.isArray(normalizedInsights.recommendations)) {
+      normalizedInsights.recommendations = normalizedInsights.recommendations ? [normalizedInsights.recommendations] : [];
+    }
+    if (!Array.isArray(normalizedInsights.costOptimizations)) {
+      normalizedInsights.costOptimizations = normalizedInsights.costOptimizations ? [normalizedInsights.costOptimizations] : [];
+    }
+
+    // Validate the normalized response has at least some content
+    const hasContent = normalizedInsights.executiveSummary ||
+      normalizedInsights.recommendations.length > 0 ||
+      normalizedInsights.riskAssessment;
+
+    if (!hasContent) {
+      console.warn('[insights] LLM returned empty/invalid response:', {
+        parsedKeys: parsed ? Object.keys(parsed) : 'null',
+        rawPreview: rawResponse?.substring(0, 200),
+      });
+      // Don't cache invalid responses - return without caching
+      return res.json({
+        insights: normalizedInsights,
+        model: MODEL_ID,
+        processingTimeMs: Date.now() - startTime,
+        warning: 'Response may be incomplete',
+      });
+    }
 
     const result = {
-      insights: {
-        ...parsed,
-        source: 'watsonx',
-      },
+      insights: normalizedInsights,
       model: MODEL_ID,
       processingTimeMs: Date.now() - startTime,
     };
 
+    // Only cache valid responses
     setCache(cacheKey, result);
+    console.log('[insights] Cached valid response');
     return res.json(result);
   } catch (error) {
     console.error('[insights] Error:', error.message);
@@ -426,6 +588,160 @@ app.post('/api/chat', async (req, res) => {
     console.error('[chat] Error:', error.message);
     return res.status(500).json({
       error: 'Chat failed',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/wave-suggestions - Get AI wave planning suggestions
+ */
+app.post('/api/wave-suggestions', async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || !Array.isArray(data.waves) || data.waves.length === 0) {
+      return res.status(400).json({ error: 'Request must include valid wave data' });
+    }
+
+    // Check cache
+    const cacheKey = `wave-suggestions:${data.waves.length}:${data.totalVMs}:${data.migrationTarget || 'both'}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
+
+    const startTime = Date.now();
+    const prompt = buildWaveSuggestionsPrompt(data);
+
+    const rawResponse = await generateText({
+      prompt,
+      apiKey: API_KEY,
+      projectId: PROJECT_ID,
+      modelId: MODEL_ID,
+      parameters: { max_new_tokens: 2048, temperature: 0.2 },
+    });
+
+    const parsed = parseJSONResponse(rawResponse);
+
+    const result = {
+      result: {
+        ...parsed,
+        source: 'watsonx',
+      },
+      model: MODEL_ID,
+      processingTimeMs: Date.now() - startTime,
+    };
+
+    setCache(cacheKey, result);
+    return res.json(result);
+  } catch (error) {
+    console.error('[wave-suggestions] Error:', error.message);
+    return res.status(500).json({
+      error: 'Wave suggestions failed',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/cost-optimization - Get AI cost optimization recommendations
+ */
+app.post('/api/cost-optimization', async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || typeof data.totalMonthlyCost !== 'number') {
+      return res.status(400).json({ error: 'Request must include valid cost data' });
+    }
+
+    // Check cache
+    const cacheKey = `cost-optimization:${data.totalMonthlyCost}:${data.migrationTarget || 'both'}:${data.region || 'us-south'}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
+
+    const startTime = Date.now();
+    const prompt = buildCostOptimizationPrompt(data);
+
+    const rawResponse = await generateText({
+      prompt,
+      apiKey: API_KEY,
+      projectId: PROJECT_ID,
+      modelId: MODEL_ID,
+      parameters: { max_new_tokens: 2048, temperature: 0.2 },
+    });
+
+    const parsed = parseJSONResponse(rawResponse);
+
+    const result = {
+      result: {
+        ...parsed,
+        source: 'watsonx',
+      },
+      model: MODEL_ID,
+      processingTimeMs: Date.now() - startTime,
+    };
+
+    setCache(cacheKey, result);
+    return res.json(result);
+  } catch (error) {
+    console.error('[cost-optimization] Error:', error.message);
+    return res.status(500).json({
+      error: 'Cost optimization failed',
+      message: error.message,
+    });
+  }
+});
+
+/**
+ * POST /api/remediation - Get AI remediation guidance for blockers
+ */
+app.post('/api/remediation', async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || !Array.isArray(data.blockers) || data.blockers.length === 0) {
+      return res.status(400).json({ error: 'Request must include valid blocker data' });
+    }
+
+    // Check cache
+    const blockerKey = data.blockers.map(b => `${b.type}:${b.affectedVMCount}`).sort().join(',');
+    const cacheKey = `remediation:${blockerKey}:${data.migrationTarget || 'vsi'}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
+
+    const startTime = Date.now();
+    const prompt = buildRemediationPrompt(data);
+
+    const rawResponse = await generateText({
+      prompt,
+      apiKey: API_KEY,
+      projectId: PROJECT_ID,
+      modelId: MODEL_ID,
+      parameters: { max_new_tokens: 2048, temperature: 0.2 },
+    });
+
+    const parsed = parseJSONResponse(rawResponse);
+
+    const result = {
+      result: {
+        ...parsed,
+        source: 'watsonx',
+      },
+      model: MODEL_ID,
+      processingTimeMs: Date.now() - startTime,
+    };
+
+    setCache(cacheKey, result);
+    return res.json(result);
+  } catch (error) {
+    console.error('[remediation] Error:', error.message);
+    return res.status(500).json({
+      error: 'Remediation guidance failed',
       message: error.message,
     });
   }

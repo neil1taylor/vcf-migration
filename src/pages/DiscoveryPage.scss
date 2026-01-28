@@ -83,4 +83,20 @@
     flex-wrap: wrap;
     gap: spacing.$spacing-02;
   }
+
+  // Tab panel content styles
+  &__tab-content {
+    padding-top: spacing.$spacing-05;
+  }
+
+  &__section-title {
+    @include type.type-style('heading-03');
+    margin-bottom: spacing.$spacing-02;
+  }
+
+  &__section-subtitle {
+    @include type.type-style('body-01');
+    color: var(--cds-text-secondary, #525252);
+    margin-bottom: spacing.$spacing-05;
+  }
 }

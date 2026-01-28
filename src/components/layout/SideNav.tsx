@@ -161,7 +161,7 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
           isActive={isActive(ROUTES.discovery)}
           className={!hasData ? 'sidenav-link--disabled' : ''}
         >
-          Workload Discovery
+          Discovery
         </SideNavLink>
 
         <SideNavLink

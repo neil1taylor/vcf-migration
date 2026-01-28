@@ -165,6 +165,7 @@ export function getAutoExclusion(vm: VirtualMachine): AutoExclusionResult {
  * This is used by export generators that need to filter out VMware infra VMs
  * without having a full VirtualMachine object.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function isVMwareInfrastructureVM(vmName: string, _guestOS?: string): boolean {
   for (const rule of namePatternRules) {
     if (rule.label === 'VMware Infrastructure' && matchesNamePatternRule(vmName, rule)) {

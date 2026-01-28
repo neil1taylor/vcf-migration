@@ -141,8 +141,8 @@ ${netLines}`;
 Environment summary:
   Total VMs: ${data.totalVMs} (${data.totalExcluded} excluded from migration)
   Total vCPUs: ${data.totalVCPUs}
-  Total Memory: ${data.totalMemoryGiB} GiB
-  Total Storage: ${data.totalStorageTiB} TiB
+  Total Memory: ${Math.round(data.totalMemoryGiB)} GiB
+  Total Storage: ${Number(data.totalStorageTiB).toFixed(2)} TiB
   Clusters: ${data.clusterCount}
   Hosts: ${data.hostCount}
   Datastores: ${data.datastoreCount}
@@ -168,13 +168,13 @@ Migration wave planning context:
 - Smaller subnets (fewer VMs) are lower risk and should migrate first. Larger subnets with critical workloads should migrate later.
 
 Provide a JSON response with:
-- "executiveSummary": 2-3 sentence high-level summary for stakeholders
+- "executiveSummary": 2-3 sentence high-level summary for stakeholders. MUST include the total vCPU count, total memory (GiB), and total storage (TiB) alongside the VM count.
 - "riskAssessment": Assessment of migration risks including network complexity (2-3 sentences)
 - "recommendations": array of 3-5 specific, actionable recommendations (include subnet/network-aware migration advice when network data is available)
 - "costOptimizations": array of 2-3 cost optimization suggestions
 - "migrationStrategy": Recommended migration approach describing a subnet-based wave strategy when network data is available, explaining how to group VMs by port group/subnet to retain IP addresses and minimize network disruption (3-4 sentences)
 
-Focus on practical advice specific to this environment. Reference specific numbers from the data including network/subnet details when available.
+Focus on practical advice specific to this environment. Reference specific numbers from the data including resource totals (vCPUs, memory, storage) and network/subnet details when available.
 
 Respond ONLY with valid JSON, no other text.`;
 }
@@ -193,8 +193,8 @@ function buildChatSystemPrompt(context) {
 The user has loaded an RVTools export with the following environment:
 - ${s.totalVMs} total VMs (${s.totalExcluded} excluded from migration scope)
 - ${s.totalVCPUs} total vCPUs
-- ${s.totalMemoryGiB} GiB total memory
-- ${s.totalStorageTiB} TiB total storage
+- ${Math.round(s.totalMemoryGiB)} GiB total memory
+- ${Number(s.totalStorageTiB).toFixed(2)} TiB total storage
 - ${s.clusterCount} clusters, ${s.hostCount} hosts, ${s.datastoreCount} datastores`;
 
     if (context.workloadBreakdown && Object.keys(context.workloadBreakdown).length > 0) {
@@ -244,9 +244,130 @@ When answering:
 ${envInfo}`;
 }
 
+/**
+ * Build a wave planning suggestions prompt
+ *
+ * @param {Object} data - Wave planning data
+ * @returns {string} Formatted prompt
+ */
+function buildWaveSuggestionsPrompt(data) {
+  const waveDescriptions = data.waves.map((w, i) =>
+    `${i + 1}. "${w.name}": ${w.vmCount} VMs, ${w.totalVCPUs} vCPUs, ${Math.round(w.totalMemoryGiB)} GiB RAM, ${Math.round(w.totalStorageGiB)} GiB storage, avg complexity: ${w.avgComplexity.toFixed(1)}, blockers: ${w.hasBlockers ? 'yes' : 'no'}, workloads: ${w.workloadTypes.join(', ') || 'mixed'}`
+  ).join('\n');
+
+  return `You are a cloud migration wave planning expert specializing in VMware to IBM Cloud migrations. Analyze the following migration wave plan and provide optimization suggestions.
+
+Migration target: ${data.migrationTarget || 'not specified'}
+Total VMs: ${data.totalVMs}
+
+Current wave plan:
+${waveDescriptions}
+
+Analyze the wave plan for:
+1. Balance - Are waves roughly balanced in size and complexity?
+2. Risk - Which waves have the highest risk and why?
+3. Dependencies - Are there potential dependency issues between waves?
+4. Ordering - Is the wave order optimal (simple/low-risk first)?
+
+Provide a JSON response with:
+- "suggestions": array of 3-5 specific, actionable suggestions for improving the wave plan
+- "riskNarratives": array of objects with "waveName" and "narrative" (1-2 sentence risk assessment per wave)
+- "dependencyWarnings": array of potential dependency issues between waves (empty array if none)
+
+Focus on practical advice. Reference specific wave names and numbers from the data.
+
+Respond ONLY with valid JSON, no other text.`;
+}
+
+/**
+ * Build a cost optimization prompt
+ *
+ * @param {Object} data - Cost and profile data
+ * @returns {string} Formatted prompt
+ */
+function buildCostOptimizationPrompt(data) {
+  const profileList = data.vmProfiles
+    .map(p => `  - Profile "${p.profile}": ${p.count} VMs, workload: ${p.workloadType}`)
+    .join('\n');
+
+  return `You are an IBM Cloud cost optimization specialist. Analyze the following migration cost profile and provide optimization recommendations.
+
+Migration target: ${data.migrationTarget || 'not specified'}
+Region: ${data.region || 'us-south'}
+Total estimated monthly cost: $${data.totalMonthlyCost.toLocaleString()}
+
+VM profile allocation:
+${profileList}
+
+Consider:
+- Right-sizing opportunities (are VMs over-provisioned for their workload type?)
+- Reserved instance pricing vs on-demand
+- Profile family optimization (balanced vs compute vs memory-optimized)
+- Storage tier optimization
+- Regional pricing differences
+- Workload-specific recommendations
+
+Provide a JSON response with:
+- "recommendations": array of objects, each with:
+  - "category": category name (e.g., "Right-sizing", "Reserved Pricing", "Storage Optimization")
+  - "description": specific, actionable recommendation
+  - "estimatedSavings": estimated savings description (e.g., "10-15% monthly reduction")
+  - "priority": "high", "medium", or "low"
+- "architectureRecommendations": array of 2-3 architecture-level suggestions for cost efficiency
+
+Sort recommendations by priority (high first). Reference specific profiles and numbers from the data.
+
+Respond ONLY with valid JSON, no other text.`;
+}
+
+/**
+ * Build a remediation guidance prompt for migration blockers
+ *
+ * @param {Object} data - Blocker data
+ * @returns {string} Formatted prompt
+ */
+function buildRemediationPrompt(data) {
+  const blockerList = data.blockers.map((b, i) =>
+    `${i + 1}. Type: "${b.type}", Affected VMs: ${b.affectedVMCount}, Details: ${b.details}`
+  ).join('\n');
+
+  return `You are a VMware migration remediation expert. Provide step-by-step remediation guidance for the following migration blockers.
+
+Migration target: ${data.migrationTarget || 'vsi'} (${data.migrationTarget === 'roks' ? 'Red Hat OpenShift on IBM Cloud with OpenShift Virtualization' : 'IBM Cloud VPC Virtual Server Instances'})
+
+Migration blockers:
+${blockerList}
+
+For each blocker, provide:
+1. Step-by-step remediation instructions specific to the migration target
+2. Estimated effort level
+3. Alternative approaches if direct remediation is not feasible
+
+Common blocker types and remediation context:
+- RDM (Raw Device Mapping) disks: Cannot be directly migrated; need to convert to VMDK or use alternative storage
+- Snapshots: Must be consolidated/removed before migration
+- Old hardware versions: May need VM hardware upgrade
+- Missing VMware Tools: Install or update before migration
+- Unsupported guest OS: May need OS upgrade or alternative migration path
+- Shared VMDK: Need to separate shared disks or migrate dependent VMs together
+- vGPU: GPU workloads require special handling on IBM Cloud
+
+Provide a JSON response with:
+- "guidance": array of objects, each with:
+  - "blockerType": the blocker type from input
+  - "steps": array of step-by-step remediation instructions (3-6 steps)
+  - "estimatedEffort": effort description (e.g., "1-2 hours per VM", "requires maintenance window")
+  - "alternatives": array of alternative approaches if direct remediation is not possible
+
+Respond ONLY with valid JSON, no other text.`;
+}
+
 module.exports = {
   buildClassificationPrompt,
   buildRightsizingPrompt,
   buildInsightsPrompt,
   buildChatSystemPrompt,
+  buildWaveSuggestionsPrompt,
+  buildCostOptimizationPrompt,
+  buildRemediationPrompt,
 };

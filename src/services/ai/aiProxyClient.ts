@@ -14,6 +14,12 @@ import type {
   InsightsResponse,
   ChatRequest,
   ChatResponse,
+  WaveSuggestionRequest,
+  WaveSuggestionResponse,
+  CostOptimizationRequest,
+  CostOptimizationResponse,
+  RemediationRequest,
+  RemediationResponse,
 } from './types';
 
 const logger = createLogger('AI Proxy');
@@ -131,7 +137,7 @@ export async function testAIProxyConnection(): Promise<{
 async function postToProxy<TReq, TRes>(
   endpoint: string,
   body: TReq,
-  options?: { timeout?: number }
+  options?: { timeout?: number; skipCache?: boolean }
 ): Promise<TRes> {
   if (!AI_PROXY_URL) {
     throw new Error('AI proxy URL not configured. Set VITE_AI_PROXY_URL environment variable.');
@@ -143,11 +149,16 @@ async function postToProxy<TReq, TRes>(
 
   return withRetry(
     async () => {
+      const headers = getHeaders();
+      if (options?.skipCache) {
+        headers['X-Skip-Cache'] = 'true';
+      }
+
       const response = await fetchWithTimeout(
         `${AI_PROXY_URL}${endpoint}`,
         {
           method: 'POST',
-          headers: getHeaders(),
+          headers,
           body: JSON.stringify(body),
         },
         timeout
@@ -214,7 +225,7 @@ export async function getRightsizingRecommendations(
  */
 export async function getMigrationInsights(
   request: InsightsRequest,
-  options?: { timeout?: number }
+  options?: { timeout?: number; skipCache?: boolean }
 ): Promise<InsightsResponse> {
   return postToProxy<InsightsRequest, InsightsResponse>(
     '/api/insights',
@@ -232,6 +243,48 @@ export async function sendChatMessage(
 ): Promise<ChatResponse> {
   return postToProxy<ChatRequest, ChatResponse>(
     '/api/chat',
+    request,
+    options
+  );
+}
+
+/**
+ * Get wave planning suggestions using AI
+ */
+export async function getWaveSuggestions(
+  request: WaveSuggestionRequest,
+  options?: { timeout?: number }
+): Promise<WaveSuggestionResponse> {
+  return postToProxy<WaveSuggestionRequest, WaveSuggestionResponse>(
+    '/api/wave-suggestions',
+    request,
+    options
+  );
+}
+
+/**
+ * Get cost optimization recommendations using AI
+ */
+export async function getCostOptimization(
+  request: CostOptimizationRequest,
+  options?: { timeout?: number }
+): Promise<CostOptimizationResponse> {
+  return postToProxy<CostOptimizationRequest, CostOptimizationResponse>(
+    '/api/cost-optimization',
+    request,
+    options
+  );
+}
+
+/**
+ * Get remediation guidance using AI
+ */
+export async function getRemediationGuidance(
+  request: RemediationRequest,
+  options?: { timeout?: number }
+): Promise<RemediationResponse> {
+  return postToProxy<RemediationRequest, RemediationResponse>(
+    '/api/remediation',
     request,
     options
   );

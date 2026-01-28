@@ -38,6 +38,12 @@ export { useAIInsights } from './useAIInsights';
 export type { UseAIInsightsReturn } from './useAIInsights';
 export { useAIChat } from './useAIChat';
 export type { UseAIChatReturn } from './useAIChat';
+export { useAIWaveSuggestions } from './useAIWaveSuggestions';
+export type { UseAIWaveSuggestionsReturn } from './useAIWaveSuggestions';
+export { useAICostOptimization } from './useAICostOptimization';
+export type { UseAICostOptimizationReturn } from './useAICostOptimization';
+export { useAIRemediation } from './useAIRemediation';
+export type { UseAIRemediationReturn } from './useAIRemediation';
 
 // Migration hooks
 export { useMigrationAssessment } from './useMigrationAssessment';

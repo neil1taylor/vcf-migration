@@ -30,7 +30,7 @@ export function AIInsightsPanel({
   title = 'AI Migration Insights',
   compact = false,
 }: AIInsightsPanelProps) {
-  const { insights, isLoading, error, fetchInsights, isAvailable } = useAIInsights();
+  const { insights, isLoading, error, fetchInsights, refreshInsights, isAvailable } = useAIInsights();
 
   // Auto-fetch when data is provided and AI is available
   useEffect(() => {
@@ -78,7 +78,7 @@ export function AIInsightsPanel({
             renderIcon={Renew}
             iconDescription="Refresh insights"
             hasIconOnly
-            onClick={() => data && fetchInsights(data)}
+            onClick={() => data && refreshInsights(data)}
             disabled={isLoading}
           />
         )}
@@ -123,14 +123,18 @@ function InsightsContent({
   insights: MigrationInsights;
   compact: boolean;
 }) {
+  // Defensive: ensure arrays exist (LLM might not always return all fields)
+  const recommendations = insights.recommendations || [];
+  const costOptimizations = insights.costOptimizations || [];
+
   if (compact) {
     return (
       <div className="ai-insights-panel__content">
-        <p className="ai-insights-panel__summary">{insights.executiveSummary}</p>
-        {insights.recommendations.length > 0 && (
+        <p className="ai-insights-panel__summary">{insights.executiveSummary || 'No summary available.'}</p>
+        {recommendations.length > 0 && (
           <div className="ai-insights-panel__section">
             <strong>Top recommendation:</strong>
-            <p>{insights.recommendations[0]}</p>
+            <p>{recommendations[0]}</p>
           </div>
         )}
       </div>
@@ -139,46 +143,52 @@ function InsightsContent({
 
   return (
     <div className="ai-insights-panel__content">
-      <div className="ai-insights-panel__section">
-        <h5>Executive Summary</h5>
-        <p>{insights.executiveSummary}</p>
-      </div>
+      {insights.executiveSummary && (
+        <div className="ai-insights-panel__section">
+          <h5>Executive Summary</h5>
+          <p>{insights.executiveSummary}</p>
+        </div>
+      )}
 
-      <div className="ai-insights-panel__section">
-        <h5>Risk Assessment</h5>
-        <p>{insights.riskAssessment}</p>
-      </div>
+      {insights.riskAssessment && (
+        <div className="ai-insights-panel__section">
+          <h5>Risk Assessment</h5>
+          <p>{insights.riskAssessment}</p>
+        </div>
+      )}
 
-      {insights.recommendations.length > 0 && (
+      {recommendations.length > 0 && (
         <div className="ai-insights-panel__section">
           <h5>Recommendations</h5>
           <OrderedList>
-            {insights.recommendations.map((rec, i) => (
+            {recommendations.map((rec, i) => (
               <ListItem key={i}>{rec}</ListItem>
             ))}
           </OrderedList>
         </div>
       )}
 
-      {insights.costOptimizations.length > 0 && (
+      {costOptimizations.length > 0 && (
         <div className="ai-insights-panel__section">
           <h5>Cost Optimizations</h5>
           <OrderedList>
-            {insights.costOptimizations.map((opt, i) => (
+            {costOptimizations.map((opt, i) => (
               <ListItem key={i}>{opt}</ListItem>
             ))}
           </OrderedList>
         </div>
       )}
 
-      <div className="ai-insights-panel__section">
-        <h5>Migration Strategy</h5>
-        <p>{insights.migrationStrategy}</p>
-      </div>
+      {insights.migrationStrategy && (
+        <div className="ai-insights-panel__section">
+          <h5>Migration Strategy</h5>
+          <p>{insights.migrationStrategy}</p>
+        </div>
+      )}
 
       <div className="ai-insights-panel__footer">
         <Tag type="gray" size="sm">
-          Source: {insights.source === 'watsonx' ? 'watsonx.ai' : insights.source}
+          Source: {insights.source === 'watsonx' ? 'watsonx.ai' : insights.source || 'AI'}
         </Tag>
       </div>
     </div>
