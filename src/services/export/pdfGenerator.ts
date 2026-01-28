@@ -2,7 +2,7 @@
 import jsPDF from 'jspdf';
 import type { RVToolsData, VirtualMachine, VHostInfo, VDatastoreInfo, VNetworkInfo } from '@/types/rvtools';
 import { mibToGiB, mibToTiB, formatNumber } from '@/utils/formatters';
-import { isVMwareInfrastructureVM } from '@/hooks/useData';
+import { isVMwareInfrastructureVM } from '@/utils/autoExclusion';
 
 // Export options interface
 export interface PDFExportOptions {

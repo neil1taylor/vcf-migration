@@ -20,6 +20,7 @@ export interface BareMetalProfilesByFamily {
   compute: TransformedProfile[];
   memory: TransformedProfile[];
   veryHighMemory: TransformedProfile[];
+  custom: TransformedProfile[];
 }
 
 export interface IBMCloudProfiles {
@@ -87,6 +88,7 @@ function transformStaticToProfiles(): IBMCloudProfiles {
     compute: [],
     memory: [],
     veryHighMemory: [],
+    custom: [],
   };
 
   for (const [family, profiles] of Object.entries(staticProfilesData.bareMetalProfiles)) {
@@ -116,6 +118,35 @@ function transformStaticToProfiles(): IBMCloudProfiles {
       }));
     }
   }
+
+  // Transform custom bare metal profiles from static data
+  const customProfiles = (staticProfilesData as { customBareMetalProfiles?: Array<{
+    name: string;
+    tag?: string;
+    physicalCores: number;
+    vcpus: number;
+    memoryGiB: number;
+    hasNvme: boolean;
+    nvmeDisks?: number;
+    nvmeSizeGiB?: number;
+    totalNvmeGiB?: number;
+    roksSupported?: boolean;
+  }> }).customBareMetalProfiles || [];
+
+  bareMetalProfiles.custom = customProfiles.map(p => ({
+    name: p.name,
+    family: 'custom',
+    vcpus: p.vcpus,
+    memoryGiB: p.memoryGiB,
+    physicalCores: p.physicalCores,
+    hasNvme: p.hasNvme,
+    nvmeDisks: p.nvmeDisks,
+    nvmeSizeGiB: p.nvmeSizeGiB,
+    totalNvmeGiB: p.totalNvmeGiB,
+    roksSupported: p.roksSupported,
+    isCustom: true,
+    tag: p.tag || 'Custom',
+  }));
 
   return {
     version: staticProfilesData.version,

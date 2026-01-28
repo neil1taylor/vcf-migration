@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, UnorderedList, ListItem, Button, InlineNotification, Tooltip } from '@carbon/react';
 import { Download, Information } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
-import { useData, useVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides } from '@/hooks';
+import { useData, useAllVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides, useAutoExclusion } from '@/hooks';
 import { ROUTES, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS, HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED } from '@/utils/constants';
 import { formatNumber, mibToGiB } from '@/utils/formatters';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
@@ -13,6 +13,9 @@ import { SizingCalculator } from '@/components/sizing';
 import type { SizingResult } from '@/components/sizing';
 import { CostEstimation } from '@/components/cost';
 import { ComplexityAssessmentPanel, WavePlanningPanel, OSCompatibilityPanel } from '@/components/migration';
+import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel';
+import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
+import type { InsightsInput, NetworkSummaryForAI } from '@/services/ai/types';
 import type { ROKSSizingInput } from '@/services/costEstimation';
 import type { ROKSNodeDetail } from '@/services/export';
 import { MTVYAMLGenerator, downloadBlob } from '@/services/export';
@@ -22,21 +25,23 @@ import './MigrationPage.scss';
 
 export function ROKSMigrationPage() {
   const { rawData } = useData();
-  const allVms = useVMs();
+  const allVmsRaw = useAllVMs();
   const [yamlExporting, setYamlExporting] = useState(false);
   const [yamlExportSuccess, setYamlExportSuccess] = useState(false);
   const [calculatorSizing, setCalculatorSizing] = useState<SizingResult | null>(null);
 
   // VM overrides for exclusions
   const vmOverrides = useVMOverrides();
+  const { getAutoExclusionById } = useAutoExclusion();
 
-  // Filter out excluded VMs
+  // Filter out excluded VMs using unified three-tier exclusion
   const vms = useMemo(() => {
-    return allVms.filter(vm => {
+    return allVmsRaw.filter(vm => {
       const vmId = getVMIdentifier(vm);
-      return !vmOverrides.isExcluded(vmId);
+      const autoResult = getAutoExclusionById(vmId);
+      return !vmOverrides.isEffectivelyExcluded(vmId, autoResult.isAutoExcluded);
     });
-  }, [allVms, vmOverrides]);
+  }, [allVmsRaw, vmOverrides, getAutoExclusionById]);
 
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
@@ -183,6 +188,56 @@ export function ROKSMigrationPage() {
     }
     return nodes;
   }, [roksSizing]);
+
+  // ===== AI INSIGHTS DATA =====
+  const insightsData = useMemo<InsightsInput | null>(() => {
+    if (!isAIProxyConfigured()) return null;
+    const totalVCPUs = poweredOnVMs.reduce((sum, vm) => sum + vm.cpus, 0);
+    const totalMemoryGiB = poweredOnVMs.reduce((sum, vm) => sum + mibToGiB(vm.memory), 0);
+    const totalStorageGiB = poweredOnVMs.reduce((sum, vm) => sum + mibToGiB(vm.inUseMiB), 0);
+    const scores = Array.isArray(complexityScores) ? complexityScores : [];
+    const complexSimple = scores.filter(s => s.score < 3).length;
+    const complexModerate = scores.filter(s => s.score >= 3 && s.score < 6).length;
+    const complexHigh = scores.filter(s => s.score >= 6 && s.score < 9).length;
+    const complexBlocker = scores.filter(s => s.score >= 9).length;
+    const blockerSummary: string[] = [];
+    if (blockerCount > 0) blockerSummary.push(`${blockerCount} pre-flight blockers`);
+    if (warningCount > 0) blockerSummary.push(`${warningCount} warnings`);
+    // Build network summary
+    const networkSummary: NetworkSummaryForAI[] = [];
+    const pgMap = new Map<string, { ips: Set<string>; vmNames: Set<string> }>();
+    rawData.vNetwork.forEach(nic => {
+      const pg = nic.networkName || 'Unknown';
+      if (!pgMap.has(pg)) pgMap.set(pg, { ips: new Set(), vmNames: new Set() });
+      const entry = pgMap.get(pg)!;
+      entry.vmNames.add(nic.vmName);
+      if (nic.ipv4Address) entry.ips.add(nic.ipv4Address);
+    });
+    pgMap.forEach((data, portGroup) => {
+      const prefixes = new Set<string>();
+      data.ips.forEach(ip => {
+        const parts = ip.split('.');
+        if (parts.length >= 3) prefixes.add(`${parts[0]}.${parts[1]}.${parts[2]}.0/24`);
+      });
+      networkSummary.push({ portGroup, subnet: prefixes.size > 0 ? Array.from(prefixes).sort().join(', ') : 'N/A', vmCount: data.vmNames.size });
+    });
+
+    return {
+      totalVMs: poweredOnVMs.length,
+      totalExcluded: allVmsRaw.length - vms.length,
+      totalVCPUs,
+      totalMemoryGiB: Math.round(totalMemoryGiB),
+      totalStorageTiB: Math.ceil(totalStorageGiB / 1024),
+      clusterCount: new Set(poweredOnVMs.map(vm => vm.cluster).filter(Boolean)).size,
+      hostCount: rawData.vHost.length,
+      datastoreCount: rawData.vDatastore.length,
+      workloadBreakdown: {},
+      complexitySummary: { simple: complexSimple, moderate: complexModerate, complex: complexHigh, blocker: complexBlocker },
+      blockerSummary,
+      networkSummary,
+      migrationTarget: 'roks',
+    };
+  }, [poweredOnVMs, allVmsRaw.length, vms.length, complexityScores, blockerCount, warningCount, rawData]);
 
   return (
     <div className="migration-page">
@@ -403,6 +458,9 @@ export function ROKSMigrationPage() {
               {/* Sizing Panel */}
               <TabPanel>
                 <Grid className="migration-page__tab-content">
+                  <Column lg={16} md={8} sm={4}>
+                    <AIInsightsPanel data={insightsData} title="AI Migration Insights (ROKS)" compact />
+                  </Column>
                   <Column lg={16} md={8} sm={4}>
                     <Tile className="migration-page__sizing-header">
                       <h3>ROKS Bare Metal Cluster Sizing</h3>

@@ -11,6 +11,7 @@ import {
 } from '@carbon/react';
 import { TopNav } from './TopNav';
 import { SideNav } from './SideNav';
+import { ChatWidget } from '@/components/ai/ChatWidget';
 import { ROUTES } from '@/utils/constants';
 import { useData, usePDFExport, useExcelExport, useDocxExport } from '@/hooks';
 import type { PDFExportOptions } from '@/hooks/usePDFExport';
@@ -120,6 +121,9 @@ export function AppLayout() {
       <Content className="app-layout__content">
         <Outlet />
       </Content>
+
+      {/* AI Chat Widget */}
+      <ChatWidget />
 
       {/* PDF Export Modal */}
       <Modal

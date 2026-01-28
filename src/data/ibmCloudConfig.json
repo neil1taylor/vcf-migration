@@ -1992,5 +1992,6 @@
     "cpuOvercommitConservative": 4,
     "systemReservedMemoryGiB": 12,
     "nodeRedundancy": 2
-  }
+  },
+  "customBareMetalProfiles": []
 }

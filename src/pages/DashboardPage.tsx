@@ -2,13 +2,17 @@
 import { useMemo, useCallback } from 'react';
 import { Grid, Column, Tile, Tag, Tooltip } from '@carbon/react';
 import { Information } from '@carbon/icons-react';
-import { useData, useVMs, useChartFilter } from '@/hooks';
+import { useData, useVMs, useChartFilter, useVMOverrides, useAutoExclusion } from '@/hooks';
 import { Navigate } from 'react-router-dom';
 import { ROUTES, HW_VERSION_MINIMUM, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
 import { formatNumber, mibToGiB, mibToTiB, getHardwareVersionNumber, formatHardwareVersion } from '@/utils/formatters';
 import { DoughnutChart, HorizontalBarChart, VerticalBarChart } from '@/components/charts';
 import { FilterBadge, MetricCard } from '@/components/common';
+import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel';
+import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
+import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { POWER_STATE_CHART_COLORS } from '@/utils/chartConfig';
+import type { InsightsInput, NetworkSummaryForAI } from '@/services/ai/types';
 import './DashboardPage.scss';
 
 // Map label to power state
@@ -22,6 +26,8 @@ export function DashboardPage() {
   const { rawData } = useData();
   const vms = useVMs();
   const { chartFilter, setFilter, clearFilter } = useChartFilter();
+  const vmOverrides = useVMOverrides();
+  const { autoExcludedCount, autoExcludedBreakdown } = useAutoExclusion();
 
   // Redirect to landing if no data
   if (!rawData) {
@@ -266,6 +272,61 @@ export function DashboardPage() {
       .sort((a, b) => b.value - a.value);
   }, [tools]);
 
+  // AI Insights data (only compute when proxy is configured)
+  const insightsData = useMemo<InsightsInput | null>(() => {
+    if (!isAIProxyConfigured()) return null;
+
+    const excludedCount = vms.filter(vm => vmOverrides.isExcluded(getVMIdentifier(vm))).length;
+
+    // Build workload breakdown from OS distribution
+    const workloadBreakdown: Record<string, number> = {};
+    vms.forEach(vm => {
+      const os = vm.guestOS || 'Unknown';
+      if (os.toLowerCase().includes('windows')) workloadBreakdown['Windows'] = (workloadBreakdown['Windows'] || 0) + 1;
+      else if (os.toLowerCase().includes('linux') || os.toLowerCase().includes('rhel') || os.toLowerCase().includes('centos') || os.toLowerCase().includes('ubuntu')) workloadBreakdown['Linux'] = (workloadBreakdown['Linux'] || 0) + 1;
+      else workloadBreakdown['Other'] = (workloadBreakdown['Other'] || 0) + 1;
+    });
+
+    // Build network summary from vNetwork data
+    const networkSummary: NetworkSummaryForAI[] = [];
+    const portGroupMap = new Map<string, { ips: Set<string>; vmNames: Set<string> }>();
+    rawData.vNetwork.forEach(nic => {
+      const pg = nic.networkName || 'Unknown';
+      if (!portGroupMap.has(pg)) portGroupMap.set(pg, { ips: new Set(), vmNames: new Set() });
+      const entry = portGroupMap.get(pg)!;
+      entry.vmNames.add(nic.vmName);
+      if (nic.ipv4Address) entry.ips.add(nic.ipv4Address);
+    });
+    portGroupMap.forEach((data, portGroup) => {
+      const prefixes = new Set<string>();
+      data.ips.forEach(ip => {
+        const parts = ip.split('.');
+        if (parts.length >= 3) prefixes.add(`${parts[0]}.${parts[1]}.${parts[2]}.0/24`);
+      });
+      networkSummary.push({
+        portGroup,
+        subnet: prefixes.size > 0 ? Array.from(prefixes).sort().join(', ') : 'N/A',
+        vmCount: data.vmNames.size,
+      });
+    });
+
+    return {
+      totalVMs,
+      totalExcluded: excludedCount,
+      totalVCPUs,
+      totalMemoryGiB,
+      totalStorageTiB: totalInUseTiB,
+      clusterCount: uniqueClusters,
+      hostCount: rawData.vHost.length,
+      datastoreCount: rawData.vDatastore.length,
+      workloadBreakdown,
+      complexitySummary: { simple: 0, moderate: 0, complex: 0, blocker: 0 },
+      blockerSummary: configIssuesCount > 0 ? [`${configIssuesCount} configuration issues detected`] : [],
+      networkSummary,
+      migrationTarget: 'both',
+    };
+  }, [totalVMs, totalVCPUs, totalMemoryGiB, totalInUseTiB, uniqueClusters, rawData.vHost.length, rawData.vDatastore.length, rawData.vNetwork, vms, vmOverrides, configIssuesCount]);
+
   // Firmware type distribution for chart (memoized)
   const firmwareChartData = useMemo(() => {
     const firmwareDistribution = vms.reduce((acc, vm) => {
@@ -342,6 +403,11 @@ export function DashboardPage() {
             </Tile>
           </Column>
         )}
+
+        {/* AI Migration Insights */}
+        <Column lg={16} md={8} sm={4}>
+          <AIInsightsPanel data={insightsData} />
+        </Column>
 
         {/* Key Metrics Row */}
         <Column lg={4} md={4} sm={4}>
@@ -486,13 +552,24 @@ export function DashboardPage() {
           />
         </Column>
 
-        <Column lg={4} md={4} sm={2}>
+        <Column lg={2} md={2} sm={2}>
           <MetricCard
             label="Templates"
             value={formatNumber(templates)}
             variant="default"
             tooltip="VM templates (not counted in Total VMs) used for cloning new VMs."
           />
+        </Column>
+
+        <Column lg={2} md={2} sm={2}>
+          <Tooltip label={`Templates: ${autoExcludedBreakdown.templates}, Powered Off: ${autoExcludedBreakdown.poweredOff}, VMware Infra: ${autoExcludedBreakdown.vmwareInfrastructure}, Windows AD/DNS: ${autoExcludedBreakdown.windowsInfrastructure}`} align="bottom">
+            <MetricCard
+              label="Auto-Excluded"
+              value={formatNumber(autoExcludedCount)}
+              variant="default"
+              tooltip="VMs automatically excluded from migration scope (templates, powered-off, VMware infrastructure)."
+            />
+          </Tooltip>
         </Column>
 
         {/* Storage Metrics Comparison Tile */}

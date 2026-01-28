@@ -28,6 +28,8 @@ const VSIMigrationMethodsPage = lazy(() => import('@/pages/VSIMigrationMethodsPa
 const MTVDocumentationPage = lazy(() => import('@/pages/MTVDocumentationPage').then(m => ({ default: m.MTVDocumentationPage })));
 const AboutPage = lazy(() => import('@/pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const OverheadReferencePage = lazy(() => import('@/pages/OverheadReferencePage').then(m => ({ default: m.OverheadReferencePage })));
+const ChatPage = lazy(() => import('@/pages/ChatPage').then(m => ({ default: m.ChatPage })));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 
 // Suspense wrapper for lazy-loaded pages
 function PageLoader({ children }: { children: React.ReactNode }) {
@@ -122,6 +124,14 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.overheadReference.slice(1),
         element: <PageLoader><OverheadReferencePage /></PageLoader>,
+      },
+      {
+        path: ROUTES.settings.slice(1),
+        element: <PageLoader><SettingsPage /></PageLoader>,
+      },
+      {
+        path: ROUTES.chat.slice(1),
+        element: <PageLoader><ChatPage /></PageLoader>,
       },
       {
         path: '*',

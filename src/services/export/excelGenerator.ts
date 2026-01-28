@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import type { RVToolsData, VirtualMachine, VHostInfo, VDatastoreInfo, VSnapshotInfo, VCDInfo, VDiskInfo, VNetworkInfo, VToolsInfo } from '@/types/rvtools';
 import { mibToGiB, formatHardwareVersion, getHardwareVersionNumber } from '@/utils/formatters';
 import { HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
-import { isVMwareInfrastructureVM } from '@/hooks/useData';
+import { isVMwareInfrastructureVM } from '@/utils/autoExclusion';
 import osCompatibilityData from '@/data/redhatOSCompatibility.json';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import type { VMCheckResults, CheckMode } from '@/services/preflightChecks';

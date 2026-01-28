@@ -351,6 +351,8 @@ IBM Carbon Design System (`@carbon/react`) - all UI components follow Carbon pat
 ```bash
 VITE_PRICING_PROXY_URL=...      # Code Engine pricing proxy URL (for live pricing data)
 VITE_PROFILES_PROXY_URL=...     # Code Engine profiles proxy URL (for live profile data)
+VITE_AI_PROXY_URL=...           # Code Engine AI proxy URL (for watsonx.ai features)
+VITE_AI_PROXY_API_KEY=...       # Shared secret for AI proxy authentication
 ```
 
 Without proxy URLs configured, the app uses static data from `src/data/ibmCloudConfig.json`. Run `npm run update-all` to refresh static data before deployment.
@@ -449,6 +451,64 @@ Open browser DevTools Console to see detailed profile logs:
 - `[IBM Cloud API] Bare Metal Profiles Summary` - Raw API data
 - `[IBM Cloud API] ROKS Bare Metal Flavors` - ROKS machine types
 - `[Dynamic Profiles] FINAL Bare Metal Profiles in App` - Merged profiles used by the app
+
+## Custom Bare Metal Profiles
+
+Maintainers can define custom bare metal profiles (e.g., on-premises hardware) in `src/data/ibmCloudConfig.json` under the `customBareMetalProfiles` top-level array. Custom profiles appear alongside standard IBM Cloud profiles in the ROKS Sizing Calculator.
+
+### JSON Structure
+
+```json
+"customBareMetalProfiles": [
+  {
+    "name": "custom-metal-64x512",
+    "tag": "On-Prem",
+    "physicalCores": 32,
+    "vcpus": 64,
+    "memoryGiB": 512,
+    "hasNvme": true,
+    "nvmeDisks": 6,
+    "nvmeSizeGiB": 3200,
+    "totalNvmeGiB": 19200,
+    "roksSupported": true,
+    "hourlyRate": 0,
+    "monthlyRate": 0,
+    "useCase": "Custom on-premises bare metal",
+    "description": "Custom - 32 cores, 512 GiB RAM, 6x3.2TB NVMe"
+  }
+]
+```
+
+### Fields
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Unique profile name (used as identifier) |
+| `tag` | No | Display label shown as a Carbon Tag in the UI (e.g., "On-Prem", "Lab"). Defaults to "Custom" |
+| `physicalCores` | Yes | Number of physical CPU cores |
+| `vcpus` | Yes | Number of vCPUs (threads) |
+| `memoryGiB` | Yes | RAM in GiB |
+| `hasNvme` | Yes | Whether the profile has local NVMe storage |
+| `nvmeDisks` | Conditional | Number of NVMe disks (required if `hasNvme: true`) |
+| `nvmeSizeGiB` | Conditional | Size per NVMe disk in GiB |
+| `totalNvmeGiB` | Conditional | Total NVMe capacity in GiB |
+| `roksSupported` | No | Set to `true` if this profile should be treated as ROKS-capable. Defaults to `false` |
+| `hourlyRate` | No | Hourly cost in USD. If 0 or absent, cost estimation shows "Custom profile - no pricing available" |
+| `monthlyRate` | No | Monthly cost in USD. If 0 or absent, cost estimation shows "Custom profile - no pricing available" |
+| `useCase` | No | Short description of intended use |
+| `description` | No | Longer description shown in cost estimation notes |
+
+### UI Behavior
+
+- Custom profiles appear in the Sizing Calculator profile dropdown with their `tag` value (e.g., `[On-Prem]`) instead of `[✓ ROKS]` / `[✗ VPC Only]`
+- A purple Carbon Tag is shown in the profile details section
+- Sort order: Standard ROKS profiles > Custom ROKS profiles > Standard non-ROKS > Custom non-ROKS
+- Sizing calculations (node count, storage) work identically to standard profiles
+- Cost estimation handles missing pricing gracefully (shows $0 with explanatory note)
+
+### Custom Profiles and Dynamic Data
+
+Custom profiles are always sourced from the static JSON configuration. They are never returned by the IBM Cloud profiles proxy. When proxy data is merged with static data, custom profiles are included automatically.
 
 ## Updating OS Compatibility Data
 
@@ -598,6 +658,85 @@ The `/overhead-reference` page (`src/pages/OverheadReferencePage.tsx`) displays:
 - KubeVirt/QEMU resource requirements change
 - New overhead components are identified
 - Per-VM fixed values need adjustment based on production data
+
+## AI Integration (watsonx.ai)
+
+The application includes optional AI-powered features using IBM watsonx.ai via a Code Engine proxy.
+
+### Architecture
+
+```
+  ┌─────────────────┐         ┌──────────────────────┐         ┌─────────────────┐
+  │   Browser        │ ──────> │  Code Engine         │ ──────> │  IBM watsonx.ai │
+  │   (Frontend)     │         │  AI Proxy            │         │  (Granite)      │
+  │                  │ <────── │  (30-min cache)      │ <────── │                 │
+  └─────────────────┘         └──────────────────────┘         └─────────────────┘
+         │                              │
+   VITE_AI_PROXY_URL            API Key + Project ID
+   VITE_AI_PROXY_API_KEY        (server-side only)
+```
+
+### Key Files
+
+| Directory | Purpose |
+|-----------|---------|
+| `functions/ai-proxy/` | Code Engine Express.js proxy (index.js, watsonx.js, prompts.js) |
+| `src/services/ai/` | Client API, cache, context builder, types |
+| `src/hooks/useAI*.ts` | React hooks (classification, rightsizing, insights, chat, settings, status) |
+| `src/components/ai/` | UI components (AIInsightsPanel, ChatWidget, ChatPanel, AIStatusBadge) |
+| `src/pages/ChatPage.tsx` | Full-page chat interface at `/chat` |
+| `src/pages/SettingsPage.tsx` | Settings page with AI toggle, proxy status, cache management |
+
+### AI Features
+
+| Feature | Proxy Endpoint | Hook | Description |
+|---------|---------------|------|-------------|
+| Classification | `/api/classify` | `useAIClassification` | LLM workload detection with confidence |
+| Right-sizing | `/api/rightsizing` | `useAIRightsizing` | AI profile recommendations |
+| Insights | `/api/insights` | `useAIInsights` | Executive summary and risk assessment |
+| Chat | `/api/chat` | `useAIChat` | Conversational assistant |
+
+### Settings
+
+- AI features are disabled by default
+- Users enable AI via the Settings page at `/settings` (stored in localStorage as `vcf-ai-settings`)
+- Consent notice shown on first enable explaining what data is sent
+- All AI hooks check `useAISettings().settings.enabled` before making requests
+- `useAIStatus` hook provides unified access to configuration, enablement, and proxy health state
+
+### AI Availability Indicators
+
+| Location | Indicator | Description |
+|----------|-----------|-------------|
+| SideNav | "Off" tag on AI Assistant link | When proxy configured but AI disabled |
+| Chat Widget | Disabled button with tooltip | When proxy configured but AI disabled; fully hidden when unconfigured |
+| AI Insights Panel | "AI Unavailable" tile with Settings link | When proxy configured but AI disabled; hidden when unconfigured |
+| Workload VM Table | Purple "AI" tag in Source column | When AI classification was used for that VM |
+| VSI Migration Page | Purple "AI" tag in Recommendation column | When AI rightsizing was used for that VM |
+| Settings Page | Green "Connected" / Red "Unavailable" tag | Proxy connectivity status with test button |
+
+### Data Privacy
+
+- Only aggregated summaries sent (VM counts, resource totals, workload categories)
+- Never sends individual VM names, IPs, or raw RVTools data
+- Context builder (`chatContextBuilder.ts`) constructs safe summaries from DataContext
+
+### Fallback Behavior
+
+- Without AI proxy configured: AI components render nothing, hooks return empty data
+- With proxy configured but unavailable: Falls back to rule-based logic, no errors shown to user
+- With proxy configured and AI disabled in settings: Same as unconfigured
+
+### Proxy Authentication
+
+The AI proxy validates an `X-API-Key` header set via `VITE_AI_PROXY_API_KEY`. The `/health` endpoint is unauthenticated (used for connectivity checks).
+
+### Caching
+
+| Layer | TTL | Key |
+|-------|-----|-----|
+| Proxy (in-memory) | 30 min | Task type + input hash |
+| Client (localStorage) | 24 hours | Environment fingerprint |
 
 ## Version Management
 
@@ -778,15 +917,130 @@ When `cancelled: true`, the hooks skip updating state to avoid false "unavailabl
 
 ## VM Management
 
-The VM Management feature allows users to customize which VMs are included in migration analysis.
+The VM Management feature allows users to customize which VMs are included in migration analysis. It includes automatic exclusion of VMs that shouldn't be migrated, with user overrides.
+
+### Auto-Exclusion
+
+All auto-exclusion rules are **fully maintainer-configurable** in `src/data/workloadPatterns.json` under `autoExclusionRules`. There is no hardcoded exclusion logic — everything is driven by the JSON config.
+
+Auto-exclusion is computed (deterministic from VM data) and never stored. Only user overrides are persisted.
+
+#### Rule Types
+
+**Field Rules** — match on VM properties:
+
+```json
+"fieldRules": [
+  {
+    "id": "template",
+    "label": "Template",
+    "field": "template",
+    "value": true,
+    "description": "VM is a template, not a running workload"
+  },
+  {
+    "id": "powered-off",
+    "label": "Powered Off",
+    "field": "powerState",
+    "operator": "notEquals",
+    "value": "poweredOn",
+    "description": "VM is not powered on"
+  }
+]
+```
+
+| Field | Required | Values | Description |
+|-------|----------|--------|-------------|
+| `id` | Yes | Any string | Unique rule identifier (used in reasons array) |
+| `label` | Yes | Any string | Shown as a magenta tag in the UI |
+| `field` | Yes | Any VM property name | The VirtualMachine property to check |
+| `operator` | No | `equals` (default), `notEquals` | Comparison operator |
+| `value` | Yes | Any value | The value to compare against |
+
+**Name Pattern Rules** — match on VM names:
+
+```json
+"namePatterns": [
+  {
+    "id": "vmware-vcls",
+    "label": "VMware Infrastructure",
+    "match": "startsWith",
+    "patterns": ["vcls-", "vcls"],
+    "description": "vCLS (vSphere Cluster Services) VMs"
+  },
+  {
+    "id": "vmware-nsx-edge-regex",
+    "label": "VMware Infrastructure",
+    "match": "regex",
+    "patterns": ["\\bedge[-_]?\\d", "t[01][-_]?edge"],
+    "excludePatterns": ["cust-edge", "service-edge"],
+    "description": "NSX edge patterns excluding network appliances"
+  },
+  {
+    "id": "network-edge-appliance",
+    "label": "Network Edge Appliance",
+    "match": "contains",
+    "patterns": ["cust-edge", "service-edge"],
+    "description": "Network edge appliances (e.g., Cisco routers)"
+  }
+]
+```
+
+| Field | Required | Values | Description |
+|-------|----------|--------|-------------|
+| `id` | Yes | Any string | Unique rule identifier |
+| `label` | Yes | Any string | Shown as a magenta tag in the UI (deduplicated when multiple rules share a label) |
+| `match` | Yes | `contains`, `startsWith`, `endsWith`, `exact`, `regex` | How to match patterns against the VM name |
+| `patterns` | Yes | Array of strings | Patterns to match (case-insensitive). For `regex`, each is a JavaScript regex string |
+| `excludePatterns` | No | Array of strings | If the VM name contains any of these, the rule does NOT match (case-insensitive) |
+
+#### Default Rules
+
+The shipped `workloadPatterns.json` includes rules for:
+
+| Label | Rule IDs | Description |
+|-------|----------|-------------|
+| Template | `template` | Field rule: `template === true` |
+| Powered Off | `powered-off` | Field rule: `powerState !== 'poweredOn'` |
+| VMware Infrastructure | `vmware-nsx-edge`, `vmware-nsx-edge-regex`, `vmware-nsx-controller`, `vmware-usage-meter`, `vmware-vcls`, `vmware-vcenter` | NSX, vCLS, vCenter, and other VMware components |
+| Windows AD/DNS | `windows-adns` | ADNSvcs* infrastructure servers |
+| Network Edge Appliance | `network-edge-appliance` | cust-edge, service-edge network appliances |
+
+#### Adding New Exclusion Rules
+
+To exclude a new category of VMs, add an entry to `namePatterns` (or `fieldRules`) in `workloadPatterns.json`:
+
+```json
+{
+  "id": "my-custom-rule",
+  "label": "My Custom Label",
+  "match": "contains",
+  "patterns": ["pattern1", "pattern2"],
+  "description": "Why these VMs are excluded"
+}
+```
+
+The label appears as a magenta tag in the UI. No code changes required.
+
+### Three-Tier Exclusion Model
+
+For any VM, the effective exclusion state is resolved in priority order:
+
+1. **User force-included** (`forceIncluded: true` in overrides) -> **INCLUDED** regardless of auto-rules
+2. **User manually excluded** (`excluded: true` in overrides) -> **EXCLUDED**
+3. **Auto-exclusion rule matches** (template, powered-off, VMware infra) -> **AUTO-EXCLUDED**
+4. **Default** -> **INCLUDED**
 
 ### Features
 
 | Feature | Description |
 |---------|-------------|
-| **Exclude/Include VMs** | Remove VMs from migration scope or add them back |
+| **Auto-Exclusion** | Templates, powered-off VMs, and VMware infrastructure VMs are automatically excluded |
+| **Force-Include** | Override auto-exclusion to include specific VMs in migration scope |
+| **Exclude/Include VMs** | Manually exclude/include VMs from migration scope |
 | **Bulk Operations** | Select multiple VMs and exclude/include in one action |
-| **Workload Type Override** | Override auto-detected workload categories or set custom types |
+| **Status Filter** | Filter VM list by: All, Included, Auto-Excluded, Manually Excluded, Overridden |
+| **Workload Type Override** | Override auto-detected workload types or set custom types |
 | **Notes** | Add user notes per VM for migration planning |
 | **Persistence** | All customizations saved to localStorage |
 | **Export/Import** | Share settings as JSON between sessions or users |
@@ -795,8 +1049,9 @@ The VM Management feature allows users to customize which VMs are included in mi
 
 | File | Purpose |
 |------|---------|
+| `src/utils/autoExclusion.ts` | Pure utility for auto-exclusion logic (rules, map computation) |
+| `src/hooks/useAutoExclusion.ts` | React hook wrapping auto-exclusion utility |
 | `src/hooks/useVMOverrides.ts` | Hook for managing VM overrides with localStorage persistence |
-| `src/hooks/useVMOverrides.test.ts` | Unit tests for the hook |
 | `src/components/discovery/VMManagementTab.tsx` | VMs tab component with DataTable |
 | `src/utils/vmIdentifier.ts` | VM identification and environment fingerprinting |
 
@@ -841,7 +1096,7 @@ VM overrides are stored in localStorage under the key `vcf-vm-overrides`.
 
 ```typescript
 interface VMOverridesData {
-  version: number;
+  version: number;  // Currently version 2
   environmentFingerprint: string;
   overrides: Record<string, VMOverride>;
   createdAt: string;
@@ -852,7 +1107,8 @@ interface VMOverride {
   vmId: string;
   vmName: string;
   excluded: boolean;
-  workloadType?: string;  // Custom or predefined category
+  forceIncluded?: boolean;  // Override auto-exclusion
+  workloadType?: string;    // Custom or predefined category
   notes?: string;
   modifiedAt: string;
 }
@@ -860,27 +1116,97 @@ interface VMOverride {
 
 ### Integration with Migration Pages
 
-The VSI and ROKS migration pages automatically filter out excluded VMs:
+The VSI and ROKS migration pages use the unified three-tier exclusion filter:
 
 ```typescript
 // In VSIMigrationPage.tsx and ROKSMigrationPage.tsx
+const allVmsRaw = useAllVMs();
 const vmOverrides = useVMOverrides();
+const { getAutoExclusionById } = useAutoExclusion();
 
 const vms = useMemo(() => {
-  return allVms.filter(vm => {
+  return allVmsRaw.filter(vm => {
     const vmId = getVMIdentifier(vm);
-    return !vmOverrides.isExcluded(vmId);
+    const autoResult = getAutoExclusionById(vmId);
+    return !vmOverrides.isEffectivelyExcluded(vmId, autoResult.isAutoExcluded);
   });
-}, [allVms, vmOverrides.overrides]);
+}, [allVmsRaw, vmOverrides, getAutoExclusionById]);
 ```
 
 ### Workload Types
 
-Users can select from predefined workload categories (from `workloadPatterns.json`) or type custom values:
+Users can select from predefined workload types (from `workloadPatterns.json`) or type custom values:
 
 - **Predefined**: Databases, Middleware, Web, Enterprise Applications, etc.
 - **Custom**: Any user-defined string (e.g., "Legacy Finance App", "SAP HANA")
 - **Unclassified**: Clears the override and reverts to auto-detection
+
+## Workload Discovery
+
+The Discovery page (`src/pages/DiscoveryPage.tsx`) provides a unified single-page layout for workload detection, VM categorization, and migration scope management.
+
+### Page Layout
+
+```
+Discovery Page (single page — no tabs)
+├── Title + Subtitle
+├── Metric Cards Row (4 cards)
+│   ├── Total VMs (with excluded count)
+│   ├── Classified VMs (count + workload types detected)
+│   ├── Unclassified VMs (need attention)
+│   └── VMs in Scope (included in migration)
+│
+├── Chart + Info Row (2 columns)
+│   ├── Left: "Detected Workloads by Type" horizontal bar chart
+│   │   └── Clickable bars → set workload type filter on table below
+│   └── Right: Workload type description tile
+│       └── Shows description of selected workload type (or detection method overview when none selected)
+│
+├── Unified VM Table (DiscoveryVMTable)
+│   ├── Workload type filter bar (ClickableTiles — each type with count + "Unclassified")
+│   │   └── Synced with chart clicks
+│   ├── Status filter dropdown (All / Included / Auto-Excluded / Manually Excluded / Overridden)
+│   ├── Search bar + Bulk actions (Exclude / Include)
+│   ├── Columns: VM Name | Cluster | vCPUs | Memory | Storage | Workload Type | Status | Notes | Actions
+│   └── Actions per row: Toggle exclusion, Edit workload type, Edit notes
+│
+├── Detection Patterns accordion (collapsed by default)
+│
+└── Export/Import toolbar (Export CSV, Export/Import overrides JSON)
+```
+
+### Classification Precedence (User > Maintainer > AI > Rule)
+
+Each VM is classified by at most one source, following strict precedence:
+
+1. **User override** (highest priority): If the user set a workload type via the UI, it takes effect with a cyan `User` tag. Can override everything.
+   - If it maps to a standard workload type (e.g., "Databases") → classified under that type
+   - If it's a custom string (e.g., "Windows AD/DNS") → classified as `_custom`
+2. **Maintainer authoritative** (second priority): Classifications defined in `authoritativeClassifications` in `workloadPatterns.json`. AI **cannot** override these. Shown with a teal `Maintainer` tag.
+3. **AI classification** (third priority): When AI is available, it overrides pattern matching for VMs not pinned by maintainer rules.
+4. **Rule-based detection** (fallback): Pattern matching from `categories` in `workloadPatterns.json` — used when AI is not available.
+
+Classification and auto-exclusion are **independent**. A VM can be classified as "Network Equipment" (via `authoritativeClassifications`) AND auto-excluded from migration (via `autoExclusionRules`) at the same time.
+
+Each VM has exactly one workload type. The merge logic uses a 4-pass approach with a `classifiedVMs` set to prevent duplicates.
+
+### Chart ↔ Table Interaction
+
+The chart and table are linked via a shared `selectedCategory` state:
+- Clicking a chart bar filters the table to that workload type
+- Clicking the same bar again clears the filter
+- Workload type filter tiles below the chart sync with chart selection
+- An "Unclassified" tile shows VMs not yet categorized
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/pages/DiscoveryPage.tsx` | Main page with unified single-page layout |
+| `src/components/discovery/DiscoveryVMTable.tsx` | Unified VM table merging VMManagementTab + WorkloadVMTable features |
+| `src/data/workloadPatterns.json` | Workload type definitions, authoritative classifications, and auto-exclusion rules |
+| `src/components/discovery/VMManagementTab.tsx` | Legacy VM management table (retained for reference) |
+| `src/components/discovery/WorkloadVMTable.tsx` | Legacy workload table (retained for reference) |
 
 ## Subnet Management
 

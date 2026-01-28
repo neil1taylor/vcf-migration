@@ -330,6 +330,7 @@ function transformProxyResponse(
     compute: [],
     memory: [],
     veryHighMemory: [],
+    custom: [],
   };
 
   for (const profile of proxyData.bareMetalProfiles || []) {
@@ -362,6 +363,35 @@ function transformProxyResponse(
       });
     }
   }
+
+  // Always include custom profiles from static config (never returned by proxy)
+  const customProfiles = (staticConfig as { customBareMetalProfiles?: Array<{
+    name: string;
+    tag?: string;
+    physicalCores: number;
+    vcpus: number;
+    memoryGiB: number;
+    hasNvme: boolean;
+    nvmeDisks?: number;
+    nvmeSizeGiB?: number;
+    totalNvmeGiB?: number;
+    roksSupported?: boolean;
+  }> }).customBareMetalProfiles || [];
+
+  bareMetalByFamily.custom = customProfiles.map(p => ({
+    name: p.name,
+    family: 'custom',
+    vcpus: p.vcpus,
+    memoryGiB: p.memoryGiB,
+    physicalCores: p.physicalCores,
+    hasNvme: p.hasNvme,
+    nvmeDisks: p.nvmeDisks,
+    nvmeSizeGiB: p.nvmeSizeGiB,
+    totalNvmeGiB: p.totalNvmeGiB,
+    roksSupported: p.roksSupported,
+    isCustom: true,
+    tag: p.tag || 'Custom',
+  }));
 
   return {
     version: proxyData.version || new Date().toISOString().split('T')[0],

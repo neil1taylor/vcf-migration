@@ -12,7 +12,8 @@ import {
   RadioButtonGroup,
   RadioButton,
 } from '@carbon/react';
-import { useData, useDynamicProfiles } from '@/hooks';
+import { useData, useDynamicProfiles, useVMOverrides } from '@/hooks';
+import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { formatNumber, formatBytes } from '@/utils/formatters';
 import { ProfilesRefresh } from '@/components/profiles';
 import { StorageBreakdownBar, STORAGE_SEGMENT_COLORS } from './StorageBreakdownBar';
@@ -31,6 +32,8 @@ interface BareMetalProfile {
   nvmeSizeGiB?: number;
   totalNvmeGiB?: number;
   roksSupported?: boolean;
+  isCustom?: boolean;
+  tag?: string;
   useCase?: string;
   description?: string;
 }
@@ -49,6 +52,7 @@ interface SizingCalculatorProps {
 export function SizingCalculator({ onSizingChange }: SizingCalculatorProps) {
   const { rawData } = useData();
   const hasData = !!rawData;
+  const vmOverrides = useVMOverrides();
 
   // Dynamic profiles hook for refreshing from API
   const {
@@ -72,15 +76,22 @@ export function SizingCalculator({ onSizingChange }: SizingCalculatorProps) {
       profiles.push(...(bmProfiles[family] as BareMetalProfile[]));
     }
 
-    // Sort: ROKS-supported profiles with NVMe first, then others
+    // Sort order:
+    // 1. Standard ROKS-supported profiles (by memory desc)
+    // 2. Custom profiles with roksSupported (by memory desc)
+    // 3. Standard non-ROKS profiles (by memory desc)
+    // 4. Custom profiles without roksSupported (by memory desc)
     return profiles.sort((a, b) => {
-      // First, sort by ROKS support (supported first)
-      if (a.roksSupported && !b.roksSupported) return -1;
-      if (!a.roksSupported && b.roksSupported) return 1;
-      // Then by NVMe (with NVMe first)
+      const aGroup = a.isCustom
+        ? (a.roksSupported ? 2 : 4)
+        : (a.roksSupported ? 1 : 3);
+      const bGroup = b.isCustom
+        ? (b.roksSupported ? 2 : 4)
+        : (b.roksSupported ? 1 : 3);
+      if (aGroup !== bGroup) return aGroup - bGroup;
+      // Within same group: NVMe first, then by memory desc
       if (a.hasNvme && !b.hasNvme) return -1;
       if (!a.hasNvme && b.hasNvme) return 1;
-      // Then by memory (higher first)
       return b.memoryGiB - a.memoryGiB;
     });
   }, [dynamicProfiles.bareMetalProfiles]);
@@ -196,8 +207,12 @@ export function SizingCalculator({ onSizingChange }: SizingCalculatorProps) {
   const nodeRequirements = useMemo(() => {
     if (!hasData || !rawData) return null;
 
-    // Filter to only powered-on VMs (non-templates)
-    const vms = rawData.vInfo.filter(vm => !vm.template && vm.powerState === 'poweredOn');
+    // Filter to only powered-on VMs (non-templates), excluding user-excluded VMs
+    const vms = rawData.vInfo.filter(vm => {
+      if (vm.template || vm.powerState !== 'poweredOn') return false;
+      const vmId = getVMIdentifier(vm);
+      return !vmOverrides.isExcluded(vmId);
+    });
     const vmNames = new Set(vms.map(vm => vm.vmName));
 
     // Calculate base totals directly from rawData (before overhead)
@@ -325,7 +340,7 @@ export function SizingCalculator({ onSizingChange }: SizingCalculatorProps) {
       limitingFactor,
       vmCount,
     };
-  }, [hasData, rawData, nodeCapacity, nodeRedundancy, evictionThreshold, storageMetric, annualGrowthRate, planningHorizonYears, virtOverhead, cpuFixedPerVM, cpuProportionalPercent, memoryFixedPerVMMiB, memoryProportionalPercent]);
+  }, [hasData, rawData, nodeCapacity, nodeRedundancy, evictionThreshold, storageMetric, annualGrowthRate, planningHorizonYears, virtOverhead, cpuFixedPerVM, cpuProportionalPercent, memoryFixedPerVMMiB, memoryProportionalPercent, vmOverrides]);
 
   // N+X Validation - checks if cluster can handle workload after nodeRedundancy failures
   const redundancyValidation = useMemo(() => {
@@ -430,11 +445,13 @@ export function SizingCalculator({ onSizingChange }: SizingCalculatorProps) {
 
   // Profile dropdown items - memoized to maintain stable references for Carbon Dropdown
   const profileItems = useMemo(() => bareMetalProfiles.map((p) => {
-    const roksLabel = p.roksSupported ? '✓ ROKS' : '✗ VPC Only';
     const nvmeLabel = p.hasNvme ? `${p.nvmeDisks}×${p.nvmeSizeGiB} GiB NVMe` : 'No NVMe';
+    const tagLabel = p.isCustom
+      ? (p.tag || 'Custom')
+      : (p.roksSupported ? '✓ ROKS' : '✗ VPC Only');
     return {
       id: p.name,
-      text: `${p.name} (${p.physicalCores}c/${p.vcpus}t, ${p.memoryGiB} GiB, ${nvmeLabel}) [${roksLabel}]`,
+      text: `${p.name} (${p.physicalCores}c/${p.vcpus}t, ${p.memoryGiB} GiB, ${nvmeLabel}) [${tagLabel}]`,
     };
   }), [bareMetalProfiles]);
 
@@ -469,6 +486,9 @@ export function SizingCalculator({ onSizingChange }: SizingCalculatorProps) {
               ))}
             </Select>
             <div className="sizing-calculator__profile-details">
+              {selectedProfile.isCustom && (
+                <Tag type="purple">{selectedProfile.tag || 'Custom'}</Tag>
+              )}
               <Tag type={selectedProfile.roksSupported ? 'green' : 'gray'}>
                 {selectedProfile.roksSupported ? 'ROKS Supported' : 'VPC Only'}
               </Tag>
