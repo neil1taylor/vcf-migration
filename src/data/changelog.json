@@ -29,7 +29,7 @@
           "  — Templates, powered-off, VMware infrastructure, AD/DNS, and network edge appliances auto-excluded",
           "  — Users can force-include or manually exclude via UI",
           "VM management features: exclude/include VMs, bulk operations, workload type overrides, per-VM notes, CSV export, JSON export/import of overrides",
-          "Custom bare metal profiles for ROKS Sizing Calculator — define on-premises hardware in ibmCloudConfig.json",
+          "Custom bare metal profiles for ROKS Sizing Calculator — define future ROKS hardware in ibmCloudConfig.json",
           "Migration-relevant descriptions for all 14 workload types in workloadPatterns.json",
           "Maintainer guide (_maintainerGuide) in workloadPatterns.json explaining all three config sections"
         ],

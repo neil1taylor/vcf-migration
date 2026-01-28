@@ -454,7 +454,7 @@ Open browser DevTools Console to see detailed profile logs:
 
 ## Custom Bare Metal Profiles
 
-Maintainers can define custom bare metal profiles (e.g., on-premises hardware) in `src/data/ibmCloudConfig.json` under the `customBareMetalProfiles` top-level array. Custom profiles appear alongside standard IBM Cloud profiles in the ROKS Sizing Calculator.
+Maintainers can define custom bare metal profiles in `src/data/ibmCloudConfig.json` under the `customBareMetalProfiles` top-level array. Custom profiles appear alongside standard IBM Cloud profiles in the ROKS Sizing Calculator.
 
 ### JSON Structure
 
@@ -473,7 +473,7 @@ Maintainers can define custom bare metal profiles (e.g., on-premises hardware) i
     "roksSupported": true,
     "hourlyRate": 0,
     "monthlyRate": 0,
-    "useCase": "Custom on-premises bare metal",
+    "useCase": "Future ROKS bare metal profile",
     "description": "Custom - 32 cores, 512 GiB RAM, 6x3.2TB NVMe"
   }
 ]
