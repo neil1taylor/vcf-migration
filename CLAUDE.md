@@ -22,6 +22,11 @@ npm run test:coverage # Run tests with coverage
 npm run update-profiles # Update IBM Cloud profiles from APIs (requires API key)
 npm run update-pricing  # Update IBM Cloud pricing from Global Catalog (requires API key)
 npm run update-all      # Update both profiles and pricing
+npm run test:e2e        # Run Playwright E2E tests (headless)
+npm run test:e2e:headed # Run E2E tests with visible browser
+npm run test:e2e:debug  # Run E2E tests in debug mode
+npm run test:e2e:ui     # Run E2E tests with Playwright UI
+npm run test:e2e:generate-fixture # Regenerate test Excel fixture
 ```
 
 ## Testing Requirements
@@ -32,6 +37,31 @@ npm run update-all      # Update both profiles and pricing
 - All new functions must have tests; bug fixes must include regression tests
 - Test both happy paths and error conditions/edge cases
 - After completing a feature, run the full test suite
+
+## E2E Testing (Playwright)
+
+Browser-based E2E tests using Playwright (Chromium only). Tests live in `e2e/` directory with a separate `tsconfig.e2e.json` to avoid conflicts with the app's TypeScript config.
+
+### Structure
+
+| Path | Purpose |
+|------|---------|
+| `e2e/dashboard-tiles.spec.ts` | Dashboard tile navigation, tooltip isolation, hover arrows |
+| `e2e/helpers/load-data.ts` | Shared helper: uploads test fixture, waits for dashboard |
+| `e2e/fixtures/generate-fixture.ts` | Script to regenerate the test `.xlsx` fixture |
+| `e2e/fixtures/test-rvtools.xlsx` | Minimal RVTools Excel with all required sheets |
+| `playwright.config.ts` | Playwright config (Chromium, webServer auto-start, HTML reporter) |
+
+### Running
+
+- `npm run test:e2e` — headless (CI-friendly)
+- `npm run test:e2e:headed` — visible browser
+- `npm run test:e2e:ui` — Playwright UI mode
+- Regenerate fixture: `npm run test:e2e:generate-fixture`
+
+### Fixture
+
+The test fixture (`e2e/fixtures/test-rvtools.xlsx`) contains 3 VMs, 2 hosts, 1 cluster, 1 datastore, 1 old snapshot (>30 days), 1 VM with tools not installed, and 1 CD-ROM connected. Column headers match the app's parser COLUMN_MAP definitions. Regenerate with `npm run test:e2e:generate-fixture` if parser columns change.
 
 ## UI Testing
 

@@ -305,7 +305,7 @@ export function AboutPage() {
         <Column lg={16} md={8} sm={4}>
           <div className="about-page__footer">
             <Link
-              href="https://github.com/neilrtaylor/vcf-migration"
+              href="https://github.com/neil1taylor/vcf-migration"
               target="_blank"
               rel="noopener noreferrer"
               className="about-page__github-link"

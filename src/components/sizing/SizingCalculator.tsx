@@ -325,8 +325,11 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
     // Minimum surviving nodes needed (at least 3 for ODF quorum)
     const minSurvivingNodes = Math.max(3, nodesForCPUAtThreshold, nodesForMemoryAtThreshold, nodesForStorageAtThreshold);
 
-    // Total nodes = surviving nodes + redundancy buffer
-    const totalNodes = minSurvivingNodes + nodeRedundancy;
+    // ODF rack fault domain requires nodes in multiples of 3 (racks 0-2)
+    const roundUpToRackGroup = (n: number) => Math.ceil(n / 3) * 3;
+
+    // Total nodes = surviving nodes + redundancy buffer, rounded to rack group
+    const totalNodes = roundUpToRackGroup(minSurvivingNodes + nodeRedundancy);
 
     // Also calculate base nodes without redundancy consideration (for display)
     const nodesForCPU = nodeCapacity.vcpuCapacity > 0
@@ -339,7 +342,7 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
       ? Math.ceil(totalStorageGiB / nodeCapacity.usableStorageGiB)
       : 0;
 
-    const baseNodes = Math.max(3, nodesForCPU, nodesForMemory, nodesForStorage);
+    const baseNodes = roundUpToRackGroup(Math.max(3, nodesForCPU, nodesForMemory, nodesForStorage));
 
     // Determine limiting factor (based on threshold calculation)
     let limitingFactor: 'cpu' | 'memory' | 'storage' = 'cpu';

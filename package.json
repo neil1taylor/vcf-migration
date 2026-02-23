@@ -16,7 +16,12 @@
     "test:coverage": "vitest --coverage",
     "update-profiles": "npx tsx scripts/update-profiles.ts",
     "update-pricing": "npx tsx scripts/update-pricing.ts",
-    "update-all": "npx tsx scripts/update-profiles.ts && npx tsx scripts/update-pricing.ts"
+    "update-all": "npx tsx scripts/update-profiles.ts && npx tsx scripts/update-pricing.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:generate-fixture": "npx tsx e2e/fixtures/generate-fixture.ts"
   },
   "dependencies": {
     "@carbon/icons-react": "^11.71.0",
@@ -41,6 +46,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",
     "@testing-library/user-event": "^14.6.1",

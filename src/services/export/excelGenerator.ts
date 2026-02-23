@@ -150,7 +150,9 @@ export function generateExcelReport(rawData: RVToolsData, aiInsights?: Migration
   const nodesForMemory = Math.ceil(totalMemoryGiB / usableMemoryPerNode);
   const nodesForStorage = usableNvmePerNode > 0 ? Math.ceil(requiredRawStorageGiB / usableNvmePerNode) : 0;
   const baseNodeCount = Math.max(odfSizing.minOdfNodes, nodesForCPU, nodesForMemory, nodesForStorage);
-  const recommendedWorkers = baseNodeCount + ocpVirtSizing.nodeRedundancy;
+  // ODF rack fault domain requires nodes in multiples of 3 (racks 0-2)
+  const roundUpToRackGroup = (n: number) => Math.ceil(n / 3) * 3;
+  const recommendedWorkers = roundUpToRackGroup(baseNodeCount + ocpVirtSizing.nodeRedundancy);
 
   const totalClusterNvmeGiB = recommendedWorkers * (recommendedProfile.totalNvmeGiB || 0);
   const odfActualUsableTiB = ((totalClusterNvmeGiB / replicaFactor) * operationalCapacity * cephEfficiency / 1024).toFixed(1);
@@ -177,7 +179,7 @@ export function generateExcelReport(rawData: RVToolsData, aiInsights?: Migration
     [''],
     ['Recommended Bare Metal Configuration', ''],
     ['Node Profile', recommendedProfile.name],
-    ['Worker Nodes (N+2)', recommendedWorkers],
+    ['Worker Nodes', recommendedWorkers],
     ['Total Physical Cores', recommendedWorkers * recommendedProfile.physicalCores],
     ['Total Threads', recommendedWorkers * recommendedProfile.vcpus],
     ['Total Memory (GiB)', recommendedWorkers * recommendedProfile.memoryGiB],

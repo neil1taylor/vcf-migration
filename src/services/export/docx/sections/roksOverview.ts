@@ -84,7 +84,7 @@ export function buildROKSOverview(sizing: ROKSSizing): DocumentContent[] {
       ['Configuration', 'Value'],
       [
         ['Bare Metal Profile', sizing.profileName],
-        ['Worker Nodes (N+2)', `${sizing.workerNodes}`],
+        ['Worker Nodes', `${sizing.workerNodes}`],
         ['Total Physical Cores', `${sizing.totalCores}`],
         ['Total Threads', `${sizing.totalThreads}`],
         ['Total Memory', `${sizing.totalMemoryGiB} GiB`],

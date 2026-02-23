@@ -211,5 +211,13 @@ node_modules
 .env
 .nrt
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # MS
 .xlsx
+# Allow test fixture Excel file
+!e2e/fixtures/test-rvtools.xlsx

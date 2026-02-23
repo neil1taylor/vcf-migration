@@ -1,6 +1,6 @@
 // Reusable metric card component with colored left border
-import { Tile, Tooltip } from '@carbon/react';
-import { Information, CheckmarkFilled, WarningFilled, ErrorFilled } from '@carbon/icons-react';
+import { Tile, ClickableTile, Tooltip } from '@carbon/react';
+import { Information, CheckmarkFilled, WarningFilled, ErrorFilled, ArrowRight } from '@carbon/icons-react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
 import './MetricCard.scss';
@@ -24,6 +24,7 @@ interface MetricCardProps {
   className?: string;
   tooltip?: string;
   docSection?: string; // Optional anchor for documentation page
+  onClick?: () => void; // Optional click handler for navigation
 }
 
 // Map variant to screen reader status text
@@ -61,38 +62,43 @@ export function MetricCard({
   className = '',
   tooltip,
   docSection,
+  onClick,
 }: MetricCardProps) {
   const hasTooltip = tooltip || docSection;
   const statusText = variantStatusText[variant];
   const statusIcon = getStatusIcon(variant);
+  const isClickable = !!onClick;
 
-  return (
-    <Tile
-      className={`metric-card metric-card--${variant} ${highlight ? 'metric-card--highlight' : ''} ${className}`}
-    >
+  const TileComponent = isClickable ? ClickableTile : Tile;
+  const tileProps = isClickable ? { onClick } : {};
+
+  const content = (
+    <>
       <div className="metric-card__header">
         <span className="metric-card__label">{label}</span>
         {hasTooltip && (
-          <Tooltip
-            label={
-              <span>
-                {tooltip || `Learn more about ${label}`}
-                {docSection && (
-                  <>
-                    <br />
-                    <Link to={`${ROUTES.documentation}#${docSection}`} className="metric-card__doc-link">
-                      View documentation
-                    </Link>
-                  </>
-                )}
-              </span>
-            }
-            align="top"
-          >
-            <button type="button" className="metric-card__info-button" aria-label={`More information about ${label}`}>
-              <Information size={16} aria-hidden="true" />
-            </button>
-          </Tooltip>
+          <span onClick={isClickable ? (e: React.MouseEvent) => e.stopPropagation() : undefined}>
+            <Tooltip
+              label={
+                <span>
+                  {tooltip || `Learn more about ${label}`}
+                  {docSection && (
+                    <>
+                      <br />
+                      <Link to={`${ROUTES.documentation}#${docSection}`} className="metric-card__doc-link">
+                        View documentation
+                      </Link>
+                    </>
+                  )}
+                </span>
+              }
+              align="top"
+            >
+              <button type="button" className="metric-card__info-button" aria-label={`More information about ${label}`}>
+                <Information size={16} aria-hidden="true" />
+              </button>
+            </Tooltip>
+          </span>
         )}
       </div>
       <div className="metric-card__value-container">
@@ -101,6 +107,20 @@ export function MetricCard({
         {statusText && <span className="visually-hidden">{statusText}</span>}
       </div>
       {detail && <span className="metric-card__detail">{detail}</span>}
-    </Tile>
+      {isClickable && (
+        <span className="metric-card__nav-arrow" aria-hidden="true">
+          <ArrowRight size={16} />
+        </span>
+      )}
+    </>
+  );
+
+  return (
+    <TileComponent
+      className={`metric-card metric-card--${variant} ${highlight ? 'metric-card--highlight' : ''} ${isClickable ? 'metric-card--clickable' : ''} ${className}`}
+      {...tileProps}
+    >
+      {content}
+    </TileComponent>
   );
 }

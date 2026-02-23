@@ -239,7 +239,7 @@ See [TECHNOLOGIES.md](TECHNOLOGIES.md) for detailed technology documentation.
 ### Installation
 
 ```bash
-git clone https://github.com/neilrtaylor/vcf-migration.git
+git clone https://github.com/neil1taylor/vcf-migration.git
 cd vcf-migration
 npm install
 ```

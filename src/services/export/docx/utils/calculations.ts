@@ -158,7 +158,9 @@ export function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
   const nodesForMemory = Math.ceil(totalMemoryGiB / usableMemoryPerNode);
   const nodesForStorage = usableNvmePerNode > 0 ? Math.ceil(requiredRawStorageGiB / usableNvmePerNode) : 0;
   const baseNodeCount = Math.max(odfSizing.minOdfNodes, nodesForCPU, nodesForMemory, nodesForStorage);
-  const recommendedWorkers = baseNodeCount + ocpVirtSizing.nodeRedundancy;
+  // ODF rack fault domain requires nodes in multiples of 3 (racks 0-2)
+  const roundUpToRackGroup = (n: number) => Math.ceil(n / 3) * 3;
+  const recommendedWorkers = roundUpToRackGroup(baseNodeCount + ocpVirtSizing.nodeRedundancy);
 
   const totalClusterNvmeGiB = recommendedWorkers * (recommendedProfile.totalNvmeGiB || 0);
   const odfUsableTiB =

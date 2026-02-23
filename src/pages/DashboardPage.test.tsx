@@ -1,8 +1,18 @@
 // Dashboard Page Tests
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { DashboardPage } from './DashboardPage';
+
+// Mock useNavigate
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 // Mock hooks
 vi.mock('@/hooks', () => ({
@@ -52,8 +62,8 @@ vi.mock('@/components/charts', () => ({
 // Mock common components
 vi.mock('@/components/common', () => ({
   FilterBadge: () => <div data-testid="filter-badge" />,
-  MetricCard: ({ label, value }: { label: string; value: string }) => (
-    <div data-testid="metric-card">
+  MetricCard: ({ label, value, onClick }: { label: string; value: string; onClick?: () => void }) => (
+    <div data-testid="metric-card" onClick={onClick} role={onClick ? 'button' : undefined}>
       <span>{label}</span>
       <span>{value}</span>
     </div>
@@ -165,6 +175,7 @@ const mockRawData = {
 describe('DashboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockNavigate.mockClear();
     vi.mocked(useChartFilter).mockReturnValue({
       chartFilter: null,
       setFilter: vi.fn(),
@@ -354,5 +365,80 @@ describe('DashboardPage', () => {
     );
 
     expect(screen.getByText('Firmware Type')).toBeInTheDocument();
+  });
+
+  it('navigates to discovery when Total VMs tile is clicked', () => {
+    vi.mocked(useData).mockReturnValue({ rawData: mockRawData } as ReturnType<typeof useData>);
+    vi.mocked(useVMs).mockReturnValue(mockVMs as ReturnType<typeof useVMs>);
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    const totalVMsCard = screen.getByText('Total VMs').closest('[data-testid="metric-card"]')!;
+    fireEvent.click(totalVMsCard);
+    expect(mockNavigate).toHaveBeenCalledWith('/discovery');
+  });
+
+  it('navigates to compute when Total vCPUs tile is clicked', () => {
+    vi.mocked(useData).mockReturnValue({ rawData: mockRawData } as ReturnType<typeof useData>);
+    vi.mocked(useVMs).mockReturnValue(mockVMs as ReturnType<typeof useVMs>);
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    const card = screen.getByText('Total vCPUs').closest('[data-testid="metric-card"]')!;
+    fireEvent.click(card);
+    expect(mockNavigate).toHaveBeenCalledWith('/compute');
+  });
+
+  it('navigates to storage when Provisioned Storage tile is clicked', () => {
+    vi.mocked(useData).mockReturnValue({ rawData: mockRawData } as ReturnType<typeof useData>);
+    vi.mocked(useVMs).mockReturnValue(mockVMs as ReturnType<typeof useVMs>);
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    const card = screen.getByText('Provisioned Storage').closest('[data-testid="metric-card"]')!;
+    fireEvent.click(card);
+    expect(mockNavigate).toHaveBeenCalledWith('/storage');
+  });
+
+  it('navigates to hosts when ESXi Hosts tile is clicked', () => {
+    vi.mocked(useData).mockReturnValue({ rawData: mockRawData } as ReturnType<typeof useData>);
+    vi.mocked(useVMs).mockReturnValue(mockVMs as ReturnType<typeof useVMs>);
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    const card = screen.getByText('ESXi Hosts').closest('[data-testid="metric-card"]')!;
+    fireEvent.click(card);
+    expect(mockNavigate).toHaveBeenCalledWith('/hosts');
+  });
+
+  it('navigates to tables with tab param when config tile is clicked', () => {
+    vi.mocked(useData).mockReturnValue({ rawData: mockRawData } as ReturnType<typeof useData>);
+    vi.mocked(useVMs).mockReturnValue(mockVMs as ReturnType<typeof useVMs>);
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>
+    );
+
+    const configTile = screen.getByText('Configuration Issues').closest('.dashboard-page__config-tile')!;
+    fireEvent.click(configTile);
+    expect(mockNavigate).toHaveBeenCalledWith('/tables?tab=vms');
   });
 });

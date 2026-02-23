@@ -1,9 +1,9 @@
 // Dashboard page - Executive summary
 import { useMemo, useCallback } from 'react';
-import { Grid, Column, Tile, Tag, Tooltip } from '@carbon/react';
-import { Information } from '@carbon/icons-react';
+import { Grid, Column, Tile, ClickableTile, Tag, Tooltip } from '@carbon/react';
+import { Information, ArrowRight } from '@carbon/icons-react';
 import { useData, useVMs, useChartFilter, useVMOverrides, useAutoExclusion } from '@/hooks';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { ROUTES, HW_VERSION_MINIMUM, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
 import { formatNumber, mibToGiB, mibToTiB, getHardwareVersionNumber, formatHardwareVersion } from '@/utils/formatters';
 import { DoughnutChart, HorizontalBarChart, VerticalBarChart } from '@/components/charts';
@@ -28,6 +28,7 @@ export function DashboardPage() {
   const { chartFilter, setFilter, clearFilter } = useChartFilter();
   const vmOverrides = useVMOverrides();
   const { autoExcludedCount, autoExcludedBreakdown } = useAutoExclusion();
+  const navigate = useNavigate();
 
   // Calculate basic metrics (safe with empty vms array)
   const totalVMs = vms.length;
@@ -419,6 +420,7 @@ export function DashboardPage() {
             variant="primary"
             tooltip="Count of all virtual machines in the environment, excluding templates."
             docSection="dashboard"
+            onClick={() => navigate(ROUTES.discovery)}
           />
         </Column>
 
@@ -430,6 +432,7 @@ export function DashboardPage() {
             variant="info"
             tooltip="Sum of all virtual CPU cores allocated across all VMs."
             docSection="dashboard"
+            onClick={() => navigate(ROUTES.compute)}
           />
         </Column>
 
@@ -441,6 +444,7 @@ export function DashboardPage() {
             variant="teal"
             tooltip="Total memory allocated to all VMs, displayed in TiB."
             docSection="dashboard"
+            onClick={() => navigate(ROUTES.compute)}
           />
         </Column>
 
@@ -452,6 +456,7 @@ export function DashboardPage() {
             variant="purple"
             tooltip="Total storage capacity allocated (thin + thick provisioned) to VMs."
             docSection="dashboard"
+            onClick={() => navigate(ROUTES.storage)}
           />
         </Column>
 
@@ -464,6 +469,7 @@ export function DashboardPage() {
             variant="purple"
             tooltip="Actual storage consumed by VMs on datastores."
             docSection="dashboard"
+            onClick={() => navigate(ROUTES.storage)}
           />
         </Column>
 
@@ -475,6 +481,7 @@ export function DashboardPage() {
             variant="success"
             tooltip="Percentage of provisioned storage that is actually in use. Higher values indicate less over-provisioning."
             docSection="dashboard"
+            onClick={() => navigate(ROUTES.storage)}
           />
         </Column>
 
@@ -486,6 +493,7 @@ export function DashboardPage() {
             detail={`${formatNumber(totalVCPUs)} total vCPUs`}
             variant="info"
             tooltip="Average number of virtual CPUs allocated per VM."
+            onClick={() => navigate(ROUTES.compute)}
           />
         </Column>
 
@@ -496,6 +504,7 @@ export function DashboardPage() {
             detail={`${totalMemoryTiB.toFixed(1)} TiB total`}
             variant="teal"
             tooltip="Average memory allocated per VM in GiB."
+            onClick={() => navigate(ROUTES.compute)}
           />
         </Column>
 
@@ -506,6 +515,7 @@ export function DashboardPage() {
             detail={`${totalInUseTiB.toFixed(1)} TiB total in use`}
             variant="purple"
             tooltip="Average in-use storage per VM in GiB (recommended metric for migration sizing)."
+            onClick={() => navigate(ROUTES.storage)}
           />
         </Column>
 
@@ -521,6 +531,7 @@ export function DashboardPage() {
             value={formatNumber(rawData.vHost.length)}
             variant="default"
             tooltip="Total number of ESXi hypervisor hosts in the environment."
+            onClick={() => navigate(ROUTES.hosts)}
           />
         </Column>
 
@@ -531,6 +542,7 @@ export function DashboardPage() {
             variant="default"
             tooltip="Number of distinct VMware clusters containing VMs."
             docSection="cluster"
+            onClick={() => navigate(ROUTES.cluster)}
           />
         </Column>
 
@@ -540,6 +552,7 @@ export function DashboardPage() {
             value={formatNumber(uniqueDatacenters)}
             variant="default"
             tooltip="Number of distinct datacenters in the vCenter hierarchy."
+            onClick={() => navigate(ROUTES.cluster)}
           />
         </Column>
 
@@ -550,6 +563,7 @@ export function DashboardPage() {
             variant="default"
             tooltip="Total number of storage datastores available to VMs."
             docSection="storage"
+            onClick={() => navigate(ROUTES.storage)}
           />
         </Column>
 
@@ -559,6 +573,7 @@ export function DashboardPage() {
             value={formatNumber(templates)}
             variant="default"
             tooltip="VM templates (not counted in Total VMs) used for cloning new VMs."
+            onClick={() => navigate(ROUTES.discovery)}
           />
         </Column>
 
@@ -569,6 +584,7 @@ export function DashboardPage() {
               value={formatNumber(autoExcludedCount)}
               variant="default"
               tooltip="VMs automatically excluded from migration scope (templates, powered-off, VMware infrastructure)."
+              onClick={() => navigate(ROUTES.discovery)}
             />
           </Tooltip>
         </Column>
@@ -712,13 +728,15 @@ export function DashboardPage() {
 
         {/* Configuration Summary Card */}
         <Column lg={4} md={4} sm={4}>
-          <Tile className={`dashboard-page__config-tile ${configIssuesCount > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`}>
+          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${configIssuesCount > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=vms`)}>
             <div className="dashboard-page__config-header">
               <span className="dashboard-page__config-label">
                 Configuration Issues
-                <Tooltip label="Sum of blocking and warning configuration issues that need attention before migration." align="top">
-                  <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                </Tooltip>
+                <span onClick={e => e.stopPropagation()}>
+                  <Tooltip label="Sum of blocking and warning configuration issues that need attention before migration." align="top">
+                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
+                  </Tooltip>
+                </span>
               </span>
               <Tag type={configIssuesCount > 0 ? 'red' : 'green'} size="sm">
                 {configIssuesCount > 0 ? 'Action Needed' : 'OK'}
@@ -728,17 +746,20 @@ export function DashboardPage() {
             <span className="dashboard-page__config-detail">
               Items requiring attention
             </span>
-          </Tile>
+            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
+          </ClickableTile>
         </Column>
 
         <Column lg={4} md={4} sm={4}>
-          <Tile className={`dashboard-page__config-tile ${toolsNotInstalled > 0 ? 'dashboard-page__config-tile--error' : 'dashboard-page__config-tile--success'}`}>
+          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${toolsNotInstalled > 0 ? 'dashboard-page__config-tile--error' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=vmware-tools`)}>
             <div className="dashboard-page__config-header">
               <span className="dashboard-page__config-label">
                 Tools Not Installed
-                <Tooltip label="VMs without VMware Tools installed. Tools are required for proper guest OS interaction during migration." align="top">
-                  <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                </Tooltip>
+                <span onClick={e => e.stopPropagation()}>
+                  <Tooltip label="VMs without VMware Tools installed. Tools are required for proper guest OS interaction during migration." align="top">
+                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
+                  </Tooltip>
+                </span>
               </span>
               <Tag type={toolsNotInstalled > 0 ? 'red' : 'green'} size="sm">
                 {toolsNotInstalled > 0 ? 'Blocker' : 'OK'}
@@ -748,17 +769,20 @@ export function DashboardPage() {
             <span className="dashboard-page__config-detail">
               Required for migration
             </span>
-          </Tile>
+            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
+          </ClickableTile>
         </Column>
 
         <Column lg={4} md={4} sm={4}>
-          <Tile className={`dashboard-page__config-tile ${snapshotsBlockers > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`}>
+          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${snapshotsBlockers > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=snapshots`)}>
             <div className="dashboard-page__config-header">
               <span className="dashboard-page__config-label">
                 Old Snapshots
-                <Tooltip label="Snapshots older than the threshold can cause disk chain issues. Delete or consolidate before migration." align="top">
-                  <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                </Tooltip>
+                <span onClick={e => e.stopPropagation()}>
+                  <Tooltip label="Snapshots older than the threshold can cause disk chain issues. Delete or consolidate before migration." align="top">
+                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
+                  </Tooltip>
+                </span>
               </span>
               <Tag type={snapshotsBlockers > 0 ? 'red' : 'green'} size="sm">
                 {snapshotsBlockers > 0 ? 'Blocker' : 'OK'}
@@ -768,17 +792,20 @@ export function DashboardPage() {
             <span className="dashboard-page__config-detail">
               Over {SNAPSHOT_BLOCKER_AGE_DAYS} days old
             </span>
-          </Tile>
+            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
+          </ClickableTile>
         </Column>
 
         <Column lg={4} md={4} sm={4}>
-          <Tile className={`dashboard-page__config-tile ${outdatedHWCount > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`}>
+          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${outdatedHWCount > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=vms`)}>
             <div className="dashboard-page__config-header">
               <span className="dashboard-page__config-label">
                 Outdated HW Version
-                <Tooltip label="VMs with hardware version below minimum. Upgrade to ensure compatibility with target platform." align="top">
-                  <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                </Tooltip>
+                <span onClick={e => e.stopPropagation()}>
+                  <Tooltip label="VMs with hardware version below minimum. Upgrade to ensure compatibility with target platform." align="top">
+                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
+                  </Tooltip>
+                </span>
               </span>
               <Tag type={outdatedHWCount > 0 ? 'magenta' : 'green'} size="sm">
                 {outdatedHWCount > 0 ? 'Upgrade' : 'OK'}
@@ -788,17 +815,20 @@ export function DashboardPage() {
             <span className="dashboard-page__config-detail">
               Below HW v{HW_VERSION_MINIMUM}
             </span>
-          </Tile>
+            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
+          </ClickableTile>
         </Column>
 
         <Column lg={4} md={4} sm={4}>
-          <Tile className={`dashboard-page__config-tile ${vmsWithCdConnected > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`}>
+          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${vmsWithCdConnected > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=cd-roms`)}>
             <div className="dashboard-page__config-header">
               <span className="dashboard-page__config-label">
                 CD-ROM Connected
-                <Tooltip label="VMs with CD/DVD drives connected. Disconnect virtual media before migration to avoid issues." align="top">
-                  <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                </Tooltip>
+                <span onClick={e => e.stopPropagation()}>
+                  <Tooltip label="VMs with CD/DVD drives connected. Disconnect virtual media before migration to avoid issues." align="top">
+                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
+                  </Tooltip>
+                </span>
               </span>
               <Tag type={vmsWithCdConnected > 0 ? 'magenta' : 'green'} size="sm">
                 {vmsWithCdConnected > 0 ? 'Disconnect' : 'OK'}
@@ -808,17 +838,20 @@ export function DashboardPage() {
             <span className="dashboard-page__config-detail">
               Disconnect before migration
             </span>
-          </Tile>
+            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
+          </ClickableTile>
         </Column>
 
         <Column lg={4} md={4} sm={4}>
-          <Tile className={`dashboard-page__config-tile ${vmsNeedConsolidation > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`}>
+          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${vmsNeedConsolidation > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=snapshots`)}>
             <div className="dashboard-page__config-header">
               <span className="dashboard-page__config-label">
                 Need Consolidation
-                <Tooltip label="VMs with disk chains needing consolidation. Run disk consolidation in vSphere before migration." align="top">
-                  <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                </Tooltip>
+                <span onClick={e => e.stopPropagation()}>
+                  <Tooltip label="VMs with disk chains needing consolidation. Run disk consolidation in vSphere before migration." align="top">
+                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
+                  </Tooltip>
+                </span>
               </span>
               <Tag type={vmsNeedConsolidation > 0 ? 'magenta' : 'green'} size="sm">
                 {vmsNeedConsolidation > 0 ? 'Warning' : 'OK'}
@@ -828,17 +861,20 @@ export function DashboardPage() {
             <span className="dashboard-page__config-detail">
               Disk consolidation needed
             </span>
-          </Tile>
+            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
+          </ClickableTile>
         </Column>
 
         <Column lg={4} md={4} sm={4}>
-          <Tile className="dashboard-page__config-tile dashboard-page__config-tile--info">
+          <ClickableTile className="dashboard-page__config-tile dashboard-page__config-tile--clickable dashboard-page__config-tile--info" onClick={() => navigate(`${ROUTES.tables}?tab=vmware-tools`)}>
             <div className="dashboard-page__config-header">
               <span className="dashboard-page__config-label">
                 VMware Tools Current
-                <Tooltip label="VMs with up-to-date VMware Tools installed. Current tools ensure best compatibility." align="top">
-                  <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                </Tooltip>
+                <span onClick={e => e.stopPropagation()}>
+                  <Tooltip label="VMs with up-to-date VMware Tools installed. Current tools ensure best compatibility." align="top">
+                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
+                  </Tooltip>
+                </span>
               </span>
               <Tag type="blue" size="sm">Info</Tag>
             </div>
@@ -846,17 +882,20 @@ export function DashboardPage() {
             <span className="dashboard-page__config-detail">
               {tools.length > 0 ? `${Math.round((toolsCurrent / tools.length) * 100)}% of VMs` : 'N/A'}
             </span>
-          </Tile>
+            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
+          </ClickableTile>
         </Column>
 
         <Column lg={4} md={4} sm={4}>
-          <Tile className="dashboard-page__config-tile dashboard-page__config-tile--info">
+          <ClickableTile className="dashboard-page__config-tile dashboard-page__config-tile--clickable dashboard-page__config-tile--info" onClick={() => navigate(`${ROUTES.tables}?tab=snapshots`)}>
             <div className="dashboard-page__config-header">
               <span className="dashboard-page__config-label">
                 VMs with Snapshots
-                <Tooltip label="Total VMs that have one or more snapshots. Review and clean up unnecessary snapshots." align="top">
-                  <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                </Tooltip>
+                <span onClick={e => e.stopPropagation()}>
+                  <Tooltip label="Total VMs that have one or more snapshots. Review and clean up unnecessary snapshots." align="top">
+                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
+                  </Tooltip>
+                </span>
               </span>
               <Tag type={vmsWithSnapshots > 0 ? 'high-contrast' : 'green'} size="sm">
                 {vmsWithSnapshots > 0 ? 'Review' : 'None'}
@@ -866,7 +905,8 @@ export function DashboardPage() {
             <span className="dashboard-page__config-detail">
               {formatNumber(snapshots.length)} total snapshots
             </span>
-          </Tile>
+            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
+          </ClickableTile>
         </Column>
 
         {/* Configuration Charts */}
