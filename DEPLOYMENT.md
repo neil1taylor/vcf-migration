@@ -726,6 +726,8 @@ The AI proxy provides watsonx.ai integration for AI-powered features (classifica
 
 ### Deploy the AI Proxy
 
+The ai-proxy uses a **service ID API key** for `IBM_CLOUD_API_KEY` (not your personal key). Access is controlled via CORS (`ALLOWED_ORIGINS`), not a client-side API key.
+
 ```bash
 # Select (or create) the AI proxy project
 ibmcloud ce project select --name vcf-migration-ai
@@ -736,25 +738,35 @@ ibmcloud ce app create --name vcf-ai-proxy \
   --build-source . \
   --strategy dockerfile \
   --port 8080 \
-  --min-scale 1 \
+  --min-scale 0 \
   --max-scale 3 \
-  --env IBM_CLOUD_API_KEY="your-ibm-cloud-api-key" \
+  --env IBM_CLOUD_API_KEY="<service-id-api-key>" \
   --env WATSONX_PROJECT_ID="your-watsonx-project-id" \
-  --env AI_PROXY_API_KEY="your-shared-secret"
+  --env ALLOWED_ORIGINS="https://your-frontend-url"
 
 # Get the URL
 ibmcloud ce app get --name vcf-ai-proxy --output url
 ```
 
+> **Note**: `ALLOWED_ORIGINS` should be set to your deployed frontend URL. Multiple origins can be comma-separated (e.g., `"https://prod-url,http://localhost:5173"`).
+
 ### Redeploy the AI Proxy
+
+For code-only updates (no env var changes):
 
 ```bash
 # Select the AI proxy project
 ibmcloud ce project select --name vcf-migration-ai
 
 # Update from source
-cd functions/ai-proxy
-ibmcloud ce app update --name vcf-ai-proxy --build-source .
+ibmcloud ce app update --name vcf-ai-proxy --build-source functions/ai-proxy
+```
+
+To update env vars (e.g., change `ALLOWED_ORIGINS`):
+
+```bash
+ibmcloud ce app update --name vcf-ai-proxy \
+  --env ALLOWED_ORIGINS="https://your-new-frontend-url"
 ```
 
 ### Configure the Frontend
