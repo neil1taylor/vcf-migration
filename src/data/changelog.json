@@ -1,6 +1,44 @@
 {
   "releases": [
     {
+      "version": "1.2.0",
+      "date": "2026-02-24",
+      "sections": {
+        "added": [
+          "CI/CD pipeline with GitHub Actions for lint, test, build, and E2E testing",
+          "CORS origin restrictions on all 3 Code Engine proxies (configurable via ALLOWED_ORIGINS env var)",
+          "Rate limiting (60 req/min) on pricing-proxy and profiles-proxy",
+          "Security headers in nginx.conf (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, CSP)",
+          "Skip-to-content accessibility link in top navigation",
+          "Chart and table accessibility attributes (role, aria-label, title, description)",
+          "E2E tests for file upload, migration pages, and discovery workflow",
+          "Guided workflow stepper showing Upload → Review → Prepare → Migrate → Export progress",
+          "Next Step banners on Dashboard, Discovery, ROKS Migration, and VSI Migration pages",
+          "Export & Reports page consolidating all export options into a visible workflow step",
+          "Network page cross-link to Discovery Networks tab for subnet mapping",
+          "Guided Tour modal on Landing page with 5-step walkthrough of the migration workflow",
+          "\"Take a Tour\" button on Landing page for first-time user onboarding",
+          "Brief/detailed toggle in tour steps for progressive disclosure",
+          "\"Restart Tour\" option on Settings page to replay the guided tour",
+          "SectionErrorBoundary component for resilient per-section error handling with retry"
+        ],
+        "changed": [
+          "Replaced verbose console.log calls in hooks/services with structured logger (debug-only in production)",
+          "SideNav restructured from 21 flat items to 8 top-level entries with collapsible groups (Infrastructure Details, Migration Assessment, Reference)",
+          "Discovery promoted to second position in navigation after Dashboard",
+          "AI Assistant removed from SideNav (accessible via floating ChatWidget)",
+          "Workflow stepper is now always visible when data is loaded (dismiss button removed)",
+          "Major component refactoring: DashboardPage, SizingCalculator, DiscoveryVMTable, VSIMigrationPage, and TablesPage decomposed into smaller, focused components",
+          "Extracted business logic into custom hooks (useDashboardData, useSizingCalculator, useVSIPageData, useDiscoveryVMTableActions)",
+          "Cost estimation service refactored with improved validation and structure"
+        ],
+        "security": [
+          "Removed client-side API key (VITE_AI_PROXY_API_KEY) that was bundled into JavaScript — key was exposed in browser source",
+          "Removed AI proxy client authentication middleware (authenticateApiKey) — CORS restrictions now handle access control"
+        ]
+      }
+    },
+    {
       "version": "1.1.1",
       "date": "2026-01-28",
       "sections": {
