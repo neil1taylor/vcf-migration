@@ -30,7 +30,8 @@
           "Workflow stepper is now always visible when data is loaded (dismiss button removed)",
           "Major component refactoring: DashboardPage, SizingCalculator, DiscoveryVMTable, VSIMigrationPage, and TablesPage decomposed into smaller, focused components",
           "Extracted business logic into custom hooks (useDashboardData, useSizingCalculator, useVSIPageData, useDiscoveryVMTableActions)",
-          "Cost estimation service refactored with improved validation and structure"
+          "Cost estimation service refactored with improved validation and structure",
+          "Deployment docs updated to reflect CORS/ALLOWED_ORIGINS security model (removed stale AI_PROXY_API_KEY references)"
         ],
         "security": [
           "Removed client-side API key (VITE_AI_PROXY_API_KEY) that was bundled into JavaScript — key was exposed in browser source",
