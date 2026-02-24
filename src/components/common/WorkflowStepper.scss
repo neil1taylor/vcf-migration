@@ -1,0 +1,52 @@
+@use '@carbon/styles/scss/spacing';
+
+.workflow-stepper {
+  display: flex;
+  align-items: center;
+  gap: spacing.$spacing-03;
+  padding: spacing.$spacing-03 spacing.$spacing-05;
+  background-color: var(--cds-layer-01, #f4f4f4);
+  border-bottom: 1px solid var(--cds-border-subtle-01, #e0e0e0);
+  margin: calc(-1 * #{spacing.$spacing-05});
+  margin-bottom: spacing.$spacing-05;
+
+  &__indicator {
+    flex: 1;
+    min-width: 0;
+  }
+
+  // Make steps clickable with pointer cursor
+  &__step {
+    cursor: pointer;
+  }
+
+  // CSS-only tooltips via data-tooltip attribute (set by useEffect)
+  .cds--progress-step[data-tooltip] {
+    position: relative;
+
+    &::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.5rem 0.75rem;
+      background: var(--cds-background-inverse, #393939);
+      color: var(--cds-text-inverse, #fff);
+      font-size: 0.75rem;
+      line-height: 1.33;
+      white-space: nowrap;
+      border-radius: 2px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+      z-index: 6000;
+      margin-top: 0.25rem;
+    }
+
+    &:hover::after {
+      opacity: 1;
+    }
+  }
+
+}

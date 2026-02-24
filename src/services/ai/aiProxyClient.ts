@@ -28,7 +28,6 @@ const logger = createLogger('AI Proxy');
 
 const DEFAULT_TIMEOUT = 60000; // 60 seconds (LLM calls can be slow)
 const AI_PROXY_URL = import.meta.env.VITE_AI_PROXY_URL as string | undefined;
-const AI_PROXY_API_KEY = import.meta.env.VITE_AI_PROXY_API_KEY as string | undefined;
 
 // ===== HELPER FUNCTIONS =====
 
@@ -57,19 +56,13 @@ async function fetchWithTimeout(
 }
 
 /**
- * Build request headers including API key auth
+ * Build request headers
  */
 function getHeaders(): Record<string, string> {
-  const headers: Record<string, string> = {
+  return {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   };
-
-  if (AI_PROXY_API_KEY) {
-    headers['X-API-Key'] = AI_PROXY_API_KEY;
-  }
-
-  return headers;
 }
 
 // ===== PROXY FUNCTIONS =====

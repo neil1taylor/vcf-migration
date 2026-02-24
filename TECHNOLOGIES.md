@@ -124,18 +124,6 @@ Using native browser APIs reduces external dependencies and improves portability
 
 Because a core use case for this application is **ingesting and interpreting exported VMware inventory data** (for example RVTools CSV or Excel workbooks), we include libraries that make reading and transforming those file formats in the browser reliable and performant.
 
-### PapaParse
-
-**PapaParse** is one of the most robust CSV parsers for JavaScript. It runs in the browser or Node and is optimized for large files, streaming, header parsing, and type inference. It’s widely used in React applications that need to read CSV data without a backend service.  
-Key benefits:
-- Fast streaming parser for large datasets  
-- Header row mapping  
-- Async/file streaming support
-
-🔗 https://www.papaparse.com/
-
----
-
 ### SheetJS / xlsx
 
 **SheetJS (xlsx)** is a popular JavaScript library for reading and writing spreadsheet formats, including `.xlsx`, `.xls`, and other Excel variants directly in the browser or Node. For RVTools exports in Excel, SheetJS lets you parse sheets into JSON arrays or other programmatic data structures for UI consumption.
@@ -183,6 +171,16 @@ Enterprise-scale exports like those from RVTools can be *large* and *tabular*, w
 - Safe, asynchronous handling of large files
 
 This parsing layer is one of the hearts of the app’s ability to turn infrastructure snapshots into actionable UI data.
+
+## Word Document Generation with docx
+
+**docx** is a JavaScript library for creating Word documents (.docx) programmatically in the browser and Node.js. It provides a declarative API for building complex documents with paragraphs, tables, headers, footers, and styling.
+
+The application uses docx for generating migration assessment reports that stakeholders can edit and customize. Documents include formatted tables, styled headings, and structured sections covering infrastructure analysis, migration readiness, and cost estimates.
+
+🔗 https://github.com/dolanmiu/docx
+
+---
 
 ## PDF Generation
 
@@ -308,7 +306,6 @@ This technology stack combines a modern React frontend with strong typing, fast 
 | Responsibility | Technology |
 |----------------|------------|
 | Read file from user device | FileReader API |
-| Parse CSV content | PapaParse |
 | Parse Excel/Sheets | SheetJS (`xlsx`) |
 | Transform & normalize | JavaScript / Utility libs |
 
@@ -318,6 +315,7 @@ This technology stack combines a modern React frontend with strong typing, fast 
 |----------------|------------|
 | Generate styled Excel with formulas | ExcelJS |
 | Generate PDF reports | jsPDF + AutoTable |
+| Generate Word documents | docx |
 | Read/write basic Excel | SheetJS (`xlsx`) |
 
 ### Visualization

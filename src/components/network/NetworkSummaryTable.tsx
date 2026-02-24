@@ -188,8 +188,8 @@ export function NetworkSummaryTable({ networks, className }: NetworkSummaryTable
               {subnet === 'N/A' ? (
                 <span style={{ color: '#6f6f6f' }}>N/A</span>
               ) : (
-                subnets.map((s, idx) => (
-                  <Tag key={idx} type={hasMultiple ? 'purple' : 'gray'} size="sm">
+                subnets.map((s) => (
+                  <Tag key={s} type={hasMultiple ? 'purple' : 'gray'} size="sm">
                     {s}
                   </Tag>
                 ))

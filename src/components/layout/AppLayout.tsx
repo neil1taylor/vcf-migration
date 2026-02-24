@@ -12,6 +12,7 @@ import {
 import { TopNav } from './TopNav';
 import { SideNav } from './SideNav';
 import { ChatWidget } from '@/components/ai/ChatWidget';
+import { WorkflowStepper } from '@/components/common';
 import { ROUTES } from '@/utils/constants';
 import { useData, usePDFExport, useExcelExport, useDocxExport, useAISettings } from '@/hooks';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
@@ -207,7 +208,8 @@ export function AppLayout() {
         onExportDocxClick={handleExportDocxClick}
       />
       <SideNav isExpanded={isSideNavExpanded} />
-      <Content className="app-layout__content">
+      <Content id="main-content" className="app-layout__content">
+        <WorkflowStepper />
         <Outlet />
       </Content>
 

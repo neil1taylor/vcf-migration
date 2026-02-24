@@ -1,6 +1,7 @@
 // Dynamic profiles hook - manages IBM Cloud profiles with proxy refresh capability
 
 import { useState, useEffect, useCallback } from 'react';
+import { createLogger } from '@/utils/logger';
 import type { IBMCloudProfiles, ProfilesSource, VSIProfilesByFamily, BareMetalProfilesByFamily } from '@/services/profiles/profilesCache';
 import {
   getCurrentProfiles,
@@ -17,6 +18,8 @@ import {
   type ProxyProfilesResponse,
 } from '@/services/ibmCloudProfilesApi';
 import staticConfig from '@/data/ibmCloudConfig.json';
+
+const logger = createLogger('DynamicProfiles');
 
 export interface UseDynamicProfilesConfig {
   region?: string;
@@ -67,17 +70,17 @@ export function useDynamicProfiles(
    * Fetch fresh profiles from proxy
    */
   const fetchProfiles = useCallback(async () => {
-    console.log('[Dynamic Profiles] Starting profiles fetch...', { region, zone });
+    logger.debug('[Dynamic Profiles] Starting profiles fetch...', { region, zone });
 
     if (!isProfilesProxyConfigured()) {
-      console.log('[Dynamic Profiles] No proxy configured, using static data');
+      logger.debug('[Dynamic Profiles] No proxy configured, using static data');
       return false;
     }
 
-    console.log('[Dynamic Profiles] Proxy configured, fetching from proxy...');
+    logger.debug('[Dynamic Profiles] Proxy configured, fetching from proxy...');
     try {
       const proxyData = await fetchFromProfilesProxy({ region, zone });
-      console.log('[Dynamic Profiles] Proxy data received:', {
+      logger.debug('[Dynamic Profiles] Proxy data received', {
         vsiProfiles: proxyData.counts?.vsi || proxyData.vsiProfiles?.length || 0,
         bareMetalProfiles: proxyData.counts?.bareMetal || proxyData.bareMetalProfiles?.length || 0,
         cached: proxyData.cached,
@@ -98,12 +101,12 @@ export function useDynamicProfiles(
       setError(null);
 
       const counts = countProfiles(newProfiles);
-      console.log('[Dynamic Profiles] Successfully updated from PROXY:', counts);
+      logger.debug('[Dynamic Profiles] Successfully updated from PROXY', { vsi: counts.vsi, bareMetal: counts.bareMetal });
 
       return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch profiles';
-      console.warn('[Dynamic Profiles] Proxy fetch failed:', errorMessage);
+      logger.warn(`[Dynamic Profiles] Proxy fetch failed: ${errorMessage}`);
       setError(errorMessage);
       setIsApiAvailable(false);
       return false;
@@ -144,7 +147,7 @@ export function useDynamicProfiles(
   // Initial load - check cache and optionally refresh
   useEffect(() => {
     const initializeProfiles = async () => {
-      console.log('[Dynamic Profiles] Initializing profiles system...');
+      logger.debug('[Dynamic Profiles] Initializing profiles system...');
       setIsLoading(true);
 
       // Check current cached data
@@ -153,7 +156,7 @@ export function useDynamicProfiles(
       setLastUpdated(current.lastUpdated);
       setSource(current.source);
 
-      console.log('[Dynamic Profiles] Current profiles state:', {
+      logger.debug('[Dynamic Profiles] Current profiles state', {
         source: current.source,
         lastUpdated: current.lastUpdated?.toISOString() || 'never',
         cacheExpired: isProfilesCacheExpired(),
@@ -162,39 +165,39 @@ export function useDynamicProfiles(
 
       // Check if proxy is configured
       if (!isProfilesProxyConfigured()) {
-        console.log('[Dynamic Profiles] No proxy configured, using static data');
+        logger.debug('[Dynamic Profiles] No proxy configured, using static data');
         setIsApiAvailable(false);
         setIsLoading(false);
         return;
       }
 
       // Test proxy connectivity
-      console.log('[Dynamic Profiles] Testing proxy connectivity...');
+      logger.debug('[Dynamic Profiles] Testing proxy connectivity...');
       const connectionResult = await testProfilesProxyConnection();
 
       // If the request was cancelled (React StrictMode cleanup), don't update state
       if (connectionResult.cancelled) {
-        console.log('[Dynamic Profiles] Proxy test cancelled, skipping state update');
+        logger.debug('[Dynamic Profiles] Proxy test cancelled, skipping state update');
         return;
       }
 
       const apiAvailable = connectionResult.success;
       setIsApiAvailable(apiAvailable);
 
-      console.log('[Dynamic Profiles] Proxy availability:', apiAvailable);
+      logger.debug(`[Dynamic Profiles] Proxy availability: ${apiAvailable}`);
 
       // If cache is expired and auto-refresh is enabled, fetch fresh data
       if (config?.autoRefreshOnExpiry !== false && isProfilesCacheExpired() && apiAvailable) {
-        console.log('[Dynamic Profiles] Cache expired and proxy available, fetching fresh data...');
+        logger.debug('[Dynamic Profiles] Cache expired and proxy available, fetching fresh data...');
         const success = await fetchProfiles();
         if (!success) {
-          console.log('[Dynamic Profiles] Fetch failed, keeping current source:', current.source);
+          logger.debug(`[Dynamic Profiles] Fetch failed, keeping current source: ${current.source}`);
           setSource(current.source);
         }
       } else if (!apiAvailable) {
-        console.log('[Dynamic Profiles] Proxy not available, using', current.source, 'data');
+        logger.debug(`[Dynamic Profiles] Proxy not available, using ${current.source} data`);
       } else {
-        console.log('[Dynamic Profiles] Using cached data (not expired)');
+        logger.debug('[Dynamic Profiles] Using cached data (not expired)');
       }
 
       setIsLoading(false);
@@ -312,7 +315,7 @@ function transformProxyResponse(
   const staticRoksMap = proxyHasRoksData ? null : getStaticRoksSupportMap();
 
   if (!proxyHasRoksData) {
-    console.log('[Dynamic Profiles] Proxy did not return ROKS support data, using static config as fallback');
+    logger.debug('[Dynamic Profiles] Proxy did not return ROKS support data, using static config as fallback');
   }
 
   // Check if proxy returned any valid NVMe data
@@ -321,7 +324,7 @@ function transformProxyResponse(
   const staticNvmeMap = proxyHasNvmeData ? null : getStaticNvmeDataMap();
 
   if (!proxyHasNvmeData) {
-    console.log('[Dynamic Profiles] Proxy did not return NVMe data, using static config as fallback');
+    logger.debug('[Dynamic Profiles] Proxy did not return NVMe data, using static config as fallback');
   }
 
   // Group bare metal profiles by family
@@ -405,7 +408,7 @@ function transformProxyResponse(
   }));
 
   // Debug log for custom profiles
-  console.log('[Dynamic Profiles] Custom bare metal profiles loaded:', {
+  logger.debug('[Dynamic Profiles] Custom bare metal profiles loaded', {
     total: allCustomProfiles.length,
     afterDedup: bareMetalByFamily.custom.length,
     duplicatesRemoved: allCustomProfiles.length - bareMetalByFamily.custom.length,

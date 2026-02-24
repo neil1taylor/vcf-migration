@@ -12,17 +12,20 @@ import type { VSISizingInput, ROKSSizingInput } from './costEstimation';
 
 describe('Cost Estimation Service', () => {
   describe('getRegions', () => {
-    it('should return a list of available regions', () => {
-      const regions = getRegions();
-      expect(regions).toBeInstanceOf(Array);
-      expect(regions.length).toBeGreaterThan(0);
-      expect(regions[0]).toHaveProperty('code');
-      expect(regions[0]).toHaveProperty('name');
-      expect(regions[0]).toHaveProperty('multiplier');
+    it('should return a PricingResult with available regions', () => {
+      const result = getRegions();
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('quality');
+      expect(result).toHaveProperty('warnings');
+      expect(result.data).toBeInstanceOf(Array);
+      expect(result.data.length).toBeGreaterThan(0);
+      expect(result.data[0]).toHaveProperty('code');
+      expect(result.data[0]).toHaveProperty('name');
+      expect(result.data[0]).toHaveProperty('multiplier');
     });
 
     it('should include us-south region', () => {
-      const regions = getRegions();
+      const { data: regions } = getRegions();
       const usSouth = regions.find(r => r.code === 'us-south');
       expect(usSouth).toBeDefined();
       expect(usSouth?.name).toBe('Dallas');
@@ -30,32 +33,40 @@ describe('Cost Estimation Service', () => {
     });
 
     it('should have correct multipliers for regional pricing', () => {
-      const regions = getRegions();
+      const { data: regions } = getRegions();
       const euDe = regions.find(r => r.code === 'eu-de');
       expect(euDe).toBeDefined();
       expect(euDe?.multiplier).toBeGreaterThan(1.0); // Europe typically has higher prices
     });
+
+    it('should return static quality when no dynamic pricing is available', () => {
+      const result = getRegions();
+      expect(['live', 'static']).toContain(result.quality);
+      expect(result.warnings).toEqual([]);
+    });
   });
 
   describe('getDiscountOptions', () => {
-    it('should return a list of discount options', () => {
-      const discounts = getDiscountOptions();
-      expect(discounts).toBeInstanceOf(Array);
-      expect(discounts.length).toBeGreaterThan(0);
-      expect(discounts[0]).toHaveProperty('id');
-      expect(discounts[0]).toHaveProperty('name');
-      expect(discounts[0]).toHaveProperty('discountPct');
+    it('should return a PricingResult with discount options', () => {
+      const result = getDiscountOptions();
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('quality');
+      expect(result.data).toBeInstanceOf(Array);
+      expect(result.data.length).toBeGreaterThan(0);
+      expect(result.data[0]).toHaveProperty('id');
+      expect(result.data[0]).toHaveProperty('name');
+      expect(result.data[0]).toHaveProperty('discountPct');
     });
 
     it('should have on-demand pricing with 0% discount', () => {
-      const discounts = getDiscountOptions();
+      const { data: discounts } = getDiscountOptions();
       const onDemand = discounts.find(d => d.id === 'onDemand');
       expect(onDemand).toBeDefined();
       expect(onDemand?.discountPct).toBe(0);
     });
 
     it('should have reserved pricing with discounts', () => {
-      const discounts = getDiscountOptions();
+      const { data: discounts } = getDiscountOptions();
       const reserved1yr = discounts.find(d => d.id === 'reserved1Year');
       const reserved3yr = discounts.find(d => d.id === 'reserved3Year');
       expect(reserved1yr).toBeDefined();

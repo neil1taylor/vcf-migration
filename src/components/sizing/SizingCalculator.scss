@@ -206,6 +206,36 @@
     margin-top: spacing.$spacing-02;
   }
 
+  &__node-breakdown {
+    margin-top: spacing.$spacing-03;
+    text-align: left;
+  }
+
+  &__breakdown-step {
+    @include type.type-style('helper-text-01');
+    display: flex;
+    align-items: baseline;
+    gap: spacing.$spacing-02;
+    padding: 2px 0;
+    color: var(--cds-text-secondary, #525252);
+  }
+
+  &__breakdown-step-label {
+    white-space: nowrap;
+  }
+
+  &__breakdown-step-value {
+    font-weight: 600;
+    color: var(--cds-text-primary, #161616);
+    min-width: 1.5rem;
+    text-align: right;
+  }
+
+  &__breakdown-step-note {
+    color: var(--cds-text-helper, #6f6f6f);
+    white-space: nowrap;
+  }
+
   &__breakdown-summary {
     display: flex;
     flex-wrap: wrap;

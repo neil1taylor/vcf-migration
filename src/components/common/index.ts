@@ -1,6 +1,7 @@
 // Export common components
 export { CheckResultCell } from './CheckResultCell';
 export { ErrorBoundary } from './ErrorBoundary';
+export { SectionErrorBoundary } from './SectionErrorBoundary';
 export { FilterBadge } from './FilterBadge';
 export { LoadingSkeleton } from './LoadingSkeleton';
 export { MetricCard } from './MetricCard';
@@ -9,3 +10,5 @@ export { RedHatDocLink, RedHatDocLinksGroup } from './RedHatDocLink';
 export type { RedHatDocLinkProps, DocLinkGroup } from './RedHatDocLink';
 export { RemediationPanel } from './RemediationPanel';
 export type { RemediationItem, RemediationSeverity } from './RemediationPanel';
+export { WorkflowStepper } from './WorkflowStepper';
+export { NextStepBanner } from './NextStepBanner';

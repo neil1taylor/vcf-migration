@@ -30,6 +30,7 @@ const MTVDocumentationPage = lazy(() => import('@/pages/MTVDocumentationPage').t
 const AboutPage = lazy(() => import('@/pages/AboutPage').then(m => ({ default: m.AboutPage })));
 const OverheadReferencePage = lazy(() => import('@/pages/OverheadReferencePage').then(m => ({ default: m.OverheadReferencePage })));
 const ChatPage = lazy(() => import('@/pages/ChatPage').then(m => ({ default: m.ChatPage })));
+const ExportPage = lazy(() => import('@/pages/ExportPage').then(m => ({ default: m.ExportPage })));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 
 // Suspense wrapper for lazy-loaded pages
@@ -125,6 +126,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.overheadReference.slice(1),
         element: <PageLoader><OverheadReferencePage /></PageLoader>,
+      },
+      {
+        path: ROUTES.export.slice(1),
+        element: <PageLoader><ExportPage /></PageLoader>,
       },
       {
         path: ROUTES.settings.slice(1),

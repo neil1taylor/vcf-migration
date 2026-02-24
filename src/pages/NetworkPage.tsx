@@ -1,6 +1,6 @@
 // Network analysis page
 import { useMemo, useState } from 'react';
-import { Grid, Column, Tile, Tag, Toggle } from '@carbon/react';
+import { Grid, Column, Tile, Tag, Toggle, InlineNotification } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
 import { useData, useVMOverrides } from '@/hooks';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
@@ -198,9 +198,9 @@ export function NetworkPage() {
         }
         return (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-            {prefixes.map((prefix, idx) => (
+            {prefixes.map((prefix) => (
               <Tag
-                key={idx}
+                key={prefix}
                 type={row.original.hasMultiplePrefixes ? 'red' : 'gray'}
                 size="sm"
               >
@@ -431,6 +431,14 @@ export function NetworkPage() {
           <p className="network-page__subtitle">
             Network adapter and port group analysis
           </p>
+          <InlineNotification
+            kind="info"
+            lowContrast
+            hideCloseButton
+            title="Subnet mapping:"
+            subtitle="To map subnets for migration planning, visit the Discovery page Networks tab."
+            style={{ marginTop: '0.5rem' }}
+          />
         </Column>
 
         {/* Summary metrics */}

@@ -763,7 +763,6 @@ Add the AI proxy URL to your `.env` file:
 
 ```bash
 VITE_AI_PROXY_URL=https://vcf-ai-proxy.xxxx.us-south.codeengine.appdomain.cloud
-VITE_AI_PROXY_API_KEY=your-shared-secret
 ```
 
 Then rebuild and redeploy the frontend.

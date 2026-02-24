@@ -24,7 +24,7 @@ import { MetricCard } from '@/components/common';
 import { PricingRefresh } from '@/components/pricing';
 import { ProfilesRefresh } from '@/components/profiles';
 import { useDynamicPricing, useDynamicProfiles } from '@/hooks';
-import type { CostEstimate, RegionCode, DiscountType, ROKSSizingInput, VSISizingInput, NetworkingOptions } from '@/services/costEstimation';
+import type { CostEstimate, RegionCode, DiscountType, ROKSSizingInput, VSISizingInput, NetworkingOptions, DataQuality } from '@/services/costEstimation';
 import {
   calculateROKSCost,
   calculateVSICost,
@@ -88,8 +88,18 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
     profileCounts,
   } = useDynamicProfiles();
 
-  const regions = getRegions(pricing);
-  const discountOptions = getDiscountOptions(pricing);
+  const regionsResult = getRegions(pricing);
+  const discountResult = getDiscountOptions(pricing);
+  const regions = regionsResult.data;
+  const discountOptions = discountResult.data;
+
+  // Collect data quality warnings for display
+  const pricingWarnings = [...regionsResult.warnings, ...discountResult.warnings];
+  const worstQuality: DataQuality = regionsResult.quality === 'fallback' || discountResult.quality === 'fallback'
+    ? 'fallback'
+    : regionsResult.quality === 'static' || discountResult.quality === 'static'
+      ? 'static'
+      : 'live';
 
   const estimate = useMemo<CostEstimate | null>(() => {
     if (type === 'roks' && roksSizing) {
@@ -109,7 +119,8 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
   const allProfileCosts = useMemo(() => {
     if (type !== 'roks' || !roksSizing) return null;
 
-    const profiles = getBareMetalProfiles(pricing);
+    const profilesResult = getBareMetalProfiles(pricing);
+    const profiles = profilesResult.data;
     // Filter to only NVMe profiles for ODF compatibility
     const nvmeProfiles = profiles.filter(p => p.hasNvme);
 
@@ -231,6 +242,16 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
             </Button>
           </div>
         </div>
+
+        {worstQuality === 'fallback' && pricingWarnings.length > 0 && (
+          <InlineNotification
+            kind="warning"
+            title="Pricing data incomplete"
+            subtitle={pricingWarnings.join('. ')}
+            lowContrast
+            hideCloseButton
+          />
+        )}
 
         <div className="cost-estimation__controls">
           <Select

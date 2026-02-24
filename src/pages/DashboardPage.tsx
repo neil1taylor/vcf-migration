@@ -1,342 +1,58 @@
 // Dashboard page - Executive summary
-import { useMemo, useCallback } from 'react';
-import { Grid, Column, Tile, ClickableTile, Tag, Tooltip } from '@carbon/react';
-import { Information, ArrowRight } from '@carbon/icons-react';
-import { useData, useVMs, useChartFilter, useVMOverrides, useAutoExclusion } from '@/hooks';
+import { Grid, Column, Tile } from '@carbon/react';
+import { Search } from '@carbon/icons-react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ROUTES, HW_VERSION_MINIMUM, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
-import { formatNumber, mibToGiB, mibToTiB, getHardwareVersionNumber, formatHardwareVersion } from '@/utils/formatters';
+import { ROUTES } from '@/utils/constants';
 import { DoughnutChart, HorizontalBarChart, VerticalBarChart } from '@/components/charts';
-import { FilterBadge, MetricCard } from '@/components/common';
+import { FilterBadge, NextStepBanner, SectionErrorBoundary } from '@/components/common';
 import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel';
-import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
-import { getVMIdentifier } from '@/utils/vmIdentifier';
-import { POWER_STATE_CHART_COLORS } from '@/utils/chartConfig';
-import type { InsightsInput, NetworkSummaryForAI } from '@/services/ai/types';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { DashboardMetricsSection } from '@/components/dashboard/DashboardMetricsSection';
+import { DashboardStorageComparison } from '@/components/dashboard/DashboardStorageComparison';
+import { DashboardConfigAnalysis } from '@/components/dashboard/DashboardConfigAnalysis';
 import './DashboardPage.scss';
 
-// Map label to power state
-const labelToPowerState: Record<string, string> = {
-  'Powered On': 'poweredOn',
-  'Powered Off': 'poweredOff',
-  'Suspended': 'suspended',
-};
-
 export function DashboardPage() {
-  const { rawData } = useData();
-  const vms = useVMs();
-  const { chartFilter, setFilter, clearFilter } = useChartFilter();
-  const vmOverrides = useVMOverrides();
-  const { autoExcludedCount, autoExcludedBreakdown } = useAutoExclusion();
   const navigate = useNavigate();
+  const data = useDashboardData();
 
-  // Calculate basic metrics (safe with empty vms array)
-  const totalVMs = vms.length;
-  const poweredOnVMs = vms.filter(vm => vm.powerState === 'poweredOn').length;
-  const poweredOffVMs = vms.filter(vm => vm.powerState === 'poweredOff').length;
-  const suspendedVMs = vms.filter(vm => vm.powerState === 'suspended').length;
-  const templates = (rawData?.vInfo ?? []).filter(vm => vm.template).length;
-
-  const totalVCPUs = vms.reduce((sum, vm) => sum + vm.cpus, 0);
-  const totalMemoryMiB = vms.reduce((sum, vm) => sum + vm.memory, 0);
-  const totalMemoryGiB = mibToGiB(totalMemoryMiB);
-  const totalMemoryTiB = mibToTiB(totalMemoryMiB);
-
-  const totalProvisionedMiB = vms.reduce((sum, vm) => sum + vm.provisionedMiB, 0);
-  const totalProvisionedTiB = mibToTiB(totalProvisionedMiB);
-  const totalInUseMiB = vms.reduce((sum, vm) => sum + vm.inUseMiB, 0);
-  const totalInUseTiB = mibToTiB(totalInUseMiB);
-
-  // Disk capacity from vDisk sheet (filtered to non-template, powered-on VMs)
-  const vmNames = new Set(vms.map(vm => vm.vmName));
-  const totalDiskCapacityMiB = (rawData?.vDisk ?? [])
-    .filter(disk => vmNames.has(disk.vmName))
-    .reduce((sum, disk) => sum + disk.capacityMiB, 0);
-  const totalDiskCapacityTiB = mibToTiB(totalDiskCapacityMiB);
-
-  const uniqueClusters = new Set(vms.map(vm => vm.cluster).filter(Boolean)).size;
-  const uniqueDatacenters = new Set(vms.map(vm => vm.datacenter).filter(Boolean)).size;
-
-  // Cluster metrics from vHost data (memoized)
-  const hosts = useMemo(() => rawData?.vHost ?? [], [rawData?.vHost]);
-  const clusterData = useMemo(() => {
-    const data = new Map<string, { vmCount: number; totalCores: number; vmCpus: number; hostMemoryMiB: number; vmMemoryMiB: number }>();
-
-    // Aggregate host data by cluster
-    hosts.forEach(host => {
-      const cluster = host.cluster || 'No Cluster';
-      if (!data.has(cluster)) {
-        data.set(cluster, { vmCount: 0, totalCores: 0, vmCpus: 0, hostMemoryMiB: 0, vmMemoryMiB: 0 });
-      }
-      const entry = data.get(cluster)!;
-      entry.totalCores += host.totalCpuCores || 0;
-      entry.vmCpus += host.vmCpuCount || 0;
-      entry.hostMemoryMiB += host.memoryMiB || 0;
-      entry.vmMemoryMiB += host.vmMemoryMiB || 0;
-    });
-
-    // Count VMs per cluster
-    vms.forEach(vm => {
-      const cluster = vm.cluster || 'No Cluster';
-      if (data.has(cluster)) {
-        data.get(cluster)!.vmCount++;
-      } else {
-        data.set(cluster, { vmCount: 1, totalCores: 0, vmCpus: 0, hostMemoryMiB: 0, vmMemoryMiB: 0 });
-      }
-    });
-
-    return data;
-  }, [hosts, vms]);
-
-  // VM distribution by cluster (memoized)
-  const vmsByClusterData = useMemo(() =>
-    Array.from(clusterData.entries())
-      .map(([cluster, data]) => ({ label: cluster, value: data.vmCount }))
-      .filter(d => d.value > 0)
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 10),
-    [clusterData]
-  );
-
-  // CPU overcommitment by cluster (memoized)
-  const cpuOvercommitData = useMemo(() =>
-    Array.from(clusterData.entries())
-      .filter(([, data]) => data.totalCores > 0)
-      .map(([cluster, data]) => ({
-        label: cluster,
-        value: parseFloat((data.vmCpus / data.totalCores).toFixed(2)),
-      }))
-      .sort((a, b) => b.value - a.value),
-    [clusterData]
-  );
-
-  // Memory overcommitment by cluster (memoized)
-  const memOvercommitData = useMemo(() =>
-    Array.from(clusterData.entries())
-      .filter(([, data]) => data.hostMemoryMiB > 0)
-      .map(([cluster, data]) => ({
-        label: cluster,
-        value: parseFloat((data.vmMemoryMiB / data.hostMemoryMiB).toFixed(2)),
-      }))
-      .sort((a, b) => b.value - a.value),
-    [clusterData]
-  );
-
-  // Power state chart data
-  const powerStateData = [
-    { label: 'Powered On', value: poweredOnVMs },
-    { label: 'Powered Off', value: poweredOffVMs },
-    { label: 'Suspended', value: suspendedVMs },
-  ].filter(d => d.value > 0);
-
-  const powerStateColors = [
-    POWER_STATE_CHART_COLORS.poweredOn,
-    POWER_STATE_CHART_COLORS.poweredOff,
-    POWER_STATE_CHART_COLORS.suspended,
-  ];
-
-  // Filter VMs based on active chart filter (memoized)
-  const filteredVMs = useMemo(() =>
-    chartFilter && chartFilter.dimension === 'powerState'
-      ? vms.filter(vm => vm.powerState === labelToPowerState[chartFilter.value])
-      : vms,
-    [chartFilter, vms]
-  );
-
-  // OS distribution data (from filtered VMs) - memoized
-  const osChartData = useMemo(() => {
-    const osDistribution = filteredVMs.reduce((acc, vm) => {
-      const os = vm.guestOS || 'Unknown';
-      // Simplify OS names
-      let category = os;
-      if (os.toLowerCase().includes('windows server 2019')) category = 'Windows Server 2019';
-      else if (os.toLowerCase().includes('windows server 2016')) category = 'Windows Server 2016';
-      else if (os.toLowerCase().includes('windows server 2022')) category = 'Windows Server 2022';
-      else if (os.toLowerCase().includes('windows server')) category = 'Windows Server (Other)';
-      else if (os.toLowerCase().includes('windows 10')) category = 'Windows 10';
-      else if (os.toLowerCase().includes('windows 11')) category = 'Windows 11';
-      else if (os.toLowerCase().includes('rhel') || os.toLowerCase().includes('red hat')) category = 'RHEL';
-      else if (os.toLowerCase().includes('centos')) category = 'CentOS';
-      else if (os.toLowerCase().includes('ubuntu')) category = 'Ubuntu';
-      else if (os.toLowerCase().includes('debian')) category = 'Debian';
-      else if (os.toLowerCase().includes('sles') || os.toLowerCase().includes('suse')) category = 'SLES';
-      else if (os.toLowerCase().includes('linux')) category = 'Linux (Other)';
-      else if (os.toLowerCase().includes('freebsd')) category = 'FreeBSD';
-      else if (!os || os === 'Unknown') category = 'Unknown';
-
-      acc[category] = (acc[category] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(osDistribution)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([label, value]) => ({ label, value }));
-  }, [filteredVMs]);
-
-  // Click handler for power state chart (memoized with useCallback)
-  const handlePowerStateClick = useCallback((label: string) => {
-    if (chartFilter?.value === label && chartFilter?.dimension === 'powerState') {
-      clearFilter();
-    } else {
-      setFilter('powerState', label, 'powerStateChart');
-    }
-  }, [chartFilter, clearFilter, setFilter]);
-
-  // vCenter source info
-  const vSources = useMemo(() => rawData?.vSource ?? [], [rawData?.vSource]);
-
-  // ===== CONFIGURATION ANALYSIS =====
-  const tools = useMemo(() => rawData?.vTools ?? [], [rawData?.vTools]);
-  const snapshots = useMemo(() => rawData?.vSnapshot ?? [], [rawData?.vSnapshot]);
-  const cdDrives = useMemo(() => rawData?.vCD ?? [], [rawData?.vCD]);
-
-  // Configuration analysis metrics (memoized)
-  const configAnalysis = useMemo(() => {
-    // VMware Tools status
-    const toolsNotInstalled = tools.filter(t =>
-      t.toolsStatus?.toLowerCase().includes('notinstalled')
-    ).length;
-    const toolsCurrent = tools.filter(t =>
-      t.toolsStatus?.toLowerCase().includes('ok') ||
-      t.toolsStatus?.toLowerCase() === 'toolsok'
-    ).length;
-
-    // Hardware version compliance
-    const outdatedHWCount = vms.filter(vm =>
-      getHardwareVersionNumber(vm.hardwareVersion) < HW_VERSION_MINIMUM
-    ).length;
-
-    // Snapshot issues
-    const snapshotsBlockers = snapshots.filter(s => s.ageInDays > SNAPSHOT_BLOCKER_AGE_DAYS).length;
-    const vmsWithSnapshots = new Set(snapshots.map(s => s.vmName)).size;
-
-    // CD-ROM connected
-    const vmsWithCdConnected = new Set(cdDrives.filter(cd => cd.connected).map(cd => cd.vmName)).size;
-
-    // Consolidation needed
-    const vmsNeedConsolidation = vms.filter(vm => vm.consolidationNeeded).length;
-
-    // Count of issues (for summary)
-    const configIssuesCount = toolsNotInstalled + snapshotsBlockers + vmsWithCdConnected + outdatedHWCount;
-
-    return {
-      toolsNotInstalled,
-      toolsCurrent,
-      outdatedHWCount,
-      snapshotsBlockers,
-      vmsWithSnapshots,
-      vmsWithCdConnected,
-      vmsNeedConsolidation,
-      configIssuesCount,
-    };
-  }, [tools, vms, snapshots, cdDrives]);
-
-  const { toolsNotInstalled, toolsCurrent, outdatedHWCount, snapshotsBlockers, vmsWithSnapshots, vmsWithCdConnected, vmsNeedConsolidation, configIssuesCount } = configAnalysis;
-
-  // Hardware version distribution for chart (memoized)
-  const hwVersionChartData = useMemo(() => {
-    const hwVersions = vms.reduce((acc, vm) => {
-      const version = formatHardwareVersion(vm.hardwareVersion);
-      acc[version] = (acc[version] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(hwVersions)
-      .map(([label, value]) => ({ label, value }))
-      .sort((a, b) => {
-        const aNum = parseInt(a.label.replace('v', ''));
-        const bNum = parseInt(b.label.replace('v', ''));
-        return bNum - aNum;
-      });
-  }, [vms]);
-
-  // VMware Tools status distribution for chart (memoized)
-  const toolsChartData = useMemo(() => {
-    const toolsStatusMap = tools.reduce((acc, t) => {
-      const status = t.toolsStatus || 'unknown';
-      const normalizedStatus = status.toLowerCase().includes('ok') ? 'Current' :
-                              status.toLowerCase().includes('old') ? 'Outdated' :
-                              status.toLowerCase().includes('notrunning') ? 'Not Running' :
-                              status.toLowerCase().includes('notinstalled') ? 'Not Installed' : 'Unknown';
-      acc[normalizedStatus] = (acc[normalizedStatus] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(toolsStatusMap)
-      .map(([label, value]) => ({ label, value }))
-      .sort((a, b) => b.value - a.value);
-  }, [tools]);
-
-  // AI Insights data (only compute when proxy is configured)
-  const insightsData = useMemo<InsightsInput | null>(() => {
-    if (!isAIProxyConfigured() || !rawData) return null;
-
-    const excludedCount = vms.filter(vm => vmOverrides.isExcluded(getVMIdentifier(vm))).length;
-
-    // Build workload breakdown from OS distribution
-    const workloadBreakdown: Record<string, number> = {};
-    vms.forEach(vm => {
-      const os = vm.guestOS || 'Unknown';
-      if (os.toLowerCase().includes('windows')) workloadBreakdown['Windows'] = (workloadBreakdown['Windows'] || 0) + 1;
-      else if (os.toLowerCase().includes('linux') || os.toLowerCase().includes('rhel') || os.toLowerCase().includes('centos') || os.toLowerCase().includes('ubuntu')) workloadBreakdown['Linux'] = (workloadBreakdown['Linux'] || 0) + 1;
-      else workloadBreakdown['Other'] = (workloadBreakdown['Other'] || 0) + 1;
-    });
-
-    // Build network summary from vNetwork data
-    const networkSummary: NetworkSummaryForAI[] = [];
-    const portGroupMap = new Map<string, { ips: Set<string>; vmNames: Set<string> }>();
-    rawData.vNetwork.forEach(nic => {
-      const pg = nic.networkName || 'Unknown';
-      if (!portGroupMap.has(pg)) portGroupMap.set(pg, { ips: new Set(), vmNames: new Set() });
-      const entry = portGroupMap.get(pg)!;
-      entry.vmNames.add(nic.vmName);
-      if (nic.ipv4Address) entry.ips.add(nic.ipv4Address);
-    });
-    portGroupMap.forEach((data, portGroup) => {
-      const prefixes = new Set<string>();
-      data.ips.forEach(ip => {
-        const parts = ip.split('.');
-        if (parts.length >= 3) prefixes.add(`${parts[0]}.${parts[1]}.${parts[2]}.0/24`);
-      });
-      networkSummary.push({
-        portGroup,
-        subnet: prefixes.size > 0 ? Array.from(prefixes).sort().join(', ') : 'N/A',
-        vmCount: data.vmNames.size,
-      });
-    });
-
-    return {
-      totalVMs,
-      totalExcluded: excludedCount,
-      totalVCPUs,
-      totalMemoryGiB: Math.round(totalMemoryGiB),
-      totalStorageTiB: Math.round(totalInUseTiB * 100) / 100,
-      clusterCount: uniqueClusters,
-      hostCount: rawData.vHost.length,
-      datastoreCount: rawData.vDatastore.length,
-      workloadBreakdown,
-      complexitySummary: { simple: 0, moderate: 0, complex: 0, blocker: 0 },
-      blockerSummary: configIssuesCount > 0 ? [`${configIssuesCount} configuration issues detected`] : [],
-      networkSummary,
-      migrationTarget: 'both',
-    };
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  }, [totalVMs, totalVCPUs, totalMemoryGiB, totalInUseTiB, uniqueClusters, rawData, vms, vmOverrides, configIssuesCount]);
-
-  // Firmware type distribution for chart (memoized)
-  const firmwareChartData = useMemo(() => {
-    const firmwareDistribution = vms.reduce((acc, vm) => {
-      const firmware = vm.firmwareType || 'BIOS';
-      const normalizedFirmware = firmware.toLowerCase().includes('efi') ? 'UEFI' : 'BIOS';
-      acc[normalizedFirmware] = (acc[normalizedFirmware] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(firmwareDistribution)
-      .map(([label, value]) => ({ label, value }))
-      .filter(d => d.value > 0);
-  }, [vms]);
+  const {
+    rawData,
+    chartFilter,
+    clearFilter,
+    autoExcludedCount,
+    autoExcludedBreakdown,
+    totalVMs,
+    poweredOnVMs,
+    totalVCPUs,
+    totalMemoryGiB,
+    totalMemoryTiB,
+    totalProvisionedMiB,
+    totalProvisionedTiB,
+    totalInUseMiB,
+    totalInUseTiB,
+    totalDiskCapacityMiB,
+    totalDiskCapacityTiB,
+    uniqueClusters,
+    uniqueDatacenters,
+    templates,
+    powerStateData,
+    powerStateColors,
+    filteredVMs,
+    osChartData,
+    vmsByClusterData,
+    cpuOvercommitData,
+    memOvercommitData,
+    configAnalysis,
+    hwVersionChartData,
+    toolsChartData,
+    firmwareChartData,
+    insightsData,
+    tools,
+    snapshots,
+    vSources,
+    handlePowerStateClick,
+  } = data;
 
   // Redirect to landing if no data (after all hooks)
   if (!rawData) {
@@ -369,8 +85,8 @@ export function DashboardPage() {
             <Tile className="dashboard-page__source-tile">
               <h3 className="dashboard-page__source-title">Source Environment</h3>
               <div className="dashboard-page__source-grid">
-                {vSources.map((source, idx) => (
-                  <div key={idx} className="dashboard-page__source-item">
+                {vSources.map((source) => (
+                  <div key={source.server} className="dashboard-page__source-item">
                     <div className="dashboard-page__source-row">
                       <span className="dashboard-page__source-label">vCenter Server:</span>
                       <span className="dashboard-page__source-value">{source.server}</span>
@@ -408,242 +124,42 @@ export function DashboardPage() {
 
         {/* AI Migration Insights */}
         <Column lg={16} md={8} sm={4}>
-          <AIInsightsPanel data={insightsData} />
+          <SectionErrorBoundary sectionName="AI Migration Insights">
+            <AIInsightsPanel data={insightsData} />
+          </SectionErrorBoundary>
         </Column>
 
-        {/* Key Metrics Row */}
-        <Column lg={4} md={4} sm={4}>
-          <MetricCard
-            label="Total VMs"
-            value={formatNumber(totalVMs)}
-            detail={`${formatNumber(poweredOnVMs)} powered on`}
-            variant="primary"
-            tooltip="Count of all virtual machines in the environment, excluding templates."
-            docSection="dashboard"
-            onClick={() => navigate(ROUTES.discovery)}
-          />
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <MetricCard
-            label="Total vCPUs"
-            value={formatNumber(totalVCPUs)}
-            detail={`Avg ${(totalVCPUs / totalVMs).toFixed(1)} per VM`}
-            variant="info"
-            tooltip="Sum of all virtual CPU cores allocated across all VMs."
-            docSection="dashboard"
-            onClick={() => navigate(ROUTES.compute)}
-          />
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <MetricCard
-            label="Total Memory"
-            value={`${totalMemoryTiB.toFixed(1)} TiB`}
-            detail={`Avg ${(totalMemoryGiB / totalVMs).toFixed(1)} GiB per VM`}
-            variant="teal"
-            tooltip="Total memory allocated to all VMs, displayed in TiB."
-            docSection="dashboard"
-            onClick={() => navigate(ROUTES.compute)}
-          />
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <MetricCard
-            label="Provisioned Storage"
-            value={`${totalProvisionedTiB.toFixed(1)} TiB`}
-            detail="Total allocated capacity"
-            variant="purple"
-            tooltip="Total storage capacity allocated (thin + thick provisioned) to VMs."
-            docSection="dashboard"
-            onClick={() => navigate(ROUTES.storage)}
-          />
-        </Column>
-
-        {/* Storage metrics row - side by side */}
-        <Column lg={4} md={4} sm={4}>
-          <MetricCard
-            label="In Use Storage"
-            value={`${totalInUseTiB.toFixed(1)} TiB`}
-            detail={`${((totalInUseMiB / totalProvisionedMiB) * 100).toFixed(0)}% of provisioned`}
-            variant="purple"
-            tooltip="Actual storage consumed by VMs on datastores."
-            docSection="dashboard"
-            onClick={() => navigate(ROUTES.storage)}
-          />
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <MetricCard
-            label="Storage Efficiency"
-            value={`${((totalInUseMiB / totalProvisionedMiB) * 100).toFixed(0)}%`}
-            detail={`${(totalProvisionedTiB - totalInUseTiB).toFixed(1)} TiB unallocated`}
-            variant="success"
-            tooltip="Percentage of provisioned storage that is actually in use. Higher values indicate less over-provisioning."
-            docSection="dashboard"
-            onClick={() => navigate(ROUTES.storage)}
-          />
-        </Column>
-
-        {/* Average per VM metrics */}
-        <Column lg={4} md={4} sm={4}>
-          <MetricCard
-            label="Avg vCPU per VM"
-            value={(totalVCPUs / totalVMs).toFixed(1)}
-            detail={`${formatNumber(totalVCPUs)} total vCPUs`}
-            variant="info"
-            tooltip="Average number of virtual CPUs allocated per VM."
-            onClick={() => navigate(ROUTES.compute)}
-          />
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <MetricCard
-            label="Avg Memory per VM"
-            value={`${(totalMemoryGiB / totalVMs).toFixed(1)} GiB`}
-            detail={`${totalMemoryTiB.toFixed(1)} TiB total`}
-            variant="teal"
-            tooltip="Average memory allocated per VM in GiB."
-            onClick={() => navigate(ROUTES.compute)}
-          />
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <MetricCard
-            label="Avg Storage per VM"
-            value={`${(mibToGiB(totalInUseMiB) / totalVMs).toFixed(0)} GiB`}
-            detail={`${totalInUseTiB.toFixed(1)} TiB total in use`}
-            variant="purple"
-            tooltip="Average in-use storage per VM in GiB (recommended metric for migration sizing)."
-            onClick={() => navigate(ROUTES.storage)}
-          />
-        </Column>
-
-        {/* Spacer between primary and secondary metrics */}
-        <Column lg={16} md={8} sm={4}>
-          <div className="dashboard-page__section-divider" />
-        </Column>
-
-        {/* Secondary Metrics */}
-        <Column lg={3} md={4} sm={2}>
-          <MetricCard
-            label="ESXi Hosts"
-            value={formatNumber(rawData.vHost.length)}
-            variant="default"
-            tooltip="Total number of ESXi hypervisor hosts in the environment."
-            onClick={() => navigate(ROUTES.hosts)}
-          />
-        </Column>
-
-        <Column lg={3} md={4} sm={2}>
-          <MetricCard
-            label="Clusters"
-            value={formatNumber(uniqueClusters)}
-            variant="default"
-            tooltip="Number of distinct VMware clusters containing VMs."
-            docSection="cluster"
-            onClick={() => navigate(ROUTES.cluster)}
-          />
-        </Column>
-
-        <Column lg={3} md={4} sm={2}>
-          <MetricCard
-            label="Datacenters"
-            value={formatNumber(uniqueDatacenters)}
-            variant="default"
-            tooltip="Number of distinct datacenters in the vCenter hierarchy."
-            onClick={() => navigate(ROUTES.cluster)}
-          />
-        </Column>
-
-        <Column lg={3} md={4} sm={2}>
-          <MetricCard
-            label="Datastores"
-            value={formatNumber(rawData.vDatastore.length)}
-            variant="default"
-            tooltip="Total number of storage datastores available to VMs."
-            docSection="storage"
-            onClick={() => navigate(ROUTES.storage)}
-          />
-        </Column>
-
-        <Column lg={2} md={2} sm={2}>
-          <MetricCard
-            label="Templates"
-            value={formatNumber(templates)}
-            variant="default"
-            tooltip="VM templates (not counted in Total VMs) used for cloning new VMs."
-            onClick={() => navigate(ROUTES.discovery)}
-          />
-        </Column>
-
-        <Column lg={2} md={2} sm={2}>
-          <Tooltip label={`Templates: ${autoExcludedBreakdown.templates}, Powered Off: ${autoExcludedBreakdown.poweredOff}, VMware Infra: ${autoExcludedBreakdown.vmwareInfrastructure}, Windows AD/DNS: ${autoExcludedBreakdown.windowsInfrastructure}`} align="bottom">
-            <MetricCard
-              label="Auto-Excluded"
-              value={formatNumber(autoExcludedCount)}
-              variant="default"
-              tooltip="VMs automatically excluded from migration scope (templates, powered-off, VMware infrastructure)."
-              onClick={() => navigate(ROUTES.discovery)}
-            />
-          </Tooltip>
-        </Column>
+        {/* Key Metrics, Storage, Average per VM, Secondary Metrics */}
+        <DashboardMetricsSection
+          totalVMs={totalVMs}
+          poweredOnVMs={poweredOnVMs}
+          totalVCPUs={totalVCPUs}
+          totalMemoryGiB={totalMemoryGiB}
+          totalMemoryTiB={totalMemoryTiB}
+          totalProvisionedTiB={totalProvisionedTiB}
+          totalInUseTiB={totalInUseTiB}
+          totalInUseMiB={totalInUseMiB}
+          totalProvisionedMiB={totalProvisionedMiB}
+          templates={templates}
+          autoExcludedCount={autoExcludedCount}
+          autoExcludedBreakdown={autoExcludedBreakdown}
+          uniqueClusters={uniqueClusters}
+          uniqueDatacenters={uniqueDatacenters}
+          hostCount={rawData.vHost.length}
+          datastoreCount={rawData.vDatastore.length}
+          navigate={navigate}
+        />
 
         {/* Storage Metrics Comparison Tile */}
-        <Column lg={16} md={8} sm={4}>
-          <Tile className="dashboard-page__storage-comparison-tile">
-            <div className="dashboard-page__storage-comparison-header">
-              <h3 className="dashboard-page__storage-comparison-title">Storage Calculation Methods</h3>
-              <Tooltip label="Different methods for calculating storage requirements. Use these values when planning migration capacity." align="top">
-                <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-              </Tooltip>
-            </div>
-            <p className="dashboard-page__storage-comparison-subtitle">
-              Compare storage metrics for migration planning (powered-on VMs only)
-            </p>
-            <div className="dashboard-page__storage-comparison-grid">
-              <div className="dashboard-page__storage-comparison-item">
-                <div className="dashboard-page__storage-comparison-label">
-                  <span>Disk Capacity</span>
-                  <Tag type="blue" size="sm">vDisk</Tag>
-                </div>
-                <span className="dashboard-page__storage-comparison-value">{totalDiskCapacityTiB.toFixed(2)} TiB</span>
-                <span className="dashboard-page__storage-comparison-detail">
-                  Full disk sizes from vDisk inventory
-                </span>
-                <span className="dashboard-page__storage-comparison-per-vm">
-                  {(mibToGiB(totalDiskCapacityMiB) / totalVMs).toFixed(1)} GiB/VM avg
-                </span>
-              </div>
-              <div className="dashboard-page__storage-comparison-item dashboard-page__storage-comparison-item--recommended">
-                <div className="dashboard-page__storage-comparison-label">
-                  <span>In Use</span>
-                  <Tag type="green" size="sm">Recommended</Tag>
-                </div>
-                <span className="dashboard-page__storage-comparison-value">{totalInUseTiB.toFixed(2)} TiB</span>
-                <span className="dashboard-page__storage-comparison-detail">
-                  Actual consumed storage incl. snapshots
-                </span>
-                <span className="dashboard-page__storage-comparison-per-vm">
-                  {(mibToGiB(totalInUseMiB) / totalVMs).toFixed(1)} GiB/VM avg
-                </span>
-              </div>
-              <div className="dashboard-page__storage-comparison-item">
-                <div className="dashboard-page__storage-comparison-label">
-                  <span>Provisioned</span>
-                  <Tag type="purple" size="sm">Conservative</Tag>
-                </div>
-                <span className="dashboard-page__storage-comparison-value">{totalProvisionedTiB.toFixed(2)} TiB</span>
-                <span className="dashboard-page__storage-comparison-detail">
-                  Allocated capacity incl. thin-provisioned
-                </span>
-                <span className="dashboard-page__storage-comparison-per-vm">
-                  {(mibToGiB(totalProvisionedMiB) / totalVMs).toFixed(1)} GiB/VM avg
-                </span>
-              </div>
-            </div>
-          </Tile>
-        </Column>
+        <DashboardStorageComparison
+          totalDiskCapacityTiB={totalDiskCapacityTiB}
+          totalDiskCapacityMiB={totalDiskCapacityMiB}
+          totalInUseTiB={totalInUseTiB}
+          totalInUseMiB={totalInUseMiB}
+          totalProvisionedTiB={totalProvisionedTiB}
+          totalProvisionedMiB={totalProvisionedMiB}
+          totalVMs={totalVMs}
+        />
 
         {/* Charts */}
         <Column lg={8} md={8} sm={4}>
@@ -726,188 +242,20 @@ export function DashboardPage() {
           <h2 className="dashboard-page__section-title">Configuration Analysis</h2>
         </Column>
 
-        {/* Configuration Summary Card */}
-        <Column lg={4} md={4} sm={4}>
-          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${configIssuesCount > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=vms`)}>
-            <div className="dashboard-page__config-header">
-              <span className="dashboard-page__config-label">
-                Configuration Issues
-                <span onClick={e => e.stopPropagation()}>
-                  <Tooltip label="Sum of blocking and warning configuration issues that need attention before migration." align="top">
-                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                  </Tooltip>
-                </span>
-              </span>
-              <Tag type={configIssuesCount > 0 ? 'red' : 'green'} size="sm">
-                {configIssuesCount > 0 ? 'Action Needed' : 'OK'}
-              </Tag>
-            </div>
-            <span className="dashboard-page__config-value">{formatNumber(configIssuesCount)}</span>
-            <span className="dashboard-page__config-detail">
-              Items requiring attention
-            </span>
-            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
-          </ClickableTile>
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${toolsNotInstalled > 0 ? 'dashboard-page__config-tile--error' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=vmware-tools`)}>
-            <div className="dashboard-page__config-header">
-              <span className="dashboard-page__config-label">
-                Tools Not Installed
-                <span onClick={e => e.stopPropagation()}>
-                  <Tooltip label="VMs without VMware Tools installed. Tools are required for proper guest OS interaction during migration." align="top">
-                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                  </Tooltip>
-                </span>
-              </span>
-              <Tag type={toolsNotInstalled > 0 ? 'red' : 'green'} size="sm">
-                {toolsNotInstalled > 0 ? 'Blocker' : 'OK'}
-              </Tag>
-            </div>
-            <span className="dashboard-page__config-value">{formatNumber(toolsNotInstalled)}</span>
-            <span className="dashboard-page__config-detail">
-              Required for migration
-            </span>
-            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
-          </ClickableTile>
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${snapshotsBlockers > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=snapshots`)}>
-            <div className="dashboard-page__config-header">
-              <span className="dashboard-page__config-label">
-                Old Snapshots
-                <span onClick={e => e.stopPropagation()}>
-                  <Tooltip label="Snapshots older than the threshold can cause disk chain issues. Delete or consolidate before migration." align="top">
-                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                  </Tooltip>
-                </span>
-              </span>
-              <Tag type={snapshotsBlockers > 0 ? 'red' : 'green'} size="sm">
-                {snapshotsBlockers > 0 ? 'Blocker' : 'OK'}
-              </Tag>
-            </div>
-            <span className="dashboard-page__config-value">{formatNumber(snapshotsBlockers)}</span>
-            <span className="dashboard-page__config-detail">
-              Over {SNAPSHOT_BLOCKER_AGE_DAYS} days old
-            </span>
-            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
-          </ClickableTile>
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${outdatedHWCount > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=vms`)}>
-            <div className="dashboard-page__config-header">
-              <span className="dashboard-page__config-label">
-                Outdated HW Version
-                <span onClick={e => e.stopPropagation()}>
-                  <Tooltip label="VMs with hardware version below minimum. Upgrade to ensure compatibility with target platform." align="top">
-                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                  </Tooltip>
-                </span>
-              </span>
-              <Tag type={outdatedHWCount > 0 ? 'magenta' : 'green'} size="sm">
-                {outdatedHWCount > 0 ? 'Upgrade' : 'OK'}
-              </Tag>
-            </div>
-            <span className="dashboard-page__config-value">{formatNumber(outdatedHWCount)}</span>
-            <span className="dashboard-page__config-detail">
-              Below HW v{HW_VERSION_MINIMUM}
-            </span>
-            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
-          </ClickableTile>
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${vmsWithCdConnected > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=cd-roms`)}>
-            <div className="dashboard-page__config-header">
-              <span className="dashboard-page__config-label">
-                CD-ROM Connected
-                <span onClick={e => e.stopPropagation()}>
-                  <Tooltip label="VMs with CD/DVD drives connected. Disconnect virtual media before migration to avoid issues." align="top">
-                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                  </Tooltip>
-                </span>
-              </span>
-              <Tag type={vmsWithCdConnected > 0 ? 'magenta' : 'green'} size="sm">
-                {vmsWithCdConnected > 0 ? 'Disconnect' : 'OK'}
-              </Tag>
-            </div>
-            <span className="dashboard-page__config-value">{formatNumber(vmsWithCdConnected)}</span>
-            <span className="dashboard-page__config-detail">
-              Disconnect before migration
-            </span>
-            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
-          </ClickableTile>
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <ClickableTile className={`dashboard-page__config-tile dashboard-page__config-tile--clickable ${vmsNeedConsolidation > 0 ? 'dashboard-page__config-tile--warning' : 'dashboard-page__config-tile--success'}`} onClick={() => navigate(`${ROUTES.tables}?tab=snapshots`)}>
-            <div className="dashboard-page__config-header">
-              <span className="dashboard-page__config-label">
-                Need Consolidation
-                <span onClick={e => e.stopPropagation()}>
-                  <Tooltip label="VMs with disk chains needing consolidation. Run disk consolidation in vSphere before migration." align="top">
-                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                  </Tooltip>
-                </span>
-              </span>
-              <Tag type={vmsNeedConsolidation > 0 ? 'magenta' : 'green'} size="sm">
-                {vmsNeedConsolidation > 0 ? 'Warning' : 'OK'}
-              </Tag>
-            </div>
-            <span className="dashboard-page__config-value">{formatNumber(vmsNeedConsolidation)}</span>
-            <span className="dashboard-page__config-detail">
-              Disk consolidation needed
-            </span>
-            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
-          </ClickableTile>
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <ClickableTile className="dashboard-page__config-tile dashboard-page__config-tile--clickable dashboard-page__config-tile--info" onClick={() => navigate(`${ROUTES.tables}?tab=vmware-tools`)}>
-            <div className="dashboard-page__config-header">
-              <span className="dashboard-page__config-label">
-                VMware Tools Current
-                <span onClick={e => e.stopPropagation()}>
-                  <Tooltip label="VMs with up-to-date VMware Tools installed. Current tools ensure best compatibility." align="top">
-                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                  </Tooltip>
-                </span>
-              </span>
-              <Tag type="blue" size="sm">Info</Tag>
-            </div>
-            <span className="dashboard-page__config-value">{formatNumber(toolsCurrent)}</span>
-            <span className="dashboard-page__config-detail">
-              {tools.length > 0 ? `${Math.round((toolsCurrent / tools.length) * 100)}% of VMs` : 'N/A'}
-            </span>
-            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
-          </ClickableTile>
-        </Column>
-
-        <Column lg={4} md={4} sm={4}>
-          <ClickableTile className="dashboard-page__config-tile dashboard-page__config-tile--clickable dashboard-page__config-tile--info" onClick={() => navigate(`${ROUTES.tables}?tab=snapshots`)}>
-            <div className="dashboard-page__config-header">
-              <span className="dashboard-page__config-label">
-                VMs with Snapshots
-                <span onClick={e => e.stopPropagation()}>
-                  <Tooltip label="Total VMs that have one or more snapshots. Review and clean up unnecessary snapshots." align="top">
-                    <button type="button" className="dashboard-page__info-button"><Information size={14} /></button>
-                  </Tooltip>
-                </span>
-              </span>
-              <Tag type={vmsWithSnapshots > 0 ? 'high-contrast' : 'green'} size="sm">
-                {vmsWithSnapshots > 0 ? 'Review' : 'None'}
-              </Tag>
-            </div>
-            <span className="dashboard-page__config-value">{formatNumber(vmsWithSnapshots)}</span>
-            <span className="dashboard-page__config-detail">
-              {formatNumber(snapshots.length)} total snapshots
-            </span>
-            <span className="dashboard-page__config-nav-arrow" aria-hidden="true"><ArrowRight size={16} /></span>
-          </ClickableTile>
-        </Column>
+        {/* Configuration Analysis Cards */}
+        <DashboardConfigAnalysis
+          configIssuesCount={configAnalysis.configIssuesCount}
+          toolsNotInstalled={configAnalysis.toolsNotInstalled}
+          snapshotsBlockers={configAnalysis.snapshotsBlockers}
+          outdatedHWCount={configAnalysis.outdatedHWCount}
+          vmsWithCdConnected={configAnalysis.vmsWithCdConnected}
+          vmsNeedConsolidation={configAnalysis.vmsNeedConsolidation}
+          toolsCurrent={configAnalysis.toolsCurrent}
+          vmsWithSnapshots={configAnalysis.vmsWithSnapshots}
+          snapshotsTotalCount={snapshots.length}
+          toolsTotalCount={tools.length}
+          navigate={navigate}
+        />
 
         {/* Configuration Charts */}
         <Column lg={8} md={8} sm={4}>
@@ -946,6 +294,16 @@ export function DashboardPage() {
               formatValue={(v) => `${v} VM${v !== 1 ? 's' : ''}`}
             />
           </Tile>
+        </Column>
+
+        {/* Next Step Banner */}
+        <Column lg={16} md={8} sm={4}>
+          <NextStepBanner
+            title="Next: Classify workloads and prepare migration scope"
+            description="Review VM classifications, exclude non-migratable workloads, and map network subnets in the Discovery page."
+            route={ROUTES.discovery}
+            icon={Search}
+          />
         </Column>
       </Grid>
     </div>

@@ -123,8 +123,8 @@ function WaveAnalysisContent({ suggestions }: { suggestions: WaveSuggestionResul
         <div className="ai-wave-analysis-panel__section">
           <h5>Suggestions</h5>
           <UnorderedList>
-            {suggestionsList.map((s, i) => (
-              <ListItem key={i}>{s}</ListItem>
+            {suggestionsList.map((s) => (
+              <ListItem key={s}>{s}</ListItem>
             ))}
           </UnorderedList>
         </div>
@@ -134,8 +134,8 @@ function WaveAnalysisContent({ suggestions }: { suggestions: WaveSuggestionResul
         <div className="ai-wave-analysis-panel__section">
           <h5>Dependency Warnings</h5>
           <UnorderedList>
-            {dependencyWarnings.map((w, i) => (
-              <ListItem key={i}>{w}</ListItem>
+            {dependencyWarnings.map((w) => (
+              <ListItem key={w}>{w}</ListItem>
             ))}
           </UnorderedList>
         </div>
@@ -146,7 +146,7 @@ function WaveAnalysisContent({ suggestions }: { suggestions: WaveSuggestionResul
           <h5>Wave Risk Assessment</h5>
           <Accordion>
             {riskNarratives.map((rn, i) => (
-              <AccordionItem title={rn.waveName || `Wave ${i + 1}`} key={i}>
+              <AccordionItem title={rn.waveName || `Wave ${i + 1}`} key={rn.waveName || `wave-${i}`}>
                 <p>{rn.narrative || 'No risk narrative available.'}</p>
               </AccordionItem>
             ))}

@@ -24,6 +24,8 @@ export { useDynamicProfiles } from './useDynamicProfiles';
 export type { UseDynamicProfilesConfig, UseDynamicProfilesReturn } from './useDynamicProfiles';
 export { useCustomProfiles } from './useCustomProfiles';
 export type { CustomProfile, ProfileOverride, UseCustomProfilesReturn } from './useCustomProfiles';
+export { useSizingCalculator } from './useSizingCalculator';
+export type { BareMetalProfile, NodeCapacity, NodeRequirements, RedundancyValidation, ProfileItem, UseSizingCalculatorReturn } from './useSizingCalculator';
 
 // AI hooks
 export { useAISettings } from './useAISettings';
@@ -52,3 +54,6 @@ export { useWavePlanning } from './useWavePlanning';
 export type { UseWavePlanningConfig, UseWavePlanningReturn, WavePlanningMode } from './useWavePlanning';
 export { usePreflightChecks } from './usePreflightChecks';
 export type { UsePreflightChecksConfig, UsePreflightChecksReturn } from './usePreflightChecks';
+
+export { useVSIPageData } from './useVSIPageData';
+export type { UseVSIPageDataConfig, UseVSIPageDataReturn } from './useVSIPageData';

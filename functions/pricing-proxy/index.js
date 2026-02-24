@@ -27,8 +27,48 @@ let pricingCache = {
   lastUpdated: 0,
 };
 
-// Enable CORS for all origins
-app.use(cors());
+// CORS — restrict to configured origins
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : [];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow server-to-server (no origin) and health checks
+    if (!origin || ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+}));
+
+// Rate limiting (simple in-memory)
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
+const RATE_LIMIT_MAX = 60; // requests per window
+const rateLimitMap = new Map(); // ip -> { count, windowStart }
+
+function rateLimit(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+
+  let entry = rateLimitMap.get(ip);
+  if (!entry || now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    entry = { count: 0, windowStart: now };
+  }
+
+  entry.count++;
+  rateLimitMap.set(ip, entry);
+
+  if (entry.count > RATE_LIMIT_MAX) {
+    return res.status(429).json({
+      error: 'Rate limit exceeded',
+      retryAfterMs: RATE_LIMIT_WINDOW_MS - (now - entry.windowStart),
+    });
+  }
+
+  next();
+}
 
 // Health check endpoint (required for Code Engine)
 app.get('/health', (req, res) => {
@@ -291,7 +331,7 @@ function getDefaultPricing() {
 }
 
 // Main pricing endpoint
-app.get('/', async (req, res) => {
+app.get('/', rateLimit, async (req, res) => {
   try {
     const apiKey = process.env.IBM_CLOUD_API_KEY;
     const forceRefresh = req.query.refresh === 'true';

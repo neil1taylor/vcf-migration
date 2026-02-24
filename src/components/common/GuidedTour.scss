@@ -1,0 +1,83 @@
+@use '@carbon/styles/scss/spacing';
+@use '@carbon/styles/scss/type';
+
+.guided-tour {
+  &__body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: spacing.$spacing-05 0;
+  }
+
+  &__icon-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    border-radius: 50%;
+    background-color: var(--cds-background-brand, #0f62fe);
+    color: var(--cds-text-on-color, #fff);
+    margin-bottom: spacing.$spacing-05;
+  }
+
+  &__step-label {
+    @include type.type-style('heading-03');
+    color: var(--cds-text-primary, #161616);
+    margin-bottom: spacing.$spacing-03;
+  }
+
+  &__description {
+    @include type.type-style('body-01');
+    color: var(--cds-text-secondary, #525252);
+    max-width: 400px;
+    margin-bottom: spacing.$spacing-03;
+  }
+
+  &__detail {
+    @include type.type-style('body-compact-01');
+    color: var(--cds-text-secondary, #525252);
+    max-width: 400px;
+    padding: spacing.$spacing-03;
+    background-color: var(--cds-layer-02, #e0e0e0);
+    border-radius: 4px;
+    margin-bottom: spacing.$spacing-03;
+  }
+
+  &__toggle {
+    @include type.type-style('body-compact-01');
+    cursor: pointer;
+    margin-bottom: spacing.$spacing-05;
+  }
+
+  &__dots {
+    display: flex;
+    gap: spacing.$spacing-03;
+    justify-content: center;
+  }
+
+  &__dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    border: none;
+    background-color: var(--cds-border-subtle-01, #c6c6c6);
+    cursor: pointer;
+    padding: 0;
+    transition: background-color 0.15s;
+
+    &--active {
+      background-color: var(--cds-background-brand, #0f62fe);
+    }
+
+    &:hover {
+      background-color: var(--cds-interactive, #0f62fe);
+    }
+
+    &:focus {
+      outline: 2px solid var(--cds-focus, #0f62fe);
+      outline-offset: 2px;
+    }
+  }
+}

@@ -127,7 +127,7 @@ function CostAnalysisContent({ optimization }: { optimization: CostOptimizationR
           <h5>Recommendations</h5>
           <div className="ai-cost-analysis-panel__recommendations">
             {recommendations.map((rec, i) => (
-              <div key={i} className="ai-cost-analysis-panel__recommendation">
+              <div key={`${rec.category}-${rec.priority}-${i}`} className="ai-cost-analysis-panel__recommendation">
                 <div className="ai-cost-analysis-panel__recommendation-header">
                   <Tag type={priorityColors[rec.priority] || 'gray'} size="sm">
                     {rec.priority || 'medium'}
@@ -148,8 +148,8 @@ function CostAnalysisContent({ optimization }: { optimization: CostOptimizationR
         <div className="ai-cost-analysis-panel__section">
           <h5>Architecture Recommendations</h5>
           <UnorderedList>
-            {architectureRecommendations.map((rec, i) => (
-              <ListItem key={i}>{rec}</ListItem>
+            {architectureRecommendations.map((rec) => (
+              <ListItem key={rec}>{rec}</ListItem>
             ))}
           </UnorderedList>
         </div>

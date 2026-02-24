@@ -1,0 +1,117 @@
+@use '@carbon/styles/scss/spacing';
+
+.export-page {
+  &__title {
+    font-size: 1.75rem;
+    font-weight: 400;
+    margin-bottom: spacing.$spacing-03;
+  }
+
+  &__subtitle {
+    font-size: 0.875rem;
+    color: var(--cds-text-secondary, #525252);
+    margin-bottom: spacing.$spacing-06;
+  }
+
+  &__section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: spacing.$spacing-05;
+  }
+
+  &__summary-tile {
+    height: 100%;
+    padding: spacing.$spacing-05;
+  }
+
+  &__summary-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: spacing.$spacing-04;
+  }
+
+  &__summary-stats {
+    display: flex;
+    gap: spacing.$spacing-07;
+    margin-bottom: spacing.$spacing-04;
+  }
+
+  &__summary-stat {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$spacing-02;
+  }
+
+  &__summary-label {
+    font-size: 0.75rem;
+    color: var(--cds-text-secondary, #525252);
+    text-transform: uppercase;
+    letter-spacing: 0.32px;
+  }
+
+  &__summary-value {
+    font-size: 1.5rem;
+    font-weight: 400;
+  }
+
+  &__summary-description {
+    font-size: 0.8125rem;
+    color: var(--cds-text-secondary, #525252);
+    margin-bottom: spacing.$spacing-03;
+    line-height: 1.4;
+  }
+
+  &__ai-tag {
+    margin-top: spacing.$spacing-02;
+  }
+
+  &__card {
+    height: 100%;
+    padding: spacing.$spacing-05;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__card-header {
+    display: flex;
+    gap: spacing.$spacing-04;
+    margin-bottom: spacing.$spacing-04;
+  }
+
+  &__card-icon {
+    flex-shrink: 0;
+    color: var(--cds-interactive, #0f62fe);
+  }
+
+  &__card-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: spacing.$spacing-02;
+  }
+
+  &__card-description {
+    font-size: 0.8125rem;
+    color: var(--cds-text-secondary, #525252);
+    line-height: 1.4;
+  }
+
+  &__card-toggle {
+    margin-bottom: spacing.$spacing-03;
+  }
+
+  &__card-options {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$spacing-03;
+    margin-bottom: spacing.$spacing-04;
+    padding-left: spacing.$spacing-03;
+  }
+
+  &__card-action {
+    margin-top: auto;
+  }
+
+  &__card--link {
+    cursor: pointer;
+  }
+}

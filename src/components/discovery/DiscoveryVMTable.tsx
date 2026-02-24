@@ -12,7 +12,7 @@
  * - CSV export, JSON export/import of overrides
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo } from 'react';
 import {
   DataTable,
   TableContainer,
@@ -34,11 +34,7 @@ import {
   InlineNotification,
   OverflowMenu,
   OverflowMenuItem,
-  Modal,
-  TextArea,
-  ComboBox,
   Pagination,
-  ClickableTile,
   Tooltip,
   Dropdown,
 } from '@carbon/react';
@@ -49,78 +45,24 @@ import {
   View,
   DocumentExport,
   Reset,
-  Close,
 } from '@carbon/icons-react';
-import type { VirtualMachine } from '@/types/rvtools';
-import type { UseVMOverridesReturn } from '@/hooks/useVMOverrides';
-import type { AutoExclusionResult } from '@/utils/autoExclusion';
 import { NO_AUTO_EXCLUSION } from '@/utils/autoExclusion';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { formatNumber, mibToGiB } from '@/utils/formatters';
-import type { VMClassificationResult } from '@/services/ai/types';
-import type { WorkloadMatch } from './WorkloadVMTable';
-import workloadPatterns from '@/data/workloadPatterns.json';
+import { useDiscoveryVMTableActions } from '@/hooks/useDiscoveryVMTableActions';
+import {
+  FILTER_OPTIONS,
+  getWorkloadCategories,
+  getActionText,
+} from './DiscoveryVMTableTypes';
+import type {
+  DiscoveryVMTableProps,
+  FilterOption,
+  VMRow,
+} from './DiscoveryVMTableTypes';
+import { DiscoveryCategoryFilterBar } from './DiscoveryCategoryFilterBar';
+import { DiscoveryVMModals } from './DiscoveryVMModals';
 import './DiscoveryVMTable.scss';
-
-// ===== TYPES =====
-
-interface DiscoveryVMTableProps {
-  vms: VirtualMachine[];
-  workloadMatches: WorkloadMatch[];
-  vmOverrides: UseVMOverridesReturn;
-  autoExclusionMap: Map<string, AutoExclusionResult>;
-  aiClassifications?: Record<string, VMClassificationResult>;
-  selectedCategory: string | null;
-  onCategorySelect: (key: string | null) => void;
-  workloadsByCategory: Record<string, { name: string; vms: Set<string> }>;
-}
-
-type FilterOption = 'all' | 'included' | 'auto-excluded' | 'manually-excluded' | 'overridden';
-
-interface VMRow {
-  id: string;
-  vmName: string;
-  cluster: string;
-  powerState: string;
-  cpus: number;
-  memoryGiB: number;
-  storageGiB: number;
-  guestOS: string;
-  // Category info
-  category: string;       // category key or '_custom' or '_unclassified'
-  categoryName: string;   // display name
-  categorySource: 'user' | 'maintainer' | 'ai' | 'name' | 'annotation' | 'none';
-  matchedPattern: string;
-  // Exclusion info
-  isAutoExcluded: boolean;
-  autoExclusionLabels: string[];
-  isForceIncluded: boolean;
-  isManuallyExcluded: boolean;
-  isEffectivelyExcluded: boolean;
-  exclusionSource: 'auto' | 'manual' | 'none';
-  hasNotes: boolean;
-  notes: string;
-}
-
-// ===== HELPERS =====
-
-function getWorkloadCategories(): Array<{ id: string; text: string }> {
-  const categories = workloadPatterns.categories as Record<string, { name: string; patterns: string[] }>;
-  const items = Object.entries(categories).map(([key, cat]) => ({
-    id: key,
-    text: cat.name,
-  }));
-  items.unshift({ id: 'unclassified', text: 'Unclassified' });
-  return items;
-}
-
-const FILTER_OPTIONS: Array<{ id: FilterOption; text: string }> = [
-  { id: 'all', text: 'All VMs' },
-  { id: 'included', text: 'Included' },
-  { id: 'auto-excluded', text: 'Auto-Excluded' },
-  { id: 'manually-excluded', text: 'Manually Excluded' },
-  { id: 'overridden', text: 'Overridden' },
-];
 
 // ===== COMPONENT =====
 
@@ -138,17 +80,12 @@ export function DiscoveryVMTable({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [statusFilter, setStatusFilter] = useState<FilterOption>('all');
-  const [editingNotes, setEditingNotes] = useState<{ vmId: string; vmName: string; notes: string } | null>(null);
-  const [editingWorkload, setEditingWorkload] = useState<{ vmId: string; vmName: string; current: string | undefined } | null>(null);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importJson, setImportJson] = useState('');
-  const [importError, setImportError] = useState<string | null>(null);
 
   const workloadCategories = useMemo(() => getWorkloadCategories(), []);
 
   // Build a lookup: vmName → WorkloadMatch
   const vmCategoryMap = useMemo(() => {
-    const map = new Map<string, WorkloadMatch>();
+    const map = new Map<string, (typeof workloadMatches)[0]>();
     for (const match of workloadMatches) {
       if (!map.has(match.vmName)) {
         map.set(match.vmName, match);
@@ -256,150 +193,29 @@ export function DiscoveryVMTable({
     return vmRows.filter(r => r.category === '_unclassified').length;
   }, [vmRows]);
 
-  // ===== ACTIONS =====
-
-  const handleBulkExclude = useCallback((selectedRows: Array<{ id: string }>) => {
-    const toExclude = selectedRows.map(row => {
-      const vmRow = vmRows.find(r => r.id === row.id);
-      return { vmId: row.id, vmName: vmRow?.vmName || '' };
-    });
-    vmOverrides.bulkSetExcluded(toExclude, true);
-  }, [vmRows, vmOverrides]);
-
-  const handleBulkInclude = useCallback((selectedRows: Array<{ id: string }>) => {
-    const toInclude = selectedRows.map(row => {
-      const vmRow = vmRows.find(r => r.id === row.id);
-      return { vmId: row.id, vmName: vmRow?.vmName || '' };
-    });
-    const autoExcludedVMs = toInclude.filter(vm => {
-      const vmRow = vmRows.find(r => r.id === vm.vmId);
-      return vmRow?.isAutoExcluded;
-    });
-    const manuallyExcludedVMs = toInclude.filter(vm => {
-      const vmRow = vmRows.find(r => r.id === vm.vmId);
-      return !vmRow?.isAutoExcluded;
-    });
-    if (autoExcludedVMs.length > 0) {
-      vmOverrides.bulkSetForceIncluded(autoExcludedVMs, true);
-    }
-    if (manuallyExcludedVMs.length > 0) {
-      vmOverrides.bulkSetExcluded(manuallyExcludedVMs, false);
-    }
-  }, [vmRows, vmOverrides]);
-
-  const handleToggleExclusion = useCallback((row: VMRow) => {
-    if (row.isAutoExcluded && !row.isForceIncluded) {
-      vmOverrides.setForceIncluded(row.id, row.vmName, true);
-    } else if (row.isForceIncluded) {
-      vmOverrides.setForceIncluded(row.id, row.vmName, false);
-    } else if (row.isManuallyExcluded) {
-      vmOverrides.setExcluded(row.id, row.vmName, false);
-    } else {
-      vmOverrides.setExcluded(row.id, row.vmName, true);
-    }
-  }, [vmOverrides]);
-
-  const handleEditNotes = useCallback((row: VMRow) => {
-    setEditingNotes({ vmId: row.id, vmName: row.vmName, notes: row.notes });
-  }, []);
-
-  const handleSaveNotes = useCallback(() => {
-    if (editingNotes) {
-      vmOverrides.setNotes(editingNotes.vmId, editingNotes.vmName, editingNotes.notes || undefined);
-      setEditingNotes(null);
-    }
-  }, [editingNotes, vmOverrides]);
-
-  const handleEditWorkload = useCallback((row: VMRow) => {
-    setEditingWorkload({
-      vmId: row.id,
-      vmName: row.vmName,
-      current: vmOverrides.getWorkloadType(row.id) || (row.categorySource !== 'none' ? row.categoryName : undefined),
-    });
-  }, [vmOverrides]);
-
-  const handleSaveWorkload = useCallback((item: { id: string; text: string } | string | null | undefined) => {
-    if (editingWorkload) {
-      const text = typeof item === 'string' ? item : item?.text;
-      const id = typeof item === 'string' ? 'custom' : item?.id;
-
-      if (text && id !== 'unclassified') {
-        vmOverrides.setWorkloadType(editingWorkload.vmId, editingWorkload.vmName, text);
-      } else {
-        vmOverrides.setWorkloadType(editingWorkload.vmId, editingWorkload.vmName, undefined);
-      }
-      setEditingWorkload(null);
-    }
-  }, [editingWorkload, vmOverrides]);
-
-  const handleExportSettings = useCallback(() => {
-    const json = vmOverrides.exportSettings();
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'vm-overrides.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [vmOverrides]);
-
-  const handleImportSettings = useCallback(() => {
-    setImportError(null);
-    if (!importJson.trim()) {
-      setImportError('Please paste valid JSON');
-      return;
-    }
-    const success = vmOverrides.importSettings(importJson);
-    if (success) {
-      setShowImportModal(false);
-      setImportJson('');
-    } else {
-      setImportError('Invalid JSON format');
-    }
-  }, [importJson, vmOverrides]);
-
-  const handleExportCSV = useCallback(() => {
-    const headers = ['VM Name', 'Cluster', 'Power State', 'vCPUs', 'Memory (GiB)', 'Storage (GiB)', 'Guest OS', 'Workload Type', 'Source', 'Status', 'Auto-Exclusion Reasons', 'Notes'];
-    const rows = filteredRows.map(row => [
-      row.vmName,
-      row.cluster,
-      row.powerState,
-      row.cpus.toString(),
-      row.memoryGiB.toString(),
-      row.storageGiB.toString(),
-      row.guestOS,
-      row.categoryName,
-      row.categorySource === 'user' ? 'User Override'
-        : row.categorySource === 'maintainer' ? 'Maintainer'
-        : row.categorySource === 'ai' ? 'AI'
-        : row.categorySource === 'name' ? 'VM Name'
-        : row.categorySource === 'annotation' ? 'Annotation'
-        : '',
-      row.isEffectivelyExcluded ? (row.exclusionSource === 'auto' ? 'Auto-Excluded' : 'Excluded') : (row.isForceIncluded ? 'Included (Override)' : 'Included'),
-      row.autoExclusionLabels.join('; '),
-      row.notes,
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')),
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'vm-discovery.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [filteredRows]);
-
-  function getActionText(row: VMRow): string {
-    if (row.isAutoExcluded && !row.isForceIncluded) return 'Include in Migration';
-    if (row.isForceIncluded) return 'Revert to Auto-Excluded';
-    if (row.isManuallyExcluded) return 'Include in Migration';
-    return 'Exclude from Migration';
-  }
+  // Actions hook
+  const {
+    editingNotes,
+    setEditingNotes,
+    editingWorkload,
+    setEditingWorkload,
+    showImportModal,
+    setShowImportModal,
+    importJson,
+    setImportJson,
+    importError,
+    setImportError,
+    handleBulkExclude,
+    handleBulkInclude,
+    handleToggleExclusion,
+    handleEditNotes,
+    handleSaveNotes,
+    handleEditWorkload,
+    handleSaveWorkload,
+    handleExportSettings,
+    handleImportSettings,
+    handleExportCSV,
+  } = useDiscoveryVMTableActions(vmRows, vmOverrides);
 
   // ===== RENDER HELPERS =====
 
@@ -517,53 +333,13 @@ export function DiscoveryVMTable({
       )}
 
       {/* Category filter bar */}
-      <div className="discovery-vm-table__filters">
-        <span className="discovery-vm-table__filters-label">Filter by category:</span>
-        <div className="discovery-vm-table__filter-tags">
-          {sortedCategories.map(([key, data]) => (
-            <ClickableTile
-              key={key}
-              className={`discovery-vm-table__filter-tile ${selectedCategory === key ? 'discovery-vm-table__filter-tile--selected' : ''}`}
-              onClick={() => {
-                onCategorySelect(selectedCategory === key ? null : key);
-                setPage(1);
-              }}
-            >
-              <span className="discovery-vm-table__filter-name">{data.name}</span>
-              <Tag type={selectedCategory === key ? 'blue' : 'gray'} size="sm">
-                {data.vms.size}
-              </Tag>
-            </ClickableTile>
-          ))}
-          {unclassifiedCount > 0 && (
-            <ClickableTile
-              className={`discovery-vm-table__filter-tile ${selectedCategory === '_unclassified' ? 'discovery-vm-table__filter-tile--selected' : ''}`}
-              onClick={() => {
-                onCategorySelect(selectedCategory === '_unclassified' ? null : '_unclassified');
-                setPage(1);
-              }}
-            >
-              <span className="discovery-vm-table__filter-name">Unclassified</span>
-              <Tag type={selectedCategory === '_unclassified' ? 'blue' : 'gray'} size="sm">
-                {unclassifiedCount}
-              </Tag>
-            </ClickableTile>
-          )}
-          {selectedCategory && (
-            <Button
-              kind="ghost"
-              size="sm"
-              renderIcon={Close}
-              onClick={() => {
-                onCategorySelect(null);
-                setPage(1);
-              }}
-              hasIconOnly
-              iconDescription="Clear filter"
-            />
-          )}
-        </div>
-      </div>
+      <DiscoveryCategoryFilterBar
+        sortedCategories={sortedCategories}
+        selectedCategory={selectedCategory}
+        onCategorySelect={onCategorySelect}
+        unclassifiedCount={unclassifiedCount}
+        setPage={setPage}
+      />
 
       {/* Export/Import toolbar */}
       <div className="discovery-vm-table__toolbar-row">
@@ -600,7 +376,11 @@ export function DiscoveryVMTable({
           const batchActionProps = getBatchActionProps();
 
           return (
-            <TableContainer {...getTableContainerProps()}>
+            <TableContainer
+              {...getTableContainerProps()}
+              title="Virtual Machines"
+              description="Review and manage VMs for migration"
+            >
               <TableToolbar>
                 <TableBatchActions {...batchActionProps}>
                   <TableBatchAction
@@ -620,6 +400,7 @@ export function DiscoveryVMTable({
                 </TableBatchActions>
                 <TableToolbarContent>
                   <TableToolbarSearch
+                    labelText="Search virtual machines"
                     placeholder="Search VMs..."
                     onChange={(e) => {
                       const value = typeof e === 'string' ? e : e.target.value;
@@ -647,7 +428,7 @@ export function DiscoveryVMTable({
                     kind="ghost"
                     size="sm"
                     renderIcon={DocumentExport}
-                    onClick={handleExportCSV}
+                    onClick={() => handleExportCSV(filteredRows)}
                     hasIconOnly
                     iconDescription="Export to CSV"
                   />
@@ -759,88 +540,23 @@ export function DiscoveryVMTable({
         />
       </div>
 
-      {/* Edit Notes Modal */}
-      <Modal
-        open={!!editingNotes}
-        onRequestClose={() => setEditingNotes(null)}
-        onRequestSubmit={handleSaveNotes}
-        modalHeading={`Notes for ${editingNotes?.vmName || ''}`}
-        primaryButtonText="Save"
-        secondaryButtonText="Cancel"
-        size="sm"
-      >
-        <TextArea
-          id="vm-notes"
-          labelText="Notes"
-          placeholder="Add notes about this VM..."
-          value={editingNotes?.notes || ''}
-          onChange={(e) => setEditingNotes(prev => prev ? { ...prev, notes: e.target.value } : null)}
-          rows={4}
-        />
-      </Modal>
-
-      {/* Edit Workload Modal */}
-      <Modal
-        open={!!editingWorkload}
-        onRequestClose={() => setEditingWorkload(null)}
-        modalHeading={`Workload Type for ${editingWorkload?.vmName || ''}`}
-        passiveModal
-        size="sm"
-      >
-        <p className="discovery-vm-table__modal-description">
-          Select a predefined workload type, type a custom name, or choose "Unclassified" to clear.
-        </p>
-        <ComboBox
-          id="workload-type"
-          key={editingWorkload?.vmId || 'workload-combobox'}
-          titleText="Workload Type"
-          placeholder="Select or type custom workload..."
-          items={workloadCategories}
-          itemToString={(item) => (typeof item === 'string' ? item : item?.text) || ''}
-          initialSelectedItem={
-            editingWorkload?.current
-              ? workloadCategories.find(c => c.text === editingWorkload.current) || { id: 'custom', text: editingWorkload.current }
-              : null
-          }
-          allowCustomValue
-          onChange={({ selectedItem, inputValue }) => {
-            if (inputValue && !selectedItem) {
-              handleSaveWorkload({ id: 'custom', text: inputValue });
-            } else {
-              handleSaveWorkload(selectedItem);
-            }
-          }}
-        />
-      </Modal>
-
-      {/* Import Settings Modal */}
-      <Modal
-        open={showImportModal}
-        onRequestClose={() => {
-          setShowImportModal(false);
-          setImportJson('');
-          setImportError(null);
-        }}
-        onRequestSubmit={handleImportSettings}
-        modalHeading="Import VM Overrides"
-        primaryButtonText="Import"
-        secondaryButtonText="Cancel"
-        size="md"
-      >
-        <p className="discovery-vm-table__modal-description">
-          Paste the JSON from a previously exported settings file.
-        </p>
-        <TextArea
-          id="import-json"
-          labelText="Settings JSON"
-          placeholder='{"version":2,"overrides":{}...}'
-          value={importJson}
-          onChange={(e) => setImportJson(e.target.value)}
-          rows={10}
-          invalid={!!importError}
-          invalidText={importError || ''}
-        />
-      </Modal>
+      {/* Modals */}
+      <DiscoveryVMModals
+        editingNotes={editingNotes}
+        setEditingNotes={setEditingNotes}
+        handleSaveNotes={handleSaveNotes}
+        editingWorkload={editingWorkload}
+        setEditingWorkload={setEditingWorkload}
+        handleSaveWorkload={handleSaveWorkload}
+        workloadCategories={workloadCategories}
+        showImportModal={showImportModal}
+        setShowImportModal={setShowImportModal}
+        importJson={importJson}
+        setImportJson={setImportJson}
+        importError={importError}
+        setImportError={setImportError}
+        handleImportSettings={handleImportSettings}
+      />
     </div>
   );
 }

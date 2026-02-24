@@ -148,6 +148,7 @@ export const ROUTES = {
   vsiMigrationMethods: '/vsi-migration-methods',
   mtvDocumentation: '/mtv-documentation',
   overheadReference: '/overhead-reference',
+  export: '/export',
   settings: '/settings',
   about: '/about',
   chat: '/chat',

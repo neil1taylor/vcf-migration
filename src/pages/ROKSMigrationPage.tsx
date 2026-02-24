@@ -2,13 +2,13 @@
 
 import { useState, useCallback, useMemo } from 'react';
 import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, UnorderedList, ListItem, Button, InlineNotification, Tooltip } from '@carbon/react';
-import { Download, Information } from '@carbon/icons-react';
+import { Download, Information, VirtualMachine } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
 import { useData, useAllVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides, useAutoExclusion } from '@/hooks';
 import { ROUTES, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS, HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED } from '@/utils/constants';
 import { formatNumber, mibToGiB } from '@/utils/formatters';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
-import { MetricCard, RedHatDocLink, RemediationPanel } from '@/components/common';
+import { MetricCard, RedHatDocLink, RemediationPanel, NextStepBanner, SectionErrorBoundary } from '@/components/common';
 import { SizingCalculator } from '@/components/sizing';
 import type { SizingResult } from '@/components/sizing';
 import { CostEstimation } from '@/components/cost';
@@ -506,7 +506,9 @@ export function ROKSMigrationPage() {
                   )}
 
                   <Column lg={16} md={8} sm={4}>
-                    <AIRemediationPanel data={remediationAIData} title="AI Remediation Guidance (ROKS)" />
+                    <SectionErrorBoundary sectionName="AI Remediation Guidance">
+                      <AIRemediationPanel data={remediationAIData} title="AI Remediation Guidance (ROKS)" />
+                    </SectionErrorBoundary>
                   </Column>
                 </Grid>
               </TabPanel>
@@ -570,7 +572,9 @@ export function ROKSMigrationPage() {
                   waveResources={wavePlanning.waveResources}
                 />
                 <div style={{ marginTop: '1rem' }}>
-                  <AIWaveAnalysisPanel data={waveSuggestionData} title="AI Wave Analysis (ROKS)" />
+                  <SectionErrorBoundary sectionName="AI Wave Analysis">
+                    <AIWaveAnalysisPanel data={waveSuggestionData} title="AI Wave Analysis (ROKS)" />
+                  </SectionErrorBoundary>
                 </div>
               </TabPanel>
 
@@ -593,7 +597,9 @@ export function ROKSMigrationPage() {
               <TabPanel>
                 <Grid className="migration-page__tab-content">
                   <Column lg={16} md={8} sm={4}>
-                    <AIInsightsPanel data={insightsData} title="AI Migration Insights (ROKS)" />
+                    <SectionErrorBoundary sectionName="AI Migration Insights">
+                      <AIInsightsPanel data={insightsData} title="AI Migration Insights (ROKS)" />
+                    </SectionErrorBoundary>
                   </Column>
                 </Grid>
               </TabPanel>
@@ -632,8 +638,8 @@ export function ROKSMigrationPage() {
                         <div className="migration-page__phase-activities">
                           <h5>Activities</h5>
                           <UnorderedList>
-                            {phase.activities.map((activity, idx) => (
-                              <ListItem key={idx}>{activity}</ListItem>
+                            {phase.activities.map((activity) => (
+                              <ListItem key={activity}>{activity}</ListItem>
                             ))}
                           </UnorderedList>
                         </div>
@@ -655,6 +661,16 @@ export function ROKSMigrationPage() {
               </TabPanel>
             </TabPanels>
           </Tabs>
+        </Column>
+
+        {/* Next Step Banner */}
+        <Column lg={16} md={8} sm={4}>
+          <NextStepBanner
+            title="Next: Review VSI migration assessment"
+            description="Assess VMs for IBM Cloud VPC Virtual Server migration, right-size profiles, and estimate costs."
+            route={ROUTES.vsiMigration}
+            icon={VirtualMachine}
+          />
         </Column>
       </Grid>
     </div>

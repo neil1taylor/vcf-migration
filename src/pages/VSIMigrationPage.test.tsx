@@ -39,6 +39,25 @@ vi.mock('@/hooks', () => ({
     clearCache: vi.fn(),
     isAvailable: false,
   })),
+  useVSIPageData: vi.fn(() => ({
+    vmProfileMappings: [],
+    profileCounts: {},
+    topProfiles: [],
+    familyCounts: {},
+    familyChartData: [],
+    totalVSIs: 0,
+    uniqueProfiles: 0,
+    vsiTotalVCPUs: 0,
+    vsiTotalMemory: 0,
+    overriddenVMCount: 0,
+    vsiSizing: { vmProfiles: [], storageTiB: 0 },
+    insightsData: null,
+    waveSuggestionData: null,
+    costOptimizationData: null,
+    remediationAIData: null,
+    vmDetails: [],
+    vsiProfiles: { balanced: [], compute: [], memory: [] },
+  })),
 }));
 
 // Mock services
@@ -84,6 +103,8 @@ vi.mock('@/components/common', () => ({
   ),
   RedHatDocLink: () => <div data-testid="doc-link" />,
   RemediationPanel: () => <div data-testid="remediation-panel" />,
+  NextStepBanner: () => <div data-testid="next-step-banner" />,
+  SectionErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('@/components/cost', () => ({
@@ -98,6 +119,8 @@ vi.mock('@/components/migration', () => ({
   ComplexityAssessmentPanel: () => <div data-testid="complexity-panel" />,
   WavePlanningPanel: () => <div data-testid="wave-planning-panel" />,
   OSCompatibilityPanel: () => <div data-testid="os-compatibility-panel" />,
+  VSIPreFlightPanel: () => <div data-testid="vsi-preflight-panel" />,
+  VSISizingPanel: () => <div data-testid="vsi-sizing-panel" />,
 }));
 
 vi.mock('@/components/ai/AIInsightsPanel', () => ({

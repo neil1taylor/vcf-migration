@@ -85,7 +85,7 @@ export function ChatPanel({ className = '' }: ChatPanelProps) {
   return (
     <div className={`chat-panel ${className}`}>
       {/* Messages area */}
-      <div className="chat-panel__messages">
+      <div className="chat-panel__messages" role="log" aria-label="Chat messages" aria-live="polite">
         {messages.length === 0 && (
           <div className="chat-panel__welcome">
             <h5>Migration Assistant</h5>
@@ -109,20 +109,22 @@ export function ChatPanel({ className = '' }: ChatPanelProps) {
         ))}
 
         {isLoading && (
-          <div className="chat-panel__loading">
+          <div className="chat-panel__loading" role="status" aria-live="polite">
             <InlineLoading status="active" description="Thinking..." />
           </div>
         )}
 
         {error && (
-          <InlineNotification
-            kind="error"
-            title="Error"
-            subtitle={error}
-            lowContrast
-            hideCloseButton
-            className="chat-panel__error"
-          />
+          <div role="alert">
+            <InlineNotification
+              kind="error"
+              title="Error"
+              subtitle={error}
+              lowContrast
+              hideCloseButton
+              className="chat-panel__error"
+            />
+          </div>
         )}
 
         <div ref={messagesEndRef} />
@@ -142,7 +144,7 @@ export function ChatPanel({ className = '' }: ChatPanelProps) {
       <div className="chat-panel__input-area">
         <TextInput
           id="chat-input"
-          labelText=""
+          labelText="Chat message"
           hideLabel
           placeholder="Ask about your migration..."
           value={inputValue}
@@ -190,7 +192,7 @@ function MessageBubble({ message }: { message: ChatMessage }) {
         )}
         <div className="chat-panel__text">
           {message.content.split('\n').map((line, i) => (
-            <p key={i}>{line}</p>
+            <p key={`${message.id}-line-${i}`}>{line}</p>
           ))}
         </div>
       </div>
@@ -207,9 +209,9 @@ function SuggestedQuestions({
 }) {
   return (
     <div className="chat-panel__suggestion-chips">
-      {questions.map((q, i) => (
+      {questions.map((q) => (
         <Button
-          key={i}
+          key={q}
           kind="ghost"
           size="sm"
           onClick={() => onClick(q)}

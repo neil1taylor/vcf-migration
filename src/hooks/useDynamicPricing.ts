@@ -1,6 +1,7 @@
 // Dynamic pricing hook - manages pricing data with proxy refresh capability
 
 import { useState, useEffect, useCallback } from 'react';
+import { createLogger } from '@/utils/logger';
 import type { IBMCloudPricing, PricingSource } from '@/services/pricing/pricingCache';
 import {
   getCurrentPricing,
@@ -15,6 +16,8 @@ import {
   testProxyConnection,
 } from '@/services/pricing/globalCatalogApi';
 import { transformProxyToAppPricing } from '@/services/pricing/pricingTransformer';
+
+const logger = createLogger('DynamicPricing');
 
 export interface UseDynamicPricingConfig {
   autoRefreshOnExpiry?: boolean;
@@ -59,14 +62,14 @@ export function useDynamicPricing(
    * Fetch fresh pricing from proxy
    */
   const fetchPricing = useCallback(async () => {
-    console.log('[Dynamic Pricing] Starting pricing fetch...');
+    logger.debug('[Dynamic Pricing] Starting pricing fetch...');
 
     if (!isProxyConfigured()) {
-      console.log('[Dynamic Pricing] No proxy configured, using static data');
+      logger.debug('[Dynamic Pricing] No proxy configured, using static data');
       return false;
     }
 
-    console.log('[Dynamic Pricing] Proxy configured, fetching from proxy...');
+    logger.debug('[Dynamic Pricing] Proxy configured, fetching from proxy...');
     try {
       const proxyData = await fetchFromProxy({ timeout: 30000 });
 
@@ -75,7 +78,7 @@ export function useDynamicPricing(
         // Transform proxy response to app format
         const transformedPricing = transformProxyToAppPricing(proxyData);
 
-        console.log('[Dynamic Pricing] Proxy data received:', {
+        logger.debug('[Dynamic Pricing] Proxy data received', {
           vsiProfiles: Object.keys(transformedPricing.vsi).length,
           cached: proxyData.cached,
           source: proxyData.source,
@@ -91,15 +94,15 @@ export function useDynamicPricing(
         setIsApiAvailable(true);
         setError(null);
 
-        console.log('[Dynamic Pricing] Successfully updated from PROXY');
+        logger.debug('[Dynamic Pricing] Successfully updated from PROXY');
         return true;
       }
 
-      console.warn('[Dynamic Pricing] Proxy returned no data');
+      logger.warn('[Dynamic Pricing] Proxy returned no data');
       return false;
     } catch (proxyError) {
       const errorMessage = proxyError instanceof Error ? proxyError.message : 'Failed to fetch pricing';
-      console.warn('[Dynamic Pricing] Proxy fetch failed:', errorMessage);
+      logger.warn(`[Dynamic Pricing] Proxy fetch failed: ${errorMessage}`);
       setError(errorMessage);
       setIsApiAvailable(false);
       return false;
@@ -140,7 +143,7 @@ export function useDynamicPricing(
   // Initial load - check cache and optionally refresh
   useEffect(() => {
     const initializePricing = async () => {
-      console.log('[Dynamic Pricing] Initializing pricing system...');
+      logger.debug('[Dynamic Pricing] Initializing pricing system...');
       setIsLoading(true);
 
       // Check current cached data
@@ -149,7 +152,7 @@ export function useDynamicPricing(
       setLastUpdated(current.lastUpdated);
       setSource(current.source);
 
-      console.log('[Dynamic Pricing] Current pricing state:', {
+      logger.debug('[Dynamic Pricing] Current pricing state', {
         source: current.source,
         lastUpdated: current.lastUpdated?.toISOString() || 'never',
         cacheExpired: isCacheExpired(),
@@ -158,41 +161,41 @@ export function useDynamicPricing(
       // Test proxy connectivity
       let apiAvailable = false;
       if (isProxyConfigured()) {
-        console.log('[Dynamic Pricing] Testing proxy connectivity...');
+        logger.debug('[Dynamic Pricing] Testing proxy connectivity...');
         const proxyResult = await testProxyConnection();
 
         // If the request was cancelled (React StrictMode cleanup), don't update state
         if (proxyResult.cancelled) {
-          console.log('[Dynamic Pricing] Proxy test cancelled, skipping state update');
+          logger.debug('[Dynamic Pricing] Proxy test cancelled, skipping state update');
           return;
         }
 
         apiAvailable = proxyResult.success;
         if (apiAvailable) {
-          console.log('[Dynamic Pricing] Proxy available');
+          logger.debug('[Dynamic Pricing] Proxy available');
         } else {
-          console.log('[Dynamic Pricing] Proxy not available:', proxyResult.error);
+          logger.debug(`[Dynamic Pricing] Proxy not available: ${proxyResult.error}`);
         }
       } else {
-        console.log('[Dynamic Pricing] No proxy configured, using static data');
+        logger.debug('[Dynamic Pricing] No proxy configured, using static data');
       }
       setIsApiAvailable(apiAvailable);
 
-      console.log('[Dynamic Pricing] Proxy availability:', apiAvailable);
+      logger.debug(`[Dynamic Pricing] Proxy availability: ${apiAvailable}`);
 
       // If cache is expired and auto-refresh is enabled, fetch fresh data
       if (config?.autoRefreshOnExpiry !== false && isCacheExpired() && apiAvailable) {
-        console.log('[Dynamic Pricing] Cache expired and proxy available, fetching fresh data...');
+        logger.debug('[Dynamic Pricing] Cache expired and proxy available, fetching fresh data...');
         const success = await fetchPricing();
         if (!success) {
           // Keep using cached/static data
-          console.log('[Dynamic Pricing] Fetch failed, keeping current source:', current.source);
+          logger.debug(`[Dynamic Pricing] Fetch failed, keeping current source: ${current.source}`);
           setSource(current.source);
         }
       } else if (!apiAvailable) {
-        console.log('[Dynamic Pricing] Proxy not available, using', current.source, 'data');
+        logger.debug(`[Dynamic Pricing] Proxy not available, using ${current.source} data`);
       } else {
-        console.log('[Dynamic Pricing] Using cached data (not expired)');
+        logger.debug('[Dynamic Pricing] Using cached data (not expired)');
       }
 
       setIsLoading(false);

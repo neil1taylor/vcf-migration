@@ -8,7 +8,7 @@
  *   - IBM_CLOUD_API_KEY: IBM Cloud API key with watsonx.ai access
  *   - WATSONX_PROJECT_ID: watsonx.ai project ID
  *   - WATSONX_MODEL_ID: Model to use (default: ibm/granite-3-8b-instruct)
- *   - AI_PROXY_API_KEY: Shared secret for client authentication
+ *   - ALLOWED_ORIGINS: Comma-separated list of allowed CORS origins
  *   - PORT: Server port (default: 8080)
  */
 
@@ -32,8 +32,6 @@ const PORT = process.env.PORT || 8080;
 const API_KEY = process.env.IBM_CLOUD_API_KEY;
 const PROJECT_ID = process.env.WATSONX_PROJECT_ID;
 const MODEL_ID = process.env.WATSONX_MODEL_ID || 'ibm/granite-3-8b-instruct';
-const PROXY_API_KEY = process.env.AI_PROXY_API_KEY;
-
 // Cache configuration
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const cache = new Map(); // key -> { data, timestamp }
@@ -45,24 +43,22 @@ const rateLimitMap = new Map(); // ip -> { count, windowStart }
 
 // ===== MIDDLEWARE =====
 
-app.use(cors());
+// CORS — restrict to configured origins
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
+  : [];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow server-to-server (no origin) and health checks
+    if (!origin || ALLOWED_ORIGINS.length === 0 || ALLOWED_ORIGINS.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+}));
 app.use(express.json({ limit: '1mb' }));
-
-/**
- * API key authentication middleware for /api/* routes
- */
-function authenticateApiKey(req, res, next) {
-  if (!PROXY_API_KEY) {
-    // If no API key configured on server, skip auth
-    return next();
-  }
-
-  const clientKey = req.headers['x-api-key'];
-  if (!clientKey || clientKey !== PROXY_API_KEY) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-  next();
-}
 
 /**
  * Rate limiting middleware
@@ -89,8 +85,8 @@ function rateLimit(req, res, next) {
   next();
 }
 
-// Apply auth and rate limiting to API routes
-app.use('/api', authenticateApiKey, rateLimit);
+// Apply rate limiting to API routes
+app.use('/api', rateLimit);
 
 // ===== HEALTH ENDPOINTS =====
 
@@ -804,5 +800,5 @@ app.listen(PORT, () => {
   console.log(`API key configured: ${API_KEY ? 'Yes' : 'No'}`);
   console.log(`Project ID configured: ${PROJECT_ID ? 'Yes' : 'No'}`);
   console.log(`Model: ${MODEL_ID}`);
-  console.log(`Client auth: ${PROXY_API_KEY ? 'Enabled' : 'Disabled'}`);
+  console.log(`CORS: ${process.env.ALLOWED_ORIGINS ? 'restricted' : 'open'}`);
 });

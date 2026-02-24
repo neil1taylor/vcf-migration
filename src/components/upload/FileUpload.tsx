@@ -97,8 +97,8 @@ export function FileUpload({ onDataParsed, onError }: FileUploadProps) {
             <div className="file-upload__warnings">
               <h4>Warnings</h4>
               <ul>
-                {warnings.map((warning, index) => (
-                  <li key={index}>{warning}</li>
+                {warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
                 ))}
               </ul>
             </div>
@@ -111,8 +111,8 @@ export function FileUpload({ onDataParsed, onError }: FileUploadProps) {
           <div className="file-upload__error">
             <h4>Upload Failed</h4>
             <ul>
-              {errors.map((error, index) => (
-                <li key={index}>{error}</li>
+              {errors.map((error) => (
+                <li key={error}>{error}</li>
               ))}
             </ul>
           </div>

@@ -217,7 +217,7 @@ This section covers development setup, project architecture, and contribution gu
 
 ## Technology Stack
 
-- **React 18** with TypeScript for type-safe UI development
+- **React 19** with TypeScript for type-safe UI development
 - **Vite** for fast development and optimized production builds
 - **IBM Carbon Design System** for enterprise-grade UI components
 - **Chart.js** for data visualization
@@ -328,9 +328,6 @@ vcf-migration/
 Create a `.env` file based on `.env.example`:
 
 ```env
-# IBM Cloud API (optional - enables live pricing)
-VITE_IBM_CLOUD_API_KEY=your-api-key
-
 # Pricing proxy URL (optional - for production deployments)
 VITE_PRICING_PROXY_URL=https://your-function-url
 
@@ -339,12 +336,9 @@ VITE_PROFILES_PROXY_URL=https://your-function-url
 
 # AI proxy URL (optional - enables AI-powered features)
 VITE_AI_PROXY_URL=https://your-ai-proxy-url
-
-# AI proxy API key (optional - shared secret for AI proxy auth)
-VITE_AI_PROXY_API_KEY=your-shared-secret
 ```
 
-Without an API key, the application uses static pricing data from `ibmCloudConfig.json`.
+Without proxy URLs configured, the application uses static pricing data from `ibmCloudConfig.json`.
 
 ### AI Features (Optional)
 
@@ -429,44 +423,37 @@ ibmcloud resource service-instances --service-name pm-20 --output json | \
 #      c. Click "Add collaborators" > "Add service IDs"
 #      d. Search for "vcf-ai-proxy" and add it with the Editor role
 
-# 6. Generate a shared secret for frontend-to-proxy authentication
-openssl rand -hex 32
-# Save this value — you'll use it for AI_PROXY_API_KEY and VITE_AI_PROXY_API_KEY
-
-# 7. Find your watsonx.ai project ID (GUID, not name)
+# 6. Find your watsonx.ai project ID (GUID, not name)
 #    Option A: watsonx.ai console → your project → Manage tab
 #    Option B:
 ibmcloud resource service-instances --service-name pm-20 --output json | jq '.[].guid'
 
-# 8. Install proxy dependencies
+# 7. Install proxy dependencies
 cd functions/ai-proxy
 npm install
 
-# 9. Create (or select) a Code Engine project
+# 8. Create (or select) a Code Engine project
 ibmcloud ce project create --name vcf-migration-ai
 
 ibmcloud ce app create --name vcf-ai-proxy \
   --source . \
   --env IBM_CLOUD_API_KEY=<api-key-from-step-4> \
-  --env WATSONX_PROJECT_ID=<project-guid-from-step-7> \
-  --env WATSONX_MODEL_ID=ibm/granite-3-8b-instruct \
-  --env AI_PROXY_API_KEY=<shared-secret-from-step-6>
+  --env WATSONX_PROJECT_ID=<project-guid-from-step-6> \
+  --env WATSONX_MODEL_ID=ibm/granite-3-8b-instruct
 
 # If the app already exists, use update instead:
 # ibmcloud ce app update --name vcf-ai-proxy \
 #   --env IBM_CLOUD_API_KEY=<api-key-from-step-4> \
-#   --env WATSONX_PROJECT_ID=<project-guid-from-step-7> \
-#   --env WATSONX_MODEL_ID=ibm/granite-3-8b-instruct \
-#   --env AI_PROXY_API_KEY=<shared-secret-from-step-6>
+#   --env WATSONX_PROJECT_ID=<project-guid-from-step-6> \
+#   --env WATSONX_MODEL_ID=ibm/granite-3-8b-instruct
 
-# 10. Get the proxy URL
+# 9. Get the proxy URL
 ibmcloud ce app get --name vcf-ai-proxy --output url
 
-# 11. Add proxy URL and shared secret to frontend .env
-VITE_AI_PROXY_URL=<url-from-step-10>
-VITE_AI_PROXY_API_KEY=<shared-secret-from-step-6>   # Must match AI_PROXY_API_KEY
+# 10. Add proxy URL to frontend .env
+VITE_AI_PROXY_URL=<url-from-step-9>
 
-# 12. Enable AI features in the app's Settings page (/settings)
+# 11. Enable AI features in the app's Settings page (/settings)
 ```
 
 AI features are always optional. Without the AI proxy configured, the app falls back to existing rule-based logic. Only aggregated environment summaries are sent to watsonx.ai (never individual VM names or IPs).

@@ -62,6 +62,8 @@ vi.mock('@/components/common', () => ({
   ),
   RedHatDocLink: () => <div data-testid="doc-link" />,
   RemediationPanel: () => <div data-testid="remediation-panel" />,
+  NextStepBanner: () => <div data-testid="next-step-banner" />,
+  SectionErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 vi.mock('@/components/cost', () => ({

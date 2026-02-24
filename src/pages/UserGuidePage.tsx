@@ -596,6 +596,28 @@ export function UserGuidePage() {
               </div>
             </AccordionItem>
 
+            {/* Keyboard Shortcuts */}
+            <AccordionItem title="Keyboard Shortcuts">
+              <div className="user-guide-page__section">
+                <Tile className="user-guide-page__card">
+                  <h4>Keyboard Shortcuts</h4>
+                  <table className="user-guide-page__table">
+                    <thead>
+                      <tr>
+                        <th>Shortcut</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td><code>Escape</code></td><td>Close modals and dialogs</td></tr>
+                      <tr><td><code>Enter</code></td><td>Confirm inline edits</td></tr>
+                      <tr><td><code>Tab</code></td><td>Navigate between form fields</td></tr>
+                    </tbody>
+                  </table>
+                </Tile>
+              </div>
+            </AccordionItem>
+
             {/* Glossary */}
             <AccordionItem title="Glossary">
               <div className="user-guide-page__section">

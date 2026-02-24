@@ -161,8 +161,8 @@ function InsightsContent({
         <div className="ai-insights-panel__section">
           <h5>Recommendations</h5>
           <OrderedList>
-            {recommendations.map((rec, i) => (
-              <ListItem key={i}>{rec}</ListItem>
+            {recommendations.map((rec) => (
+              <ListItem key={rec}>{rec}</ListItem>
             ))}
           </OrderedList>
         </div>
@@ -172,8 +172,8 @@ function InsightsContent({
         <div className="ai-insights-panel__section">
           <h5>Cost Optimizations</h5>
           <OrderedList>
-            {costOptimizations.map((opt, i) => (
-              <ListItem key={i}>{opt}</ListItem>
+            {costOptimizations.map((opt) => (
+              <ListItem key={opt}>{opt}</ListItem>
             ))}
           </OrderedList>
         </div>

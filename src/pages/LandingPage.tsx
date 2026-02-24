@@ -1,10 +1,12 @@
 // Landing page with file upload
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Grid, Column, Tile, Tag } from '@carbon/react';
-import { WatsonHealthAiResults } from '@carbon/icons-react';
+import { Grid, Column, Tile, Tag, Button } from '@carbon/react';
+import { WatsonHealthAiResults, Education } from '@carbon/icons-react';
 import { FileUpload } from '@/components/upload';
+import { GuidedTour } from '@/components/common/GuidedTour';
 import { useData } from '@/hooks';
+import { useTour } from '@/hooks/useTour';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import type { RVToolsData } from '@/types';
 import { ROUTES } from '@/utils/constants';
@@ -13,6 +15,7 @@ import './LandingPage.scss';
 export function LandingPage() {
   const navigate = useNavigate();
   const { setRawData, setError } = useData();
+  const tour = useTour();
 
   const handleDataParsed = useCallback(
     (data: RVToolsData) => {
@@ -40,6 +43,15 @@ export function LandingPage() {
               Upload your RVTools Excel export to analyze your VMware infrastructure
               and assess migration readiness for IBM Cloud (ROKS + OpenShift Virtualization).
             </p>
+            <Button
+              kind="tertiary"
+              size="sm"
+              renderIcon={Education}
+              onClick={tour.openTour}
+              style={{ marginTop: '1rem' }}
+            >
+              Take a Tour
+            </Button>
           </div>
         </Column>
 
@@ -128,6 +140,7 @@ export function LandingPage() {
           </Column>
         )}
       </Grid>
+      <GuidedTour tour={tour} />
     </div>
   );
 }

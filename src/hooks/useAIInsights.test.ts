@@ -7,6 +7,13 @@ vi.mock('@/services/ai/aiProxyClient', () => ({
   isAIProxyConfigured: vi.fn(() => true),
 }));
 
+vi.mock('@/services/ai/aiInsightsCache', () => ({
+  getCachedInsights: vi.fn(() => null),
+  setCachedInsights: vi.fn(),
+  clearInsightsCache: vi.fn(),
+  buildInsightsInputHash: vi.fn(() => 'test-hash'),
+}));
+
 vi.mock('@/services/ai/aiInsightsApi', () => ({
   fetchAIInsights: vi.fn(() =>
     Promise.resolve({

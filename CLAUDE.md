@@ -78,7 +78,7 @@ User Guide: `docs/USER_GUIDE.md` and in-app at `/user-guide` route (`src/pages/U
 
 ## Architecture Overview
 
-React 18 + TypeScript + Vite application for VMware Cloud Foundation migration planning. Analyzes RVTools Excel exports and provides migration assessments for IBM Cloud ROKS (OpenShift) and VPC VSI targets.
+React 19 + TypeScript + Vite application for VMware Cloud Foundation migration planning. Analyzes RVTools Excel exports and provides migration assessments for IBM Cloud ROKS (OpenShift) and VPC VSI targets.
 
 ### Key Architectural Patterns
 
@@ -110,7 +110,6 @@ IBM Carbon Design System (`@carbon/react`) — all UI components follow Carbon p
 VITE_PRICING_PROXY_URL=...      # Code Engine pricing proxy URL
 VITE_PROFILES_PROXY_URL=...     # Code Engine profiles proxy URL
 VITE_AI_PROXY_URL=...           # Code Engine AI proxy URL (watsonx.ai)
-VITE_AI_PROXY_API_KEY=...       # Shared secret for AI proxy authentication
 ```
 
 Without proxy URLs, the app uses static data from `src/data/ibmCloudConfig.json`.
@@ -182,7 +181,7 @@ Optional AI features via Code Engine proxy → IBM watsonx.ai (Granite model).
 - Only aggregated summaries sent (never VM names, IPs, or raw data)
 - Reports (DOCX, PDF, Excel, BOM) include AI sections when enabled, with watsonx.ai disclaimer
 - Fallback: Without proxy → components render nothing; proxy unavailable → rule-based logic; AI disabled → same as unconfigured
-- Proxy auth: `X-API-Key` header; `/health` is unauthenticated
+- Proxy access: CORS origin restriction via `ALLOWED_ORIGINS` env var; `/health` is unauthenticated; rate limited (30 req/min)
 - Caching: Proxy 30min (in-memory), Client 24hr (localStorage)
 
 ## Version Management

@@ -588,8 +588,8 @@ export function HostsPage() {
             <h4>VMware Licensing</h4>
             {licenses.length > 0 ? (
               <div className="hosts-page__license-list">
-                {licenses.map((license, idx) => (
-                  <div key={idx} className="hosts-page__license-item">
+                {licenses.map((license) => (
+                  <div key={license.name || license.productName} className="hosts-page__license-item">
                     <div className="hosts-page__license-name">
                       <strong>{license.productName || license.name}</strong>
                       {license.productVersion && (

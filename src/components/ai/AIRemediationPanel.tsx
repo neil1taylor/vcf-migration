@@ -129,7 +129,7 @@ function RemediationContent({ guidance }: { guidance: RemediationResult }) {
 
             return (
               <AccordionItem
-                key={i}
+                key={`${blockerType}-${i}`}
                 title={
                   <div className="ai-remediation-panel__accordion-title">
                     <span>{blockerType}</span>

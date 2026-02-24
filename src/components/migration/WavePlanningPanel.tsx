@@ -188,7 +188,7 @@ export function WavePlanningPanel({
           <div className="migration-page__check-items" style={{ maxHeight: '300px', overflowY: 'auto' }}>
             {waveResources.map((wave, idx) => (
               <div
-                key={idx}
+                key={wave.name}
                 className={`migration-page__check-item ${selectedWave === wave.name ? 'migration-page__check-item--selected' : ''}`}
                 onClick={() => setSelectedWave(selectedWave === wave.name ? null : wave.name)}
                 style={{ cursor: 'pointer' }}
@@ -203,8 +203,8 @@ export function WavePlanningPanel({
         </Tile>
       </Column>
 
-      {waveResources.map((wave, idx) => (
-        <Column key={idx} lg={8} md={8} sm={4}>
+      {waveResources.map((wave) => (
+        <Column key={wave.name} lg={8} md={8} sm={4}>
           <Tile
             className={`migration-page__wave-tile ${wave.hasBlockers ? 'migration-page__wave-tile--warning' : ''} ${selectedWave === wave.name ? 'migration-page__wave-tile--selected' : ''}`}
             onClick={() => setSelectedWave(selectedWave === wave.name ? null : wave.name)}

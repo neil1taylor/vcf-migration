@@ -68,6 +68,8 @@ vi.mock('@/components/common', () => ({
       <span>{value}</span>
     </div>
   ),
+  NextStepBanner: () => <div data-testid="next-step-banner" />,
+  SectionErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 import { useData, useVMs, useChartFilter } from '@/hooks';

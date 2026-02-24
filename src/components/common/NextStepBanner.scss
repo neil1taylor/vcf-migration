@@ -1,0 +1,47 @@
+@use '@carbon/styles/scss/spacing';
+
+.next-step-banner {
+  display: flex;
+  align-items: center;
+  gap: spacing.$spacing-05;
+  padding: spacing.$spacing-05;
+  margin-top: spacing.$spacing-05;
+  border-left: 3px solid var(--cds-interactive, #0f62fe);
+  background-color: var(--cds-layer-01, #f4f4f4);
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background-color: var(--cds-background-brand, #0f62fe);
+    color: var(--cds-text-on-color, #ffffff);
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$spacing-02;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--cds-text-primary, #161616);
+  }
+
+  &__description {
+    font-size: 0.8125rem;
+    color: var(--cds-text-secondary, #525252);
+  }
+
+  &__arrow {
+    flex-shrink: 0;
+    color: var(--cds-interactive, #0f62fe);
+  }
+}

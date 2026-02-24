@@ -17,6 +17,7 @@ import {
   TrashCan,
   Reset,
   Settings as SettingsIcon,
+  Education,
 } from '@carbon/icons-react';
 import { useAISettings } from '@/hooks/useAISettings';
 import { useAIStatus } from '@/hooks/useAIStatus';
@@ -27,10 +28,12 @@ import { clearPricingCache } from '@/services/pricing/pricingCache';
 import { clearProfilesCache } from '@/services/profiles/profilesCache';
 import { isProxyConfigured, testProxyConnection } from '@/services/pricing/globalCatalogApi';
 import { isProfilesProxyConfigured, testProfilesProxyConnection } from '@/services/ibmCloudProfilesApi';
+import { useTour } from '@/hooks/useTour';
 import './SettingsPage.scss';
 
 export function SettingsPage() {
   const { settings, updateSettings } = useAISettings();
+  const tour = useTour();
   const { isConfigured, proxyHealth, isTestingProxy, testProxy } = useAIStatus();
 
   // Pricing proxy status
@@ -498,6 +501,27 @@ export function SettingsPage() {
                 Reset All Overrides
               </Button>
             </div>
+          </Tile>
+        </Column>
+
+        {/* Guided Tour */}
+        <Column lg={16} md={8} sm={4} style={{ marginBottom: '1rem' }}>
+          <Tile className="settings-page__tile">
+            <h2 className="settings-page__section-title">
+              <Education size={20} />
+              Guided Tour
+            </h2>
+            <p className="settings-page__cache-description">
+              Replay the guided tour to learn about the workflow steps.
+            </p>
+            <Button
+              kind="tertiary"
+              size="sm"
+              renderIcon={Education}
+              onClick={tour.resetTour}
+            >
+              Restart Tour
+            </Button>
           </Tile>
         </Column>
       </Grid>

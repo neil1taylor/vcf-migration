@@ -3,10 +3,11 @@ import { useState, useMemo } from 'react';
 import { Grid, Column, Tile, Accordion, AccordionItem, Tag, Tabs, TabList, Tab, TabPanels, TabPanel } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
 import { useData, useVMs, useAllVMs, useVMOverrides, useAIClassification, useAutoExclusion } from '@/hooks';
+import { LogoKubernetes } from '@carbon/icons-react';
 import { ROUTES } from '@/utils/constants';
 import { formatNumber } from '@/utils/formatters';
 import { HorizontalBarChart } from '@/components/charts';
-import { MetricCard } from '@/components/common';
+import { MetricCard, NextStepBanner } from '@/components/common';
 import { DiscoveryVMTable } from '@/components/discovery';
 import { NetworkSummaryTable } from '@/components/network';
 import type { WorkloadMatch } from '@/components/discovery';
@@ -483,6 +484,16 @@ export function DiscoveryPage() {
               </TabPanel>
             </TabPanels>
           </Tabs>
+        </Column>
+
+        {/* Next Step Banner */}
+        <Column lg={16} md={8} sm={4}>
+          <NextStepBanner
+            title="Next: Run ROKS migration assessment"
+            description="Assess VM compatibility, plan migration waves, and estimate IBM Cloud ROKS costs."
+            route={ROUTES.roksMigration}
+            icon={LogoKubernetes}
+          />
         </Column>
       </Grid>
     </div>

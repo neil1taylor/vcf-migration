@@ -1,11 +1,13 @@
 // Common chart wrapper component
 import type { ReactNode } from 'react';
+import { SectionErrorBoundary } from '@/components/common';
 import './ChartWrapper.scss';
 
 interface ChartWrapperProps {
   title?: string;
   subtitle?: string;
   height?: number;
+  ariaLabel?: string;
   children: ReactNode;
 }
 
@@ -13,10 +15,11 @@ export function ChartWrapper({
   title,
   subtitle,
   height = 300,
+  ariaLabel,
   children,
 }: ChartWrapperProps) {
   return (
-    <div className="chart-wrapper">
+    <div className="chart-wrapper" role="img" aria-label={ariaLabel || title || 'Chart'}>
       {(title || subtitle) && (
         <div className="chart-wrapper__header">
           {title && <h4 className="chart-wrapper__title">{title}</h4>}
@@ -24,7 +27,9 @@ export function ChartWrapper({
         </div>
       )}
       <div className="chart-wrapper__content" style={{ height }}>
-        {children}
+        <SectionErrorBoundary sectionName={title || 'Chart'}>
+          {children}
+        </SectionErrorBoundary>
       </div>
     </div>
   );

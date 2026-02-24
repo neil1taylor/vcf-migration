@@ -4,6 +4,7 @@ import {
   HeaderName,
   HeaderGlobalBar,
   HeaderGlobalAction,
+  SkipToContent,
 } from '@carbon/react';
 import { Information, Upload, DocumentExport, DataTableReference, Document, Light, Asleep } from '@carbon/icons-react';
 import { useNavigate } from 'react-router-dom';
@@ -25,6 +26,7 @@ export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick, on
 
   return (
     <Header aria-label="RVTools Analyzer">
+      <SkipToContent href="#main-content" />
       <HeaderName href="/" prefix="IBM">
         RVTools Analyzer
       </HeaderName>

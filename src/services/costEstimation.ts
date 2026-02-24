@@ -1,7 +1,10 @@
 // IBM Cloud Cost Estimation Service
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
-import type { IBMCloudPricing } from '@/services/pricing/pricingCache';
+import { createLogger } from '@/utils/logger';
+import type { IBMCloudPricing, BareMetalProfile, VSIProfile } from '@/services/pricing/pricingCache';
 import { getCurrentPricing, getStaticPricing } from '@/services/pricing/pricingCache';
+
+const logger = createLogger('CostEstimation');
 
 // ===== TYPES =====
 
@@ -246,82 +249,150 @@ export interface CostEstimate {
 export type RegionCode = keyof typeof ibmCloudConfig.regions;
 export type DiscountType = keyof typeof ibmCloudConfig.discounts;
 
+// ===== PRICING RESULT TYPES =====
+
+/** Indicates the quality/source of pricing data */
+export type DataQuality = 'live' | 'static' | 'fallback';
+
+/** Tagged result wrapper for pricing data functions */
+export interface PricingResult<T> {
+  data: T;
+  quality: DataQuality;
+  warnings: string[];
+}
+
+/** Determine data quality based on pricing source */
+function getPricingQuality(pricing?: IBMCloudPricing): DataQuality {
+  if (pricing) return 'live'; // Caller passed explicit pricing (from dynamic hook)
+  try {
+    const current = getCurrentPricing();
+    return current.source === 'cached' ? 'live' : 'static';
+  } catch {
+    return 'static';
+  }
+}
+
 /**
  * Get list of available regions
  */
-export function getRegions(pricing?: IBMCloudPricing): { code: string; name: string; multiplier: number }[] {
+export function getRegions(pricing?: IBMCloudPricing): PricingResult<{ code: string; name: string; multiplier: number }[]> {
   const data = pricing || getActivePricing();
+  const quality = getPricingQuality(pricing);
   if (!data.regions) {
-    console.warn('[getRegions] regions is undefined, returning defaults');
-    return [{ code: 'us-south', name: 'Dallas', multiplier: 1.0 }];
+    logger.warn('[getRegions] regions is undefined, returning defaults');
+    return {
+      data: [{ code: 'us-south', name: 'Dallas', multiplier: 1.0 }],
+      quality: 'fallback',
+      warnings: ['Region data unavailable — using default (us-south/Dallas)'],
+    };
   }
-  return Object.entries(data.regions).map(([code, region]) => ({
-    code,
-    name: region.name,
-    multiplier: region.multiplier,
-  }));
+  return {
+    data: Object.entries(data.regions).map(([code, region]) => ({
+      code,
+      name: region.name,
+      multiplier: region.multiplier,
+    })),
+    quality,
+    warnings: [],
+  };
 }
 
 /**
  * Get list of available discount options
  */
-export function getDiscountOptions(pricing?: IBMCloudPricing): { id: string; name: string; discountPct: number; description: string }[] {
+export function getDiscountOptions(pricing?: IBMCloudPricing): PricingResult<{ id: string; name: string; discountPct: number; description: string }[]> {
   const data = pricing || getActivePricing();
+  const quality = getPricingQuality(pricing);
   if (!data.discounts) {
-    console.warn('[getDiscountOptions] discounts is undefined, returning defaults');
-    return [{ id: 'onDemand', name: 'On-Demand', discountPct: 0, description: 'Pay-as-you-go' }];
+    logger.warn('[getDiscountOptions] discounts is undefined, returning defaults');
+    return {
+      data: [{ id: 'onDemand', name: 'On-Demand', discountPct: 0, description: 'Pay-as-you-go' }],
+      quality: 'fallback',
+      warnings: ['Discount data unavailable — using default (On-Demand)'],
+    };
   }
-  return Object.entries(data.discounts).map(([id, discount]) => ({
-    id,
-    name: discount.name,
-    discountPct: discount.discountPct,
-    description: discount.description,
-  }));
+  return {
+    data: Object.entries(data.discounts).map(([id, discount]) => ({
+      id,
+      name: discount.name,
+      discountPct: discount.discountPct,
+      description: discount.description,
+    })),
+    quality,
+    warnings: [],
+  };
 }
 
 /**
  * Get bare metal profiles
  */
-export function getBareMetalProfiles(pricing?: IBMCloudPricing) {
+export function getBareMetalProfiles(pricing?: IBMCloudPricing): PricingResult<(BareMetalProfile & { id: string })[]> {
   const data = pricing || getActivePricing();
+  const quality = getPricingQuality(pricing);
   if (!data.bareMetal) {
-    console.warn('[getBareMetalProfiles] bareMetal is undefined, returning empty array');
-    return [];
+    logger.warn('[getBareMetalProfiles] bareMetal is undefined, returning empty array');
+    return {
+      data: [],
+      quality: 'fallback' as DataQuality,
+      warnings: ['Bare metal profile data unavailable'],
+    };
   }
-  return Object.entries(data.bareMetal).map(([id, profile]) => ({
-    id,
-    ...profile,
-  }));
+  return {
+    data: Object.entries(data.bareMetal).map(([id, profile]) => ({
+      id,
+      ...profile,
+    })),
+    quality,
+    warnings: [],
+  };
 }
 
 /**
  * Get VSI profiles
  */
-export function getVSIProfiles(pricing?: IBMCloudPricing) {
+export function getVSIProfiles(pricing?: IBMCloudPricing): PricingResult<(VSIProfile & { id: string })[]> {
   const data = pricing || getActivePricing();
+  const quality = getPricingQuality(pricing);
   if (!data.vsi) {
-    console.warn('[getVSIProfiles] vsi is undefined, returning empty array');
-    return [];
+    logger.warn('[getVSIProfiles] vsi is undefined, returning empty array');
+    return {
+      data: [],
+      quality: 'fallback' as DataQuality,
+      warnings: ['VSI profile data unavailable'],
+    };
   }
-  return Object.entries(data.vsi).map(([id, profile]) => ({
-    id,
-    ...profile,
-  }));
+  return {
+    data: Object.entries(data.vsi).map(([id, profile]) => ({
+      id,
+      ...profile,
+    })),
+    quality,
+    warnings: [],
+  };
 }
 
 /**
  * Get ODF workload profiles
  */
-export function getODFProfiles(pricing?: IBMCloudPricing) {
+export function getODFProfiles(pricing?: IBMCloudPricing): PricingResult<{ id: string; name: string; cpuPerNode: number; memoryPerNodeGiB: number; description: string }[]> {
   const data = pricing || getActivePricing();
+  const quality = getPricingQuality(pricing);
   if (!data.odfWorkloadProfiles) {
-    console.warn('[getODFProfiles] odfWorkloadProfiles is undefined, returning empty array');
-    return [];
+    logger.warn('[getODFProfiles] odfWorkloadProfiles is undefined, returning empty array');
+    return {
+      data: [],
+      quality: 'fallback' as DataQuality,
+      warnings: ['ODF workload profile data unavailable'],
+    };
   }
-  return Object.entries(data.odfWorkloadProfiles).map(([id, profile]) => ({
-    id,
-    ...profile,
-  }));
+  return {
+    data: Object.entries(data.odfWorkloadProfiles).map(([id, profile]) => ({
+      id,
+      ...profile,
+    })),
+    quality,
+    warnings: [],
+  };
 }
 
 /**
