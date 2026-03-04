@@ -217,6 +217,12 @@ node_modules
 /blob-report/
 /playwright/.cache/
 
+# Example/sample data files (may contain customer data)
+examples/
+
+# Internal design/implementation plans
+docs/plans/
+
 # MS
 .xlsx
 # Allow test fixture Excel file

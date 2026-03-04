@@ -14,6 +14,7 @@ This section covers how to use the VCF Migration application for migration plann
 
 ### Data Import & Analysis
 - **RVTools Import** — Parse and analyze RVTools Excel exports (vInfo, vCPU, vMemory, vDisk, vNetwork, vHost, vDatastore tabs)
+- **vInventory Support** — Convert vInventory (PowerShell-based) Excel exports to RVTools format using the included [converter script](scripts/convert_vinventory.py)
 - **Environment Overview** — Dashboard with VM counts, resource utilization, and health metrics
 - **Inventory Visualization** — Interactive charts and tables for exploring your VMware environment
 
@@ -75,6 +76,12 @@ This section covers how to use the VCF Migration application for migration plann
 1. Export your VMware environment using RVTools
 2. Upload the `.xlsx` file to the application
 3. The parser extracts data from multiple tabs (vInfo, vCPU, vDisk, etc.)
+
+> **Using vInventory instead of RVTools?** Convert it first:
+> ```bash
+> python3 scripts/convert_vinventory.py your-vinventory-export.xlsx output_rvtools.xlsx
+> ```
+> Then upload `output_rvtools.xlsx` to the app.
 
 ### 2. Analyze Migration Targets
 
@@ -180,6 +187,11 @@ This application does not include:
 ### RVTools
 - Website: https://www.dell.com/en-us/shop/vmware/sl/rvtools
 - Supported export format: Excel (.xlsx)
+
+### vInventory
+- PowerShell-based vSphere inventory tool (alternative to RVTools)
+- Convert to RVTools format with: `python3 scripts/convert_vinventory.py input.xlsx [output.xlsx]`
+- Requires Python 3.8+ with `openpyxl` (`pip install openpyxl`)
 
 ### IBM Cloud Pricing
 - Global Catalog API for live pricing
@@ -310,6 +322,7 @@ vcf-migration/
 ├── docs/                     # Documentation files
 │   └── USER_GUIDE.md         # User documentation
 ├── scripts/                  # Build and update scripts
+│   ├── convert_vinventory.py # Convert vInventory exports to RVTools format
 │   ├── update-profiles.ts    # Update IBM Cloud profiles
 │   └── update-pricing.ts     # Update IBM Cloud pricing
 ├── DEPLOYMENT.md             # Production deployment guide

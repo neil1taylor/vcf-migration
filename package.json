@@ -21,7 +21,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:generate-fixture": "npx tsx e2e/fixtures/generate-fixture.ts"
+    "test:e2e:generate-fixture": "npx tsx e2e/fixtures/generate-fixture.ts",
+    "convert:vinventory": "python3 scripts/convert_vinventory.py"
   },
   "dependencies": {
     "@carbon/icons-react": "^11.71.0",

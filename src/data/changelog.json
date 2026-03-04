@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "version": "1.2.1",
+      "date": "2026-03-04",
+      "sections": {
+        "added": [
+          "vInventory-to-RVTools converter script (scripts/convert_vinventory.py) — converts vInventory Excel exports to RVTools-compatible format for app ingestion",
+          "Synthesized vTools, vCPU, vMemory sheets from vInventory vmInfo columns",
+          "Synthesized vDatastore sheet from vDisk, DatastoreAssociation, and LUN data (capacity, usage, host mappings)",
+          "npm run convert:vinventory command for vInventory file conversion"
+        ]
+      }
+    },
+    {
       "version": "1.2.0",
       "date": "2026-02-24",
       "sections": {

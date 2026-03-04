@@ -27,6 +27,7 @@ npm run test:e2e:headed # Run E2E tests with visible browser
 npm run test:e2e:debug  # Run E2E tests in debug mode
 npm run test:e2e:ui     # Run E2E tests with Playwright UI
 npm run test:e2e:generate-fixture # Regenerate test Excel fixture
+npm run convert:vinventory -- input.xlsx [output.xlsx]  # Convert vInventory to RVTools format
 ```
 
 ## Testing Requirements
@@ -135,6 +136,41 @@ Define custom profiles in `src/data/ibmCloudConfig.json` under `customBareMetalP
 ## OS Compatibility Data
 
 Manually maintained in `src/data/ibmCloudOSCompatibility.json` (VPC VSI) and `src/data/redhatOSCompatibility.json` (ROKS). Update when IBM Cloud/Red Hat changes supported OS versions. The `patterns` array contains lowercase strings matched against RVTools "Guest OS" field (case-insensitive substring matching in `src/services/migration/osCompatibility.ts`).
+
+## vInventory Converter
+
+Standalone Python script (`scripts/convert_vinventory.py`) that converts vInventory Excel exports to RVTools-compatible format for ingestion by the app.
+
+### Usage
+
+```bash
+python3 scripts/convert_vinventory.py input.xlsx [output.xlsx]
+# Or via npm:
+npm run convert:vinventory -- input.xlsx [output.xlsx]
+```
+
+### Supported Sheets
+
+| vInventory Sheet | RVTools Output | Notes |
+|---|---|---|
+| `vmInfo` | `vInfo` | MemGB×1024→MiB, ProvisionedGB×1024→MiB |
+| `vDisk` | `vDisk` | DiskGB×1024→MiB |
+| `vNetworkadapter` | `vNetwork` | — |
+| `Snapshots` | `vSnapshot` | DaysOld→Date/time synthesis |
+| `DvdFloppy` | `vCD` | — |
+| `Cluster` | `vCluster` | MemGB×1024→MiB |
+| `vmhost` | `vHost` | MemGB×1024→MiB |
+| `vCenter` | `vSource` | — |
+| `vLicense` | `vLicense` | — |
+| `vPartition` | `vPartition` | — |
+| (from vmInfo) | `vTools` | Synthesized from vmInfo columns |
+| (from vmInfo) | `vCPU` | Synthesized from vmInfo columns |
+| (from vmInfo) | `vMemory` | Synthesized from vmInfo columns |
+| vDisk+DatastoreAssociation+LUN | `vDatastore` | Synthesized: capacity, usage, hosts, datacenter |
+
+### Requirements
+
+Python 3.8+ with openpyxl: `pip install openpyxl`
 
 ## Virtualization Overhead
 
