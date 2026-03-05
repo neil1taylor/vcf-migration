@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "1.2.5",
+      "date": "2026-03-05",
+      "sections": {
+        "fixed": [
+          "VSI cost calculation no longer silently drops VMs with unrecognized profiles — uses closest same-family profile as fallback with estimated pricing note",
+          "Proxy pricing data now merges with static profiles instead of replacing entirely, preventing profile loss when proxy returns fewer profiles"
+        ]
+      }
+    },
+    {
       "version": "1.2.4",
       "date": "2026-03-05",
       "sections": {

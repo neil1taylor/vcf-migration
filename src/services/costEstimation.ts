@@ -202,8 +202,8 @@ function getActivePricing(): IBMCloudPricing {
       ...staticData,
       ...current.data,
       // Ensure nested objects exist
-      bareMetal: current.data.bareMetal || staticData.bareMetal,
-      vsi: current.data.vsi || staticData.vsi,
+      bareMetal: { ...staticData.bareMetal, ...(current.data.bareMetal || {}) },
+      vsi: { ...staticData.vsi, ...(current.data.vsi || {}) },
       regions: current.data.regions || staticData.regions,
       discounts: current.data.discounts || staticData.discounts,
       blockStorage: current.data.blockStorage || staticData.blockStorage,
@@ -215,6 +215,55 @@ function getActivePricing(): IBMCloudPricing {
   } catch {
     return getStaticPricing();
   }
+}
+
+/**
+ * Parse a VSI profile name into family prefix, vCPUs, and memory GiB.
+ * e.g. "bx2-4x16" → { prefix: "bx2", vcpus: 4, memoryGiB: 16 }
+ */
+function parseProfileName(profileName: string): { prefix: string; vcpus: number; memoryGiB: number } | null {
+  const match = profileName.match(/^([a-z]+\d*[a-z]?)-(\d+)x(\d+)$/);
+  if (!match) return null;
+  return { prefix: match[1], vcpus: parseInt(match[2], 10), memoryGiB: parseInt(match[3], 10) };
+}
+
+/**
+ * Find the closest priced profile in the same family when an exact match is missing.
+ * Matches by family prefix first, then minimizes the distance in vCPU + memory space.
+ */
+export function findClosestPricedProfile(
+  missingProfile: string,
+  vsiPricing: Record<string, VSIProfile>
+): VSIProfile | null {
+  const parsed = parseProfileName(missingProfile);
+  if (!parsed) return null;
+
+  // Extract the family letter(s) before any digit (e.g. "bx2" → "b", "cx3d" → "c", "mx2" → "m")
+  const familyLetter = parsed.prefix.match(/^([a-z]+)/)?.[1]?.charAt(0);
+  if (!familyLetter) return null;
+
+  let bestMatch: VSIProfile | null = null;
+  let bestDistance = Infinity;
+
+  for (const profile of Object.values(vsiPricing)) {
+    const candidateParsed = parseProfileName(profile.profile);
+    if (!candidateParsed) continue;
+
+    const candidateFamily = candidateParsed.prefix.match(/^([a-z]+)/)?.[1]?.charAt(0);
+    if (candidateFamily !== familyLetter) continue;
+
+    // Euclidean-ish distance weighted by scale (vCPUs and memory are different magnitudes)
+    const vcpuDiff = Math.abs(candidateParsed.vcpus - parsed.vcpus);
+    const memDiff = Math.abs(candidateParsed.memoryGiB - parsed.memoryGiB) / 4; // normalize memory
+    const distance = vcpuDiff + memDiff;
+
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestMatch = profile;
+    }
+  }
+
+  return bestMatch;
 }
 
 export interface CostLineItem {
@@ -614,15 +663,27 @@ export function calculateVSICost(
   const multiplier = regionData.multiplier;
 
   // Group VSI profiles
-  const profileCounts: Record<string, { count: number; profile: typeof pricingToUse.vsi[keyof typeof pricingToUse.vsi] }> = {};
+  const profileCounts: Record<string, { count: number; profile: VSIProfile; estimated: boolean }> = {};
 
   for (const vm of input.vmProfiles) {
     const profile = pricingToUse.vsi[vm.profile as keyof typeof pricingToUse.vsi];
     if (profile) {
       if (!profileCounts[vm.profile]) {
-        profileCounts[vm.profile] = { count: 0, profile };
+        profileCounts[vm.profile] = { count: 0, profile, estimated: false };
       }
       profileCounts[vm.profile].count += vm.count;
+    } else {
+      // Find closest profile as fallback instead of silently dropping
+      const fallback = findClosestPricedProfile(vm.profile, pricingToUse.vsi);
+      if (fallback) {
+        logger.warn(`[calculateVSICost] Profile "${vm.profile}" not in pricing data, using "${fallback.profile}" as estimate (${vm.count} VMs)`);
+        if (!profileCounts[vm.profile]) {
+          profileCounts[vm.profile] = { count: 0, profile: fallback, estimated: true };
+        }
+        profileCounts[vm.profile].count += vm.count;
+      } else {
+        logger.error(`[calculateVSICost] Profile "${vm.profile}" not found and no fallback available (${vm.count} VMs dropped)`);
+      }
     }
   }
 
@@ -637,7 +698,9 @@ export function calculateVSICost(
       unitCost: monthlyRate,
       monthlyCost: data.count * monthlyRate,
       annualCost: data.count * monthlyRate * 12,
-      notes: data.profile.description,
+      notes: data.estimated
+        ? `Estimated from ${data.profile.profile} — exact pricing unavailable for ${profileName}`
+        : data.profile.description,
     });
   }
 

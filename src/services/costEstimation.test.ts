@@ -7,8 +7,11 @@ import {
   getDiscountOptions,
   formatCurrency,
   formatCurrencyPrecise,
+  findClosestPricedProfile,
 } from './costEstimation';
 import type { VSISizingInput, ROKSSizingInput } from './costEstimation';
+import type { VSIProfile } from '@/services/pricing/pricingCache';
+import { getStaticPricing } from '@/services/pricing/pricingCache';
 
 describe('Cost Estimation Service', () => {
   describe('getRegions', () => {
@@ -405,6 +408,103 @@ describe('Cost Estimation Service', () => {
       expect(reservedResult.totalMonthly).toBeLessThan(onDemandResult.totalMonthly);
       // The discount amount should be larger now that OCP/ODF are included
       expect(reservedResult.discountAmountMonthly).toBeGreaterThan(0);
+    });
+  });
+
+  describe('findClosestPricedProfile', () => {
+    const mockVSIPricing: Record<string, VSIProfile> = {
+      'bx2-4x16': { profile: 'bx2-4x16', family: 'Balanced', vcpus: 4, memoryGiB: 16, networkGbps: 8, hourlyRate: 0.2, monthlyRate: 146, description: 'Balanced 4x16' },
+      'bx2-8x32': { profile: 'bx2-8x32', family: 'Balanced', vcpus: 8, memoryGiB: 32, networkGbps: 16, hourlyRate: 0.4, monthlyRate: 292, description: 'Balanced 8x32' },
+      'cx2-4x8': { profile: 'cx2-4x8', family: 'Compute', vcpus: 4, memoryGiB: 8, networkGbps: 8, hourlyRate: 0.18, monthlyRate: 131, description: 'Compute 4x8' },
+      'mx2-4x32': { profile: 'mx2-4x32', family: 'Memory', vcpus: 4, memoryGiB: 32, networkGbps: 8, hourlyRate: 0.25, monthlyRate: 182.5, description: 'Memory 4x32' },
+    };
+
+    it('should find closest profile in the same family', () => {
+      const result = findClosestPricedProfile('bx2-6x24', mockVSIPricing);
+      expect(result).toBeDefined();
+      // Should match bx2-4x16 or bx2-8x32 (both balanced family)
+      expect(result?.profile).toMatch(/^bx2-/);
+    });
+
+    it('should match by family letter (b=balanced, c=compute, m=memory)', () => {
+      const result = findClosestPricedProfile('cx2-4x16', mockVSIPricing);
+      expect(result).toBeDefined();
+      expect(result?.profile).toBe('cx2-4x8'); // only compute profile
+    });
+
+    it('should return null for unparseable profile names', () => {
+      expect(findClosestPricedProfile('weird-profile', mockVSIPricing)).toBeNull();
+      expect(findClosestPricedProfile('', mockVSIPricing)).toBeNull();
+    });
+
+    it('should return null when no profiles match the family', () => {
+      const result = findClosestPricedProfile('ox2-4x16', mockVSIPricing);
+      expect(result).toBeNull();
+    });
+
+    it('should prefer closer specs within same family', () => {
+      const result = findClosestPricedProfile('bx2-4x16', mockVSIPricing);
+      expect(result?.profile).toBe('bx2-4x16'); // exact match
+    });
+  });
+
+  describe('calculateVSICost - unmatched profile fallback', () => {
+    it('should include VMs with unrecognized profiles using fallback pricing', () => {
+      // Use a profile name that follows naming convention but doesn't exist in pricing
+      const input: VSISizingInput = {
+        vmProfiles: [
+          { profile: 'bx2-4x16', count: 3 },      // exists in pricing
+          { profile: 'bx2-999x9999', count: 5 },   // doesn't exist but parseable
+        ],
+        storageTiB: 0,
+      };
+
+      const result = calculateVSICost(input, 'us-south', 'onDemand');
+      const computeItems = result.lineItems.filter(item => item.category === 'Compute - VSI');
+
+      // Both profiles should appear as line items (not just the known one)
+      expect(computeItems.length).toBe(2);
+
+      // The known profile should have exact pricing
+      const knownItem = computeItems.find(item => item.description === 'VSI - bx2-4x16');
+      expect(knownItem).toBeDefined();
+      expect(knownItem?.quantity).toBe(3);
+
+      // The unknown profile should have estimated pricing with a note
+      const unknownItem = computeItems.find(item => item.description === 'VSI - bx2-999x9999');
+      expect(unknownItem).toBeDefined();
+      expect(unknownItem?.quantity).toBe(5);
+      expect(unknownItem?.notes).toContain('Estimated from');
+      expect(unknownItem?.notes).toContain('exact pricing unavailable');
+    });
+
+    it('should not drop VMs when profile is missing from pricing', () => {
+      const input: VSISizingInput = {
+        vmProfiles: [
+          { profile: 'bx2-4x16', count: 10 },
+          { profile: 'bx3d-4x20', count: 5 },  // hypothetical future profile
+        ],
+        storageTiB: 0,
+      };
+
+      const result = calculateVSICost(input, 'us-south', 'onDemand');
+      const totalVMs = result.lineItems
+        .filter(item => item.category === 'Compute - VSI')
+        .reduce((sum, item) => sum + item.quantity, 0);
+
+      expect(totalVMs).toBe(15); // all VMs accounted for
+    });
+  });
+
+  describe('getActivePricing - merge behavior', () => {
+    it('should have all static VSI profiles available', () => {
+      // When no proxy cache exists, static profiles should all be present
+      const staticPricing = getStaticPricing();
+      const staticVSICount = Object.keys(staticPricing.vsi).length;
+      expect(staticVSICount).toBeGreaterThan(0);
+
+      // bx2-4x16 should always exist in static data
+      expect(staticPricing.vsi['bx2-4x16']).toBeDefined();
     });
   });
 });
