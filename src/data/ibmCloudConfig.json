@@ -1,5 +1,5 @@
 {
-  "version": "2026-01-22",
+  "version": "2026-03-05",
   "baseCurrency": "USD",
   "notes": "Unified IBM Cloud configuration. Profiles can be refreshed via VPC API (GET /v1/instance/profiles) and Kubernetes Service API (GET /v2/getMachineTypes).",
   "apiEndpoints": {
@@ -14,448 +14,448 @@
         "vcpus": 1,
         "memoryGiB": 4,
         "bandwidthGbps": 2000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 3.226,
+        "monthlyRate": 2354.98
       },
       {
         "name": "bz2-1x4",
         "vcpus": 1,
         "memoryGiB": 4,
         "bandwidthGbps": 2000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 3.57,
+        "monthlyRate": 2606.1
       },
       {
         "name": "bxf-2x8",
         "vcpus": 2,
         "memoryGiB": 8,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.096,
+        "monthlyRate": 70.08
       },
       {
         "name": "bx2-2x8",
         "vcpus": 2,
         "memoryGiB": 8,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0.095,
-        "monthlyRate": 69.35
+        "hourlyRate": 0.0916,
+        "monthlyRate": 66.87
       },
       {
         "name": "bx3dc-2x10",
         "vcpus": 2,
         "memoryGiB": 10,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.113,
+        "monthlyRate": 82.49
       },
       {
         "name": "bx3d-2x10",
         "vcpus": 2,
         "memoryGiB": 10,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.113,
+        "monthlyRate": 82.49
       },
       {
         "name": "bx2d-2x8",
         "vcpus": 2,
         "memoryGiB": 8,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.0916,
+        "monthlyRate": 66.87
       },
       {
         "name": "bz2-2x8",
         "vcpus": 2,
         "memoryGiB": 8,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 7.14,
+        "monthlyRate": 5212.2
       },
       {
         "name": "bz2e-2x8",
         "vcpus": 2,
         "memoryGiB": 8,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 6.452,
+        "monthlyRate": 4709.96
       },
       {
         "name": "bx3d-4x20",
         "vcpus": 4,
         "memoryGiB": 20,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.227,
+        "monthlyRate": 165.71
       },
       {
         "name": "bx2d-4x16",
         "vcpus": 4,
         "memoryGiB": 16,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.1832,
+        "monthlyRate": 133.75
       },
       {
         "name": "bx3dc-4x20",
         "vcpus": 4,
         "memoryGiB": 20,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.0455,
+        "monthlyRate": 33.18
       },
       {
         "name": "bx2-4x16",
         "vcpus": 4,
         "memoryGiB": 16,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.19,
-        "monthlyRate": 138.7
+        "hourlyRate": 0.1832,
+        "monthlyRate": 133.75
       },
       {
         "name": "bxf-4x16",
         "vcpus": 4,
         "memoryGiB": 16,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.193,
+        "monthlyRate": 140.89
       },
       {
         "name": "bz2-4x16",
         "vcpus": 4,
         "memoryGiB": 16,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 14.28,
+        "monthlyRate": 10424.4
       },
       {
         "name": "bz2e-4x16",
         "vcpus": 4,
         "memoryGiB": 16,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 12.904,
+        "monthlyRate": 9419.92
       },
       {
         "name": "bx3dc-8x40",
         "vcpus": 8,
         "memoryGiB": 40,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.499,
+        "monthlyRate": 364.27
       },
       {
         "name": "bxf-8x32",
         "vcpus": 8,
         "memoryGiB": 32,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.386,
+        "monthlyRate": 281.78
       },
       {
         "name": "bx3d-8x40",
         "vcpus": 8,
         "memoryGiB": 40,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.453,
+        "monthlyRate": 330.69
       },
       {
         "name": "bx2-8x32",
         "vcpus": 8,
         "memoryGiB": 32,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0.38,
-        "monthlyRate": 277.4
+        "hourlyRate": 0.3664,
+        "monthlyRate": 267.49
       },
       {
         "name": "bx2d-8x32",
         "vcpus": 8,
         "memoryGiB": 32,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.3664,
+        "monthlyRate": 267.49
       },
       {
         "name": "bz2e-8x32",
         "vcpus": 8,
         "memoryGiB": 32,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 25.808,
+        "monthlyRate": 18839.84
       },
       {
         "name": "bz2-8x32",
         "vcpus": 8,
         "memoryGiB": 32,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 28.56,
+        "monthlyRate": 20848.8
       },
       {
         "name": "bx2d-16x64",
         "vcpus": 16,
         "memoryGiB": 64,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.7329,
+        "monthlyRate": 534.99
       },
       {
         "name": "bx3dc-16x80",
         "vcpus": 16,
         "memoryGiB": 80,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.1818,
+        "monthlyRate": 132.71
       },
       {
         "name": "bx2-16x64",
         "vcpus": 16,
         "memoryGiB": 64,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0.76,
-        "monthlyRate": 554.8
+        "hourlyRate": 0.7329,
+        "monthlyRate": 534.99
       },
       {
         "name": "bx3d-16x80",
         "vcpus": 16,
         "memoryGiB": 80,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.907,
+        "monthlyRate": 662.11
       },
       {
         "name": "bxf-16x64",
         "vcpus": 16,
         "memoryGiB": 64,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.771,
+        "monthlyRate": 562.83
       },
       {
         "name": "bz2e-16x64",
         "vcpus": 16,
         "memoryGiB": 64,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 51.616,
+        "monthlyRate": 37679.68
       },
       {
         "name": "bz2-16x64",
         "vcpus": 16,
         "memoryGiB": 64,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 57.12,
+        "monthlyRate": 41697.6
       },
       {
         "name": "bxf-24x96",
         "vcpus": 24,
         "memoryGiB": 96,
         "bandwidthGbps": 48000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.156,
+        "monthlyRate": 843.88
       },
       {
         "name": "bx3d-24x120",
         "vcpus": 24,
         "memoryGiB": 120,
         "bandwidthGbps": 48000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.36,
+        "monthlyRate": 992.8
       },
       {
         "name": "bx3dc-24x120",
         "vcpus": 24,
         "memoryGiB": 120,
         "bandwidthGbps": 48000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.272,
+        "monthlyRate": 198.56
       },
       {
         "name": "bxf-32x128",
         "vcpus": 32,
         "memoryGiB": 128,
         "bandwidthGbps": 64000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.541,
+        "monthlyRate": 1124.93
       },
       {
         "name": "bx2d-32x128",
         "vcpus": 32,
         "memoryGiB": 128,
         "bandwidthGbps": 64000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.4657,
+        "monthlyRate": 1069.97
       },
       {
         "name": "bx3d-32x160",
         "vcpus": 32,
         "memoryGiB": 160,
         "bandwidthGbps": 64000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.813,
+        "monthlyRate": 1323.49
       },
       {
         "name": "bx2-32x128",
         "vcpus": 32,
         "memoryGiB": 128,
         "bandwidthGbps": 64000,
-        "hourlyRate": 1.52,
-        "monthlyRate": 1109.6
+        "hourlyRate": 1.4657,
+        "monthlyRate": 1069.97
       },
       {
         "name": "bx3dc-32x160",
         "vcpus": 32,
         "memoryGiB": 160,
         "bandwidthGbps": 64000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.991,
+        "monthlyRate": 1453.43
       },
       {
         "name": "bx2-48x192",
         "vcpus": 48,
         "memoryGiB": 192,
         "bandwidthGbps": 80000,
-        "hourlyRate": 2.28,
-        "monthlyRate": 1664.4
+        "hourlyRate": 2.1986,
+        "monthlyRate": 1604.96
       },
       {
         "name": "bx3dc-48x240",
         "vcpus": 48,
         "memoryGiB": 240,
         "bandwidthGbps": 96000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.989,
+        "monthlyRate": 2181.97
       },
       {
         "name": "bx2d-48x192",
         "vcpus": 48,
         "memoryGiB": 192,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.1986,
+        "monthlyRate": 1604.96
       },
       {
         "name": "bx3d-48x240",
         "vcpus": 48,
         "memoryGiB": 240,
         "bandwidthGbps": 96000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.72,
+        "monthlyRate": 1985.6
       },
       {
         "name": "bxf-48x192",
         "vcpus": 48,
         "memoryGiB": 192,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.312,
+        "monthlyRate": 1687.76
       },
       {
         "name": "bx3d-64x320",
         "vcpus": 64,
         "memoryGiB": 320,
         "bandwidthGbps": 128000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 3.627,
+        "monthlyRate": 2647.71
       },
       {
         "name": "bx2d-64x256",
         "vcpus": 64,
         "memoryGiB": 256,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.9314,
+        "monthlyRate": 2139.94
       },
       {
         "name": "bx3dc-64x320",
         "vcpus": 64,
         "memoryGiB": 320,
         "bandwidthGbps": 128000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.725,
+        "monthlyRate": 529.25
       },
       {
         "name": "bx2-64x256",
         "vcpus": 64,
         "memoryGiB": 256,
         "bandwidthGbps": 80000,
-        "hourlyRate": 3.04,
-        "monthlyRate": 2219.2
+        "hourlyRate": 2.9314,
+        "monthlyRate": 2139.94
       },
       {
         "name": "bxf-64x256",
         "vcpus": 64,
         "memoryGiB": 256,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 3.083,
+        "monthlyRate": 2250.59
       },
       {
         "name": "bx3d-96x480",
         "vcpus": 96,
         "memoryGiB": 480,
         "bandwidthGbps": 192000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 5.44,
+        "monthlyRate": 3971.2
       },
       {
         "name": "bx3dc-96x480",
         "vcpus": 96,
         "memoryGiB": 480,
         "bandwidthGbps": 192000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.088,
+        "monthlyRate": 794.24
       },
       {
         "name": "bx2-96x384",
         "vcpus": 96,
         "memoryGiB": 384,
         "bandwidthGbps": 80000,
-        "hourlyRate": 4.56,
-        "monthlyRate": 3328.8
+        "hourlyRate": 4.3971,
+        "monthlyRate": 3209.91
       },
       {
         "name": "bx2d-96x384",
         "vcpus": 96,
         "memoryGiB": 384,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 4.3971,
+        "monthlyRate": 3209.91
       },
       {
         "name": "bx3d-128x640",
         "vcpus": 128,
         "memoryGiB": 640,
         "bandwidthGbps": 200000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 7.253,
+        "monthlyRate": 5294.69
       },
       {
         "name": "bx2-128x512",
         "vcpus": 128,
         "memoryGiB": 512,
         "bandwidthGbps": 80000,
-        "hourlyRate": 6.08,
-        "monthlyRate": 4438.4
+        "hourlyRate": 5.8629,
+        "monthlyRate": 4279.88
       },
       {
         "name": "bx2d-128x512",
         "vcpus": 128,
         "memoryGiB": 512,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 5.8629,
+        "monthlyRate": 4279.88
       },
       {
         "name": "bx3d-176x880",
         "vcpus": 176,
         "memoryGiB": 880,
         "bandwidthGbps": 200000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 9.066,
+        "monthlyRate": 6618.18
       }
     ],
     "compute": [
@@ -464,440 +464,440 @@
         "vcpus": 2,
         "memoryGiB": 5,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.0202,
+        "monthlyRate": 14.75
       },
       {
         "name": "cx2d-2x4",
         "vcpus": 2,
         "memoryGiB": 4,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.0738,
+        "monthlyRate": 53.86
       },
       {
         "name": "cx2-2x4",
         "vcpus": 2,
         "memoryGiB": 4,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0.071,
-        "monthlyRate": 51.83
+        "hourlyRate": 0.0738,
+        "monthlyRate": 53.86
       },
       {
         "name": "cxf-2x4",
         "vcpus": 2,
         "memoryGiB": 4,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.085,
+        "monthlyRate": 62.05
       },
       {
         "name": "cx3d-2x5",
         "vcpus": 2,
         "memoryGiB": 5,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.101,
+        "monthlyRate": 73.73
       },
       {
         "name": "cz2e-2x4",
         "vcpus": 2,
         "memoryGiB": 4,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 4.252,
+        "monthlyRate": 3103.96
       },
       {
         "name": "cz2-2x4",
         "vcpus": 2,
         "memoryGiB": 4,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 4.296,
+        "monthlyRate": 3136.08
       },
       {
         "name": "cx2-4x8",
         "vcpus": 4,
         "memoryGiB": 8,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.142,
-        "monthlyRate": 103.66
+        "hourlyRate": 0.1476,
+        "monthlyRate": 107.72
       },
       {
         "name": "cx3d-4x10",
         "vcpus": 4,
         "memoryGiB": 10,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.203,
+        "monthlyRate": 148.19
       },
       {
         "name": "cxf-4x8",
         "vcpus": 4,
         "memoryGiB": 8,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.171,
+        "monthlyRate": 124.83
       },
       {
         "name": "cx3dc-4x10",
         "vcpus": 4,
         "memoryGiB": 10,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.126,
+        "monthlyRate": 91.98
       },
       {
         "name": "cx2d-4x8",
         "vcpus": 4,
         "memoryGiB": 8,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.1476,
+        "monthlyRate": 107.72
       },
       {
         "name": "cz2-4x8",
         "vcpus": 4,
         "memoryGiB": 8,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 8.592,
+        "monthlyRate": 6272.16
       },
       {
         "name": "cz2e-4x8",
         "vcpus": 4,
         "memoryGiB": 8,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 8.504,
+        "monthlyRate": 6207.92
       },
       {
         "name": "cxf-8x16",
         "vcpus": 8,
         "memoryGiB": 16,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.34,
+        "monthlyRate": 248.2
       },
       {
         "name": "cx2-8x16",
         "vcpus": 8,
         "memoryGiB": 16,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0.284,
-        "monthlyRate": 207.32
+        "hourlyRate": 0.2951,
+        "monthlyRate": 215.44
       },
       {
         "name": "cx3d-8x20",
         "vcpus": 8,
         "memoryGiB": 20,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.406,
+        "monthlyRate": 296.38
       },
       {
         "name": "cx2d-8x16",
         "vcpus": 8,
         "memoryGiB": 16,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.2951,
+        "monthlyRate": 215.44
       },
       {
         "name": "cx3dc-8x20",
         "vcpus": 8,
         "memoryGiB": 20,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.406,
+        "monthlyRate": 296.38
       },
       {
         "name": "cz2-8x16",
         "vcpus": 8,
         "memoryGiB": 16,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 17.184,
+        "monthlyRate": 12544.32
       },
       {
         "name": "cz2e-8x16",
         "vcpus": 8,
         "memoryGiB": 16,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 17.008,
+        "monthlyRate": 12415.84
       },
       {
         "name": "cx2d-16x32",
         "vcpus": 16,
         "memoryGiB": 32,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.5903,
+        "monthlyRate": 430.88
       },
       {
         "name": "cx2-16x32",
         "vcpus": 16,
         "memoryGiB": 32,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0.568,
-        "monthlyRate": 414.64
+        "hourlyRate": 0.5903,
+        "monthlyRate": 430.88
       },
       {
         "name": "cx3dc-16x40",
         "vcpus": 16,
         "memoryGiB": 40,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.494,
+        "monthlyRate": 360.62
       },
       {
         "name": "cx3d-16x40",
         "vcpus": 16,
         "memoryGiB": 40,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.81,
+        "monthlyRate": 591.3
       },
       {
         "name": "cxf-16x32",
         "vcpus": 16,
         "memoryGiB": 32,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.682,
+        "monthlyRate": 497.86
       },
       {
         "name": "cz2e-16x32",
         "vcpus": 16,
         "memoryGiB": 32,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 34.016,
+        "monthlyRate": 24831.68
       },
       {
         "name": "cz2-16x32",
         "vcpus": 16,
         "memoryGiB": 32,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 34.368,
+        "monthlyRate": 25088.64
       },
       {
         "name": "cx3dc-24x60",
         "vcpus": 24,
         "memoryGiB": 60,
         "bandwidthGbps": 48000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.745,
+        "monthlyRate": 543.85
       },
       {
         "name": "cx3d-24x60",
         "vcpus": 24,
         "memoryGiB": 60,
         "bandwidthGbps": 48000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.216,
+        "monthlyRate": 887.68
       },
       {
         "name": "cxf-24x48",
         "vcpus": 24,
         "memoryGiB": 48,
         "bandwidthGbps": 48000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.022,
+        "monthlyRate": 746.06
       },
       {
         "name": "cxf-32x64",
         "vcpus": 32,
         "memoryGiB": 64,
         "bandwidthGbps": 64000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.36,
+        "monthlyRate": 992.8
       },
       {
         "name": "cx2-32x64",
         "vcpus": 32,
         "memoryGiB": 64,
         "bandwidthGbps": 64000,
-        "hourlyRate": 1.136,
-        "monthlyRate": 829.28
+        "hourlyRate": 1.1805,
+        "monthlyRate": 861.77
       },
       {
         "name": "cx3d-32x80",
         "vcpus": 32,
         "memoryGiB": 80,
         "bandwidthGbps": 64000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.622,
+        "monthlyRate": 1184.06
       },
       {
         "name": "cx2d-32x64",
         "vcpus": 32,
         "memoryGiB": 64,
         "bandwidthGbps": 64000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.1805,
+        "monthlyRate": 861.77
       },
       {
         "name": "cx3dc-32x80",
         "vcpus": 32,
         "memoryGiB": 80,
         "bandwidthGbps": 64000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.622,
+        "monthlyRate": 1184.06
       },
       {
         "name": "cx3d-48x120",
         "vcpus": 48,
         "memoryGiB": 120,
         "bandwidthGbps": 96000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.432,
+        "monthlyRate": 1775.36
       },
       {
         "name": "cxf-48x96",
         "vcpus": 48,
         "memoryGiB": 96,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.045,
+        "monthlyRate": 1492.85
       },
       {
         "name": "cx2-48x96",
         "vcpus": 48,
         "memoryGiB": 96,
         "bandwidthGbps": 80000,
-        "hourlyRate": 1.704,
-        "monthlyRate": 1243.92
+        "hourlyRate": 1.7708,
+        "monthlyRate": 1292.65
       },
       {
         "name": "cx3dc-48x120",
         "vcpus": 48,
         "memoryGiB": 120,
         "bandwidthGbps": 96000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.492,
+        "monthlyRate": 1089.16
       },
       {
         "name": "cx2d-48x96",
         "vcpus": 48,
         "memoryGiB": 96,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.7708,
+        "monthlyRate": 1292.65
       },
       {
         "name": "cxf-64x128",
         "vcpus": 64,
         "memoryGiB": 128,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.727,
+        "monthlyRate": 1990.71
       },
       {
         "name": "cx2d-64x128",
         "vcpus": 64,
         "memoryGiB": 128,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.361,
+        "monthlyRate": 1723.53
       },
       {
         "name": "cx2-64x128",
         "vcpus": 64,
         "memoryGiB": 128,
         "bandwidthGbps": 80000,
-        "hourlyRate": 2.272,
-        "monthlyRate": 1658.56
+        "hourlyRate": 2.361,
+        "monthlyRate": 1723.53
       },
       {
         "name": "cx3dc-64x160",
         "vcpus": 64,
         "memoryGiB": 160,
         "bandwidthGbps": 128000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.996,
+        "monthlyRate": 1457.08
       },
       {
         "name": "cx3d-64x160",
         "vcpus": 64,
         "memoryGiB": 160,
         "bandwidthGbps": 128000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 3.244,
+        "monthlyRate": 2368.12
       },
       {
         "name": "cx2-96x192",
         "vcpus": 96,
         "memoryGiB": 192,
         "bandwidthGbps": 80000,
-        "hourlyRate": 3.408,
-        "monthlyRate": 2487.84
+        "hourlyRate": 3.5415,
+        "monthlyRate": 2585.3
       },
       {
         "name": "cx3dc-96x240",
         "vcpus": 96,
         "memoryGiB": 240,
         "bandwidthGbps": 192000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.973,
+        "monthlyRate": 710.29
       },
       {
         "name": "cx2d-96x192",
         "vcpus": 96,
         "memoryGiB": 192,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 3.5415,
+        "monthlyRate": 2585.3
       },
       {
         "name": "cx3d-96x240",
         "vcpus": 96,
         "memoryGiB": 240,
         "bandwidthGbps": 192000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 4.865,
+        "monthlyRate": 3551.45
       },
       {
         "name": "cx2d-128x256",
         "vcpus": 128,
         "memoryGiB": 256,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 4.722,
+        "monthlyRate": 3447.06
       },
       {
         "name": "cx3d-128x320",
         "vcpus": 128,
         "memoryGiB": 320,
         "bandwidthGbps": 200000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 6.487,
+        "monthlyRate": 4735.51
       },
       {
         "name": "cx3dc-128x320",
         "vcpus": 128,
         "memoryGiB": 320,
         "bandwidthGbps": 200000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.298,
+        "monthlyRate": 947.54
       },
       {
         "name": "cx2-128x256",
         "vcpus": 128,
         "memoryGiB": 256,
         "bandwidthGbps": 80000,
-        "hourlyRate": 4.544,
-        "monthlyRate": 3317.12
+        "hourlyRate": 4.722,
+        "monthlyRate": 3447.06
       },
       {
         "name": "cx3d-176x440",
         "vcpus": 176,
         "memoryGiB": 440,
         "bandwidthGbps": 200000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 8.109,
+        "monthlyRate": 5919.57
       }
     ],
     "memory": [
@@ -906,360 +906,360 @@
         "vcpus": 2,
         "memoryGiB": 16,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0.119,
-        "monthlyRate": 86.87
+        "hourlyRate": 0.1273,
+        "monthlyRate": 92.9
       },
       {
         "name": "mx2d-2x16",
         "vcpus": 2,
         "memoryGiB": 16,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.1273,
+        "monthlyRate": 92.9
       },
       {
         "name": "mx3d-2x20",
         "vcpus": 2,
         "memoryGiB": 20,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.137,
+        "monthlyRate": 100.01
       },
       {
         "name": "mxf-2x16",
         "vcpus": 2,
         "memoryGiB": 16,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.124,
+        "monthlyRate": 90.52
       },
       {
         "name": "mz2e-2x16",
         "vcpus": 2,
         "memoryGiB": 16,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 10.852,
+        "monthlyRate": 7921.96
       },
       {
         "name": "mz2-2x16",
         "vcpus": 2,
         "memoryGiB": 16,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 12.828,
+        "monthlyRate": 9364.44
       },
       {
         "name": "mxf-4x32",
         "vcpus": 4,
         "memoryGiB": 32,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.249,
+        "monthlyRate": 181.77
       },
       {
         "name": "mx2d-4x32",
         "vcpus": 4,
         "memoryGiB": 32,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.2545,
+        "monthlyRate": 185.8
       },
       {
         "name": "mx3d-4x40",
         "vcpus": 4,
         "memoryGiB": 40,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.276,
+        "monthlyRate": 201.48
       },
       {
         "name": "mx2-4x32",
         "vcpus": 4,
         "memoryGiB": 32,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.238,
-        "monthlyRate": 173.74
+        "hourlyRate": 0.2545,
+        "monthlyRate": 185.8
       },
       {
         "name": "mz2e-4x32",
         "vcpus": 4,
         "memoryGiB": 32,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 21.704,
+        "monthlyRate": 15843.92
       },
       {
         "name": "mz2-4x32",
         "vcpus": 4,
         "memoryGiB": 32,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 25.656,
+        "monthlyRate": 18728.88
       },
       {
         "name": "mx3d-8x80",
         "vcpus": 8,
         "memoryGiB": 80,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.551,
+        "monthlyRate": 402.23
       },
       {
         "name": "mxf-8x64",
         "vcpus": 8,
         "memoryGiB": 64,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.498,
+        "monthlyRate": 363.54
       },
       {
         "name": "mx2d-8x64",
         "vcpus": 8,
         "memoryGiB": 64,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.509,
+        "monthlyRate": 371.6
       },
       {
         "name": "mx2-8x64",
         "vcpus": 8,
         "memoryGiB": 64,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0.476,
-        "monthlyRate": 347.48
+        "hourlyRate": 0.509,
+        "monthlyRate": 371.6
       },
       {
         "name": "mz2-8x64",
         "vcpus": 8,
         "memoryGiB": 64,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 51.312,
+        "monthlyRate": 37457.76
       },
       {
         "name": "mz2e-8x64",
         "vcpus": 8,
         "memoryGiB": 64,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 43.408,
+        "monthlyRate": 31687.84
       },
       {
         "name": "mx2d-16x128",
         "vcpus": 16,
         "memoryGiB": 128,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.0181,
+        "monthlyRate": 743.19
       },
       {
         "name": "mxf-16x128",
         "vcpus": 16,
         "memoryGiB": 128,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 0.996,
+        "monthlyRate": 727.08
       },
       {
         "name": "mx2-16x128",
         "vcpus": 16,
         "memoryGiB": 128,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0.952,
-        "monthlyRate": 694.96
+        "hourlyRate": 1.0181,
+        "monthlyRate": 743.19
       },
       {
         "name": "mx3d-16x160",
         "vcpus": 16,
         "memoryGiB": 160,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.102,
+        "monthlyRate": 804.46
       },
       {
         "name": "mz2e-16x128",
         "vcpus": 16,
         "memoryGiB": 128,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 86.816,
+        "monthlyRate": 63375.68
       },
       {
         "name": "mz2-16x128",
         "vcpus": 16,
         "memoryGiB": 128,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 102.624,
+        "monthlyRate": 74915.52
       },
       {
         "name": "mx3d-24x240",
         "vcpus": 24,
         "memoryGiB": 240,
         "bandwidthGbps": 48000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.204,
+        "monthlyRate": 1608.92
       },
       {
         "name": "mxf-24x192",
         "vcpus": 24,
         "memoryGiB": 192,
         "bandwidthGbps": 48000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.49,
+        "monthlyRate": 1087.7
       },
       {
         "name": "mx2-32x256",
         "vcpus": 32,
         "memoryGiB": 256,
         "bandwidthGbps": 64000,
-        "hourlyRate": 1.904,
-        "monthlyRate": 1389.92
+        "hourlyRate": 2.0361,
+        "monthlyRate": 1486.38
       },
       {
         "name": "mxf-32x256",
         "vcpus": 32,
         "memoryGiB": 256,
         "bandwidthGbps": 64000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 1.993,
+        "monthlyRate": 1454.89
       },
       {
         "name": "mx3d-32x320",
         "vcpus": 32,
         "memoryGiB": 320,
         "bandwidthGbps": 64000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 3.306,
+        "monthlyRate": 2413.38
       },
       {
         "name": "mx2d-32x256",
         "vcpus": 32,
         "memoryGiB": 256,
         "bandwidthGbps": 64000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.0361,
+        "monthlyRate": 1486.38
       },
       {
         "name": "mx2-48x384",
         "vcpus": 48,
         "memoryGiB": 384,
         "bandwidthGbps": 80000,
-        "hourlyRate": 2.856,
-        "monthlyRate": 2084.88
+        "hourlyRate": 3.0542,
+        "monthlyRate": 2229.57
       },
       {
         "name": "mx3d-48x480",
         "vcpus": 48,
         "memoryGiB": 480,
         "bandwidthGbps": 96000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 4.408,
+        "monthlyRate": 3217.84
       },
       {
         "name": "mxf-48x384",
         "vcpus": 48,
         "memoryGiB": 384,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 2.989,
+        "monthlyRate": 2181.97
       },
       {
         "name": "mx2d-48x384",
         "vcpus": 48,
         "memoryGiB": 384,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 3.0542,
+        "monthlyRate": 2229.57
       },
       {
         "name": "mx2d-64x512",
         "vcpus": 64,
         "memoryGiB": 512,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 4.0723,
+        "monthlyRate": 2972.76
       },
       {
         "name": "mxf-64x512",
         "vcpus": 64,
         "memoryGiB": 512,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 3.985,
+        "monthlyRate": 2909.05
       },
       {
         "name": "mx3d-64x640",
         "vcpus": 64,
         "memoryGiB": 640,
         "bandwidthGbps": 128000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 4.607,
+        "monthlyRate": 3363.11
       },
       {
         "name": "mx2-64x512",
         "vcpus": 64,
         "memoryGiB": 512,
         "bandwidthGbps": 80000,
-        "hourlyRate": 3.808,
-        "monthlyRate": 2779.84
+        "hourlyRate": 4.0723,
+        "monthlyRate": 2972.76
       },
       {
         "name": "mx2-96x768",
         "vcpus": 96,
         "memoryGiB": 768,
         "bandwidthGbps": 80000,
-        "hourlyRate": 5.712,
-        "monthlyRate": 4169.76
+        "hourlyRate": 6.1084,
+        "monthlyRate": 4459.14
       },
       {
         "name": "mx3d-96x960",
         "vcpus": 96,
         "memoryGiB": 960,
         "bandwidthGbps": 192000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 6.909,
+        "monthlyRate": 5043.57
       },
       {
         "name": "mx2d-96x768",
         "vcpus": 96,
         "memoryGiB": 768,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 6.1084,
+        "monthlyRate": 4459.14
       },
       {
         "name": "mx2d-128x1024",
         "vcpus": 128,
         "memoryGiB": 1024,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 8.1446,
+        "monthlyRate": 5945.52
       },
       {
         "name": "mx3d-128x1280",
         "vcpus": 128,
         "memoryGiB": 1280,
         "bandwidthGbps": 200000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 9.213,
+        "monthlyRate": 6725.49
       },
       {
         "name": "mx2-128x1024",
         "vcpus": 128,
         "memoryGiB": 1024,
         "bandwidthGbps": 80000,
-        "hourlyRate": 7.616,
-        "monthlyRate": 5559.68
+        "hourlyRate": 8.1446,
+        "monthlyRate": 5945.52
       },
       {
         "name": "mx3d-176x1760",
         "vcpus": 176,
         "memoryGiB": 1760,
         "bandwidthGbps": 200000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 11.516,
+        "monthlyRate": 8406.68
       }
     ],
     "veryHighMemory": [
@@ -1268,64 +1268,64 @@
         "vcpus": 2,
         "memoryGiB": 28,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0.175,
-        "monthlyRate": 127.75
+        "hourlyRate": 0.1807,
+        "monthlyRate": 131.94
       },
       {
         "name": "vx2d-4x56",
         "vcpus": 4,
         "memoryGiB": 56,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.35,
-        "monthlyRate": 255.5
+        "hourlyRate": 0.3615,
+        "monthlyRate": 263.87
       },
       {
         "name": "vx2d-8x112",
         "vcpus": 8,
         "memoryGiB": 112,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0.7,
-        "monthlyRate": 511
+        "hourlyRate": 0.7229,
+        "monthlyRate": 527.75
       },
       {
         "name": "vx2d-16x224",
         "vcpus": 16,
         "memoryGiB": 224,
         "bandwidthGbps": 32000,
-        "hourlyRate": 1.4,
-        "monthlyRate": 1022
+        "hourlyRate": 1.4459,
+        "monthlyRate": 1055.5
       },
       {
         "name": "vx2d-44x616",
         "vcpus": 44,
         "memoryGiB": 616,
         "bandwidthGbps": 80000,
-        "hourlyRate": 3.85,
-        "monthlyRate": 2810.5
+        "hourlyRate": 3.9762,
+        "monthlyRate": 2902.62
       },
       {
         "name": "vx2d-88x1232",
         "vcpus": 88,
         "memoryGiB": 1232,
         "bandwidthGbps": 80000,
-        "hourlyRate": 7.7,
-        "monthlyRate": 5621
+        "hourlyRate": 7.9524,
+        "monthlyRate": 5805.24
       },
       {
         "name": "vx2d-144x2016",
         "vcpus": 144,
         "memoryGiB": 2016,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 13.013,
+        "monthlyRate": 9499.48
       },
       {
         "name": "vx2d-176x2464",
         "vcpus": 176,
         "memoryGiB": 2464,
         "bandwidthGbps": 80000,
-        "hourlyRate": 15.4,
-        "monthlyRate": 11242
+        "hourlyRate": 15.9048,
+        "monthlyRate": 11610.48
       }
     ],
     "ultraHighMemory": [
@@ -1334,72 +1334,72 @@
         "vcpus": 2,
         "memoryGiB": 56,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0.294,
-        "monthlyRate": 214.62
+        "hourlyRate": 0.3055,
+        "monthlyRate": 223.03
       },
       {
         "name": "ux2d-4x112",
         "vcpus": 4,
         "memoryGiB": 112,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.588,
-        "monthlyRate": 429.24
+        "hourlyRate": 0.611,
+        "monthlyRate": 446.05
       },
       {
         "name": "ux2d-8x224",
         "vcpus": 8,
         "memoryGiB": 224,
         "bandwidthGbps": 16000,
-        "hourlyRate": 1.176,
-        "monthlyRate": 858.48
+        "hourlyRate": 1.2221,
+        "monthlyRate": 892.11
       },
       {
         "name": "ux2d-16x448",
         "vcpus": 16,
         "memoryGiB": 448,
         "bandwidthGbps": 32000,
-        "hourlyRate": 2.352,
-        "monthlyRate": 1716.96
+        "hourlyRate": 2.4441,
+        "monthlyRate": 1784.22
       },
       {
         "name": "ux2d-36x1008",
         "vcpus": 36,
         "memoryGiB": 1008,
         "bandwidthGbps": 72000,
-        "hourlyRate": 5.292,
-        "monthlyRate": 3863.16
+        "hourlyRate": 5.4993,
+        "monthlyRate": 4014.49
       },
       {
         "name": "ux2d-48x1344",
         "vcpus": 48,
         "memoryGiB": 1344,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 7.3324,
+        "monthlyRate": 5352.65
       },
       {
         "name": "ux2d-72x2016",
         "vcpus": 72,
         "memoryGiB": 2016,
         "bandwidthGbps": 80000,
-        "hourlyRate": 10.584,
-        "monthlyRate": 7726.32
+        "hourlyRate": 10.9986,
+        "monthlyRate": 8028.97
       },
       {
         "name": "ux2d-100x2800",
         "vcpus": 100,
         "memoryGiB": 2800,
         "bandwidthGbps": 80000,
-        "hourlyRate": 0,
-        "monthlyRate": 0
+        "hourlyRate": 15.2758,
+        "monthlyRate": 11151.35
       },
       {
         "name": "ux2d-200x5600",
         "vcpus": 200,
         "memoryGiB": 5600,
         "bandwidthGbps": 80000,
-        "hourlyRate": 29.4,
-        "monthlyRate": 21462
+        "hourlyRate": 30.5516,
+        "monthlyRate": 22302.7
       }
     ]
   },
@@ -1412,8 +1412,8 @@
         "memoryGiB": 384,
         "hasNvme": true,
         "roksSupported": true,
-        "hourlyRate": 5.25,
-        "monthlyRate": 3832.5,
+        "hourlyRate": 5.268,
+        "monthlyRate": 3845.64,
         "useCase": "OpenShift Virtualization - Standard",
         "description": "Balanced with NVMe - 48 cores, 384 GiB RAM, 8x3.2TB NVMe",
         "nvmeDisks": 8,
@@ -1427,8 +1427,8 @@
         "memoryGiB": 384,
         "hasNvme": false,
         "roksSupported": true,
-        "hourlyRate": 4.8,
-        "monthlyRate": 3504,
+        "hourlyRate": 3.418,
+        "monthlyRate": 2495.14,
         "useCase": "General purpose bare metal",
         "description": "Balanced bare metal - 48 cores, 384 GiB RAM"
       },
@@ -1439,8 +1439,8 @@
         "memoryGiB": 1024,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 12.8,
-        "monthlyRate": 9344,
+        "hourlyRate": 12.892,
+        "monthlyRate": 9411.16,
         "useCase": "Gen3 high-capacity bare metal",
         "description": "Gen3 Balanced with NVMe - 96 cores, 1024 GiB RAM, 16x3.84TB NVMe",
         "nvmeDisks": 8,
@@ -1454,8 +1454,8 @@
         "memoryGiB": 256,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 3.65,
-        "monthlyRate": 2664.5,
+        "hourlyRate": 4.31,
+        "monthlyRate": 3146.3,
         "useCase": "Gen3 balanced with local NVMe",
         "description": "Gen3 Balanced with NVMe - 24 cores, 256 GiB RAM, 8x3.84TB NVMe",
         "nvmeDisks": 4,
@@ -1469,8 +1469,8 @@
         "memoryGiB": 256,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 3.9,
-        "monthlyRate": 2847,
+        "hourlyRate": 4.537,
+        "monthlyRate": 3312.01,
         "useCase": "Gen3 balanced with local NVMe",
         "description": "Gen3 Balanced with NVMe - 32 cores, 256 GiB RAM, 8x3.84TB NVMe",
         "nvmeDisks": 4,
@@ -1484,8 +1484,8 @@
         "memoryGiB": 256,
         "hasNvme": false,
         "roksSupported": false,
-        "hourlyRate": 3.2,
-        "monthlyRate": 2336,
+        "hourlyRate": 2.8,
+        "monthlyRate": 2044,
         "useCase": "Gen3 general purpose bare metal",
         "description": "Gen3 Balanced bare metal - 24 cores, 256 GiB RAM"
       },
@@ -1496,8 +1496,8 @@
         "memoryGiB": 256,
         "hasNvme": false,
         "roksSupported": false,
-        "hourlyRate": 3.45,
-        "monthlyRate": 2518.5,
+        "hourlyRate": 3.022,
+        "monthlyRate": 2206.06,
         "useCase": "Gen3 balanced bare metal",
         "description": "Gen3 Balanced bare metal - 32 cores, 256 GiB RAM"
       }
@@ -1510,8 +1510,8 @@
         "memoryGiB": 192,
         "hasNvme": true,
         "roksSupported": true,
-        "hourlyRate": 4.29,
-        "monthlyRate": 3131.7,
+        "hourlyRate": 4.712,
+        "monthlyRate": 3439.76,
         "useCase": "Compute-intensive with local storage",
         "description": "Compute-optimized with NVMe - 48 cores, 192 GiB RAM, 8x3.2TB NVMe",
         "nvmeDisks": 8,
@@ -1525,8 +1525,8 @@
         "memoryGiB": 192,
         "hasNvme": false,
         "roksSupported": true,
-        "hourlyRate": 3.84,
-        "monthlyRate": 2803.2,
+        "hourlyRate": 2.861,
+        "monthlyRate": 2088.53,
         "useCase": "Compute-intensive bare metal",
         "description": "Compute-optimized bare metal - 48 cores, 192 GiB RAM"
       },
@@ -1537,8 +1537,8 @@
         "memoryGiB": 128,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 3.847,
+        "monthlyRate": 2808.31,
         "useCase": "",
         "description": "",
         "nvmeDisks": 4,
@@ -1552,8 +1552,8 @@
         "memoryGiB": 128,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 4.033,
+        "monthlyRate": 2944.09,
         "useCase": "",
         "description": "",
         "nvmeDisks": 4,
@@ -1569,8 +1569,8 @@
         "memoryGiB": 768,
         "hasNvme": true,
         "roksSupported": true,
-        "hourlyRate": 6.85,
-        "monthlyRate": 5000.5,
+        "hourlyRate": 6.695,
+        "monthlyRate": 4887.35,
         "useCase": "Memory-intensive VMs with ODF",
         "description": "Memory-optimized with NVMe - 48 cores, 768 GiB RAM, 8x3.2TB NVMe",
         "nvmeDisks": 8,
@@ -1584,8 +1584,8 @@
         "memoryGiB": 768,
         "hasNvme": false,
         "roksSupported": true,
-        "hourlyRate": 6.4,
-        "monthlyRate": 4672,
+        "hourlyRate": 4.845,
+        "monthlyRate": 3536.85,
         "useCase": "Memory-intensive bare metal",
         "description": "Memory-optimized bare metal - 48 cores, 768 GiB RAM"
       },
@@ -1596,8 +1596,8 @@
         "memoryGiB": 1024,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 11.485,
+        "monthlyRate": 8384.05,
         "useCase": "",
         "description": "",
         "nvmeDisks": 8,
@@ -1611,8 +1611,8 @@
         "memoryGiB": 1024,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 12.161,
+        "monthlyRate": 8877.53,
         "useCase": "",
         "description": "",
         "nvmeDisks": 8,
@@ -1626,8 +1626,8 @@
         "memoryGiB": 512,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 5.152,
+        "monthlyRate": 3760.96,
         "useCase": "",
         "description": "",
         "nvmeDisks": 4,
@@ -1641,8 +1641,8 @@
         "memoryGiB": 512,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 5.443,
+        "monthlyRate": 3973.39,
         "useCase": "",
         "description": "",
         "nvmeDisks": 4,
@@ -1656,8 +1656,8 @@
         "memoryGiB": 128,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 3.674,
+        "monthlyRate": 2682.02,
         "useCase": "",
         "description": "",
         "nvmeDisks": 4,
@@ -1671,8 +1671,8 @@
         "memoryGiB": 512,
         "hasNvme": false,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 3.637,
+        "monthlyRate": 2655.01,
         "useCase": "",
         "description": ""
       },
@@ -1683,8 +1683,8 @@
         "memoryGiB": 512,
         "hasNvme": false,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 3.928,
+        "monthlyRate": 2867.44,
         "useCase": "",
         "description": ""
       }
@@ -1697,8 +1697,8 @@
         "memoryGiB": 256,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 4.106,
+        "monthlyRate": 2997.38,
         "useCase": "",
         "description": "",
         "nvmeDisks": 4,
@@ -1712,8 +1712,8 @@
         "memoryGiB": 256,
         "hasNvme": false,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 2.591,
+        "monthlyRate": 1891.43,
         "useCase": "",
         "description": ""
       }
@@ -1726,8 +1726,8 @@
         "memoryGiB": 6144,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 25.47,
+        "monthlyRate": 18593.1,
         "useCase": "",
         "description": "",
         "nvmeDisks": 2,
@@ -1741,8 +1741,8 @@
         "memoryGiB": 3072,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 14.512,
+        "monthlyRate": 10593.76,
         "useCase": "",
         "description": "",
         "nvmeDisks": 8,
@@ -1756,8 +1756,8 @@
         "memoryGiB": 512,
         "hasNvme": true,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 4.883,
+        "monthlyRate": 3564.59,
         "useCase": "",
         "description": "",
         "nvmeDisks": 4,
@@ -1771,8 +1771,8 @@
         "memoryGiB": 512,
         "hasNvme": false,
         "roksSupported": false,
-        "hourlyRate": 0,
-        "monthlyRate": 0,
+        "hourlyRate": 3.368,
+        "monthlyRate": 2458.64,
         "useCase": "",
         "description": ""
       }
@@ -1793,8 +1793,806 @@
     "planningHorizonYears": 2,
     "virtOverhead": 15
   },
-  "vsiPricing": {},
-  "bareMetalPricing": {},
+  "vsiPricing": {
+    "bz2e-1x4": {
+      "hourlyRate": 3.226,
+      "monthlyRate": 2354.98
+    },
+    "bz2-1x4": {
+      "hourlyRate": 3.57,
+      "monthlyRate": 2606.1
+    },
+    "bxf-2x8": {
+      "hourlyRate": 0.096,
+      "monthlyRate": 70.08
+    },
+    "bx2-2x8": {
+      "hourlyRate": 0.0916,
+      "monthlyRate": 66.87
+    },
+    "bx3dc-2x10": {
+      "hourlyRate": 0.113,
+      "monthlyRate": 82.49
+    },
+    "bx3d-2x10": {
+      "hourlyRate": 0.113,
+      "monthlyRate": 82.49
+    },
+    "bx2d-2x8": {
+      "hourlyRate": 0.0916,
+      "monthlyRate": 66.87
+    },
+    "bz2-2x8": {
+      "hourlyRate": 7.14,
+      "monthlyRate": 5212.2
+    },
+    "bz2e-2x8": {
+      "hourlyRate": 6.452,
+      "monthlyRate": 4709.96
+    },
+    "bx3d-4x20": {
+      "hourlyRate": 0.227,
+      "monthlyRate": 165.71
+    },
+    "bx2d-4x16": {
+      "hourlyRate": 0.1832,
+      "monthlyRate": 133.75
+    },
+    "bx3dc-4x20": {
+      "hourlyRate": 0.0455,
+      "monthlyRate": 33.18
+    },
+    "bx2-4x16": {
+      "hourlyRate": 0.1832,
+      "monthlyRate": 133.75
+    },
+    "bxf-4x16": {
+      "hourlyRate": 0.193,
+      "monthlyRate": 140.89
+    },
+    "bz2-4x16": {
+      "hourlyRate": 14.28,
+      "monthlyRate": 10424.4
+    },
+    "bz2e-4x16": {
+      "hourlyRate": 12.904,
+      "monthlyRate": 9419.92
+    },
+    "bx3dc-8x40": {
+      "hourlyRate": 0.499,
+      "monthlyRate": 364.27
+    },
+    "bxf-8x32": {
+      "hourlyRate": 0.386,
+      "monthlyRate": 281.78
+    },
+    "bx3d-8x40": {
+      "hourlyRate": 0.453,
+      "monthlyRate": 330.69
+    },
+    "bx2-8x32": {
+      "hourlyRate": 0.3664,
+      "monthlyRate": 267.49
+    },
+    "bx2d-8x32": {
+      "hourlyRate": 0.3664,
+      "monthlyRate": 267.49
+    },
+    "bz2e-8x32": {
+      "hourlyRate": 25.808,
+      "monthlyRate": 18839.84
+    },
+    "bz2-8x32": {
+      "hourlyRate": 28.56,
+      "monthlyRate": 20848.8
+    },
+    "bx2d-16x64": {
+      "hourlyRate": 0.7329,
+      "monthlyRate": 534.99
+    },
+    "bx3dc-16x80": {
+      "hourlyRate": 0.1818,
+      "monthlyRate": 132.71
+    },
+    "bx2-16x64": {
+      "hourlyRate": 0.7329,
+      "monthlyRate": 534.99
+    },
+    "bx3d-16x80": {
+      "hourlyRate": 0.907,
+      "monthlyRate": 662.11
+    },
+    "bxf-16x64": {
+      "hourlyRate": 0.771,
+      "monthlyRate": 562.83
+    },
+    "bz2e-16x64": {
+      "hourlyRate": 51.616,
+      "monthlyRate": 37679.68
+    },
+    "bz2-16x64": {
+      "hourlyRate": 57.12,
+      "monthlyRate": 41697.6
+    },
+    "bxf-24x96": {
+      "hourlyRate": 1.156,
+      "monthlyRate": 843.88
+    },
+    "bx3d-24x120": {
+      "hourlyRate": 1.36,
+      "monthlyRate": 992.8
+    },
+    "bx3dc-24x120": {
+      "hourlyRate": 0.272,
+      "monthlyRate": 198.56
+    },
+    "bxf-32x128": {
+      "hourlyRate": 1.541,
+      "monthlyRate": 1124.93
+    },
+    "bx2d-32x128": {
+      "hourlyRate": 1.4657,
+      "monthlyRate": 1069.97
+    },
+    "bx3d-32x160": {
+      "hourlyRate": 1.813,
+      "monthlyRate": 1323.49
+    },
+    "bx2-32x128": {
+      "hourlyRate": 1.4657,
+      "monthlyRate": 1069.97
+    },
+    "bx3dc-32x160": {
+      "hourlyRate": 1.991,
+      "monthlyRate": 1453.43
+    },
+    "bx2-48x192": {
+      "hourlyRate": 2.1986,
+      "monthlyRate": 1604.96
+    },
+    "bx3dc-48x240": {
+      "hourlyRate": 2.989,
+      "monthlyRate": 2181.97
+    },
+    "bx2d-48x192": {
+      "hourlyRate": 2.1986,
+      "monthlyRate": 1604.96
+    },
+    "bx3d-48x240": {
+      "hourlyRate": 2.72,
+      "monthlyRate": 1985.6
+    },
+    "bxf-48x192": {
+      "hourlyRate": 2.312,
+      "monthlyRate": 1687.76
+    },
+    "bx3d-64x320": {
+      "hourlyRate": 3.627,
+      "monthlyRate": 2647.71
+    },
+    "bx2d-64x256": {
+      "hourlyRate": 2.9314,
+      "monthlyRate": 2139.94
+    },
+    "bx3dc-64x320": {
+      "hourlyRate": 0.725,
+      "monthlyRate": 529.25
+    },
+    "bx2-64x256": {
+      "hourlyRate": 2.9314,
+      "monthlyRate": 2139.94
+    },
+    "bxf-64x256": {
+      "hourlyRate": 3.083,
+      "monthlyRate": 2250.59
+    },
+    "bx3d-96x480": {
+      "hourlyRate": 5.44,
+      "monthlyRate": 3971.2
+    },
+    "bx3dc-96x480": {
+      "hourlyRate": 1.088,
+      "monthlyRate": 794.24
+    },
+    "bx2-96x384": {
+      "hourlyRate": 4.3971,
+      "monthlyRate": 3209.91
+    },
+    "bx2d-96x384": {
+      "hourlyRate": 4.3971,
+      "monthlyRate": 3209.91
+    },
+    "bx3d-128x640": {
+      "hourlyRate": 7.253,
+      "monthlyRate": 5294.69
+    },
+    "bx2-128x512": {
+      "hourlyRate": 5.8629,
+      "monthlyRate": 4279.88
+    },
+    "bx2d-128x512": {
+      "hourlyRate": 5.8629,
+      "monthlyRate": 4279.88
+    },
+    "bx3d-176x880": {
+      "hourlyRate": 9.066,
+      "monthlyRate": 6618.18
+    },
+    "cx3dc-2x5": {
+      "hourlyRate": 0.0202,
+      "monthlyRate": 14.75
+    },
+    "cx2d-2x4": {
+      "hourlyRate": 0.0738,
+      "monthlyRate": 53.86
+    },
+    "cx2-2x4": {
+      "hourlyRate": 0.0738,
+      "monthlyRate": 53.86
+    },
+    "cxf-2x4": {
+      "hourlyRate": 0.085,
+      "monthlyRate": 62.05
+    },
+    "cx3d-2x5": {
+      "hourlyRate": 0.101,
+      "monthlyRate": 73.73
+    },
+    "cz2e-2x4": {
+      "hourlyRate": 4.252,
+      "monthlyRate": 3103.96
+    },
+    "cz2-2x4": {
+      "hourlyRate": 4.296,
+      "monthlyRate": 3136.08
+    },
+    "cx2-4x8": {
+      "hourlyRate": 0.1476,
+      "monthlyRate": 107.72
+    },
+    "cx3d-4x10": {
+      "hourlyRate": 0.203,
+      "monthlyRate": 148.19
+    },
+    "cxf-4x8": {
+      "hourlyRate": 0.171,
+      "monthlyRate": 124.83
+    },
+    "cx3dc-4x10": {
+      "hourlyRate": 0.126,
+      "monthlyRate": 91.98
+    },
+    "cx2d-4x8": {
+      "hourlyRate": 0.1476,
+      "monthlyRate": 107.72
+    },
+    "cz2-4x8": {
+      "hourlyRate": 8.592,
+      "monthlyRate": 6272.16
+    },
+    "cz2e-4x8": {
+      "hourlyRate": 8.504,
+      "monthlyRate": 6207.92
+    },
+    "cxf-8x16": {
+      "hourlyRate": 0.34,
+      "monthlyRate": 248.2
+    },
+    "cx2-8x16": {
+      "hourlyRate": 0.2951,
+      "monthlyRate": 215.44
+    },
+    "cx3d-8x20": {
+      "hourlyRate": 0.406,
+      "monthlyRate": 296.38
+    },
+    "cx2d-8x16": {
+      "hourlyRate": 0.2951,
+      "monthlyRate": 215.44
+    },
+    "cx3dc-8x20": {
+      "hourlyRate": 0.406,
+      "monthlyRate": 296.38
+    },
+    "cz2-8x16": {
+      "hourlyRate": 17.184,
+      "monthlyRate": 12544.32
+    },
+    "cz2e-8x16": {
+      "hourlyRate": 17.008,
+      "monthlyRate": 12415.84
+    },
+    "cx2d-16x32": {
+      "hourlyRate": 0.5903,
+      "monthlyRate": 430.88
+    },
+    "cx2-16x32": {
+      "hourlyRate": 0.5903,
+      "monthlyRate": 430.88
+    },
+    "cx3dc-16x40": {
+      "hourlyRate": 0.494,
+      "monthlyRate": 360.62
+    },
+    "cx3d-16x40": {
+      "hourlyRate": 0.81,
+      "monthlyRate": 591.3
+    },
+    "cxf-16x32": {
+      "hourlyRate": 0.682,
+      "monthlyRate": 497.86
+    },
+    "cz2e-16x32": {
+      "hourlyRate": 34.016,
+      "monthlyRate": 24831.68
+    },
+    "cz2-16x32": {
+      "hourlyRate": 34.368,
+      "monthlyRate": 25088.64
+    },
+    "cx3dc-24x60": {
+      "hourlyRate": 0.745,
+      "monthlyRate": 543.85
+    },
+    "cx3d-24x60": {
+      "hourlyRate": 1.216,
+      "monthlyRate": 887.68
+    },
+    "cxf-24x48": {
+      "hourlyRate": 1.022,
+      "monthlyRate": 746.06
+    },
+    "cxf-32x64": {
+      "hourlyRate": 1.36,
+      "monthlyRate": 992.8
+    },
+    "cx2-32x64": {
+      "hourlyRate": 1.1805,
+      "monthlyRate": 861.77
+    },
+    "cx3d-32x80": {
+      "hourlyRate": 1.622,
+      "monthlyRate": 1184.06
+    },
+    "cx2d-32x64": {
+      "hourlyRate": 1.1805,
+      "monthlyRate": 861.77
+    },
+    "cx3dc-32x80": {
+      "hourlyRate": 1.622,
+      "monthlyRate": 1184.06
+    },
+    "cx3d-48x120": {
+      "hourlyRate": 2.432,
+      "monthlyRate": 1775.36
+    },
+    "cxf-48x96": {
+      "hourlyRate": 2.045,
+      "monthlyRate": 1492.85
+    },
+    "cx2-48x96": {
+      "hourlyRate": 1.7708,
+      "monthlyRate": 1292.65
+    },
+    "cx3dc-48x120": {
+      "hourlyRate": 1.492,
+      "monthlyRate": 1089.16
+    },
+    "cx2d-48x96": {
+      "hourlyRate": 1.7708,
+      "monthlyRate": 1292.65
+    },
+    "cxf-64x128": {
+      "hourlyRate": 2.727,
+      "monthlyRate": 1990.71
+    },
+    "cx2d-64x128": {
+      "hourlyRate": 2.361,
+      "monthlyRate": 1723.53
+    },
+    "cx2-64x128": {
+      "hourlyRate": 2.361,
+      "monthlyRate": 1723.53
+    },
+    "cx3dc-64x160": {
+      "hourlyRate": 1.996,
+      "monthlyRate": 1457.08
+    },
+    "cx3d-64x160": {
+      "hourlyRate": 3.244,
+      "monthlyRate": 2368.12
+    },
+    "cx2-96x192": {
+      "hourlyRate": 3.5415,
+      "monthlyRate": 2585.3
+    },
+    "cx3dc-96x240": {
+      "hourlyRate": 0.973,
+      "monthlyRate": 710.29
+    },
+    "cx2d-96x192": {
+      "hourlyRate": 3.5415,
+      "monthlyRate": 2585.3
+    },
+    "cx3d-96x240": {
+      "hourlyRate": 4.865,
+      "monthlyRate": 3551.45
+    },
+    "cx2d-128x256": {
+      "hourlyRate": 4.722,
+      "monthlyRate": 3447.06
+    },
+    "cx3d-128x320": {
+      "hourlyRate": 6.487,
+      "monthlyRate": 4735.51
+    },
+    "cx3dc-128x320": {
+      "hourlyRate": 1.298,
+      "monthlyRate": 947.54
+    },
+    "cx2-128x256": {
+      "hourlyRate": 4.722,
+      "monthlyRate": 3447.06
+    },
+    "cx3d-176x440": {
+      "hourlyRate": 8.109,
+      "monthlyRate": 5919.57
+    },
+    "mx2-2x16": {
+      "hourlyRate": 0.1273,
+      "monthlyRate": 92.9
+    },
+    "mx2d-2x16": {
+      "hourlyRate": 0.1273,
+      "monthlyRate": 92.9
+    },
+    "mx3d-2x20": {
+      "hourlyRate": 0.137,
+      "monthlyRate": 100.01
+    },
+    "mxf-2x16": {
+      "hourlyRate": 0.124,
+      "monthlyRate": 90.52
+    },
+    "mz2e-2x16": {
+      "hourlyRate": 10.852,
+      "monthlyRate": 7921.96
+    },
+    "mz2-2x16": {
+      "hourlyRate": 12.828,
+      "monthlyRate": 9364.44
+    },
+    "mxf-4x32": {
+      "hourlyRate": 0.249,
+      "monthlyRate": 181.77
+    },
+    "mx2d-4x32": {
+      "hourlyRate": 0.2545,
+      "monthlyRate": 185.8
+    },
+    "mx3d-4x40": {
+      "hourlyRate": 0.276,
+      "monthlyRate": 201.48
+    },
+    "mx2-4x32": {
+      "hourlyRate": 0.2545,
+      "monthlyRate": 185.8
+    },
+    "mz2e-4x32": {
+      "hourlyRate": 21.704,
+      "monthlyRate": 15843.92
+    },
+    "mz2-4x32": {
+      "hourlyRate": 25.656,
+      "monthlyRate": 18728.88
+    },
+    "mx3d-8x80": {
+      "hourlyRate": 0.551,
+      "monthlyRate": 402.23
+    },
+    "mxf-8x64": {
+      "hourlyRate": 0.498,
+      "monthlyRate": 363.54
+    },
+    "mx2d-8x64": {
+      "hourlyRate": 0.509,
+      "monthlyRate": 371.6
+    },
+    "mx2-8x64": {
+      "hourlyRate": 0.509,
+      "monthlyRate": 371.6
+    },
+    "mz2-8x64": {
+      "hourlyRate": 51.312,
+      "monthlyRate": 37457.76
+    },
+    "mz2e-8x64": {
+      "hourlyRate": 43.408,
+      "monthlyRate": 31687.84
+    },
+    "mx2d-16x128": {
+      "hourlyRate": 1.0181,
+      "monthlyRate": 743.19
+    },
+    "mxf-16x128": {
+      "hourlyRate": 0.996,
+      "monthlyRate": 727.08
+    },
+    "mx2-16x128": {
+      "hourlyRate": 1.0181,
+      "monthlyRate": 743.19
+    },
+    "mx3d-16x160": {
+      "hourlyRate": 1.102,
+      "monthlyRate": 804.46
+    },
+    "mz2e-16x128": {
+      "hourlyRate": 86.816,
+      "monthlyRate": 63375.68
+    },
+    "mz2-16x128": {
+      "hourlyRate": 102.624,
+      "monthlyRate": 74915.52
+    },
+    "mx3d-24x240": {
+      "hourlyRate": 2.204,
+      "monthlyRate": 1608.92
+    },
+    "mxf-24x192": {
+      "hourlyRate": 1.49,
+      "monthlyRate": 1087.7
+    },
+    "mx2-32x256": {
+      "hourlyRate": 2.0361,
+      "monthlyRate": 1486.38
+    },
+    "mxf-32x256": {
+      "hourlyRate": 1.993,
+      "monthlyRate": 1454.89
+    },
+    "mx3d-32x320": {
+      "hourlyRate": 3.306,
+      "monthlyRate": 2413.38
+    },
+    "mx2d-32x256": {
+      "hourlyRate": 2.0361,
+      "monthlyRate": 1486.38
+    },
+    "mx2-48x384": {
+      "hourlyRate": 3.0542,
+      "monthlyRate": 2229.57
+    },
+    "mx3d-48x480": {
+      "hourlyRate": 4.408,
+      "monthlyRate": 3217.84
+    },
+    "mxf-48x384": {
+      "hourlyRate": 2.989,
+      "monthlyRate": 2181.97
+    },
+    "mx2d-48x384": {
+      "hourlyRate": 3.0542,
+      "monthlyRate": 2229.57
+    },
+    "mx2d-64x512": {
+      "hourlyRate": 4.0723,
+      "monthlyRate": 2972.76
+    },
+    "mxf-64x512": {
+      "hourlyRate": 3.985,
+      "monthlyRate": 2909.05
+    },
+    "mx3d-64x640": {
+      "hourlyRate": 4.607,
+      "monthlyRate": 3363.11
+    },
+    "mx2-64x512": {
+      "hourlyRate": 4.0723,
+      "monthlyRate": 2972.76
+    },
+    "mx2-96x768": {
+      "hourlyRate": 6.1084,
+      "monthlyRate": 4459.14
+    },
+    "mx3d-96x960": {
+      "hourlyRate": 6.909,
+      "monthlyRate": 5043.57
+    },
+    "mx2d-96x768": {
+      "hourlyRate": 6.1084,
+      "monthlyRate": 4459.14
+    },
+    "mx2d-128x1024": {
+      "hourlyRate": 8.1446,
+      "monthlyRate": 5945.52
+    },
+    "mx3d-128x1280": {
+      "hourlyRate": 9.213,
+      "monthlyRate": 6725.49
+    },
+    "mx2-128x1024": {
+      "hourlyRate": 8.1446,
+      "monthlyRate": 5945.52
+    },
+    "mx3d-176x1760": {
+      "hourlyRate": 11.516,
+      "monthlyRate": 8406.68
+    },
+    "vx2d-2x28": {
+      "hourlyRate": 0.1807,
+      "monthlyRate": 131.94
+    },
+    "vx2d-4x56": {
+      "hourlyRate": 0.3615,
+      "monthlyRate": 263.87
+    },
+    "vx2d-8x112": {
+      "hourlyRate": 0.7229,
+      "monthlyRate": 527.75
+    },
+    "vx2d-16x224": {
+      "hourlyRate": 1.4459,
+      "monthlyRate": 1055.5
+    },
+    "vx2d-44x616": {
+      "hourlyRate": 3.9762,
+      "monthlyRate": 2902.62
+    },
+    "vx2d-88x1232": {
+      "hourlyRate": 7.9524,
+      "monthlyRate": 5805.24
+    },
+    "vx2d-144x2016": {
+      "hourlyRate": 13.013,
+      "monthlyRate": 9499.48
+    },
+    "vx2d-176x2464": {
+      "hourlyRate": 15.9048,
+      "monthlyRate": 11610.48
+    },
+    "ux2d-2x56": {
+      "hourlyRate": 0.3055,
+      "monthlyRate": 223.03
+    },
+    "ux2d-4x112": {
+      "hourlyRate": 0.611,
+      "monthlyRate": 446.05
+    },
+    "ux2d-8x224": {
+      "hourlyRate": 1.2221,
+      "monthlyRate": 892.11
+    },
+    "ux2d-16x448": {
+      "hourlyRate": 2.4441,
+      "monthlyRate": 1784.22
+    },
+    "ux2d-36x1008": {
+      "hourlyRate": 5.4993,
+      "monthlyRate": 4014.49
+    },
+    "ux2d-48x1344": {
+      "hourlyRate": 7.3324,
+      "monthlyRate": 5352.65
+    },
+    "ux2d-72x2016": {
+      "hourlyRate": 10.9986,
+      "monthlyRate": 8028.97
+    },
+    "ux2d-100x2800": {
+      "hourlyRate": 15.2758,
+      "monthlyRate": 11151.35
+    },
+    "ux2d-200x5600": {
+      "hourlyRate": 30.5516,
+      "monthlyRate": 22302.7
+    }
+  },
+  "bareMetalPricing": {
+    "bx2d-metal-96x384": {
+      "hourlyRate": 5.268,
+      "monthlyRate": 3845.64
+    },
+    "bx2-metal-96x384": {
+      "hourlyRate": 3.418,
+      "monthlyRate": 2495.14
+    },
+    "bx3d-metal-192x1024": {
+      "hourlyRate": 12.892,
+      "monthlyRate": 9411.16
+    },
+    "bx3d-metal-48x256": {
+      "hourlyRate": 4.31,
+      "monthlyRate": 3146.3
+    },
+    "bx3d-metal-64x256": {
+      "hourlyRate": 4.537,
+      "monthlyRate": 3312.01
+    },
+    "bx3-metal-48x256": {
+      "hourlyRate": 2.8,
+      "monthlyRate": 2044
+    },
+    "bx3-metal-64x256": {
+      "hourlyRate": 3.022,
+      "monthlyRate": 2206.06
+    },
+    "cx2d-metal-96x192": {
+      "hourlyRate": 4.712,
+      "monthlyRate": 3439.76
+    },
+    "cx2-metal-96x192": {
+      "hourlyRate": 2.861,
+      "monthlyRate": 2088.53
+    },
+    "cx3d-metal-48x128": {
+      "hourlyRate": 3.847,
+      "monthlyRate": 2808.31
+    },
+    "cx3d-metal-64x128": {
+      "hourlyRate": 4.033,
+      "monthlyRate": 2944.09
+    },
+    "mx2d-metal-96x768": {
+      "hourlyRate": 6.695,
+      "monthlyRate": 4887.35
+    },
+    "mx2-metal-96x768": {
+      "hourlyRate": 4.845,
+      "monthlyRate": 3536.85
+    },
+    "mx3d-metal-96x1024": {
+      "hourlyRate": 11.485,
+      "monthlyRate": 8384.05
+    },
+    "mx3d-metal-128x1024": {
+      "hourlyRate": 12.161,
+      "monthlyRate": 8877.53
+    },
+    "mx3d-metal-48x512": {
+      "hourlyRate": 5.152,
+      "monthlyRate": 3760.96
+    },
+    "mx3d-metal-64x512": {
+      "hourlyRate": 5.443,
+      "monthlyRate": 3973.39
+    },
+    "mx3d-metal-16x128": {
+      "hourlyRate": 3.674,
+      "monthlyRate": 2682.02
+    },
+    "mx3-metal-48x512": {
+      "hourlyRate": 3.637,
+      "monthlyRate": 2655.01
+    },
+    "mx3-metal-64x512": {
+      "hourlyRate": 3.928,
+      "monthlyRate": 2867.44
+    },
+    "vx3d-metal-16x256": {
+      "hourlyRate": 4.106,
+      "monthlyRate": 2997.38
+    },
+    "vx3-metal-16x256": {
+      "hourlyRate": 2.591,
+      "monthlyRate": 1891.43
+    },
+    "ux2d-metal-224x6144": {
+      "hourlyRate": 25.47,
+      "monthlyRate": 18593.1
+    },
+    "ux2d-metal-112x3072": {
+      "hourlyRate": 14.512,
+      "monthlyRate": 10593.76
+    },
+    "ux3d-metal-16x512": {
+      "hourlyRate": 4.883,
+      "monthlyRate": 3564.59
+    },
+    "ux3-metal-16x512": {
+      "hourlyRate": 3.368,
+      "monthlyRate": 2458.64
+    }
+  },
   "blockStorage": {
     "general-purpose": {
       "tierName": "General Purpose",

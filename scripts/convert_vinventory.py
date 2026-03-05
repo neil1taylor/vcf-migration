@@ -147,9 +147,9 @@ VMINFO_MAP = {
     'GuestOS': 'OS according to the configuration file',
     'vmOS': 'Guest OS',
     'GuestFullName': 'OS according to the VMware Tools',
-    'ProvisionedGB': 'Provisioned MB',
+    'ProvisionedGB': 'Provisioned MiB',
     'ProvisionedMb': None,
-    'DiskGBUsed': 'In Use MB',
+    'DiskGBUsed': 'In Use MiB',
     'vHardware': 'HW version',
     'vmhost': 'Host',
     'Cluster': 'Cluster',
@@ -195,8 +195,8 @@ VMINFO_MAP = {
 
 VMINFO_TRANSFORMS = {
     'Memory': gb_to_mib,
-    'Provisioned MB': gb_to_mib,
-    'In Use MB': gb_to_mib,
+    'Provisioned MiB': gb_to_mib,
+    'In Use MiB': gb_to_mib,
 }
 
 # ---------------------------------------------------------------------------
@@ -212,7 +212,7 @@ VDISK_MAP = {
     'Controller': None, 'SCSI_ID': None,
     'Thin': 'Thin', 'Type': 'Type', 'Split': 'Split',
     'WriteThrough': 'Write Through',
-    'DiskGB': 'Capacity MB',
+    'DiskGB': 'Capacity MiB',
     'DiskGbUsed': None, 'IsClone': None,
     'ParentDiskFile': None, 'ParentDiskUuid': None,
     'DeltaDiskFormat': None, 'IoShares': None,
@@ -222,7 +222,7 @@ VDISK_MAP = {
     'vmmoref': None, 'DiskFile': 'Path',
     'PsPath': None, 'vmUuID': None, 'vCenter': None,
 }
-VDISK_TRANSFORMS = {'Capacity MB': gb_to_mib}
+VDISK_TRANSFORMS = {'Capacity MiB': gb_to_mib}
 
 # ---------------------------------------------------------------------------
 # vNetworkadapter -> vNetwork column map
@@ -354,7 +354,7 @@ VLICENSE_MAP = {
 
 VPARTITION_MAP = {
     'VM': 'VM', '#': None, 'isTemplate': 'Template',
-    'Disk': 'Disk', 'CapacityMB': 'Capacity MB',
+    'Disk': 'Disk', 'CapacityMB': 'Capacity MiB',
     'ConsumedMB': 'Consumed MB', 'FreeMB': 'Free MB',
     'CapacityGB': None, 'ConsumedGB': None, 'FreeGB': None,
     'Free%': 'Free %', 'Consumed%': 'Consumed %',
@@ -478,7 +478,7 @@ def synthesize_vdatastore(wb_in, wb_out):
     - LUN: actual capacity for local datastores
     """
     ws_out = wb_out.create_sheet('vDatastore')
-    out_headers = ['Name', 'Type', 'Capacity MB', 'Provisioned MB', 'In Use MB',
+    out_headers = ['Name', 'Type', 'Capacity MiB', 'Provisioned MiB', 'In Use MiB',
                    'Free MB', 'Free %', '# Hosts', 'Hosts', 'Datacenter']
     ws_out.append(out_headers)
 

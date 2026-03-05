@@ -1,6 +1,22 @@
 {
   "releases": [
     {
+      "version": "1.2.2",
+      "date": "2026-03-05",
+      "sections": {
+        "fixed": [
+          "Pricing update script now resolves all 173 VSI and 26 bare metal profile prices (previously only 41 VSI and 11 bare metal had non-zero pricing)",
+          "Updated ibmCloudConfig.json with current IBM Cloud pricing for all profiles"
+        ],
+        "changed": [
+          "Rewrote pricing update script to navigate IBM Cloud Global Catalog plan hierarchy instead of relying on limited bulk search",
+          "Pricing script now supports three pricing models: gen2 component-based (per-vCPU + per-GB), gen3+ flat per-profile, and bare metal flat per-server",
+          "Added Z-series (LinuxONE) pricing support via Secure Execution vCPU/memory rates",
+          "Enhanced pricing update summary with per-profile missing pricing report"
+        ]
+      }
+    },
+    {
       "version": "1.2.1",
       "date": "2026-03-04",
       "sections": {

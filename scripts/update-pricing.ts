@@ -11,9 +11,15 @@
  * What it does:
  *   1. Fetches VSI profile pricing from Global Catalog API
  *   2. Fetches Bare Metal profile pricing from Global Catalog API
- *   3. Extracts hourly/monthly rates for us-south region
+ *   3. Computes hourly/monthly rates for us-south region (vCPU rate × vCPUs + memory rate × GB)
  *   4. Updates pricing in src/data/ibmCloudConfig.json
  *   5. Preserves all other configuration (profiles, storage tiers, networking, etc.)
+ *
+ * Pricing model:
+ *   IBM Cloud VPC pricing is component-based, not flat per-profile. Each profile's catalog
+ *   entry contains a plan ID in metadata.other.profile.measures. The plan's deployment-level
+ *   pricing provides per-vCPU-hour and per-GB-memory-hour rates. The profile's hourly rate
+ *   is computed as: (cpuRate × vCPUs) + (memRate × memoryGB) + (storageRate × instanceStorageGB).
  */
 
 import * as fs from 'fs';
@@ -40,6 +46,7 @@ interface PricingMetric {
   charge_unit_display_name?: string;
   charge_unit_name?: string;
   charge_unit?: string;
+  charge_unit_quantity?: number;
   amounts?: Array<{
     country: string;
     currency: string;
@@ -50,40 +57,74 @@ interface PricingMetric {
   }>;
 }
 
-interface CatalogResource {
+interface PricingDeploymentEntry {
+  deployment_id: string;
+  deployment_location: string;
+  deployment_region?: string;
+  metrics: PricingMetric[] | null;
+}
+
+interface PricingDeploymentResponse {
+  offset: number;
+  limit: number;
+  count: number;
+  resource_count: number;
+  resources: PricingDeploymentEntry[];
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+interface CatalogEntry {
   id: string;
   name: string;
   kind: string;
   active: boolean;
   disabled: boolean;
-  geo_tags?: string[];
   metadata?: {
-    ui?: {
-      strings?: {
-        en?: {
-          display_name?: string;
-        };
+    other?: {
+      profile?: {
+        measures?: Array<{
+          component: string;
+          deployments?: Array<{
+            type: string;
+            plan: string;
+            meters?: Array<{
+              quantity: string;
+              unit: string;
+            }>;
+          }>;
+        }>;
       };
     };
-    pricing?: {
-      type?: string;
-      metrics?: PricingMetric[];
-    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
   };
 }
 
-interface CatalogResponse {
+interface CatalogSearchResponse {
   offset: number;
   limit: number;
   count: number;
   resource_count: number;
-  resources: CatalogResource[];
+  resources: CatalogEntry[];
 }
 
-interface PricingDeployment {
-  deployment_id: string;
-  deployment_location: string;
-  metrics: PricingMetric[];
+// Per-unit pricing rates from a plan's deployment (gen2 component-based model)
+interface PlanRates {
+  cpuPerHour: number;    // per vCPU-hour
+  memPerHour: number;    // per GB-hour
+  storagePerHour: number; // per GB-hour (instance storage)
+}
+
+// Flat per-profile hourly rate (gen3+ model)
+interface FlatRate {
+  hourlyRate: number;
+}
+
+// Profile info extracted from catalog metadata
+interface ProfileMeasures {
+  planId: string;
+  vcpus: number;
+  memoryGB: number;
 }
 
 // Get API key from environment
@@ -127,210 +168,345 @@ async function getIamToken(apiKey: string): Promise<string> {
   return data.access_token;
 }
 
-// Search the Global Catalog
-async function searchCatalog(token: string, query: string): Promise<CatalogResponse> {
+// Rate-limit delay helper
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Fetch a catalog entry by ID with metadata
+async function fetchCatalogEntry(token: string, id: string): Promise<CatalogEntry | null> {
+  const url = `${GLOBAL_CATALOG_BASE_URL}/${encodeURIComponent(id)}?include=metadata`;
+  const response = await fetch(url, {
+    headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+// Search the Global Catalog with metadata
+async function searchCatalogWithMetadata(token: string, query: string, limit = 200): Promise<CatalogSearchResponse> {
   const params = new URLSearchParams({
     q: query,
-    include: 'metadata.pricing',
-    _limit: '200',
+    include: 'metadata',
+    _limit: limit.toString(),
   });
-
   const url = `${GLOBAL_CATALOG_BASE_URL}?${params.toString()}`;
-
   const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
   });
-
   if (!response.ok) {
     const text = await response.text();
     throw new Error(`Catalog search failed: ${response.status} - ${text}`);
   }
-
   return response.json();
 }
 
-// Get pricing deployments for a specific resource
-async function getPricingDeployments(token: string, resourceId: string): Promise<PricingDeployment[]> {
-  const url = `${GLOBAL_CATALOG_BASE_URL}/${encodeURIComponent(resourceId)}/pricing`;
+// Fetch plan pricing deployments with pagination
+async function fetchPlanPricingDeployments(
+  token: string,
+  planId: string
+): Promise<PricingDeploymentEntry[]> {
+  const allEntries: PricingDeploymentEntry[] = [];
+  let offset = 0;
+  const limit = 200;
 
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  while (true) {
+    const url = `${GLOBAL_CATALOG_BASE_URL}/${encodeURIComponent(planId)}/pricing/deployment?_offset=${offset}&_limit=${limit}`;
+    const response = await fetch(url, {
+      headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+    });
+    if (!response.ok) break;
 
-  if (!response.ok) {
-    // Some resources don't have pricing endpoints
-    if (response.status === 404) {
-      return [];
-    }
-    const text = await response.text();
-    throw new Error(`Get pricing failed: ${response.status} - ${text}`);
+    const data: PricingDeploymentResponse = await response.json();
+    allEntries.push(...(data.resources || []));
+    if ((data.resources || []).length < limit) break;
+    offset += limit;
   }
 
-  const data = await response.json();
-  return data.deployment_location ? [data] : (data.deployments || []);
+  return allEntries;
 }
 
-// Extract USD hourly price from metrics
-function extractHourlyPrice(metrics: PricingMetric[]): number | null {
-  for (const metric of metrics) {
-    // Look for instance-hours metric
-    if (metric.charge_unit === 'INSTANCE_HOURS' ||
-        metric.charge_unit_name === 'INSTANCE_HOURS' ||
-        metric.metric_id?.includes('instance')) {
-      const amounts = metric.amounts || [];
-      for (const amount of amounts) {
-        if (amount.currency === 'USD') {
-          // Get the first tier price (base price)
-          const basePrice = amount.prices?.find(p => p.quantity_tier === 1);
-          if (basePrice) {
-            return basePrice.price;
-          }
-          // Fall back to first price
-          if (amount.prices && amount.prices.length > 0) {
-            return amount.prices[0].price;
-          }
-        }
-      }
+// Extract pricing from a plan's us-south deployment.
+// Returns either component-based rates (gen2: per-vCPU + per-GB) or flat rates (gen3+: per-instance-hour).
+function extractPlanPricing(deployments: PricingDeploymentEntry[]): { rates?: PlanRates; flatRate?: FlatRate } {
+  const usSouth = deployments.find(d =>
+    d.deployment_location === REGION || d.deployment_region === REGION
+  );
+  if (!usSouth?.metrics) return {};
+
+  let cpuPerHour = 0;
+  let memPerHour = 0;
+  let storagePerHour = 0;
+  let flatHourlyRate = 0;
+
+  for (const metric of usSouth.metrics) {
+    const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
+    const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
+      ?? usdAmount?.prices?.[0]?.price;
+    if (price === undefined || price === null || price === 0) continue;
+
+    const qty = metric.charge_unit_quantity || 1;
+    const perUnit = price / qty;
+
+    // Gen2 component-based pricing (VSI)
+    if (metric.metric_id === 'part-is.cpu-hours' || metric.charge_unit_name === 'VCPU_HOURS') {
+      cpuPerHour = perUnit;
+    } else if (metric.metric_id === 'part-is.ram-hours' || metric.charge_unit_name === 'MEMORY_HOURS') {
+      memPerHour = perUnit;
+    } else if (metric.metric_id === 'part-is.instance-storage-hours' || metric.charge_unit_name === 'IS_STORAGE_GIGABYTE_HOURS') {
+      storagePerHour = perUnit;
+    }
+    // Z-series (LinuxONE) component-based pricing
+    else if (metric.charge_unit_name === 'SECUREEXECUTION_VCPU_HOURS' || metric.metric_id === 'part-is.zvsi.SE-cpu-hours') {
+      cpuPerHour = perUnit;
+    } else if (metric.charge_unit_name === 'SECUREEXECUTION_MEMORY_HOURS' || metric.metric_id === 'part-is.zvsi.SE-ram-hours') {
+      memPerHour = perUnit;
+    }
+    // Gen3+ flat per-profile pricing (metric_id like "part-is.instance-hours-bx3d-16x80")
+    else if (metric.charge_unit_name === 'INSTANCE_HOURS_MULTI_TENANT' ||
+             (metric.metric_id?.startsWith('part-is.instance-hours') && !metric.metric_id.includes('-dh-'))) {
+      flatHourlyRate = price;
+    }
+    // Bare metal flat per-server pricing
+    else if (metric.charge_unit_name === 'BARE_METAL_SERVER_HOURS') {
+      flatHourlyRate = price;
     }
   }
-  return null;
+
+  const result: { rates?: PlanRates; flatRate?: FlatRate } = {};
+
+  if (cpuPerHour > 0 && memPerHour > 0) {
+    result.rates = { cpuPerHour, memPerHour, storagePerHour };
+  }
+  if (flatHourlyRate > 0) {
+    result.flatRate = { hourlyRate: flatHourlyRate };
+  }
+
+  return result;
+}
+
+// Extract profile measures (plan ID, vCPUs, memory) from catalog metadata
+function extractProfileMeasures(entry: CatalogEntry): ProfileMeasures | null {
+  const measures = entry.metadata?.other?.profile?.measures;
+  if (!measures) return null;
+
+  // VSI profiles use component 'instance', bare metal uses 'BareMetalServer'
+  const instanceMeasure = measures.find(m => m.component === 'instance')
+    || measures.find(m => m.component === 'BareMetalServer');
+  if (!instanceMeasure?.deployments) return null;
+
+  // VSI: prefer multi-tenant; Bare metal: use single-tenant
+  const deployment = instanceMeasure.deployments.find(d => d.type === 'multi-tenant')
+    || instanceMeasure.deployments.find(d => d.type === 'single-tenant')
+    || instanceMeasure.deployments[0];
+  if (!deployment?.plan) return null;
+
+  const meters = deployment.meters || [];
+  const vcpus = parseInt(meters.find(m => m.unit === 'VCPU')?.quantity || '0', 10);
+  const memoryGB = parseInt(meters.find(m => m.unit === 'MEMORY')?.quantity || '0', 10);
+
+  // Bare metal profiles may not have VCPU/MEMORY meters — that's OK, we'll use flat pricing
+  return { planId: deployment.plan, vcpus, memoryGB };
+}
+
+// Parse vCPUs and memory from profile name (e.g., "bx2-16x64" → 16 vCPUs, 64 GB)
+function parseProfileName(name: string): { vcpus: number; memoryGB: number } | null {
+  // Match patterns like bx2-16x64, cx3d-8x20, mx2d-metal-96x768
+  const match = name.match(/(\d+)x(\d+)(?:x\d+)?$/);
+  if (!match) return null;
+  return { vcpus: parseInt(match[1], 10), memoryGB: parseInt(match[2], 10) };
+}
+
+// Compute hourly rate for a profile given plan rates and profile specs
+function computeHourlyRate(rates: PlanRates, vcpus: number, memoryGB: number): number {
+  return rates.cpuPerHour * vcpus + rates.memPerHour * memoryGB;
+}
+
+// Fetch pricing for a set of profiles using the component-based pricing model
+async function fetchComponentPricing(
+  token: string,
+  serviceQuery: string,
+  profileKind: string,
+  configProfileNames: string[]
+): Promise<Map<string, { hourlyRate: number; monthlyRate: number }>> {
+  const pricing = new Map<string, { hourlyRate: number; monthlyRate: number }>();
+
+  // Step 1: Fetch all catalog profile entries to get plan IDs and vCPU/memory specs
+  console.log('  Step 1: Fetching profile metadata from catalog...');
+  const catalogResponse = await searchCatalogWithMetadata(token, serviceQuery);
+  const catalogProfiles = catalogResponse.resources.filter(
+    r => r.active && !r.disabled && r.kind === profileKind
+  );
+  console.log(`    Found ${catalogProfiles.length} profiles in catalog bulk search`);
+
+  // Build profile-to-measures map from catalog results
+  const profileMeasuresMap = new Map<string, ProfileMeasures>();
+  for (const entry of catalogProfiles) {
+    const measures = extractProfileMeasures(entry);
+    if (measures) {
+      profileMeasuresMap.set(entry.name, measures);
+    }
+  }
+  console.log(`    ${profileMeasuresMap.size} profiles have plan metadata`);
+
+  // Step 2: For config profiles not found in bulk search, do individual lookups
+  const missingFromBulk = configProfileNames.filter(name => !profileMeasuresMap.has(name));
+  if (missingFromBulk.length > 0) {
+    console.log(`  Step 2: Individual catalog lookups for ${missingFromBulk.length} remaining profiles...`);
+    let found = 0;
+    for (let i = 0; i < missingFromBulk.length; i++) {
+      const name = missingFromBulk[i];
+
+      // Try direct lookup first (works for VSI profiles)
+      let entry = await fetchCatalogEntry(token, name);
+      let measures = entry ? extractProfileMeasures(entry) : null;
+
+      // If direct lookup didn't get measures, try search (needed for bare metal)
+      if (!measures) {
+        const searchResult = await searchCatalogWithMetadata(token, name, 5);
+        const match = searchResult.resources.find(r => r.name === name && r.active && !r.disabled);
+        if (match) {
+          measures = extractProfileMeasures(match);
+        }
+      }
+
+      if (measures) {
+        profileMeasuresMap.set(name, measures);
+        found++;
+      }
+
+      if (i < missingFromBulk.length - 1) await delay(50);
+      if ((i + 1) % 20 === 0) {
+        console.log(`    Processed ${i + 1}/${missingFromBulk.length}...`);
+      }
+    }
+    console.log(`    Found ${found} additional profiles with plan metadata`);
+  } else {
+    console.log('  Step 2: All config profiles found in bulk search');
+  }
+
+  // Step 3: Collect unique plan IDs and fetch their pricing
+  console.log('  Step 3: Fetching plan pricing rates...');
+  const uniquePlanIds = new Set<string>();
+  for (const name of configProfileNames) {
+    const measures = profileMeasuresMap.get(name);
+    if (measures) uniquePlanIds.add(measures.planId);
+  }
+  console.log(`    ${uniquePlanIds.size} unique plans to fetch pricing for`);
+
+  const planRatesMap = new Map<string, PlanRates>();
+  const planFlatRateMap = new Map<string, FlatRate>();
+  let plansFetched = 0;
+  let plansWithPricing = 0;
+  for (const planId of uniquePlanIds) {
+    const deployments = await fetchPlanPricingDeployments(token, planId);
+    const { rates, flatRate } = extractPlanPricing(deployments);
+    if (rates) {
+      planRatesMap.set(planId, rates);
+      plansWithPricing++;
+    }
+    if (flatRate) {
+      planFlatRateMap.set(planId, flatRate);
+      if (!rates) plansWithPricing++;
+    }
+    plansFetched++;
+    if (plansFetched % 20 === 0) {
+      console.log(`    Fetched ${plansFetched}/${uniquePlanIds.size} plan prices...`);
+    }
+    await delay(50);
+  }
+  console.log(`    ${plansWithPricing} plans with valid us-south pricing (${planRatesMap.size} component-based, ${planFlatRateMap.size} flat-rate)`);
+
+  // Step 4: Compute per-profile pricing
+  console.log('  Step 4: Computing per-profile pricing...');
+  for (const name of configProfileNames) {
+    const measures = profileMeasuresMap.get(name);
+    if (!measures) continue;
+
+    // Prefer flat rate (gen3+), fall back to component-based (gen2)
+    const flatRate = planFlatRateMap.get(measures.planId);
+    if (flatRate) {
+      pricing.set(name, {
+        hourlyRate: Math.round(flatRate.hourlyRate * 10000) / 10000,
+        monthlyRate: Math.round(flatRate.hourlyRate * HOURS_PER_MONTH * 100) / 100,
+      });
+      continue;
+    }
+
+    const rates = planRatesMap.get(measures.planId);
+    if (!rates) continue;
+
+    const hourlyRate = computeHourlyRate(rates, measures.vcpus, measures.memoryGB);
+    if (hourlyRate > 0) {
+      pricing.set(name, {
+        hourlyRate: Math.round(hourlyRate * 10000) / 10000,
+        monthlyRate: Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100,
+      });
+    }
+  }
+
+  // Step 5: For any profiles still missing, try to use component rates from the same family
+  const stillMissing = configProfileNames.filter(name => !pricing.has(name));
+  if (stillMissing.length > 0) {
+    console.log(`  Step 5: Fallback estimation for ${stillMissing.length} profiles without plan pricing...`);
+    // Group component rates by family prefix (e.g., "bx2", "cx3d")
+    const familyRates = new Map<string, PlanRates>();
+    for (const [name, measures] of profileMeasuresMap) {
+      const rates = planRatesMap.get(measures.planId);
+      if (!rates) continue;
+      const familyMatch = name.match(/^([a-z]+\d+[a-z]*)/);
+      if (familyMatch) {
+        familyRates.set(familyMatch[1], rates);
+      }
+    }
+
+    let fallbackCount = 0;
+    for (const name of stillMissing) {
+      const familyMatch = name.match(/^([a-z]+\d+[a-z]*)/);
+      if (!familyMatch) continue;
+
+      const rates = familyRates.get(familyMatch[1]);
+      if (!rates) continue;
+
+      const parsed = parseProfileName(name);
+      if (!parsed) continue;
+
+      const hourlyRate = computeHourlyRate(rates, parsed.vcpus, parsed.memoryGB);
+      if (hourlyRate > 0) {
+        pricing.set(name, {
+          hourlyRate: Math.round(hourlyRate * 10000) / 10000,
+          monthlyRate: Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100,
+        });
+        fallbackCount++;
+      }
+    }
+    if (fallbackCount > 0) {
+      console.log(`    Estimated ${fallbackCount} profiles using family rates`);
+    }
+  }
+
+  console.log(`  Total: ${pricing.size}/${configProfileNames.length} profiles with pricing`);
+  return pricing;
 }
 
 // Fetch VSI pricing
-async function fetchVSIPricing(token: string): Promise<Map<string, { hourlyRate: number; monthlyRate: number }>> {
-  console.log('  Fetching VSI pricing from Global Catalog...');
-
-  const pricing = new Map<string, { hourlyRate: number; monthlyRate: number }>();
-
-  // Search for VPC VSI profiles
-  const catalogResponse = await searchCatalog(token, 'is.instance');
-
-  // Filter for active instance profiles
-  const profiles = catalogResponse.resources.filter(
-    r => r.active && !r.disabled && r.kind === 'instance.profile'
-  );
-
-  console.log(`  Found ${profiles.length} VSI profiles in catalog`);
-
-  let processed = 0;
-  let withPricing = 0;
-
-  for (const profile of profiles) {
-    processed++;
-
-    // Try to get pricing from embedded metadata first
-    let hourlyRate: number | null = null;
-
-    if (profile.metadata?.pricing?.metrics) {
-      hourlyRate = extractHourlyPrice(profile.metadata.pricing.metrics);
-    }
-
-    // If no embedded pricing, try the pricing endpoint
-    if (hourlyRate === null) {
-      try {
-        const deployments = await getPricingDeployments(token, profile.id);
-        const usDeployment = deployments.find(d =>
-          d.deployment_location === REGION ||
-          d.deployment_location === 'us' ||
-          d.deployment_location === 'global'
-        );
-        if (usDeployment?.metrics) {
-          hourlyRate = extractHourlyPrice(usDeployment.metrics);
-        }
-      } catch {
-        // Ignore pricing fetch errors for individual profiles
-      }
-    }
-
-    if (hourlyRate !== null && hourlyRate > 0) {
-      const monthlyRate = Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100;
-      pricing.set(profile.name, {
-        hourlyRate: Math.round(hourlyRate * 1000) / 1000,
-        monthlyRate,
-      });
-      withPricing++;
-    }
-
-    // Progress indicator
-    if (processed % 20 === 0) {
-      console.log(`    Processed ${processed}/${profiles.length} profiles...`);
-    }
-  }
-
-  console.log(`  Retrieved pricing for ${withPricing} VSI profiles`);
-  return pricing;
+async function fetchVSIPricing(
+  token: string,
+  configProfileNames: string[]
+): Promise<Map<string, { hourlyRate: number; monthlyRate: number }>> {
+  console.log('');
+  console.log('--- VSI Pricing ---');
+  return fetchComponentPricing(token, 'is.instance', 'instance.profile', configProfileNames);
 }
 
 // Fetch Bare Metal pricing
-async function fetchBareMetalPricing(token: string): Promise<Map<string, { hourlyRate: number; monthlyRate: number }>> {
-  console.log('  Fetching Bare Metal pricing from Global Catalog...');
-
-  const pricing = new Map<string, { hourlyRate: number; monthlyRate: number }>();
-
-  // Search for bare metal server profiles
-  const catalogResponse = await searchCatalog(token, 'is.bare-metal-server');
-
-  // Filter for active bare metal profiles
-  const profiles = catalogResponse.resources.filter(
-    r => r.active && !r.disabled && r.kind === 'bare_metal_server.profile'
-  );
-
-  console.log(`  Found ${profiles.length} Bare Metal profiles in catalog`);
-
-  let processed = 0;
-  let withPricing = 0;
-
-  for (const profile of profiles) {
-    processed++;
-
-    let hourlyRate: number | null = null;
-
-    // Try embedded metadata first
-    if (profile.metadata?.pricing?.metrics) {
-      hourlyRate = extractHourlyPrice(profile.metadata.pricing.metrics);
-    }
-
-    // Try pricing endpoint
-    if (hourlyRate === null) {
-      try {
-        const deployments = await getPricingDeployments(token, profile.id);
-        const usDeployment = deployments.find(d =>
-          d.deployment_location === REGION ||
-          d.deployment_location === 'us' ||
-          d.deployment_location === 'global'
-        );
-        if (usDeployment?.metrics) {
-          hourlyRate = extractHourlyPrice(usDeployment.metrics);
-        }
-      } catch {
-        // Ignore pricing fetch errors for individual profiles
-      }
-    }
-
-    if (hourlyRate !== null && hourlyRate > 0) {
-      const monthlyRate = Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100;
-      pricing.set(profile.name, {
-        hourlyRate: Math.round(hourlyRate * 1000) / 1000,
-        monthlyRate,
-      });
-      withPricing++;
-    }
-
-    if (processed % 10 === 0) {
-      console.log(`    Processed ${processed}/${profiles.length} profiles...`);
-    }
-  }
-
-  console.log(`  Retrieved pricing for ${withPricing} Bare Metal profiles`);
-  return pricing;
+async function fetchBareMetalPricing(
+  token: string,
+  configProfileNames: string[]
+): Promise<Map<string, { hourlyRate: number; monthlyRate: number }>> {
+  console.log('');
+  console.log('--- Bare Metal Pricing ---');
+  return fetchComponentPricing(token, 'is.bare-metal-server', 'bare_metal_server.profile', configProfileNames);
 }
 
 // Config type for pricing updates
@@ -353,32 +529,22 @@ function updateConfigWithPricing(
 
   // Update VSI pricing section
   const newVsiPricing: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
-
-  // Keep existing pricing for profiles we didn't fetch
   if (existingConfig.vsiPricing) {
     Object.assign(newVsiPricing, existingConfig.vsiPricing);
   }
-
-  // Overlay new pricing
   for (const [name, pricing] of vsiPricing) {
     newVsiPricing[name] = pricing;
   }
-
   newConfig.vsiPricing = newVsiPricing;
 
   // Update bare metal pricing section
   const newBareMetalPricing: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
-
-  // Keep existing pricing for profiles we didn't fetch
   if (existingConfig.bareMetalPricing) {
     Object.assign(newBareMetalPricing, existingConfig.bareMetalPricing);
   }
-
-  // Overlay new pricing
   for (const [name, pricing] of bareMetalPricing) {
     newBareMetalPricing[name] = pricing;
   }
-
   newConfig.bareMetalPricing = newBareMetalPricing;
 
   // Also update pricing in vsiProfiles array if present
@@ -442,14 +608,22 @@ async function main() {
     console.log('Step 1: Authentication');
     const token = await getIamToken(apiKey);
 
+    // Collect profile names from config
+    const vsiProfileNames = Object.values(existingConfig.vsiProfiles || {})
+      .flat()
+      .map(p => p.name);
+    const bmProfileNames = Object.values(existingConfig.bareMetalProfiles || {})
+      .flat()
+      .map(p => p.name);
+
+    console.log(`  Config has ${vsiProfileNames.length} VSI profiles and ${bmProfileNames.length} Bare Metal profiles`);
+
     // Fetch pricing
     console.log('');
     console.log('Step 2: Fetching pricing from Global Catalog');
 
-    const [vsiPricing, bareMetalPricing] = await Promise.all([
-      fetchVSIPricing(token),
-      fetchBareMetalPricing(token),
-    ]);
+    const vsiPricing = await fetchVSIPricing(token, vsiProfileNames);
+    const bareMetalPricing = await fetchBareMetalPricing(token, bmProfileNames);
 
     // Update config
     console.log('');
@@ -471,11 +645,39 @@ async function main() {
     console.log('='.repeat(60));
     console.log('');
     console.log('Summary:');
-    console.log(`  - VSI pricing updated: ${vsiPricing.size} profiles`);
-    console.log(`  - Bare Metal pricing updated: ${bareMetalPricing.size} profiles`);
+    console.log(`  - VSI profiles in config: ${vsiProfileNames.length}`);
+    console.log(`  - VSI profiles with pricing: ${vsiPricing.size}`);
+    console.log(`  - Bare Metal profiles in config: ${bmProfileNames.length}`);
+    console.log(`  - Bare Metal profiles with pricing: ${bareMetalPricing.size}`);
     console.log(`  - Config version: ${newConfig.version}`);
+
+    // Report missing profiles
+    const missingVsi = vsiProfileNames.filter(n => !vsiPricing.has(n));
+    const missingBm = bmProfileNames.filter(n => !bareMetalPricing.has(n));
+
+    if (missingVsi.length > 0) {
+      console.log('');
+      console.log(`  VSI profiles still missing pricing (${missingVsi.length}):`);
+      for (const name of missingVsi) {
+        console.log(`    - ${name}`);
+      }
+    }
+
+    if (missingBm.length > 0) {
+      console.log('');
+      console.log(`  Bare Metal profiles still missing pricing (${missingBm.length}):`);
+      for (const name of missingBm) {
+        console.log(`    - ${name}`);
+      }
+    }
+
+    if (missingVsi.length === 0 && missingBm.length === 0) {
+      console.log('');
+      console.log('  All profiles have pricing!');
+    }
+
     console.log('');
-    console.log('Note: Pricing is fetched for us-south region.');
+    console.log('Note: Pricing is computed from per-vCPU and per-GB rates for us-south region.');
     console.log('Regional multipliers are applied at runtime for other regions.');
 
   } catch (error) {

@@ -584,9 +584,10 @@ npm run update-all
 The script queries the IBM Kubernetes Service API to determine which bare metal profiles are supported as ROKS worker nodes, then sets `roksSupported: true` on matching profiles.
 
 #### Pricing Update (`scripts/update-pricing.ts`)
-- **VSI Pricing** — Hourly rates from Global Catalog
-- **Bare Metal Pricing** — Hourly rates from Global Catalog
+- **VSI Pricing** — Hourly rates computed from IBM Cloud Global Catalog plan hierarchy
+- **Bare Metal Pricing** — Flat per-server hourly rates from Global Catalog
 - Monthly rates are calculated as `hourlyRate × 730 hours`
+- Supports three pricing models: gen2 component-based (per-vCPU + per-GB), gen3+ flat per-profile, bare metal flat per-server, and Z-series (LinuxONE) Secure Execution rates
 
 ### Static Fallback Data
 
