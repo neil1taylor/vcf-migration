@@ -1,0 +1,67 @@
+{
+  "templates": {
+    "Web Server": {
+      "inbound": [
+        { "protocol": "tcp", "portMin": 80, "portMax": 80, "source": "0.0.0.0/0", "description": "HTTP" },
+        { "protocol": "tcp", "portMin": 443, "portMax": 443, "source": "0.0.0.0/0", "description": "HTTPS" },
+        { "protocol": "tcp", "portMin": 22, "portMax": 22, "source": "10.0.0.0/8", "description": "SSH from internal" }
+      ],
+      "outbound": [
+        { "protocol": "all", "source": "0.0.0.0/0", "description": "Allow all outbound" }
+      ]
+    },
+    "Application Server": {
+      "inbound": [
+        { "protocol": "tcp", "portMin": 8080, "portMax": 8080, "source": "sg:web-server", "description": "HTTP from web tier" },
+        { "protocol": "tcp", "portMin": 8443, "portMax": 8443, "source": "sg:web-server", "description": "HTTPS from web tier" },
+        { "protocol": "tcp", "portMin": 22, "portMax": 22, "source": "10.0.0.0/8", "description": "SSH from internal" }
+      ],
+      "outbound": [
+        { "protocol": "all", "source": "0.0.0.0/0", "description": "Allow all outbound" }
+      ]
+    },
+    "Database": {
+      "inbound": [
+        { "protocol": "tcp", "portMin": 3306, "portMax": 3306, "source": "sg:application-server", "description": "MySQL from app tier" },
+        { "protocol": "tcp", "portMin": 5432, "portMax": 5432, "source": "sg:application-server", "description": "PostgreSQL from app tier" },
+        { "protocol": "tcp", "portMin": 1521, "portMax": 1521, "source": "sg:application-server", "description": "Oracle from app tier" },
+        { "protocol": "tcp", "portMin": 1433, "portMax": 1433, "source": "sg:application-server", "description": "MSSQL from app tier" },
+        { "protocol": "tcp", "portMin": 22, "portMax": 22, "source": "10.0.0.0/8", "description": "SSH from internal" }
+      ],
+      "outbound": [
+        { "protocol": "all", "source": "0.0.0.0/0", "description": "Allow all outbound" }
+      ]
+    },
+    "Infrastructure": {
+      "inbound": [
+        { "protocol": "tcp", "portMin": 22, "portMax": 22, "source": "10.0.0.0/8", "description": "SSH from internal" },
+        { "protocol": "tcp", "portMin": 53, "portMax": 53, "source": "10.0.0.0/8", "description": "DNS TCP" },
+        { "protocol": "udp", "portMin": 53, "portMax": 53, "source": "10.0.0.0/8", "description": "DNS UDP" },
+        { "protocol": "tcp", "portMin": 389, "portMax": 389, "source": "10.0.0.0/8", "description": "LDAP" },
+        { "protocol": "tcp", "portMin": 636, "portMax": 636, "source": "10.0.0.0/8", "description": "LDAPS" }
+      ],
+      "outbound": [
+        { "protocol": "all", "source": "0.0.0.0/0", "description": "Allow all outbound" }
+      ]
+    },
+    "Middleware": {
+      "inbound": [
+        { "protocol": "tcp", "portMin": 8080, "portMax": 8080, "source": "sg:web-server", "description": "HTTP from web tier" },
+        { "protocol": "tcp", "portMin": 9090, "portMax": 9090, "source": "10.0.0.0/8", "description": "Admin console" },
+        { "protocol": "tcp", "portMin": 22, "portMax": 22, "source": "10.0.0.0/8", "description": "SSH from internal" }
+      ],
+      "outbound": [
+        { "protocol": "all", "source": "0.0.0.0/0", "description": "Allow all outbound" }
+      ]
+    },
+    "Default": {
+      "inbound": [
+        { "protocol": "tcp", "portMin": 22, "portMax": 22, "source": "10.0.0.0/8", "description": "SSH from internal" },
+        { "protocol": "icmp", "source": "10.0.0.0/8", "description": "ICMP from internal" }
+      ],
+      "outbound": [
+        { "protocol": "all", "source": "0.0.0.0/0", "description": "Allow all outbound" }
+      ]
+    }
+  }
+}

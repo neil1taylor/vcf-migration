@@ -18,6 +18,7 @@ import {
   Settings,
   Report,
   Catalog,
+  TaskComplete,
 } from '@carbon/icons-react';
 import { useHasData } from '@/hooks';
 import { ROUTES } from '@/utils/constants';
@@ -26,6 +27,10 @@ import { ROUTES } from '@/utils/constants';
 const infrastructureRoutes = [
   ROUTES.compute, ROUTES.storage, ROUTES.network,
   ROUTES.cluster, ROUTES.hosts, ROUTES.resourcePools, ROUTES.tables,
+];
+
+const assessRoutes = [
+  ROUTES.riskAssessment, ROUTES.migrationTimeline, ROUTES.networkDesign,
 ];
 
 const migrationRoutes = [
@@ -97,6 +102,37 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
         >
           Discovery
         </SideNavLink>
+
+        {/* Step 3: Assess */}
+        <SideNavMenu
+          renderIcon={TaskComplete}
+          title="Assess"
+          defaultExpanded={isInGroup(assessRoutes)}
+          isActive={isInGroup(assessRoutes)}
+          className={disabledClass}
+        >
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.riskAssessment, true)}
+            isActive={isActive(ROUTES.riskAssessment)}
+          >
+            Risk Assessment
+          </SideNavMenuItem>
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.migrationTimeline, true)}
+            isActive={isActive(ROUTES.migrationTimeline)}
+          >
+            Migration Timeline
+          </SideNavMenuItem>
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.networkDesign, true)}
+            isActive={isActive(ROUTES.networkDesign)}
+          >
+            Network Design
+          </SideNavMenuItem>
+        </SideNavMenu>
 
         {/* Infrastructure Details — collapsible */}
         <SideNavMenu

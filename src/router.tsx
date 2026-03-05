@@ -21,6 +21,9 @@ const ROKSMigrationPage = lazy(() => import('@/pages/ROKSMigrationPage').then(m 
 const VSIMigrationPage = lazy(() => import('@/pages/VSIMigrationPage').then(m => ({ default: m.VSIMigrationPage })));
 const PreFlightReportPage = lazy(() => import('@/pages/PreFlightReportPage').then(m => ({ default: m.PreFlightReportPage })));
 const DiscoveryPage = lazy(() => import('@/pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
+const RiskAssessmentPage = lazy(() => import('@/pages/RiskAssessmentPage').then(m => ({ default: m.RiskAssessmentPage })));
+const MigrationTimelinePage = lazy(() => import('@/pages/MigrationTimelinePage').then(m => ({ default: m.MigrationTimelinePage })));
+const NetworkDesignPage = lazy(() => import('@/pages/NetworkDesignPage').then(m => ({ default: m.NetworkDesignPage })));
 const TablesPage = lazy(() => import('@/pages/TablesPage').then(m => ({ default: m.TablesPage })));
 const InfoPage = lazy(() => import('@/pages/InfoPage').then(m => ({ default: m.InfoPage })));
 const DocumentationPage = lazy(() => import('@/pages/DocumentationPage').then(m => ({ default: m.DocumentationPage })));
@@ -94,6 +97,18 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.discovery.slice(1),
         element: <PageLoader><DiscoveryPage /></PageLoader>,
+      },
+      {
+        path: ROUTES.riskAssessment.slice(1),
+        element: <PageLoader><RiskAssessmentPage /></PageLoader>,
+      },
+      {
+        path: ROUTES.migrationTimeline.slice(1),
+        element: <PageLoader><MigrationTimelinePage /></PageLoader>,
+      },
+      {
+        path: ROUTES.networkDesign.slice(1),
+        element: <PageLoader><NetworkDesignPage /></PageLoader>,
       },
       {
         path: ROUTES.tables.slice(1),

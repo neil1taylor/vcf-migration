@@ -2,6 +2,9 @@
 
 import { Paragraph, Table, AlignmentType, HeadingLevel } from 'docx';
 import type { MigrationInsights } from '@/services/ai/types';
+import type { RiskAssessment } from '@/types/riskAssessment';
+import type { TimelinePhase } from '@/types/timeline';
+import type { VPCDesign } from '@/types/vpcDesign';
 
 // Type alias for document content elements
 export type DocumentContent = Paragraph | Table;
@@ -15,6 +18,10 @@ export interface DocxExportOptions {
   includeCosts?: boolean;
   maxIssueVMs?: number;
   aiInsights?: MigrationInsights | null;
+  riskAssessment?: RiskAssessment | null;
+  timelinePhases?: TimelinePhase[] | null;
+  timelineStartDate?: Date;
+  vpcDesign?: VPCDesign | null;
 }
 
 export interface VMReadiness {

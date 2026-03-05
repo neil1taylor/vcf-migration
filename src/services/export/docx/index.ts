@@ -34,6 +34,9 @@ import {
   buildCostEstimation,
   buildNextSteps,
   buildAppendices,
+  buildRiskAssessmentSection,
+  buildTimelineSection,
+  buildNetworkDesignSection,
 } from './sections';
 
 // Re-export types for consumers
@@ -57,6 +60,10 @@ export async function generateDocxReport(
     includeCosts: options.includeCosts ?? true,
     maxIssueVMs: options.maxIssueVMs ?? 20,
     aiInsights: aiInsights,
+    riskAssessment: options.riskAssessment ?? null,
+    timelinePhases: options.timelinePhases ?? null,
+    timelineStartDate: options.timelineStartDate ?? new Date(),
+    vpcDesign: options.vpcDesign ?? null,
   };
 
   // Reset caption counters for fresh document
@@ -119,6 +126,19 @@ export async function generateDocxReport(
     ...buildMigrationOptions(),
     ...buildMigrationStrategy(rawData, aiInsights),
   ];
+
+  // Assess step sections
+  if (finalOptions.riskAssessment) {
+    sections.push(...buildRiskAssessmentSection(finalOptions.riskAssessment));
+  }
+
+  if (finalOptions.timelinePhases) {
+    sections.push(...buildTimelineSection(finalOptions.timelinePhases, finalOptions.timelineStartDate));
+  }
+
+  if (finalOptions.vpcDesign) {
+    sections.push(...buildNetworkDesignSection(finalOptions.vpcDesign));
+  }
 
   if (finalOptions.includeROKS) {
     sections.push(...buildROKSOverview(roksSizing));

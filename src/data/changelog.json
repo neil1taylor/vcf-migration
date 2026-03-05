@@ -1,6 +1,28 @@
 {
   "releases": [
     {
+      "version": "1.2.3",
+      "date": "2026-03-05",
+      "sections": {
+        "added": [
+          "New Assess step in navigation between Prepare and Migrate with 3 pages: Risk Assessment, Migration Timeline, and Network Design",
+          "Red-Flag Risk Assessment page with 5 domains (Cost, Infrastructure, Complexity, Security, Other) — auto-calculated from pre-flight checks and complexity scores",
+          "Go/No-Go decision banner based on risk severity levels across all domains",
+          "Pre-Assessment Summary tab with environment snapshot, risk heat map, and key blockers list",
+          "Risk domain severity overrides with notes — persisted to localStorage",
+          "Migration Timeline page with Gantt chart visualization and configurable phase durations",
+          "Timeline estimation service with preparation, pilot, production waves, validation, and buffer phases",
+          "VPC Network Design page — maps VMware port groups to IBM Cloud VPC subnets across 3 availability zones",
+          "VPC topology D3 diagram with zone/subnet visualization",
+          "Auto-generated security groups from workload classification with template-based rules",
+          "ACL suggestion generation per subnet",
+          "Transit Gateway configuration (VPC, Classic, Direct Link connection types)",
+          "DOCX export integration for Risk Assessment, Timeline, and Network Design sections",
+          "Editable subnet table (name, CIDR, zone) and security group rule display"
+        ]
+      }
+    },
+    {
       "version": "1.2.2",
       "date": "2026-03-05",
       "sections": {

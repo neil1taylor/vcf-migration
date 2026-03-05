@@ -1,0 +1,21 @@
+@use '@carbon/react/scss/spacing' as *;
+
+.network-design {
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: $spacing-05;
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 300;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    gap: $spacing-03;
+    align-items: flex-end;
+  }
+}

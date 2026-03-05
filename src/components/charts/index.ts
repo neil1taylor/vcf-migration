@@ -10,3 +10,5 @@ export { Sunburst } from './Sunburst';
 export type { HierarchyNode } from './Sunburst';
 export { NetworkTopology } from './NetworkTopology';
 export type { TopologyNode, TopologyLink } from './NetworkTopology';
+export { GanttTimeline } from './GanttTimeline';
+export { VPCTopologyDiagram } from './VPCTopologyDiagram';
