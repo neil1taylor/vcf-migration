@@ -47,6 +47,14 @@ export type { UseAICostOptimizationReturn } from './useAICostOptimization';
 export { useAIRemediation } from './useAIRemediation';
 export type { UseAIRemediationReturn } from './useAIRemediation';
 
+// Target assignments
+export { useTargetAssignments } from './useTargetAssignments';
+export type { UseTargetAssignmentsReturn } from './useTargetAssignments';
+
+// Comparison data
+export { useComparisonData } from './useComparisonData';
+export type { TargetMetrics, ComparisonMetrics } from './useComparisonData';
+
 // Migration hooks
 export { useMigrationAssessment } from './useMigrationAssessment';
 export type { UseMigrationAssessmentConfig, UseMigrationAssessmentReturn } from './useMigrationAssessment';

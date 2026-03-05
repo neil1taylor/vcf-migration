@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "version": "1.2.6",
+      "date": "2026-03-05",
+      "sections": {
+        "added": [
+          "Migration Comparison page — side-by-side ROKS vs VSI analysis with auto-classification, cost comparison, readiness metrics, architecture fit, and migration effort tabs",
+          "VM target classification service with 7-rule heuristic engine (OS compatibility, memory, workload type, Linux default)",
+          "VM-to-target assignment overrides with localStorage persistence and environment fingerprinting",
+          "Recommendation banner with data-driven migration strategy suggestion (All ROKS, All VSI, or Split)"
+        ]
+      }
+    },
+    {
       "version": "1.2.5",
       "date": "2026-03-05",
       "sections": {

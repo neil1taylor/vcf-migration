@@ -340,6 +340,20 @@ Maps VMware port groups to IBM Cloud VPC subnets. Distributes across 3 zones. Ge
 | `src/components/charts/VPCTopologyDiagram.tsx` | D3 hierarchical SVG (region → VPC → zones → subnets) |
 | `src/components/migration/NetworkDesignPanel.tsx` | Panel component for VSI Migration tab |
 
+### Migration Comparison (under Migration Assessment)
+
+Side-by-side ROKS vs VSI comparison with auto-classification, user overrides, and 5-tab analysis. Route: `/migration-comparison`.
+
+**Target Classification** — 7-rule heuristic (priority order): Windows→VSI, ROKS OS unsupported→VSI, VSI OS unsupported→ROKS, memory >512GB→ROKS, workload type heuristics, Linux default→ROKS, fallback→VSI. Recommendation: >70% one target → recommend that target; else split.
+
+| File | Purpose |
+|------|---------|
+| `src/services/migration/targetClassification.ts` | `classifyVMTarget()`, `classifyAllVMs()`, `getRecommendation()` |
+| `src/hooks/useTargetAssignments.ts` | localStorage `vcf-target-assignments`, env fingerprinting, user overrides |
+| `src/hooks/useComparisonData.ts` | Split VMs by target, compute per-target metrics |
+| `src/pages/MigrationComparisonPage.tsx` | Main page with 5 tabs |
+| `src/components/comparison/` | RecommendationBanner, VMAssignmentTable, CostComparisonPanel, ReadinessComparisonPanel, ArchitectureFitPanel, MigrationEffortPanel |
+
 ### DOCX Export Sections
 
 | File | Content |

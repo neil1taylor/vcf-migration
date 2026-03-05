@@ -34,7 +34,7 @@ const assessRoutes = [
 ];
 
 const migrationRoutes = [
-  ROUTES.roksMigration, ROUTES.vsiMigration, ROUTES.preflightReport, ROUTES.riskAssessment,
+  ROUTES.roksMigration, ROUTES.vsiMigration, ROUTES.migrationComparison, ROUTES.preflightReport, ROUTES.riskAssessment,
 ];
 
 const referenceRoutes = [
@@ -211,6 +211,13 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
             isActive={isActive(ROUTES.vsiMigration)}
           >
             VSI Migration
+          </SideNavMenuItem>
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.migrationComparison, true)}
+            isActive={isActive(ROUTES.migrationComparison)}
+          >
+            Migration Comparison
           </SideNavMenuItem>
           <SideNavMenuItem
             href="#"

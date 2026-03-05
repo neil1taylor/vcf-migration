@@ -102,6 +102,7 @@ Navigate to **Assess** in the sidebar:
 Navigate to either:
 - **ROKS Migration** — For OpenShift Virtualization with MTV
 - **VPC VSI Migration** — For traditional VM-to-VSI migration
+- **Migration Comparison** — Side-by-side ROKS vs VSI analysis with auto-classification and recommendations
 
 ### 4. Review Readiness
 

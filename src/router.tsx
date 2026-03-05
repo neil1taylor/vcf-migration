@@ -19,6 +19,7 @@ const HostsPage = lazy(() => import('@/pages/HostsPage').then(m => ({ default: m
 const ResourcePoolPage = lazy(() => import('@/pages/ResourcePoolPage').then(m => ({ default: m.ResourcePoolPage })));
 const ROKSMigrationPage = lazy(() => import('@/pages/ROKSMigrationPage').then(m => ({ default: m.ROKSMigrationPage })));
 const VSIMigrationPage = lazy(() => import('@/pages/VSIMigrationPage').then(m => ({ default: m.VSIMigrationPage })));
+const MigrationComparisonPage = lazy(() => import('@/pages/MigrationComparisonPage').then(m => ({ default: m.MigrationComparisonPage })));
 const PreFlightReportPage = lazy(() => import('@/pages/PreFlightReportPage').then(m => ({ default: m.PreFlightReportPage })));
 const DiscoveryPage = lazy(() => import('@/pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
 const RiskAssessmentPage = lazy(() => import('@/pages/RiskAssessmentPage').then(m => ({ default: m.RiskAssessmentPage })));
@@ -88,6 +89,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.vsiMigration.slice(1),
         element: <PageLoader><VSIMigrationPage /></PageLoader>,
+      },
+      {
+        path: ROUTES.migrationComparison.slice(1),
+        element: <PageLoader><MigrationComparisonPage /></PageLoader>,
       },
       {
         path: ROUTES.preflightReport.slice(1),

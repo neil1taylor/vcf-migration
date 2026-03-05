@@ -139,6 +139,7 @@ export const ROUTES = {
   config: '/config',
   roksMigration: '/roks-migration',
   vsiMigration: '/vsi-migration',
+  migrationComparison: '/migration-comparison',
   preflightReport: '/preflight-report',
   discovery: '/discovery',
   riskAssessment: '/risk-assessment',
