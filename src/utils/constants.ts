@@ -106,7 +106,7 @@ export const RVTOOLS_SHEETS = {
 } as const;
 
 // Required sheets for basic analysis
-export const REQUIRED_SHEETS = ['vInfo', 'vDisk', 'vDatastore'] as const;
+export const REQUIRED_SHEETS = ['vInfo'] as const;
 
 // Recommended sheets for full analysis
 export const RECOMMENDED_SHEETS = [

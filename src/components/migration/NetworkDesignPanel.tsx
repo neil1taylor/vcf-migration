@@ -1,6 +1,5 @@
-// Network Design Page — VPC Topology Design
+// Network Design Panel — VPC Topology Design (embedded in VSI Migration page)
 import { useMemo } from 'react';
-import { Navigate } from 'react-router-dom';
 import {
   Grid,
   Column,
@@ -23,16 +22,14 @@ import {
   InlineNotification,
 } from '@carbon/react';
 import { Reset } from '@carbon/icons-react';
-import { useData, useHasData } from '@/hooks';
+import { useData } from '@/hooks';
 import { useVPCDesign } from '@/hooks/useVPCDesign';
-import { ROUTES } from '@/utils/constants';
 import { MetricCard } from '@/components/common';
 import { VPCTopologyDiagram } from '@/components/charts/VPCTopologyDiagram';
 import { IBM_CLOUD_REGIONS, getZonesForRegion } from '@/types/vpcDesign';
-import './NetworkDesignPage.scss';
+import '@/pages/NetworkDesignPage.scss';
 
-export function NetworkDesignPage() {
-  const hasData = useHasData();
+export function NetworkDesignPanel() {
   const { rawData } = useData();
 
   // Build a simple workload map — in production this would come from classification
@@ -58,20 +55,19 @@ export function NetworkDesignPage() {
     regenerateDesign,
   } = useVPCDesign(workloadMap);
 
-  if (!hasData || !rawData) {
-    return <Navigate to={ROUTES.home} replace />;
+  if (!rawData) {
+    return null;
   }
 
   const hasVNetwork = rawData.vNetwork.length > 0;
-
   const zones = getZonesForRegion(region);
   const totalVMs = design.subnets.reduce((sum, s) => sum + s.vmCount, 0);
 
   return (
-    <Grid>
+    <Grid className="migration-page__tab-content">
       <Column sm={4} md={8} lg={16}>
         <div className="network-design__header">
-          <h1>Network Design</h1>
+          <h3>Network Design</h3>
           <div className="network-design__actions">
             <Dropdown
               id="region-select"

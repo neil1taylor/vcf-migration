@@ -25,7 +25,11 @@ const mockStaticPricing = {
     transitGateway: { perGatewayMonthly: 0, localConnectionMonthly: 0, globalConnectionMonthly: 0, perGBLocal: 0, perGBGlobal: 0, description: 'Test' },
   },
   roks: {
-    ocpLicense: { perCoreMonthly: 0, description: 'Test' },
+    ocpLicense: { perVCPUHourly: 0.04275, perVCPUMonthly: 31.21, description: 'Test' },
+    odf: {
+      advanced: { bareMetalPerNodeMonthly: 681.818, vsiPerVCPUHourly: 0.00725, description: 'Test' },
+      essentials: { bareMetalPerNodeMonthly: 545.455, vsiPerVCPUHourly: 0.00575, description: 'Test' },
+    },
     clusterManagement: { perClusterMonthly: 0, description: 'Test' },
   },
   storageAddons: {

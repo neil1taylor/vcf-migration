@@ -194,7 +194,7 @@ export function NetworkPage() {
       cell: ({ row }) => {
         const prefixes = row.original.uniquePrefixes;
         if (prefixes.length === 0) {
-          return <span style={{ color: '#6f6f6f' }}>No IP addresses</span>;
+          return <span style={{ color: 'var(--cds-text-helper)' }}>No IP addresses</span>;
         }
         return (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
@@ -218,7 +218,7 @@ export function NetworkPage() {
       cell: ({ row }) => (
         <span style={{
           fontWeight: row.original.hasMultiplePrefixes ? 600 : 'normal',
-          color: row.original.hasMultiplePrefixes ? '#da1e28' : 'inherit',
+          color: row.original.hasMultiplePrefixes ? 'var(--cds-support-error)' : 'inherit',
         }}>
           {row.original.prefixCount}
         </span>
@@ -229,6 +229,33 @@ export function NetworkPage() {
   // Early return AFTER all hooks have been called
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
+  }
+
+  if (networks.length === 0) {
+    return (
+      <div className="network-page">
+        <Grid>
+          <Column lg={16} md={8} sm={4}>
+            <h1 className="network-page__title">Network Analysis</h1>
+            <p className="network-page__subtitle">
+              Network adapter and port group analysis
+            </p>
+          </Column>
+          <Column lg={16} md={8} sm={4}>
+            <Tile>
+              <h3>No Network Data Available</h3>
+              <p>
+                The uploaded RVTools file does not contain a vNetwork sheet.
+                Network analysis requires this sheet to display network adapter information.
+              </p>
+              <p style={{ marginTop: '0.5rem' }}>
+                To include network data, ensure you export the vNetwork tab when running RVTools.
+              </p>
+            </Tile>
+          </Column>
+        </Grid>
+      </div>
+    );
   }
 
   // Calculate network metrics (these are not hooks, so they can be after early return)

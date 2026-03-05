@@ -488,6 +488,66 @@ export function calculateROKSCost(
     }
   }
 
+  // OCP License (applies to all worker node vCPUs — compute + storage VSIs)
+  const ocpHourlyRate = pricingToUse.roks?.ocpLicense?.perVCPUHourly ?? 0.04275;
+  if (computeProfile && input.computeNodes > 0) {
+    let totalOCPvCPUs = computeProfile.vcpus * input.computeNodes;
+    // In hybrid mode, storage VSI workers also run OCP
+    if (!input.useNvme && input.storageNodes && input.storageProfile) {
+      const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
+      if (storageVSI) {
+        totalOCPvCPUs += storageVSI.vcpus * input.storageNodes;
+      }
+    }
+    const ocpMonthlyCost = totalOCPvCPUs * ocpHourlyRate * 730 * multiplier;
+    lineItems.push({
+      category: 'Licensing',
+      description: 'OpenShift Container Platform License',
+      quantity: totalOCPvCPUs,
+      unit: 'vCPUs',
+      unitCost: ocpHourlyRate * 730 * multiplier,
+      monthlyCost: ocpMonthlyCost,
+      annualCost: ocpMonthlyCost * 12,
+      notes: 'OCP entitlement fee per vCPU-hour',
+    });
+  }
+
+  // ODF Storage (OpenShift Data Foundation Advanced)
+  const odfAdvanced = pricingToUse.roks?.odf?.advanced;
+  if (input.useNvme && computeProfile?.hasNvme) {
+    // Converged: per-node monthly rate
+    const odfPerNode = odfAdvanced?.bareMetalPerNodeMonthly ?? 681.818;
+    const odfMonthlyCost = odfPerNode * input.computeNodes * multiplier;
+    lineItems.push({
+      category: 'Storage - ODF',
+      description: 'OpenShift Data Foundation Advanced',
+      quantity: input.computeNodes,
+      unit: 'nodes',
+      unitCost: odfPerNode * multiplier,
+      monthlyCost: odfMonthlyCost,
+      annualCost: odfMonthlyCost * 12,
+      notes: 'ODF Advanced license for converged bare metal nodes',
+    });
+  } else if (input.storageNodes && input.storageProfile) {
+    // Hybrid: per-vCPU-hour rate on storage VSIs
+    const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
+    if (storageVSI) {
+      const odfVCPUHourly = odfAdvanced?.vsiPerVCPUHourly ?? 0.00725;
+      const storageVCPUs = storageVSI.vcpus * input.storageNodes;
+      const odfMonthlyCost = storageVCPUs * odfVCPUHourly * 730 * multiplier;
+      lineItems.push({
+        category: 'Storage - ODF',
+        description: 'OpenShift Data Foundation Advanced',
+        quantity: storageVCPUs,
+        unit: 'vCPUs',
+        unitCost: odfVCPUHourly * 730 * multiplier,
+        monthlyCost: odfMonthlyCost,
+        annualCost: odfMonthlyCost * 12,
+        notes: 'ODF Advanced license for VSI storage workers',
+      });
+    }
+  }
+
   // Networking (basic setup)
   const lbCostPerMonth = pricingToUse.networking?.loadBalancer?.perLBMonthly ?? 21.60;
   const networkingCost = lbCostPerMonth * multiplier * 2; // 2 LBs
@@ -528,6 +588,7 @@ export function calculateROKSCost(
       generatedAt: new Date().toISOString(),
       notes: [
         'Estimated pricing - actual costs may vary',
+        'Includes OpenShift licensing and ODF storage costs',
         'Contact IBM for enterprise pricing',
         discountData.discountPct > 0 ? `${discountData.name} discount applied` : 'On-demand pricing',
       ],

@@ -9,6 +9,7 @@ import { formatNumber, formatBytes } from '@/utils/formatters';
 import { StorageBreakdownBar, STORAGE_SEGMENT_COLORS } from '@/components/sizing/StorageBreakdownBar';
 import { ResourceBreakdownBar, RESOURCE_SEGMENT_COLORS } from '@/components/sizing/ResourceBreakdownBar';
 import type { BareMetalProfile, NodeCapacity, NodeRequirements } from '@/hooks/useSizingCalculator';
+import type { OdfReservation } from '@/utils/odfCalculation';
 
 interface SizingWorkloadResultsProps {
   nodeRequirements: NodeRequirements;
@@ -35,6 +36,7 @@ interface SizingWorkloadResultsProps {
   operationalCapacity: number;
   cephOverhead: number;
   evictionThreshold: number;
+  odfReservation: OdfReservation;
 }
 
 export function SizingWorkloadResults({
@@ -62,6 +64,7 @@ export function SizingWorkloadResults({
   operationalCapacity,
   cephOverhead,
   evictionThreshold,
+  odfReservation,
 }: SizingWorkloadResultsProps) {
   // Calculate cluster totals for breakdown visualizations
   const totalClusterCpuRaw = selectedProfile.physicalCores * (useHyperthreading ? htMultiplier : 1) * cpuOvercommit * nodeRequirements.totalNodes;
@@ -174,13 +177,15 @@ export function SizingWorkloadResults({
                           <span className="sizing-calculator__breakdown-step-note">&rarr; {nodeRequirements.preRoundingTotal} nodes</span>
                         </div>
                       )}
-                      {nodeRequirements.totalNodes !== nodeRequirements.preRoundingTotal && (
-                        <div className="sizing-calculator__breakdown-step">
-                          <span className="sizing-calculator__breakdown-step-label">ODF fault domain (&times;3):</span>
-                          <span className="sizing-calculator__breakdown-step-value"></span>
-                          <span className="sizing-calculator__breakdown-step-note">{nodeRequirements.totalNodes} nodes</span>
-                        </div>
-                      )}
+                      <div className="sizing-calculator__breakdown-step">
+                        <span className="sizing-calculator__breakdown-step-label">ODF fault domain (&times;3):</span>
+                        <span className="sizing-calculator__breakdown-step-value">
+                          {nodeRequirements.totalNodes !== nodeRequirements.preRoundingTotal
+                            ? `+${nodeRequirements.totalNodes - nodeRequirements.preRoundingTotal}`
+                            : '\u2713'}
+                        </span>
+                        <span className="sizing-calculator__breakdown-step-note">{nodeRequirements.totalNodes} nodes</span>
+                      </div>
                     </>
                   );
                 })()}
@@ -216,7 +221,7 @@ export function SizingWorkloadResults({
                 label: 'ODF Reserved',
                 value: cpuOdfTotal,
                 color: RESOURCE_SEGMENT_COLORS.odfReserved,
-                description: `${odfReservedCpu} cores/node \u00d7 ${nodeRequirements.totalNodes} nodes`,
+                description: `${odfReservation.profileLabel} profile: OSD ${odfReservation.osd.totalCpu.toFixed(1)} + MGR ${odfReservation.mgr.totalCpu.toFixed(1)} + MON ${odfReservation.mon.totalCpu.toFixed(1)} + MDS ${odfReservation.mds.totalCpu.toFixed(1)}${odfReservation.rgw ? ` + RGW ${odfReservation.rgw.totalCpu.toFixed(1)}` : ''} per node \u00d7 ${nodeRequirements.totalNodes} nodes`,
               },
               {
                 label: 'System Reserved',
@@ -264,7 +269,7 @@ export function SizingWorkloadResults({
                 label: 'ODF Reserved',
                 value: memoryOdfTotal,
                 color: RESOURCE_SEGMENT_COLORS.odfReserved,
-                description: `${odfReservedMemory} GiB/node \u00d7 ${nodeRequirements.totalNodes} nodes`,
+                description: `${odfReservation.profileLabel} profile: OSD ${odfReservation.osd.totalMemoryGiB.toFixed(1)} + MGR ${odfReservation.mgr.totalMemoryGiB.toFixed(1)} + MON ${odfReservation.mon.totalMemoryGiB.toFixed(1)} + MDS ${odfReservation.mds.totalMemoryGiB.toFixed(1)}${odfReservation.rgw ? ` + RGW ${odfReservation.rgw.totalMemoryGiB.toFixed(1)}` : ''} GiB/node \u00d7 ${nodeRequirements.totalNodes} nodes`,
               },
               {
                 label: 'System Reserved',

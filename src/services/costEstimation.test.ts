@@ -329,6 +329,82 @@ describe('Cost Estimation Service', () => {
       expect(result.metadata).toHaveProperty('generatedAt');
       expect(result.metadata).toHaveProperty('notes');
       expect(result.metadata.notes.length).toBeGreaterThan(0);
+      expect(result.metadata.notes).toContain('Includes OpenShift licensing and ODF storage costs');
+    });
+
+    it('should include OCP license line item with correct amount', () => {
+      const result = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
+      const ocpItem = result.lineItems.find(item => item.category === 'Licensing');
+
+      expect(ocpItem).toBeDefined();
+      expect(ocpItem?.description).toBe('OpenShift Container Platform License');
+      // Hybrid mode: 3 compute nodes (96 vCPUs each) + 3 storage VSIs (bx2-16x64 = 16 vCPUs each)
+      // Total vCPUs = 3*96 + 3*16 = 336
+      expect(ocpItem?.quantity).toBe(336);
+      // Cost = 336 vCPUs × $0.04275/hr × 730 hrs = ~$10,489.14
+      expect(ocpItem?.monthlyCost).toBeGreaterThan(10000);
+    });
+
+    it('should include ODF line item for hybrid architecture', () => {
+      const result = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
+      const odfItem = result.lineItems.find(item => item.category === 'Storage - ODF');
+
+      expect(odfItem).toBeDefined();
+      expect(odfItem?.description).toBe('OpenShift Data Foundation Advanced');
+      // Hybrid: 3 storage VSIs × 16 vCPUs = 48 vCPUs
+      expect(odfItem?.quantity).toBe(48);
+      expect(odfItem?.notes).toContain('VSI storage workers');
+    });
+
+    it('should include ODF line item for converged (NVMe) architecture', () => {
+      const nvmeInput: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2d-metal-96x384',
+        useNvme: true,
+      };
+      const result = calculateROKSCost(nvmeInput, 'us-south', 'onDemand');
+      const odfItem = result.lineItems.find(item => item.category === 'Storage - ODF');
+
+      expect(odfItem).toBeDefined();
+      expect(odfItem?.quantity).toBe(3);
+      expect(odfItem?.unit).toBe('nodes');
+      expect(odfItem?.notes).toContain('converged bare metal');
+    });
+
+    it('should include OCP + ODF costs in total', () => {
+      const result = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
+      const ocpItem = result.lineItems.find(item => item.category === 'Licensing');
+      const odfItem = result.lineItems.find(item => item.category === 'Storage - ODF');
+
+      expect(ocpItem).toBeDefined();
+      expect(odfItem).toBeDefined();
+      // Subtotal should include both new items
+      expect(result.subtotalMonthly).toBeGreaterThanOrEqual(
+        (ocpItem?.monthlyCost ?? 0) + (odfItem?.monthlyCost ?? 0)
+      );
+    });
+
+    it('should apply regional multiplier to OCP and ODF line items', () => {
+      const usSouthResult = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
+      const euDeResult = calculateROKSCost(basicROKSInput, 'eu-de', 'onDemand');
+
+      const usSouthOcp = usSouthResult.lineItems.find(item => item.category === 'Licensing');
+      const euDeOcp = euDeResult.lineItems.find(item => item.category === 'Licensing');
+      expect(euDeOcp?.monthlyCost).toBeGreaterThan(usSouthOcp?.monthlyCost ?? 0);
+
+      const usSouthOdf = usSouthResult.lineItems.find(item => item.category === 'Storage - ODF');
+      const euDeOdf = euDeResult.lineItems.find(item => item.category === 'Storage - ODF');
+      expect(euDeOdf?.monthlyCost).toBeGreaterThan(usSouthOdf?.monthlyCost ?? 0);
+    });
+
+    it('should apply discounts to OCP and ODF line items', () => {
+      const onDemandResult = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
+      const reservedResult = calculateROKSCost(basicROKSInput, 'us-south', 'reserved3Year');
+
+      // Discount is applied to subtotal, so total should be less
+      expect(reservedResult.totalMonthly).toBeLessThan(onDemandResult.totalMonthly);
+      // The discount amount should be larger now that OCP/ODF are included
+      expect(reservedResult.discountAmountMonthly).toBeGreaterThan(0);
     });
   });
 });

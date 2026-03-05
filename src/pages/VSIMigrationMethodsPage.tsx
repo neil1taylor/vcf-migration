@@ -374,7 +374,7 @@ export function VSIMigrationMethodsPage() {
                   <Grid>
                     <Column lg={8} md={4} sm={4}>
                       <Tile className="documentation-page__metric-card">
-                        <h4 style={{ color: '#24a148' }}>
+                        <h4 style={{ color: 'var(--cds-support-success)' }}>
                           <CheckmarkFilled style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
                           Pros
                         </h4>
@@ -387,7 +387,7 @@ export function VSIMigrationMethodsPage() {
                     </Column>
                     <Column lg={8} md={4} sm={4}>
                       <Tile className="documentation-page__metric-card">
-                        <h4 style={{ color: '#da1e28' }}>
+                        <h4 style={{ color: 'var(--cds-support-error)' }}>
                           <WarningFilled style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
                           Cons
                         </h4>
@@ -627,41 +627,41 @@ export function VSIMigrationMethodsPage() {
             <h4>Method Selection Guide</h4>
             <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '1rem' }}>
               <thead>
-                <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
+                <tr style={{ borderBottom: '2px solid var(--cds-border-subtle-00)' }}>
                   <th style={{ textAlign: 'left', padding: '0.75rem' }}>Scenario</th>
                   <th style={{ textAlign: 'left', padding: '0.75rem' }}>Recommended Method</th>
                 </tr>
               </thead>
               <tbody>
-                <tr style={{ borderBottom: '1px solid #e0e0e0', backgroundColor: '#d0e2ff' }}>
+                <tr style={{ borderBottom: '1px solid var(--cds-border-subtle-00)', backgroundColor: 'var(--cds-highlight)' }}>
                   <td style={{ padding: '0.75rem' }}>Enterprise migration, automation needed</td>
                   <td style={{ padding: '0.75rem' }}><Tag type="green">RackWare RMM</Tag> <Tag type="cyan" size="sm">Recommended</Tag></td>
                 </tr>
-                <tr style={{ borderBottom: '1px solid #e0e0e0', backgroundColor: '#d0e2ff' }}>
+                <tr style={{ borderBottom: '1px solid var(--cds-border-subtle-00)', backgroundColor: 'var(--cds-highlight)' }}>
                   <td style={{ padding: '0.75rem' }}>Need to retain IP addresses</td>
                   <td style={{ padding: '0.75rem' }}><Tag type="green">RackWare RMM</Tag></td>
                 </tr>
-                <tr style={{ borderBottom: '1px solid #e0e0e0', backgroundColor: '#d0e2ff' }}>
+                <tr style={{ borderBottom: '1px solid var(--cds-border-subtle-00)', backgroundColor: 'var(--cds-highlight)' }}>
                   <td style={{ padding: '0.75rem' }}>VMs on isolated NSX overlay segments</td>
                   <td style={{ padding: '0.75rem' }}><Tag type="green">RackWare RMM</Tag> (with bridge server)</td>
                 </tr>
-                <tr style={{ borderBottom: '1px solid #e0e0e0', backgroundColor: '#d0e2ff' }}>
+                <tr style={{ borderBottom: '1px solid var(--cds-border-subtle-00)', backgroundColor: 'var(--cds-highlight)' }}>
                   <td style={{ padding: '0.75rem' }}>Minimal downtime required (delta sync)</td>
                   <td style={{ padding: '0.75rem' }}><Tag type="green">RackWare RMM</Tag></td>
                 </tr>
-                <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
+                <tr style={{ borderBottom: '1px solid var(--cds-border-subtle-00)' }}>
                   <td style={{ padding: '0.75rem' }}>Single-disk VM, need reusable image</td>
                   <td style={{ padding: '0.75rem' }}><Tag type="teal">Image-Based Import</Tag></td>
                 </tr>
-                <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
+                <tr style={{ borderBottom: '1px solid var(--cds-border-subtle-00)' }}>
                   <td style={{ padding: '0.75rem' }}>Multi-disk VM, complex configuration</td>
                   <td style={{ padding: '0.75rem' }}><Tag type="blue">Direct Volume Copy</Tag></td>
                 </tr>
-                <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
+                <tr style={{ borderBottom: '1px solid var(--cds-border-subtle-00)' }}>
                   <td style={{ padding: '0.75rem' }}>Transit Gateway available, large VMs</td>
                   <td style={{ padding: '0.75rem' }}><Tag type="blue">ISO-Based Network Transfer</Tag></td>
                 </tr>
-                <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
+                <tr style={{ borderBottom: '1px solid var(--cds-border-subtle-00)' }}>
                   <td style={{ padding: '0.75rem' }}>vCenter access, DIY automation</td>
                   <td style={{ padding: '0.75rem' }}><Tag type="purple">Direct VDDK Extraction</Tag></td>
                 </tr>

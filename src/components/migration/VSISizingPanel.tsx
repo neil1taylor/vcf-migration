@@ -92,7 +92,7 @@ export function VSISizingPanel({
               return (
                 <>
                   <Tooltip label={tooltipText} align="bottom">
-                    <button type="button" style={{ all: 'unset', cursor: 'help' }}>
+                    <button type="button" className="tooltip-trigger">
                       <Tag type="purple" size="sm">AI: {aiRec.recommendedProfile}</Tag>
                     </button>
                   </Tooltip>
@@ -134,8 +134,8 @@ export function VSISizingPanel({
         return (
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             {target}
-            {diff > 0 && <ArrowUp size={16} style={{ color: '#24a148' }} />}
-            {diff < 0 && <ArrowDown size={16} style={{ color: '#da1e28' }} />}
+            {diff > 0 && <ArrowUp size={16} style={{ color: 'var(--cds-support-success)' }} />}
+            {diff < 0 && <ArrowDown size={16} style={{ color: 'var(--cds-support-error)' }} />}
           </span>
         );
       },
@@ -152,8 +152,8 @@ export function VSISizingPanel({
         return (
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
             {target}
-            {diff > 0 && <ArrowUp size={16} style={{ color: '#24a148' }} />}
-            {diff < 0 && <ArrowDown size={16} style={{ color: '#da1e28' }} />}
+            {diff > 0 && <ArrowUp size={16} style={{ color: 'var(--cds-support-success)' }} />}
+            {diff < 0 && <ArrowDown size={16} style={{ color: 'var(--cds-support-error)' }} />}
           </span>
         );
       },
@@ -170,7 +170,7 @@ export function VSISizingPanel({
           <span>
             {formatNumber(provisioned)}
             {inUse > 0 && (
-              <span style={{ color: '#6f6f6f', fontSize: '0.75rem' }}> ({formatNumber(inUse)} used)</span>
+              <span style={{ color: 'var(--cds-text-helper)', fontSize: '0.75rem' }}> ({formatNumber(inUse)} used)</span>
             )}
           </span>
         );

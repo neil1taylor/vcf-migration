@@ -24,11 +24,14 @@ Get started in 5 simple steps:
 4. [Infrastructure Analysis](#4-infrastructure-analysis)
 5. [Workload Discovery](#5-workload-discovery)
 6. [VM Management](#6-vm-management)
-7. [Migration Assessment](#7-migration-assessment)
-8. [Wave Planning](#8-wave-planning)
-9. [Cost Estimation](#9-cost-estimation)
-10. [Generating Reports](#10-generating-reports)
-11. [Reference Documentation](#11-reference-documentation)
+7. [Risk Assessment](#7-risk-assessment)
+8. [Migration Timeline](#8-migration-timeline)
+9. [Network Design](#9-network-design)
+10. [Migration Assessment](#10-migration-assessment)
+11. [Wave Planning](#11-wave-planning)
+12. [Cost Estimation](#12-cost-estimation)
+13. [Generating Reports](#13-generating-reports)
+14. [Reference Documentation](#14-reference-documentation)
 
 ---
 
@@ -62,19 +65,19 @@ For full analysis capabilities, ensure these sheets are included:
 
 | Sheet | Purpose |
 |-------|---------|
-| vInfo | VM inventory and configuration (required) |
+| vInfo | VM inventory and configuration (required — only mandatory sheet) |
 | vCPU | CPU allocation and reservations |
 | vMemory | Memory allocation details |
-| vDisk | Virtual disk information (required) |
+| vDisk | Virtual disk information (recommended — enables Storage page) |
 | vPartition | Guest OS partition data |
-| vNetwork | Network adapter configuration |
+| vNetwork | Network adapter configuration (recommended — enables Network pages) |
 | vCD | CD/DVD drive configuration |
 | vSnapshot | VM snapshot details |
 | vTools | VMware Tools status |
 | vRP | Resource pool hierarchy |
-| vCluster | Cluster configuration |
-| vHost | ESXi host inventory |
-| vDatastore | Storage datastore info (required) |
+| vCluster | Cluster configuration (recommended — enables Clusters page) |
+| vHost | ESXi host inventory (recommended — enables Hosts page) |
+| vDatastore | Storage datastore info (recommended — enables Storage page) |
 | vHealth | Environment health checks |
 | vSource | vCenter server information |
 
@@ -364,7 +367,145 @@ The tool tracks which vCenter environment the settings belong to:
 
 ---
 
-## 7. Migration Assessment
+## 7. Risk Assessment
+
+Assess migration risk across 5 domains before proceeding with migration planning.
+
+### Accessing Risk Assessment
+
+Navigate to **Assess** > **Risk Assessment** in the sidebar.
+
+### Risk Assessment Tab
+
+The Risk Assessment tab provides a Go/No-Go recommendation based on 5 risk domains:
+
+| Domain | Mode | Source |
+|--------|------|--------|
+| Cost | Auto | VM count and resource analysis |
+| Infrastructure/NFRs | Auto | Pre-flight check blocker percentages |
+| Complexity | Auto | Complexity scores and OS compatibility |
+| Security/Compliance | Manual | User-defined severity |
+| Other | Manual | User-defined severity |
+
+#### Go/No-Go Logic
+
+| Condition | Decision |
+|-----------|----------|
+| Any domain is **Critical** | No-Go (red) |
+| Any domain is **High** (no critical) | Conditional (yellow) |
+| All domains Low/Medium | Go (green) |
+
+#### Overriding Risk Severity
+
+1. Find the domain card on the Risk Assessment tab
+2. Use the **Override Severity** dropdown to set a manual severity level
+3. Add notes in the **Notes** text area to document reasoning
+4. Overrides persist in localStorage across sessions
+
+### Pre-Assessment Summary Tab
+
+The Pre-Assessment Summary tab provides:
+- **Environment Snapshot** — VM count, vCPUs, RAM, storage, clusters, hosts
+- **Risk Heat Map** — Color-coded table of all 5 domains with auto/override/effective severity
+- **Go/No-Go Recommendation** — Overall assessment banner
+- **Key Blockers** — List of critical and high-severity items requiring attention
+
+---
+
+## 8. Migration Timeline
+
+Plan and visualize the migration schedule with an interactive Gantt chart.
+
+### Accessing Migration Timeline
+
+Navigate to **Assess** > **Migration Timeline** in the sidebar.
+
+### Timeline Phases
+
+The timeline automatically generates phases based on your wave planning:
+
+| Phase Type | Default Duration | Description |
+|------------|-----------------|-------------|
+| Preparation | 2 weeks | Environment setup and planning |
+| Pilot | 2 weeks | Pilot wave migration and validation |
+| Production Wave N | 2 weeks each | One phase per migration wave |
+| Validation | 1 week | Post-migration verification |
+| Buffer | 1 week | Contingency time |
+
+### Customizing the Timeline
+
+1. **Adjust Phase Durations** — Use the number inputs in the phase table to change week counts (minimum 1 week)
+2. **Set Start Date** — Pick a start date to calculate projected end dates
+3. **Reset to Defaults** — Click "Reset to Defaults" to restore original durations
+
+### Gantt Chart
+
+The horizontal bar chart visualizes all phases with:
+- Color-coded bars by phase type (preparation, pilot, production, validation, buffer)
+- Week markers on the x-axis
+- Phase names on the y-axis
+
+### Metrics
+
+Summary cards at the top show:
+- Total duration in weeks
+- Number of migration waves
+- Total phases
+- Estimated end date (when start date is set)
+
+---
+
+## 9. Network Design
+
+Map your VMware network topology to an IBM Cloud VPC design.
+
+### Accessing Network Design
+
+Navigate to **Migration Assessment** > **VSI Migration** and select the **Network Design** tab.
+
+### How It Works
+
+The Network Design panel automatically:
+1. Extracts port groups from your RVTools vNetwork data
+2. Maps each port group to a VPC subnet
+3. Distributes subnets across 3 availability zones (round-robin)
+4. Generates security groups based on workload classifications
+5. Creates ACL suggestions for each subnet
+
+### Region Selection
+
+Use the dropdown to select your target IBM Cloud region (default: us-south). This determines the zone names (e.g., us-south-1, us-south-2, us-south-3).
+
+### VPC Topology Diagram
+
+The interactive D3 visualization shows:
+- Region container with VPC
+- 3 zone columns
+- Subnet boxes color-coded by workload type
+- Hover for VM count and CIDR details
+
+### Tabs
+
+#### Subnets Tab
+Editable table showing:
+- Subnet name, source port group, CIDR, zone, VM count, security group
+- Click to edit subnet names, CIDRs, and zone assignments
+
+#### Security Groups Tab
+Security group rules organized by workload type:
+- Inbound and outbound rules with protocol, port range, and source/destination
+- Based on templates in `vpcSecurityGroupTemplates.json`
+
+#### ACLs Tab
+Read-only ACL suggestions per subnet with:
+- Direction (inbound/outbound), action (allow/deny), protocol, port range, source/destination
+
+#### Transit Gateway Tab
+Toggle transit gateway on/off and select connection type (VPC or Classic).
+
+---
+
+## 10. Migration Assessment
 
 ### ROKS Migration (OpenShift Virtualization)
 
@@ -457,7 +598,7 @@ The mapping table shows:
 
 ---
 
-## 8. Wave Planning
+## 11. Wave Planning
 
 Organize VMs into migration waves for phased execution.
 
@@ -492,7 +633,7 @@ VMs are automatically grouped by migration complexity:
 
 ---
 
-## 9. Cost Estimation
+## 12. Cost Estimation
 
 Estimate monthly and annual costs for your IBM Cloud deployment.
 
@@ -535,7 +676,9 @@ The cost summary shows:
 | Category | Includes |
 |----------|----------|
 | Compute | Bare metal servers or VSI instances |
+| Licensing | OpenShift Container Platform (OCP) license per vCPU (ROKS only) |
 | Storage | Block storage volumes by IOPS tier |
+| Storage - ODF | OpenShift Data Foundation license (ROKS only) |
 | Networking | Load balancers, gateways, IPs |
 | **Total** | Monthly and annual projections |
 
@@ -547,7 +690,7 @@ The pricing indicator shows the data source:
 
 ---
 
-## 10. Generating Reports
+## 13. Generating Reports
 
 Export your analysis in multiple formats for stakeholders and planning.
 
@@ -626,7 +769,7 @@ For automated migration with RackWare:
 
 ---
 
-## 11. Reference Documentation
+## 14. Reference Documentation
 
 ### In-App Reference Pages
 

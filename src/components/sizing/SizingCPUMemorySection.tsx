@@ -4,11 +4,14 @@ import {
   Tile,
   Slider,
   Toggle,
+  ContentSwitcher,
+  Switch,
+  InlineNotification,
 } from '@carbon/react';
-import type { BareMetalProfile } from '@/hooks/useSizingCalculator';
+import type { OdfTuningProfile, OdfCpuUnitMode, OdfReservation } from '@/utils/odfCalculation';
+import { getOdfProfiles } from '@/utils/odfCalculation';
 
 interface SizingCPUMemorySectionProps {
-  selectedProfile: BareMetalProfile;
   cpuOvercommit: number;
   setCpuOvercommit: (value: number) => void;
   memoryOvercommit: number;
@@ -19,14 +22,21 @@ interface SizingCPUMemorySectionProps {
   setUseHyperthreading: (value: boolean) => void;
   systemReservedCpu: number;
   systemReservedMemory: number;
-  odfReservedCpu: number;
-  odfReservedMemory: number;
   totalReservedCpu: number;
   totalReservedMemory: number;
+  odfTuningProfile: OdfTuningProfile;
+  setOdfTuningProfile: (profile: OdfTuningProfile) => void;
+  includeRgw: boolean;
+  setIncludeRgw: (value: boolean) => void;
+  odfCpuUnitMode: OdfCpuUnitMode;
+  setOdfCpuUnitMode: (mode: OdfCpuUnitMode) => void;
+  odfReservation: OdfReservation;
+  totalNodes: number;
 }
 
+const odfProfiles = getOdfProfiles();
+
 export function SizingCPUMemorySection({
-  selectedProfile,
   cpuOvercommit,
   setCpuOvercommit,
   memoryOvercommit,
@@ -37,13 +47,92 @@ export function SizingCPUMemorySection({
   setUseHyperthreading,
   systemReservedCpu,
   systemReservedMemory,
-  odfReservedCpu,
-  odfReservedMemory,
   totalReservedCpu,
   totalReservedMemory,
+  odfTuningProfile,
+  setOdfTuningProfile,
+  includeRgw,
+  setIncludeRgw,
+  odfCpuUnitMode,
+  setOdfCpuUnitMode,
+  odfReservation,
+  totalNodes,
 }: SizingCPUMemorySectionProps) {
+  const selectedProfileIndex = odfProfiles.findIndex(p => p.id === odfTuningProfile);
+  const cpuUnit = odfCpuUnitMode === 'physical' ? 'cores' : 'vCPUs';
+
+  // Format component count for display (e.g., "2 cluster / 3 nodes" or "8 per node")
+  const formatComponentLabel = (name: string, detail: { count: number }, isPerNvme: boolean) => {
+    if (isPerNvme) {
+      return `ODF ${name.toUpperCase()} (${detail.count} per node)`;
+    }
+    const clusterCounts: Record<string, number> = { mgr: 2, mon: 3, mds: 2, rgw: 2 };
+    return `ODF ${name.toUpperCase()} (${clusterCounts[name]} cluster / ${totalNodes} nodes)`;
+  };
+
   return (
     <Column lg={16} md={8} sm={4}>
+      {/* ODF Tuning Profile selector */}
+      <Tile className="sizing-calculator__section" style={{ marginBottom: '1rem' }}>
+        <h3 className="sizing-calculator__section-title">ODF Tuning Profile</h3>
+        <p style={{ fontSize: '0.75rem', marginBottom: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+          Controls CPU and memory reservations for ODF/Ceph storage components. Values match Red Hat ODF tuning profile documentation.
+        </p>
+
+        <ContentSwitcher
+          onChange={(e) => {
+            if (e.index == null) return;
+            const profileId = odfProfiles[e.index]?.id;
+            if (profileId) setOdfTuningProfile(profileId);
+          }}
+          selectedIndex={selectedProfileIndex}
+          size="md"
+        >
+          {odfProfiles.map((p) => (
+            <Switch key={p.id} name={p.id} text={p.label} />
+          ))}
+        </ContentSwitcher>
+
+        <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', color: 'var(--cds-text-secondary)' }}>
+          {odfProfiles[selectedProfileIndex]?.description}
+        </p>
+
+        {odfReservation.profileWarning && (
+          <InlineNotification
+            kind="warning"
+            title="Profile Warning"
+            subtitle={odfReservation.profileWarning}
+            lowContrast
+            hideCloseButton
+            style={{ marginTop: '0.5rem' }}
+          />
+        )}
+
+        <div style={{ display: 'flex', gap: '2rem', marginTop: '0.75rem' }}>
+          <Toggle
+            id="rgw-toggle"
+            labelText="RADOS Gateway (S3)"
+            labelA="Off"
+            labelB="On"
+            toggled={includeRgw}
+            onToggle={setIncludeRgw}
+            size="sm"
+          />
+          <Toggle
+            id="odf-cpu-unit-toggle"
+            labelText="ODF CPU units"
+            labelA="Physical Cores"
+            labelB="vCPU"
+            toggled={odfCpuUnitMode === 'vcpu'}
+            onToggle={(checked) => setOdfCpuUnitMode(checked ? 'vcpu' : 'physical')}
+            size="sm"
+          />
+        </div>
+        <p style={{ fontSize: '0.6875rem', marginTop: '0.25rem', color: 'var(--cds-text-helper)' }}>
+          ODF tuning profiles define CPU in Kubernetes CPU units (vCPUs). Physical Cores mode converts to physical cores for comparison with bare metal specs.
+        </p>
+      </Tile>
+
       <div className="sizing-calculator__settings-grid">
         {/* CPU Settings */}
         <div>
@@ -91,13 +180,28 @@ export function SizingCPUMemorySection({
 
             <div className="sizing-calculator__reserved-summary" style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: 'var(--cds-layer-02)', borderRadius: '4px' }}>
               <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem' }}>Infrastructure Reserved (per node):</div>
-              <div style={{ fontSize: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.25rem' }}>
+              <div style={{ fontSize: '0.75rem', display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.25rem' }}>
                 <span>System (kubelet, etc.):</span>
                 <span style={{ textAlign: 'right' }}>{systemReservedCpu} cores</span>
-                <span>ODF/Ceph ({selectedProfile.nvmeDisks} devices):</span>
-                <span style={{ textAlign: 'right' }}>{odfReservedCpu} cores</span>
+
+                {/* ODF per-component breakdown */}
+                <span>{formatComponentLabel('mgr', odfReservation.mgr, false)}:</span>
+                <span style={{ textAlign: 'right' }}>{odfReservation.mgr.totalCpu.toFixed(1)} {cpuUnit}</span>
+                <span>{formatComponentLabel('mon', odfReservation.mon, false)}:</span>
+                <span style={{ textAlign: 'right' }}>{odfReservation.mon.totalCpu.toFixed(1)} {cpuUnit}</span>
+                <span>{formatComponentLabel('osd', odfReservation.osd, true)}:</span>
+                <span style={{ textAlign: 'right' }}>{odfReservation.osd.totalCpu.toFixed(1)} {cpuUnit}</span>
+                <span>{formatComponentLabel('mds', odfReservation.mds, false)}:</span>
+                <span style={{ textAlign: 'right' }}>{odfReservation.mds.totalCpu.toFixed(1)} {cpuUnit}</span>
+                {odfReservation.rgw && (
+                  <>
+                    <span>{formatComponentLabel('rgw', odfReservation.rgw, false)}:</span>
+                    <span style={{ textAlign: 'right' }}>{odfReservation.rgw.totalCpu.toFixed(1)} {cpuUnit}</span>
+                  </>
+                )}
+
                 <span style={{ fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>Total Reserved:</span>
-                <span style={{ textAlign: 'right', fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>{totalReservedCpu} cores</span>
+                <span style={{ textAlign: 'right', fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>{totalReservedCpu.toFixed(1)} {odfCpuUnitMode === 'physical' ? 'cores' : 'mixed'}</span>
               </div>
             </div>
           </Tile>
@@ -139,13 +243,28 @@ export function SizingCPUMemorySection({
 
             <div className="sizing-calculator__reserved-summary" style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: 'var(--cds-layer-02)', borderRadius: '4px' }}>
               <div style={{ fontSize: '0.75rem', fontWeight: 600, marginBottom: '0.5rem' }}>Infrastructure Reserved (per node):</div>
-              <div style={{ fontSize: '0.75rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.25rem' }}>
+              <div style={{ fontSize: '0.75rem', display: 'grid', gridTemplateColumns: '1fr auto', gap: '0.25rem' }}>
                 <span>System (kubelet, etc.):</span>
                 <span style={{ textAlign: 'right' }}>{systemReservedMemory} GiB</span>
-                <span>ODF/Ceph ({selectedProfile.nvmeDisks} devices):</span>
-                <span style={{ textAlign: 'right' }}>{odfReservedMemory} GiB</span>
+
+                {/* ODF per-component memory breakdown */}
+                <span>{formatComponentLabel('mgr', odfReservation.mgr, false)}:</span>
+                <span style={{ textAlign: 'right' }}>{odfReservation.mgr.totalMemoryGiB.toFixed(1)} GiB</span>
+                <span>{formatComponentLabel('mon', odfReservation.mon, false)}:</span>
+                <span style={{ textAlign: 'right' }}>{odfReservation.mon.totalMemoryGiB.toFixed(1)} GiB</span>
+                <span>{formatComponentLabel('osd', odfReservation.osd, true)}:</span>
+                <span style={{ textAlign: 'right' }}>{odfReservation.osd.totalMemoryGiB.toFixed(1)} GiB</span>
+                <span>{formatComponentLabel('mds', odfReservation.mds, false)}:</span>
+                <span style={{ textAlign: 'right' }}>{odfReservation.mds.totalMemoryGiB.toFixed(1)} GiB</span>
+                {odfReservation.rgw && (
+                  <>
+                    <span>{formatComponentLabel('rgw', odfReservation.rgw, false)}:</span>
+                    <span style={{ textAlign: 'right' }}>{odfReservation.rgw.totalMemoryGiB.toFixed(1)} GiB</span>
+                  </>
+                )}
+
                 <span style={{ fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>Total Reserved:</span>
-                <span style={{ textAlign: 'right', fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>{totalReservedMemory} GiB</span>
+                <span style={{ textAlign: 'right', fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>{totalReservedMemory.toFixed(1)} GiB</span>
               </div>
             </div>
           </Tile>

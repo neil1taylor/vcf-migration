@@ -50,7 +50,6 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
 
         {/* Row 1: CPU + Memory Settings */}
         <SizingCPUMemorySection
-          selectedProfile={sizing.selectedProfile}
           cpuOvercommit={sizing.cpuOvercommit}
           setCpuOvercommit={sizing.setCpuOvercommit}
           memoryOvercommit={sizing.memoryOvercommit}
@@ -61,10 +60,16 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
           setUseHyperthreading={sizing.setUseHyperthreading}
           systemReservedCpu={sizing.systemReservedCpu}
           systemReservedMemory={sizing.systemReservedMemory}
-          odfReservedCpu={sizing.odfReservedCpu}
-          odfReservedMemory={sizing.odfReservedMemory}
           totalReservedCpu={sizing.totalReservedCpu}
           totalReservedMemory={sizing.totalReservedMemory}
+          odfTuningProfile={sizing.odfTuningProfile}
+          setOdfTuningProfile={sizing.setOdfTuningProfile}
+          includeRgw={sizing.includeRgw}
+          setIncludeRgw={sizing.setIncludeRgw}
+          odfCpuUnitMode={sizing.odfCpuUnitMode}
+          setOdfCpuUnitMode={sizing.setOdfCpuUnitMode}
+          odfReservation={sizing.odfReservation}
+          totalNodes={sizing.nodeRequirements?.totalNodes ?? 3}
         />
 
         {/* Row 2: ODF Storage + Capacity Planning */}
@@ -131,6 +136,7 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
             operationalCapacity={sizing.operationalCapacity}
             cephOverhead={sizing.cephOverhead}
             evictionThreshold={sizing.evictionThreshold}
+            odfReservation={sizing.odfReservation}
           />
         )}
 

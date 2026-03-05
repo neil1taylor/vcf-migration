@@ -80,7 +80,11 @@ export interface IBMCloudPricing {
   vsi: Record<string, VSIProfile>;
   blockStorage: Record<string, BlockStorageTier>;
   roks: {
-    ocpLicense: { perCoreMonthly: number; description: string };
+    ocpLicense: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
+    odf: {
+      advanced: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number; description: string };
+      essentials: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number; description: string };
+    };
     clusterManagement: { perClusterMonthly: number; description: string };
   };
   networking: NetworkPricing;
@@ -244,7 +248,11 @@ export function getStaticPricing(): IBMCloudPricing {
     regions: Record<string, RegionPricing>;
     discounts: Record<string, DiscountOption>;
     roks: {
-      ocpLicense: { perCoreMonthly: number; description: string };
+      ocpLicense: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
+      odf: {
+        advanced: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number; description: string };
+        essentials: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number; description: string };
+      };
       clusterManagement: { perClusterMonthly: number; description: string };
     };
     odfWorkloadProfiles: Record<string, {

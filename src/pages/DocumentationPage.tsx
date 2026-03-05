@@ -548,19 +548,19 @@ export function DocumentationPage() {
                   <p>The ROKS Sizing Calculator offers three storage calculation methods. Choose based on your migration strategy:</p>
                   <table style={{ width: '100%', marginTop: '0.5rem', borderCollapse: 'collapse' }}>
                     <thead>
-                      <tr style={{ borderBottom: '2px solid #e0e0e0' }}>
+                      <tr style={{ borderBottom: '2px solid var(--cds-border-subtle-00)' }}>
                         <th style={{ textAlign: 'left', padding: '0.5rem' }}>Method</th>
                         <th style={{ textAlign: 'left', padding: '0.5rem' }}>RVTools Source</th>
                         <th style={{ textAlign: 'left', padding: '0.5rem' }}>When to Use</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
+                      <tr style={{ borderBottom: '1px solid var(--cds-border-subtle-00)' }}>
                         <td style={{ padding: '0.5rem' }}><strong>Disk Capacity</strong></td>
                         <td style={{ padding: '0.5rem' }}>vDisk sheet &rarr; Capacity MiB</td>
                         <td style={{ padding: '0.5rem' }}>Full disk size. Use when VMs may grow to use their full allocated capacity.</td>
                       </tr>
-                      <tr style={{ borderBottom: '1px solid #e0e0e0' }}>
+                      <tr style={{ borderBottom: '1px solid var(--cds-border-subtle-00)' }}>
                         <td style={{ padding: '0.5rem' }}><strong>In Use</strong> <Tag type="green" size="sm">Recommended</Tag></td>
                         <td style={{ padding: '0.5rem' }}>vInfo sheet &rarr; In Use MiB</td>
                         <td style={{ padding: '0.5rem' }}>Actual consumed storage including snapshots. Best for accurate sizing based on current usage.</td>
@@ -572,7 +572,7 @@ export function DocumentationPage() {
                       </tr>
                     </tbody>
                   </table>
-                  <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: '#525252' }}>
+                  <p style={{ marginTop: '1rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
                     <strong>Note:</strong> Provisioned storage can be 2-5× larger than In Use for thin-provisioned environments.
                     Disk Capacity reflects the actual VMDK sizes without snapshot overhead.
                   </p>
@@ -581,7 +581,7 @@ export function DocumentationPage() {
                 <Tile className="documentation-page__metric-card">
                   <h4>ODF Sizing Formula</h4>
                   <p>Calculate raw ODF capacity using this approach:</p>
-                  <div style={{ fontFamily: 'monospace', backgroundColor: '#f4f4f4', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem' }}>
+                  <div style={{ fontFamily: 'monospace', backgroundColor: 'var(--cds-layer-01)', padding: '1rem', borderRadius: '4px', marginTop: '0.5rem' }}>
                     <p><strong>Step 1:</strong> Base = In Use MiB × Replication Factor (3.2× for 3-replica)</p>
                     <p><strong>Step 2:</strong> Add headroom = Base × 1.3 (30% free space minimum)</p>
                     <p><strong>Step 3:</strong> Add growth = Result × (1 + annual rate)^years</p>

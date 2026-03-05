@@ -49,7 +49,7 @@ export function StorageTierSelector({
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
         <Tooltip label={tooltipText} align="top">
-          <button type="button" style={{ all: 'unset', cursor: 'help' }}>
+          <button type="button" className="tooltip-trigger">
             <Tag type={TIER_TAG_TYPE[currentTier]} size="sm">
               {getStorageTierLabel(currentTier)}
             </Tag>

@@ -56,4 +56,8 @@ export { usePreflightChecks } from './usePreflightChecks';
 export type { UsePreflightChecksConfig, UsePreflightChecksReturn } from './usePreflightChecks';
 
 export { useVSIPageData } from './useVSIPageData';
+
+// Sheet availability
+export { useAvailableSheets } from './useAvailableSheets';
+export type { AvailableSheets } from './useAvailableSheets';
 export type { UseVSIPageDataConfig, UseVSIPageDataReturn } from './useVSIPageData';

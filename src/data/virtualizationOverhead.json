@@ -132,32 +132,51 @@
     }
   },
   "odfReserved": {
-    "description": "ODF/Ceph resources reserved per node (scales with NVMe devices)",
-    "base": {
-      "cpu": {
-        "value": 5,
-        "unit": "cores",
-        "description": "Base ODF CPU reservation"
-      },
-      "memory": {
-        "value": 21,
-        "unit": "GiB",
-        "description": "Base ODF memory reservation"
-      }
+    "description": "ODF/Ceph resources reserved per node, based on tuning profile",
+    "defaultProfile": "balanced",
+    "includeRgw": false,
+    "clusterWideCounts": {
+      "mon": 3,
+      "mgr": 2,
+      "mds": 2,
+      "rgw": 2
     },
-    "perNvmeDevice": {
-      "cpu": {
-        "value": 2,
-        "unit": "cores",
-        "description": "Additional CPU per NVMe device"
+    "profiles": {
+      "lean": {
+        "label": "Lean",
+        "description": "Resource-constrained clusters; NOT recommended for VM/live migration",
+        "warning": "Not recommended for ROKS with OCP Virt. OSD limits cause latency spikes during VM migrations.",
+        "components": {
+          "mgr": { "cpu": 0.5, "memoryGiB": 1, "clusterWide": true },
+          "mon": { "cpu": 0.5, "memoryGiB": 1, "clusterWide": true },
+          "osd": { "cpu": 1.5, "memoryGiB": 3, "perNvme": true },
+          "mds": { "cpu": 1, "memoryGiB": 2, "clusterWide": true },
+          "rgw": { "cpu": 1, "memoryGiB": 1, "clusterWide": true }
+        }
       },
-      "memory": {
-        "value": 5,
-        "unit": "GiB",
-        "description": "Additional memory per NVMe device"
+      "balanced": {
+        "label": "Balanced",
+        "description": "General purpose. Recommended minimum for ROKS with OCP Virt.",
+        "components": {
+          "mgr": { "cpu": 1, "memoryGiB": 1.5, "clusterWide": true },
+          "mon": { "cpu": 1, "memoryGiB": 2, "clusterWide": true },
+          "osd": { "cpu": 2, "memoryGiB": 5, "perNvme": true },
+          "mds": { "cpu": 2, "memoryGiB": 6, "clusterWide": true },
+          "rgw": { "cpu": 2, "memoryGiB": 2, "clusterWide": true }
+        }
+      },
+      "performance": {
+        "label": "Performance",
+        "description": "High-throughput, low-latency. For large bare metal pools (96+ cores).",
+        "components": {
+          "mgr": { "cpu": 2, "memoryGiB": 2, "clusterWide": true },
+          "mon": { "cpu": 1.5, "memoryGiB": 3, "clusterWide": true },
+          "osd": { "cpu": 4, "memoryGiB": 8, "perNvme": true },
+          "mds": { "cpu": 3, "memoryGiB": 8, "clusterWide": true },
+          "rgw": { "cpu": 2, "memoryGiB": 4, "clusterWide": true }
+        }
       }
-    },
-    "formula": "ODF Reserved = Base + (NVMe Devices × Per Device)"
+    }
   },
   "references": [
     {

@@ -65,6 +65,33 @@ export function ClusterPage() {
     return <Navigate to={ROUTES.home} replace />;
   }
 
+  if (clustersRaw.length === 0) {
+    return (
+      <div className="cluster-page">
+        <Grid>
+          <Column lg={16} md={8} sm={4}>
+            <h1 className="cluster-page__title">Cluster Analysis</h1>
+            <p className="cluster-page__subtitle">
+              Cluster configuration, HA/DRS status, and resource distribution
+            </p>
+          </Column>
+          <Column lg={16} md={8} sm={4}>
+            <Tile>
+              <h3>No Cluster Data Available</h3>
+              <p>
+                The uploaded RVTools file does not contain a vCluster sheet.
+                Cluster analysis requires this sheet to display cluster configuration.
+              </p>
+              <p style={{ marginTop: '0.5rem' }}>
+                To include cluster data, ensure you export the vCluster tab when running RVTools.
+              </p>
+            </Tile>
+          </Column>
+        </Grid>
+      </div>
+    );
+  }
+
   // Summary metrics
   const totalClusters = clusters.length;
   const totalHosts = hosts.length;

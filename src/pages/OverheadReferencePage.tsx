@@ -1,4 +1,5 @@
 // OpenShift Virtualization Overhead Reference Page
+import { useState } from 'react';
 import {
   Grid,
   Column,
@@ -11,15 +12,26 @@ import {
   StructuredListCell,
   StructuredListBody,
   CodeSnippet,
+  ContentSwitcher,
+  Switch,
 } from '@carbon/react';
 import { Information, ArrowLeft } from '@carbon/icons-react';
 import { Link as RouterLink } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
 import virtualizationOverhead from '@/data/virtualizationOverhead.json';
+import { getOdfProfiles } from '@/utils/odfCalculation';
+import type { OdfTuningProfile } from '@/utils/odfCalculation';
 import './OverheadReferencePage.scss';
+
+const odfProfiles = getOdfProfiles();
 
 export function OverheadReferencePage() {
   const { cpuOverhead, memoryOverhead, storageOverhead, systemReserved, odfReserved, references, metadata } = virtualizationOverhead;
+  const [selectedOdfProfile, setSelectedOdfProfile] = useState<OdfTuningProfile>('balanced');
+
+  const profileData = odfReserved.profiles[selectedOdfProfile];
+  const selectedProfileIndex = odfProfiles.findIndex(p => p.id === selectedOdfProfile);
+  const clusterCounts = odfReserved.clusterWideCounts;
 
   return (
     <div className="overhead-reference-page">
@@ -262,57 +274,92 @@ export function OverheadReferencePage() {
           </Tile>
         </Column>
 
-        {/* ODF Reserved */}
+        {/* ODF Reserved — Profile-based */}
         <Column lg={8} md={8} sm={4}>
           <Tile className="overhead-reference-page__section">
             <div className="overhead-reference-page__section-header">
               <h2>ODF Reserved</h2>
-              <Tag type="red" size="md">Per Node (Scales with NVMe)</Tag>
+              <Tag type="red" size="md">Per Node (Profile-Based)</Tag>
             </div>
             <p className="overhead-reference-page__section-desc">{odfReserved.description}</p>
 
-            <h4>Base Reservation</h4>
-            <StructuredListWrapper>
-              <StructuredListBody>
-                <StructuredListRow>
-                  <StructuredListCell><strong>CPU</strong></StructuredListCell>
-                  <StructuredListCell>{odfReserved.base.cpu.value} {odfReserved.base.cpu.unit}</StructuredListCell>
-                  <StructuredListCell>{odfReserved.base.cpu.description}</StructuredListCell>
-                </StructuredListRow>
-                <StructuredListRow>
-                  <StructuredListCell><strong>Memory</strong></StructuredListCell>
-                  <StructuredListCell>{odfReserved.base.memory.value} {odfReserved.base.memory.unit}</StructuredListCell>
-                  <StructuredListCell>{odfReserved.base.memory.description}</StructuredListCell>
-                </StructuredListRow>
-              </StructuredListBody>
-            </StructuredListWrapper>
+            <ContentSwitcher
+              onChange={(e) => {
+                if (e.index == null) return;
+                const profileId = odfProfiles[e.index]?.id;
+                if (profileId) setSelectedOdfProfile(profileId);
+              }}
+              selectedIndex={selectedProfileIndex}
+              size="sm"
+            >
+              {odfProfiles.map((p) => (
+                <Switch key={p.id} name={p.id} text={p.label} />
+              ))}
+            </ContentSwitcher>
 
-            <h4 style={{ marginTop: '1rem' }}>Per NVMe Device</h4>
+            <p style={{ fontSize: '0.75rem', marginTop: '0.5rem', marginBottom: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+              {profileData.description}
+            </p>
+
+            <h4>Per-Component Resources (Kubernetes CPU / GiB)</h4>
             <StructuredListWrapper>
+              <StructuredListHead>
+                <StructuredListRow head>
+                  <StructuredListCell head>Component</StructuredListCell>
+                  <StructuredListCell head>CPU</StructuredListCell>
+                  <StructuredListCell head>Memory</StructuredListCell>
+                  <StructuredListCell head>Scheduling</StructuredListCell>
+                </StructuredListRow>
+              </StructuredListHead>
               <StructuredListBody>
-                <StructuredListRow>
-                  <StructuredListCell><strong>CPU</strong></StructuredListCell>
-                  <StructuredListCell>+{odfReserved.perNvmeDevice.cpu.value} {odfReserved.perNvmeDevice.cpu.unit}</StructuredListCell>
-                  <StructuredListCell>{odfReserved.perNvmeDevice.cpu.description}</StructuredListCell>
-                </StructuredListRow>
-                <StructuredListRow>
-                  <StructuredListCell><strong>Memory</strong></StructuredListCell>
-                  <StructuredListCell>+{odfReserved.perNvmeDevice.memory.value} {odfReserved.perNvmeDevice.memory.unit}</StructuredListCell>
-                  <StructuredListCell>{odfReserved.perNvmeDevice.memory.description}</StructuredListCell>
-                </StructuredListRow>
+                {(['mgr', 'mon', 'osd', 'mds', 'rgw'] as const).map((name) => {
+                  const comp = profileData.components[name];
+                  const isPerNvme = 'perNvme' in comp && comp.perNvme;
+                  return (
+                    <StructuredListRow key={name}>
+                      <StructuredListCell><strong>{name.toUpperCase()}</strong></StructuredListCell>
+                      <StructuredListCell>{comp.cpu} vCPU</StructuredListCell>
+                      <StructuredListCell>{comp.memoryGiB} GiB</StructuredListCell>
+                      <StructuredListCell>
+                        {isPerNvme
+                          ? '1 per NVMe device'
+                          : `${(clusterCounts as Record<string, number>)[name]} cluster-wide`
+                        }
+                      </StructuredListCell>
+                    </StructuredListRow>
+                  );
+                })}
               </StructuredListBody>
             </StructuredListWrapper>
 
             <div className="overhead-reference-page__formula">
               <h4>Calculation Formula</h4>
-              <CodeSnippet type="single" feedback="Copied!">{odfReserved.formula}</CodeSnippet>
+              <CodeSnippet type="multi" feedback="Copied!">
+{`Per Node ODF CPU =
+  MGR(${profileData.components.mgr.cpu} × ${clusterCounts.mgr}/nodes) +
+  MON(${profileData.components.mon.cpu} × ${clusterCounts.mon}/nodes) +
+  OSD(${profileData.components.osd.cpu} × nvmeDisks) +
+  MDS(${profileData.components.mds.cpu} × ${clusterCounts.mds}/nodes)`}
+              </CodeSnippet>
             </div>
 
             <div className="overhead-reference-page__example">
-              <h4>Example: 8 NVMe Devices</h4>
+              <h4>Example: 8 NVMe, 3 Nodes ({profileData.label})</h4>
               <ul>
-                <li>CPU: {odfReserved.base.cpu.value} + (8 × {odfReserved.perNvmeDevice.cpu.value}) = <strong>{odfReserved.base.cpu.value + 8 * odfReserved.perNvmeDevice.cpu.value} cores</strong></li>
-                <li>Memory: {odfReserved.base.memory.value} + (8 × {odfReserved.perNvmeDevice.memory.value}) = <strong>{odfReserved.base.memory.value + 8 * odfReserved.perNvmeDevice.memory.value} GiB</strong></li>
+                <li>CPU: MGR({profileData.components.mgr.cpu}\u00d7{(clusterCounts.mgr / 3).toFixed(2)}) + MON({profileData.components.mon.cpu}\u00d7{(clusterCounts.mon / 3).toFixed(2)}) + OSD({profileData.components.osd.cpu}\u00d78) + MDS({profileData.components.mds.cpu}\u00d7{(clusterCounts.mds / 3).toFixed(2)}) = <strong>
+                  {(
+                    profileData.components.mgr.cpu * clusterCounts.mgr / 3 +
+                    profileData.components.mon.cpu * clusterCounts.mon / 3 +
+                    profileData.components.osd.cpu * 8 +
+                    profileData.components.mds.cpu * clusterCounts.mds / 3
+                  ).toFixed(1)} vCPU/node</strong></li>
+                <li>Memory: MGR({profileData.components.mgr.memoryGiB}\u00d7{(clusterCounts.mgr / 3).toFixed(2)}) + MON({profileData.components.mon.memoryGiB}\u00d7{(clusterCounts.mon / 3).toFixed(2)}) + OSD({profileData.components.osd.memoryGiB}\u00d78) + MDS({profileData.components.mds.memoryGiB}\u00d7{(clusterCounts.mds / 3).toFixed(2)}) = <strong>
+                  {(
+                    profileData.components.mgr.memoryGiB * clusterCounts.mgr / 3 +
+                    profileData.components.mon.memoryGiB * clusterCounts.mon / 3 +
+                    profileData.components.osd.memoryGiB * 8 +
+                    profileData.components.mds.memoryGiB * clusterCounts.mds / 3
+                  ).toFixed(1)} GiB/node</strong></li>
               </ul>
             </div>
           </Tile>

@@ -509,12 +509,152 @@ async function fetchBareMetalPricing(
   return fetchComponentPricing(token, 'is.bare-metal-server', 'bare_metal_server.profile', configProfileNames);
 }
 
+// ROKS pricing rates
+interface ROKSPricingRates {
+  ocpLicense: {
+    perVCPUHourly: number;
+    perVCPUMonthly: number;
+    description: string;
+  };
+  odf: {
+    advanced: {
+      bareMetalPerNodeMonthly: number;
+      vsiPerVCPUHourly: number;
+      description: string;
+    };
+    essentials: {
+      bareMetalPerNodeMonthly: number;
+      vsiPerVCPUHourly: number;
+      description: string;
+    };
+  };
+  clusterManagement: {
+    perClusterMonthly: number;
+    description: string;
+  };
+}
+
+// Fetch ROKS pricing (OCP license + ODF) from Global Catalog
+async function fetchROKSPricing(token: string): Promise<ROKSPricingRates | null> {
+  console.log('');
+  console.log('--- ROKS Pricing (OCP License + ODF) ---');
+
+  const result: ROKSPricingRates = {
+    ocpLicense: {
+      perVCPUHourly: 0.04275,
+      perVCPUMonthly: 31.21,
+      description: 'OpenShift Container Platform license per vCPU-hour',
+    },
+    odf: {
+      advanced: {
+        bareMetalPerNodeMonthly: 681.818,
+        vsiPerVCPUHourly: 0.00725,
+        description: 'ODF Advanced',
+      },
+      essentials: {
+        bareMetalPerNodeMonthly: 545.455,
+        vsiPerVCPUHourly: 0.00575,
+        description: 'ODF Essentials',
+      },
+    },
+    clusterManagement: {
+      perClusterMonthly: 0,
+      description: 'ROKS cluster management fee (included)',
+    },
+  };
+
+  try {
+    // Fetch OCP license rate from containers-kubernetes ROKS plan
+    console.log('  Fetching OCP license rate...');
+    const roksSearch = await searchCatalogWithMetadata(token, 'containers-kubernetes', 50);
+    const roksPlans = roksSearch.resources.filter(
+      r => r.active && !r.disabled && r.kind === 'plan' && r.name?.includes('roks')
+    );
+
+    for (const plan of roksPlans) {
+      const deployments = await fetchPlanPricingDeployments(token, plan.id);
+      const usSouth = deployments.find(d =>
+        d.deployment_location === REGION || d.deployment_region === REGION
+      );
+      if (!usSouth?.metrics) continue;
+
+      for (const metric of usSouth.metrics) {
+        const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
+        const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
+          ?? usdAmount?.prices?.[0]?.price;
+        if (!price || price === 0) continue;
+
+        const qty = metric.charge_unit_quantity || 1;
+        const perUnit = price / qty;
+
+        // OCP license per vCPU-hour
+        if (metric.metric_id?.includes('ocp') && metric.metric_id?.includes('vcpu')) {
+          result.ocpLicense.perVCPUHourly = Math.round(perUnit * 100000) / 100000;
+          result.ocpLicense.perVCPUMonthly = Math.round(perUnit * HOURS_PER_MONTH * 100) / 100;
+          console.log(`    OCP license: $${result.ocpLicense.perVCPUHourly}/vCPU-hr ($${result.ocpLicense.perVCPUMonthly}/vCPU/mo)`);
+        }
+      }
+      await delay(50);
+    }
+
+    // Fetch ODF pricing
+    console.log('  Fetching ODF pricing...');
+    const odfSearch = await searchCatalogWithMetadata(token, 'roks odf', 50);
+    const odfPlans = odfSearch.resources.filter(
+      r => r.active && !r.disabled && r.kind === 'plan' && r.name?.includes('odf')
+    );
+
+    for (const plan of odfPlans) {
+      const isAdvanced = plan.name?.includes('advanced');
+      const isEssentials = plan.name?.includes('essentials');
+      if (!isAdvanced && !isEssentials) continue;
+
+      const tier = isAdvanced ? 'advanced' : 'essentials';
+      const deployments = await fetchPlanPricingDeployments(token, plan.id);
+      const usSouth = deployments.find(d =>
+        d.deployment_location === REGION || d.deployment_region === REGION
+      );
+      if (!usSouth?.metrics) continue;
+
+      for (const metric of usSouth.metrics) {
+        const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
+        const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
+          ?? usdAmount?.prices?.[0]?.price;
+        if (!price || price === 0) continue;
+
+        const qty = metric.charge_unit_quantity || 1;
+        const perUnit = price / qty;
+
+        // Bare metal per-node monthly
+        if (metric.metric_id?.includes('bm') || metric.charge_unit_name?.includes('BARE_METAL')) {
+          result.odf[tier].bareMetalPerNodeMonthly = Math.round(perUnit * 1000) / 1000;
+          console.log(`    ODF ${tier} bare metal: $${result.odf[tier].bareMetalPerNodeMonthly}/node/mo`);
+        }
+        // VSI per-vCPU-hour
+        else if (metric.metric_id?.includes('vcpu') || metric.charge_unit_name?.includes('VCPU')) {
+          result.odf[tier].vsiPerVCPUHourly = Math.round(perUnit * 100000) / 100000;
+          console.log(`    ODF ${tier} VSI: $${result.odf[tier].vsiPerVCPUHourly}/vCPU-hr`);
+        }
+      }
+      await delay(50);
+    }
+
+    console.log('  ROKS pricing fetch complete');
+    return result;
+  } catch (error) {
+    console.warn('  Warning: Failed to fetch ROKS pricing from catalog, using defaults');
+    console.warn('  Error:', error instanceof Error ? error.message : error);
+    return result;
+  }
+}
+
 // Config type for pricing updates
 interface IBMCloudConfig {
   vsiPricing?: Record<string, { hourlyRate: number; monthlyRate: number }>;
   bareMetalPricing?: Record<string, { hourlyRate: number; monthlyRate: number }>;
   vsiProfiles?: Record<string, Array<{ name: string; hourlyRate?: number; monthlyRate?: number }>>;
   bareMetalProfiles?: Record<string, Array<{ name: string; hourlyRate?: number; monthlyRate?: number }>>;
+  roks?: ROKSPricingRates;
   version?: string;
   [key: string]: unknown;
 }
@@ -624,12 +764,18 @@ async function main() {
 
     const vsiPricing = await fetchVSIPricing(token, vsiProfileNames);
     const bareMetalPricing = await fetchBareMetalPricing(token, bmProfileNames);
+    const roksPricing = await fetchROKSPricing(token);
 
     // Update config
     console.log('');
     console.log('Step 3: Updating configuration');
 
     const newConfig = updateConfigWithPricing(existingConfig, vsiPricing, bareMetalPricing);
+
+    // Update ROKS pricing section
+    if (roksPricing) {
+      newConfig.roks = roksPricing;
+    }
 
     // Write new config
     console.log('');

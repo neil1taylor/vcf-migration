@@ -251,21 +251,21 @@ export function WorkloadVMTable({ matches, workloadsByCategory, aiClassification
                           )}
                           {isAI && hasAI && (
                             <Tooltip label={aiResult.reasoning || 'AI-classified workload'} align="bottom">
-                              <button type="button" style={{ all: 'unset', cursor: 'help' }}>
+                              <button type="button" className="tooltip-trigger">
                                 <Tag type="purple" size="sm">AI {Math.round(aiResult.confidence * 100)}%</Tag>
                               </button>
                             </Tooltip>
                           )}
                           {!isUserOverride && !isAI && hasAI && aiDisagrees && (
                             <Tooltip label={`AI suggests: ${aiResult.workloadType}. ${aiResult.reasoning || ''}`} align="bottom">
-                              <button type="button" style={{ all: 'unset', cursor: 'help' }}>
+                              <button type="button" className="tooltip-trigger">
                                 <Tag type="purple" size="sm">AI: {aiResult.workloadType} {Math.round(aiResult.confidence * 100)}%</Tag>
                               </button>
                             </Tooltip>
                           )}
                           {!isUserOverride && !isAI && hasAI && !aiDisagrees && (
                             <Tooltip label={aiResult.reasoning || 'AI-classified workload'} align="bottom">
-                              <button type="button" style={{ all: 'unset', cursor: 'help' }}>
+                              <button type="button" className="tooltip-trigger">
                                 <Tag type="purple" size="sm">AI {Math.round(aiResult.confidence * 100)}%</Tag>
                               </button>
                             </Tooltip>

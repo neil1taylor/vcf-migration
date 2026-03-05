@@ -189,7 +189,7 @@ export function RackwareExportModal({
                 }}
               />
               {exportModes.find(m => m.id === exportMode)?.description && (
-                <p style={{ fontSize: '0.75rem', color: '#525252', marginTop: '-0.5rem' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginTop: '-0.5rem' }}>
                   {exportModes.find(m => m.id === exportMode)?.description}
                 </p>
               )}
@@ -329,7 +329,7 @@ export function RackwareExportModal({
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         padding: '0.25rem 0',
-                        borderBottom: '1px solid #e0e0e0'
+                        borderBottom: '1px solid var(--cds-border-subtle-00)'
                       }}
                     >
                       <span style={{

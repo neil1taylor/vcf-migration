@@ -215,6 +215,33 @@ export function StoragePage() {
     return <Navigate to={ROUTES.home} replace />;
   }
 
+  if (datastores.length === 0 && vDisks.length === 0) {
+    return (
+      <div className="storage-page">
+        <Grid>
+          <Column lg={16} md={8} sm={4}>
+            <h1 className="storage-page__title">Storage Analysis</h1>
+            <p className="storage-page__subtitle">
+              Datastore capacity and utilization analysis
+            </p>
+          </Column>
+          <Column lg={16} md={8} sm={4}>
+            <Tile>
+              <h3>No Storage Data Available</h3>
+              <p>
+                The uploaded RVTools file does not contain vDatastore or vDisk sheets.
+                Storage analysis requires at least one of these sheets.
+              </p>
+              <p style={{ marginTop: '0.5rem' }}>
+                To include storage data, ensure you export the vDatastore and vDisk tabs when running RVTools.
+              </p>
+            </Tile>
+          </Column>
+        </Grid>
+      </div>
+    );
+  }
+
   // Calculate datastore-level storage metrics
   const totalCapacityTiB = mibToTiB(datastores.reduce((sum, ds) => sum + ds.capacityMiB, 0));
   const totalUsedTiB = mibToTiB(datastores.reduce((sum, ds) => sum + ds.inUseMiB, 0));

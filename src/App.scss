@@ -23,6 +23,13 @@
   min-height: 100vh;
 }
 
+// Tooltip trigger button reset (Carbon Tooltip requires focusable child)
+.tooltip-trigger {
+  all: unset;
+  cursor: help;
+  display: inline-flex;
+}
+
 // Disabled sidenav link style
 .sidenav-link--disabled {
   opacity: 0.5;

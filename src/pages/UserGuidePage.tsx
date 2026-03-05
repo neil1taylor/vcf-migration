@@ -80,14 +80,14 @@ export function UserGuidePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr><td>vInfo</td><td>VM inventory and configuration (required)</td></tr>
+                      <tr><td>vInfo</td><td>VM inventory and configuration (required — only mandatory sheet)</td></tr>
                       <tr><td>vCPU</td><td>CPU allocation and reservations</td></tr>
                       <tr><td>vMemory</td><td>Memory allocation details</td></tr>
-                      <tr><td>vDisk</td><td>Virtual disk information (required)</td></tr>
-                      <tr><td>vNetwork</td><td>Network adapter configuration</td></tr>
-                      <tr><td>vHost</td><td>ESXi host inventory</td></tr>
-                      <tr><td>vCluster</td><td>Cluster configuration</td></tr>
-                      <tr><td>vDatastore</td><td>Storage datastore info (required)</td></tr>
+                      <tr><td>vDisk</td><td>Virtual disk information (recommended — enables Storage page)</td></tr>
+                      <tr><td>vNetwork</td><td>Network adapter configuration (recommended — enables Network pages)</td></tr>
+                      <tr><td>vHost</td><td>ESXi host inventory (recommended — enables Hosts page)</td></tr>
+                      <tr><td>vCluster</td><td>Cluster configuration (recommended — enables Clusters page)</td></tr>
+                      <tr><td>vDatastore</td><td>Storage datastore info (recommended — enables Storage page)</td></tr>
                       <tr><td>vSnapshot</td><td>VM snapshot details</td></tr>
                       <tr><td>vTools</td><td>VMware Tools status</td></tr>
                     </tbody>
@@ -343,8 +343,131 @@ export function UserGuidePage() {
               </div>
             </AccordionItem>
 
+            {/* Risk Assessment */}
+            <AccordionItem title="7. Risk Assessment">
+              <div className="user-guide-page__section">
+                <Tile className="user-guide-page__card">
+                  <h4>Overview</h4>
+                  <p>Assess migration risk across 5 domains with automatic calculations and manual overrides. Navigate to <strong>Assess</strong> &gt; <strong>Risk Assessment</strong>.</p>
+                  <table className="user-guide-page__table">
+                    <thead>
+                      <tr>
+                        <th>Domain</th>
+                        <th>Mode</th>
+                        <th>Source</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Cost</td><td>Auto</td><td>VM count and resource analysis</td></tr>
+                      <tr><td>Infrastructure/NFRs</td><td>Auto</td><td>Pre-flight check blocker percentages</td></tr>
+                      <tr><td>Complexity</td><td>Auto</td><td>Complexity scores and OS compatibility</td></tr>
+                      <tr><td>Security/Compliance</td><td>Manual</td><td>User-defined severity</td></tr>
+                      <tr><td>Other</td><td>Manual</td><td>User-defined severity</td></tr>
+                    </tbody>
+                  </table>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>Go/No-Go Logic</h4>
+                  <div className="user-guide-page__status-list">
+                    <div className="user-guide-page__status-item">
+                      <Tag type="red">No-Go</Tag>
+                      <span>Any domain is Critical</span>
+                    </div>
+                    <div className="user-guide-page__status-item">
+                      <Tag type="high-contrast">Conditional</Tag>
+                      <span>Any domain is High (no critical)</span>
+                    </div>
+                    <div className="user-guide-page__status-item">
+                      <Tag type="green">Go</Tag>
+                      <span>All domains Low or Medium</span>
+                    </div>
+                  </div>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>Pre-Assessment Summary</h4>
+                  <p>The second tab provides an executive overview:</p>
+                  <UnorderedList>
+                    <ListItem><strong>Environment Snapshot</strong> - VM count, vCPUs, RAM, storage, clusters, hosts</ListItem>
+                    <ListItem><strong>Risk Heat Map</strong> - Color-coded table of all 5 domains</ListItem>
+                    <ListItem><strong>Go/No-Go Recommendation</strong> - Overall assessment banner</ListItem>
+                    <ListItem><strong>Key Blockers</strong> - Critical and high-severity items</ListItem>
+                  </UnorderedList>
+                </Tile>
+              </div>
+            </AccordionItem>
+
+            {/* Migration Timeline */}
+            <AccordionItem title="8. Migration Timeline">
+              <div className="user-guide-page__section">
+                <Tile className="user-guide-page__card">
+                  <h4>Overview</h4>
+                  <p>Plan and visualize the migration schedule with an interactive Gantt chart. Navigate to <strong>Assess</strong> &gt; <strong>Migration Timeline</strong>.</p>
+                  <table className="user-guide-page__table">
+                    <thead>
+                      <tr>
+                        <th>Phase Type</th>
+                        <th>Default Duration</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Preparation</td><td>2 weeks</td><td>Environment setup and planning</td></tr>
+                      <tr><td>Pilot</td><td>2 weeks</td><td>Pilot wave migration and validation</td></tr>
+                      <tr><td>Production Wave N</td><td>2 weeks each</td><td>One phase per migration wave</td></tr>
+                      <tr><td>Validation</td><td>1 week</td><td>Post-migration verification</td></tr>
+                      <tr><td>Buffer</td><td>1 week</td><td>Contingency time</td></tr>
+                    </tbody>
+                  </table>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>Customizing the Timeline</h4>
+                  <OrderedList>
+                    <ListItem>Adjust phase durations using the number inputs in the phase table (minimum 1 week)</ListItem>
+                    <ListItem>Set a start date to calculate projected end dates</ListItem>
+                    <ListItem>Click &quot;Reset to Defaults&quot; to restore original durations</ListItem>
+                  </OrderedList>
+                </Tile>
+              </div>
+            </AccordionItem>
+
+            {/* Network Design */}
+            <AccordionItem title="9. Network Design">
+              <div className="user-guide-page__section">
+                <Tile className="user-guide-page__card">
+                  <h4>Overview</h4>
+                  <p>Map your VMware network topology to an IBM Cloud VPC design. Navigate to <strong>Migration Assessment</strong> &gt; <strong>VSI Migration</strong> and select the <strong>Network Design</strong> tab.</p>
+                  <p>The page automatically:</p>
+                  <OrderedList>
+                    <ListItem>Extracts port groups from your RVTools vNetwork data</ListItem>
+                    <ListItem>Maps each port group to a VPC subnet</ListItem>
+                    <ListItem>Distributes subnets across 3 availability zones</ListItem>
+                    <ListItem>Generates security groups based on workload classifications</ListItem>
+                    <ListItem>Creates ACL suggestions for each subnet</ListItem>
+                  </OrderedList>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>Tabs</h4>
+                  <UnorderedList>
+                    <ListItem><strong>Subnets</strong> - Editable table with subnet name, CIDR, zone, VM count, security group</ListItem>
+                    <ListItem><strong>Security Groups</strong> - Inbound/outbound rules organized by workload type</ListItem>
+                    <ListItem><strong>ACLs</strong> - Read-only ACL suggestions per subnet</ListItem>
+                    <ListItem><strong>Transit Gateway</strong> - Toggle on/off and select connection type</ListItem>
+                  </UnorderedList>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>VPC Topology Diagram</h4>
+                  <p>Interactive D3 visualization showing region, VPC, zone columns, and subnets color-coded by workload type. Hover over subnets for VM count and CIDR details.</p>
+                </Tile>
+              </div>
+            </AccordionItem>
+
             {/* Migration Assessment */}
-            <AccordionItem title="7. Migration Assessment">
+            <AccordionItem title="10. Migration Assessment">
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>ROKS Migration (OpenShift Virtualization)</h4>
@@ -389,7 +512,7 @@ export function UserGuidePage() {
             </AccordionItem>
 
             {/* Wave Planning */}
-            <AccordionItem title="8. Wave Planning">
+            <AccordionItem title="11. Wave Planning">
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>Complexity-Based Waves</h4>
@@ -425,7 +548,7 @@ export function UserGuidePage() {
             </AccordionItem>
 
             {/* Cost Estimation */}
-            <AccordionItem title="9. Cost Estimation">
+            <AccordionItem title="12. Cost Estimation">
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>Configuration Options</h4>
@@ -447,7 +570,9 @@ export function UserGuidePage() {
                     </thead>
                     <tbody>
                       <tr><td>Compute</td><td>Bare metal servers or VSI instances</td></tr>
+                      <tr><td>Licensing</td><td>OpenShift Container Platform (OCP) license per vCPU (ROKS only)</td></tr>
                       <tr><td>Storage</td><td>Block storage volumes by IOPS tier</td></tr>
+                      <tr><td>Storage - ODF</td><td>OpenShift Data Foundation license (ROKS only)</td></tr>
                       <tr><td>Networking</td><td>Load balancers, gateways, IPs</td></tr>
                       <tr><td><strong>Total</strong></td><td>Monthly and annual projections</td></tr>
                     </tbody>
@@ -471,7 +596,7 @@ export function UserGuidePage() {
             </AccordionItem>
 
             {/* Generating Reports */}
-            <AccordionItem title="10. Generating Reports">
+            <AccordionItem title="13. Generating Reports">
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>PDF Reports</h4>
@@ -517,7 +642,7 @@ export function UserGuidePage() {
             </AccordionItem>
 
             {/* Reference Documentation */}
-            <AccordionItem title="11. Reference Documentation">
+            <AccordionItem title="14. Reference Documentation">
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>In-App Reference Pages</h4>

@@ -16,3 +16,5 @@ export type { VSIPreFlightPanelProps } from './VSIPreFlightPanel';
 
 export { VSISizingPanel } from './VSISizingPanel';
 export type { VSISizingPanelProps } from './VSISizingPanel';
+
+export { NetworkDesignPanel } from './NetworkDesignPanel';

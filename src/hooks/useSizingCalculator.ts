@@ -8,6 +8,8 @@ import { getBareMetalProfiles as getPricedProfiles } from '@/services/costEstima
 import { createLogger } from '@/utils/logger';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import virtualizationOverhead from '@/data/virtualizationOverhead.json';
+import { calculateOdfReservation } from '@/utils/odfCalculation';
+import type { OdfTuningProfile, OdfCpuUnitMode, OdfReservation } from '@/utils/odfCalculation';
 import type { SizingResult } from '@/components/sizing/SizingCalculator';
 
 const logger = createLogger('SizingCalculator');
@@ -146,6 +148,15 @@ export interface UseSizingCalculatorReturn {
   // System reserved constants
   systemReservedMemory: number;
   systemReservedCpu: number;
+
+  // ODF tuning profile
+  odfTuningProfile: OdfTuningProfile;
+  setOdfTuningProfile: (profile: OdfTuningProfile) => void;
+  includeRgw: boolean;
+  setIncludeRgw: (value: boolean) => void;
+  odfCpuUnitMode: OdfCpuUnitMode;
+  setOdfCpuUnitMode: (mode: OdfCpuUnitMode) => void;
+  odfReservation: OdfReservation;
 
   // ODF reserved
   odfReservedCpu: number;
@@ -304,21 +315,28 @@ export function useSizingCalculator({
   const memoryFixedPerVMMiB = virtOverheadConfig.memoryOverhead.totalFixedPerVM; // 378 MiB per VM
   const memoryProportionalPercent = virtOverheadConfig.memoryOverhead.totalProportionalPercent; // 3%
 
-  // ODF resource reservations (auto-calculated based on NVMe devices)
-  // Formula from Red Hat ODF docs: Base + (2 CPU / 5 GiB per device)
-  const odfReservedCpu = useMemo(() => {
-    const nvmeDevices = selectedProfile.nvmeDisks ?? 0;
-    const baseCpu = 5; // ~16 CPU / 3 nodes base requirement
-    const perDeviceCpu = 2;
-    return baseCpu + (nvmeDevices * perDeviceCpu);
-  }, [selectedProfile.nvmeDisks]);
+  // ODF tuning profile state
+  const [odfTuningProfile, setOdfTuningProfile] = useState<OdfTuningProfile>('balanced');
+  const [includeRgw, setIncludeRgw] = useState(false);
+  const [odfCpuUnitMode, setOdfCpuUnitMode] = useState<OdfCpuUnitMode>('physical');
 
-  const odfReservedMemory = useMemo(() => {
-    const nvmeDevices = selectedProfile.nvmeDisks ?? 0;
-    const baseMemory = 21; // ~64 GiB / 3 nodes base requirement
-    const perDeviceMemory = 5;
-    return baseMemory + (nvmeDevices * perDeviceMemory);
-  }, [selectedProfile.nvmeDisks]);
+  // ODF resource reservations — two-pass calculation for cluster-wide distribution
+  // Pass 1: estimate with minimum 3 nodes to get initial node count
+  // Pass 2: recalculate with actual node count for accurate cluster-wide distribution
+  const odfReservation = useMemo(() => {
+    return calculateOdfReservation(
+      odfTuningProfile,
+      selectedProfile.nvmeDisks ?? 0,
+      3, // Initial pass uses minimum 3 nodes
+      includeRgw,
+      odfCpuUnitMode,
+      htMultiplier,
+      useHyperthreading,
+    );
+  }, [odfTuningProfile, selectedProfile.nvmeDisks, includeRgw, odfCpuUnitMode, htMultiplier, useHyperthreading]);
+
+  const odfReservedCpu = odfReservation.totalCpu;
+  const odfReservedMemory = odfReservation.totalMemoryGiB;
 
   // Total infrastructure reserved (system + ODF)
   const totalReservedCpu = systemReservedCpu + odfReservedCpu;
@@ -326,12 +344,31 @@ export function useSizingCalculator({
 
   // Calculate per-node capacities
   const nodeCapacity = useMemo<NodeCapacity>(() => {
-    // CPU capacity calculation
-    // (Physical cores - reserved) x HT multiplier (if enabled) x CPU overcommit ratio
-    const availableCores = Math.max(0, selectedProfile.physicalCores - totalReservedCpu);
-    const effectiveCores = useHyperthreading
-      ? availableCores * htMultiplier
-      : availableCores;
+    // CPU capacity calculation depends on ODF CPU unit mode:
+    // Physical mode: ODF reservation is in physical cores, subtract from physical cores directly
+    // vCPU mode: ODF reservation is in vCPUs, subtract after HT conversion
+    let availableCores: number;
+    let effectiveCores: number;
+    if (odfCpuUnitMode === 'physical') {
+      // ODF + system reserved are in physical cores
+      availableCores = Math.max(0, selectedProfile.physicalCores - totalReservedCpu);
+      effectiveCores = useHyperthreading
+        ? availableCores * htMultiplier
+        : availableCores;
+    } else {
+      // vCPU mode: convert physical cores to vCPUs first, then subtract ODF in vCPU space
+      const totalVcpus = useHyperthreading
+        ? selectedProfile.physicalCores * htMultiplier
+        : selectedProfile.physicalCores;
+      // System reserved is in physical cores, convert to vCPU space
+      const systemReservedVcpu = useHyperthreading
+        ? systemReservedCpu * htMultiplier
+        : systemReservedCpu;
+      effectiveCores = Math.max(0, totalVcpus - odfReservedCpu - systemReservedVcpu);
+      availableCores = useHyperthreading
+        ? effectiveCores / htMultiplier
+        : effectiveCores;
+    }
     const vcpuCapacity = Math.floor(effectiveCores * cpuOvercommit);
 
     // Memory capacity calculation
@@ -367,6 +404,9 @@ export function useSizingCalculator({
     cephOverhead,
     totalReservedCpu,
     totalReservedMemory,
+    odfCpuUnitMode,
+    odfReservedCpu,
+    systemReservedCpu,
   ]);
 
   // Calculate required nodes based on uploaded data
@@ -500,6 +540,22 @@ export function useSizingCalculator({
       vmCount,
     };
   }, [hasData, rawData, nodeCapacity, nodeRedundancy, evictionThreshold, storageMetric, annualGrowthRate, planningHorizonYears, virtOverhead, cpuFixedPerVM, cpuProportionalPercent, memoryFixedPerVMMiB, memoryProportionalPercent, vmOverrides]);
+
+  // Second pass: recalculate ODF reservation with actual node count for accurate cluster-wide distribution.
+  // This affects the displayed component breakdown but not the node count calculation
+  // (cluster-wide components are small relative to OSD, so the initial 3-node estimate is sufficient).
+  const finalOdfReservation = useMemo(() => {
+    const actualNodes = nodeRequirements?.totalNodes ?? 3;
+    return calculateOdfReservation(
+      odfTuningProfile,
+      selectedProfile.nvmeDisks ?? 0,
+      actualNodes,
+      includeRgw,
+      odfCpuUnitMode,
+      htMultiplier,
+      useHyperthreading,
+    );
+  }, [nodeRequirements?.totalNodes, odfTuningProfile, selectedProfile.nvmeDisks, includeRgw, odfCpuUnitMode, htMultiplier, useHyperthreading]);
 
   // N+X Validation - checks if cluster can handle workload after nodeRedundancy failures
   const redundancyValidation = useMemo<RedundancyValidation | null>(() => {
@@ -648,6 +704,13 @@ export function useSizingCalculator({
     setVirtOverhead,
     systemReservedMemory,
     systemReservedCpu,
+    odfTuningProfile,
+    setOdfTuningProfile,
+    includeRgw,
+    setIncludeRgw,
+    odfCpuUnitMode,
+    setOdfCpuUnitMode,
+    odfReservation: finalOdfReservation,
     odfReservedCpu,
     odfReservedMemory,
     totalReservedCpu,

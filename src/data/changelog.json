@@ -1,10 +1,44 @@
 {
   "releases": [
     {
+      "version": "1.2.4",
+      "date": "2026-03-05",
+      "sections": {
+        "changed": [
+          "Moved Risk Assessment from Assess menu to Migration Assessment (after Pre-Flight Report) and merged two tabs into a single flat view",
+          "Infrastructure Details moved to appear between Dashboard and Discovery in the side navigation for earlier visibility",
+          "Moved Network Design from standalone Assess page to a tab within VSI Migration page for a streamlined workflow",
+          "ODF resource reservations now use per-component calculations based on Red Hat ODF tuning profiles (lean/balanced/performance) instead of simplified base+perDevice formula",
+          "Cluster-wide ODF components (MON, MGR, MDS) are distributed across actual node count, reducing per-node overhead on larger clusters",
+          "Overhead Reference page ODF section now shows profile-selectable per-component resource tables"
+        ],
+        "added": [
+          "ODF Tuning Profile selector (lean/balanced/performance) in ROKS Sizing Calculator with per-component CPU and memory breakdown",
+          "RADOS Gateway (RGW/S3) toggle — off by default since VM workloads typically don't need object storage",
+          "ODF CPU unit mode toggle — switch between physical cores and vCPU display for ODF reservations",
+          "Warning banner when lean ODF profile is selected (not recommended for OCP Virt live migration)",
+          "Enhanced ODF breakdown bar tooltips showing per-component resource allocation"
+        ]
+      }
+    },
+    {
       "version": "1.2.3",
       "date": "2026-03-05",
       "sections": {
+        "changed": [
+          "Replaced ~30 hardcoded hex colors with Carbon Design System CSS custom properties (var(--cds-*)) for dark mode compatibility across 9 component and page files",
+          "Replaced native HTML button elements in NetworkSummaryTable save/cancel with Carbon Button components using Checkmark/Close icons",
+          "Standardized tooltip trigger buttons with shared .tooltip-trigger CSS class instead of inline style={{ all: 'unset' }} across StorageTierSelector, WorkloadVMTable, and VSISizingPanel",
+          "Added aria-hidden=\"true\" to decorative icons in NextStepBanner and EnhancedDataTable for improved accessibility"
+        ],
         "added": [
+          "Support for vInfo-only RVTools files — only the vInfo sheet is now required; all other sheets are optional with graceful degradation",
+          "Empty state pages for Storage, Network, Hosts, and Clusters when their required sheets are missing",
+          "Navigation items are greyed out when data for their pages is unavailable (Storage, Network, Clusters, Hosts, Network Design)",
+          "InlineNotification on Network Design page when vNetwork sheet is missing",
+          "ROKS cost estimation now includes OpenShift Container Platform (OCP) license fees per vCPU-hour ($0.04275/vCPU-hr) across all worker nodes",
+          "ROKS cost estimation now includes OpenShift Data Foundation (ODF) Advanced storage costs — per-node for converged (NVMe) and per-vCPU for hybrid (VSI) architectures",
+          "Pricing update script fetches OCP license and ODF rates from IBM Cloud Global Catalog (containers-kubernetes service)",
           "New Assess step in navigation between Prepare and Migrate with 3 pages: Risk Assessment, Migration Timeline, and Network Design",
           "Red-Flag Risk Assessment page with 5 domains (Cost, Infrastructure, Complexity, Security, Other) — auto-calculated from pre-flight checks and complexity scores",
           "Go/No-Go decision banner based on risk severity levels across all domains",

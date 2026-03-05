@@ -32,6 +32,33 @@ export function HostsPage() {
   }
 
   const hosts = rawData.vHost;
+
+  if (hosts.length === 0) {
+    return (
+      <div className="hosts-page">
+        <Grid>
+          <Column lg={16} md={8} sm={4}>
+            <h1 className="hosts-page__title">Host Analysis</h1>
+            <p className="hosts-page__subtitle">
+              ESXi host hardware and utilization analysis
+            </p>
+          </Column>
+          <Column lg={16} md={8} sm={4}>
+            <Tile>
+              <h3>No Host Data Available</h3>
+              <p>
+                The uploaded RVTools file does not contain a vHost sheet.
+                Host analysis requires this sheet to display ESXi host information.
+              </p>
+              <p style={{ marginTop: '0.5rem' }}>
+                To include host data, ensure you export the vHost tab when running RVTools.
+              </p>
+            </Tile>
+          </Column>
+        </Grid>
+      </div>
+    );
+  }
   const vms = rawData.vInfo.filter(vm => !vm.template);
 
   // Summary metrics

@@ -1,7 +1,7 @@
 // Network Summary Table component - Port groups with VM counts and subnet editing
 import { useMemo, useState, useCallback } from 'react';
-import { Tag, TextInput, InlineNotification } from '@carbon/react';
-import { Edit } from '@carbon/icons-react';
+import { Tag, TextInput, InlineNotification, Button } from '@carbon/react';
+import { Edit, Checkmark, Close } from '@carbon/icons-react';
 import { useSubnetOverrides, isValidCIDRList } from '@/hooks';
 import { EnhancedDataTable } from '@/components/tables';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -160,20 +160,24 @@ export function NetworkSummaryTable({ networks, className }: NetworkSummaryTable
                 style={{ width: '220px' }}
                 autoFocus
               />
-              <button
+              <Button
+                kind="ghost"
+                size="sm"
+                hasIconOnly
+                iconDescription="Save"
+                renderIcon={Checkmark}
                 onClick={() => handleSaveEdit(portGroup)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#24a148', fontSize: '1rem' }}
-                title="Save"
-              >
-                ✓
-              </button>
-              <button
+                style={{ color: 'var(--cds-support-success)', minHeight: 'auto', padding: '2px' }}
+              />
+              <Button
+                kind="ghost"
+                size="sm"
+                hasIconOnly
+                iconDescription="Cancel"
+                renderIcon={Close}
                 onClick={handleCancelEdit}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#da1e28', fontSize: '1rem' }}
-                title="Cancel"
-              >
-                ✗
-              </button>
+                style={{ color: 'var(--cds-support-error)', minHeight: 'auto', padding: '2px' }}
+              />
             </div>
           );
         }
@@ -186,7 +190,7 @@ export function NetworkSummaryTable({ networks, className }: NetworkSummaryTable
           >
             <div className="network-summary-table__editable-cell-content">
               {subnet === 'N/A' ? (
-                <span style={{ color: '#6f6f6f' }}>N/A</span>
+                <span style={{ color: 'var(--cds-text-helper)' }}>N/A</span>
               ) : (
                 subnets.map((s) => (
                   <Tag key={s} type={hasMultiple ? 'purple' : 'gray'} size="sm">

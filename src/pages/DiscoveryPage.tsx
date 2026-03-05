@@ -476,10 +476,22 @@ export function DiscoveryPage() {
               <TabPanel>
                 <div className="discovery-page__tab-content">
                   <h3 className="discovery-page__section-title">Network Summary</h3>
-                  <p className="discovery-page__section-subtitle">
-                    Port groups with VM counts and estimated IP subnets. Click any subnet cell to edit.
-                  </p>
-                  <NetworkSummaryTable networks={rawData.vNetwork} />
+                  {rawData.vNetwork.length > 0 ? (
+                    <>
+                      <p className="discovery-page__section-subtitle">
+                        Port groups with VM counts and estimated IP subnets. Click any subnet cell to edit.
+                      </p>
+                      <NetworkSummaryTable networks={rawData.vNetwork} />
+                    </>
+                  ) : (
+                    <Tile style={{ marginTop: '1rem' }}>
+                      <h4>No Network Data Available</h4>
+                      <p>
+                        The uploaded RVTools file does not contain a vNetwork sheet.
+                        To view port group and subnet mapping, ensure you export the vNetwork tab when running RVTools.
+                      </p>
+                    </Tile>
+                  )}
                 </div>
               </TabPanel>
             </TabPanels>

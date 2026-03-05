@@ -83,7 +83,8 @@ React 19 + TypeScript + Vite application for VMware Cloud Foundation migration p
 
 ### Key Architectural Patterns
 
-- **Data Flow**: RVTools Excel parsed client-side (SheetJS `xlsx`) → `DataContext` (React Context + useReducer) → all components. Types in `src/types/rvtools.ts`.
+- **Data Flow**: RVTools Excel parsed client-side (SheetJS `xlsx`) → `DataContext` (React Context + useReducer) → all components. Types in `src/types/rvtools.ts`. Only vInfo is required; all other sheets default to `[]` when missing.
+- **Sheet Availability**: `src/hooks/useAvailableSheets.ts` derives boolean flags (`hasVDisk`, `hasVDatastore`, `hasVNetwork`, `hasVHost`, `hasVCluster`, `hasVSnapshot`, `hasVTools`) from `rawData` array lengths. SideNav greys out items for pages missing required sheets; pages show empty state tiles.
 - **State Management**: `src/context/DataContext.tsx` (global state), `src/context/dataReducer.ts` (reducer), hooks in `src/hooks/` (complex logic).
 - **VM Management**: `src/hooks/useVMOverrides.ts` (exclusions/overrides with localStorage), `src/utils/vmIdentifier.ts` (VM ID and environment fingerprinting).
 - **IBM Cloud Integration**: `src/services/pricing/globalCatalogApi.ts` and `src/services/ibmCloudProfilesApi.ts` fetch via Code Engine proxies. Fallback to `src/data/ibmCloudConfig.json`.
@@ -291,6 +292,61 @@ Classification and auto-exclusion are independent. Each VM has exactly one workl
 | `src/components/discovery/DiscoveryVMTable.tsx` | Unified VM table |
 | `src/components/network/NetworkSummaryTable.tsx` | Network table with editable subnets |
 | `src/data/workloadPatterns.json` | Workload types, authoritative classifications, auto-exclusion rules |
+
+## Assess Step
+
+The Assess step sits between Discovery and Migration Assessment in the navigation. It contains 1 page:
+
+### Routes
+
+| Route | Page | Description |
+|-------|------|-------------|
+| `/migration-timeline` | `MigrationTimelinePage.tsx` | Gantt timeline with editable phase durations |
+| `/network-design` | Redirect → `/vsi-migration` | Moved to VSI Migration "Network Design" tab |
+| `/risk-assessment` | `RiskAssessmentPage.tsx` | Moved to Migration Assessment (after Pre-Flight Report) |
+
+### Risk Assessment (under Migration Assessment)
+
+Single-page view: Go/No-Go banner → environment snapshot → risk heat map → 5 domain cards → key blockers. Auto-calculates risk across 5 domains (cost, infrastructure, complexity, security, other). Security and Other are manual-only (`autoSeverity: null`). Go/No-Go logic: critical → no-go, high → conditional, else → go.
+
+| File | Purpose |
+|------|---------|
+| `src/types/riskAssessment.ts` | Risk severity, domain, evidence, assessment types |
+| `src/services/riskAssessment.ts` | `calculateRiskAssessment(rawData, overrides)` pure function |
+| `src/hooks/useRiskAssessment.ts` | localStorage `vcf-risk-overrides`, env fingerprinting |
+| `src/components/risk/` | GoNoGoBanner, RiskDomainCard, RiskHeatMap, EnvironmentSnapshotTile |
+
+### Migration Timeline
+
+Gantt chart (Chart.js horizontal stacked bar) with editable phase durations. Auto-generates production waves from wave count.
+
+| File | Purpose |
+|------|---------|
+| `src/types/timeline.ts` | Phase types, config, totals, colors/defaults |
+| `src/services/migration/timelineEstimation.ts` | `buildDefaultTimeline()`, `calculateTimelineTotals()`, `formatTimelineForExport()` |
+| `src/hooks/useTimelineConfig.ts` | localStorage `vcf-timeline-config`, env fingerprinting |
+| `src/components/charts/GanttTimeline.tsx` | Chart.js Bar with `indexAxis: 'y'` |
+
+### VPC Network Design (VSI Migration tab)
+
+Maps VMware port groups to IBM Cloud VPC subnets. Distributes across 3 zones. Generates security groups from templates and ACL suggestions. Rendered as `NetworkDesignPanel` within the VSI Migration page tabs.
+
+| File | Purpose |
+|------|---------|
+| `src/types/vpcDesign.ts` | VPC subnet, SG, ACL, transit gateway, zone types |
+| `src/services/network/vpcDesignService.ts` | `buildVPCDesign()` orchestrator |
+| `src/hooks/useVPCDesign.ts` | localStorage `vcf-vpc-design`, env fingerprinting |
+| `src/data/vpcSecurityGroupTemplates.json` | Workload → default SG rules mapping |
+| `src/components/charts/VPCTopologyDiagram.tsx` | D3 hierarchical SVG (region → VPC → zones → subnets) |
+| `src/components/migration/NetworkDesignPanel.tsx` | Panel component for VSI Migration tab |
+
+### DOCX Export Sections
+
+| File | Content |
+|------|---------|
+| `src/services/export/docx/sections/riskAssessment.ts` | 5-domain table, go/no-go, evidence |
+| `src/services/export/docx/sections/timelineEstimation.ts` | Phase table, total duration |
+| `src/services/export/docx/sections/networkDesign.ts` | Subnet mapping, SG summary |
 
 ## Subnet Management
 

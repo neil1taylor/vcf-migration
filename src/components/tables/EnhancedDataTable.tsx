@@ -205,11 +205,11 @@ export function EnhancedDataTable<T extends object>({
                         {canSort && (
                           <span className="enhanced-data-table__sort-icon">
                             {isSorted === 'asc' ? (
-                              <ArrowUp size={16} />
+                              <ArrowUp size={16} aria-hidden="true" />
                             ) : isSorted === 'desc' ? (
-                              <ArrowDown size={16} />
+                              <ArrowDown size={16} aria-hidden="true" />
                             ) : (
-                              <ArrowsVertical size={16} />
+                              <ArrowsVertical size={16} aria-hidden="true" />
                             )}
                           </span>
                         )}

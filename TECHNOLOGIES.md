@@ -297,6 +297,16 @@ Only aggregated environment summaries (VM counts, resource totals, workload cate
 
 ---
 
+## Network Topology Visualization with D3.js
+
+**D3.js** (Data-Driven Documents) is used for the VPC Topology Diagram, rendering an interactive SVG visualization of the target IBM Cloud VPC network design. The diagram displays a hierarchical layout: Region → VPC → Zone columns → Subnets, with subnets color-coded by workload type and interactive tooltips on hover.
+
+D3 is used directly (not via a React wrapper) following the same pattern as the existing `NetworkTopology.tsx` component — a `useRef` for the SVG container with `useEffect` for D3 rendering and cleanup.
+
+🔗 https://d3js.org/
+
+---
+
 ## Summary
 
 This technology stack combines a modern React frontend with strong typing, fast build tooling, and an enterprise-grade design system. Together, these technologies provide a scalable foundation for building a robust UI to support VMware Cloud Foundation migration and infrastructure analysis workflows.
@@ -323,6 +333,7 @@ This technology stack combines a modern React frontend with strong typing, fast 
 | Responsibility | Technology |
 |----------------|------------|
 | Charts and graphs | Chart.js |
+| Network topology diagrams | D3.js |
 | UI components | IBM Carbon Design System |
 | Responsive layout | CSS3 / Carbon Grid |
 

@@ -27,7 +27,7 @@ export function NextStepBanner({ title, description, route, icon: Icon }: NextSt
         <span className="next-step-banner__title">{title}</span>
         <span className="next-step-banner__description">{description}</span>
       </div>
-      <ArrowRight size={20} className="next-step-banner__arrow" />
+      <ArrowRight size={20} className="next-step-banner__arrow" aria-hidden="true" />
     </ClickableTile>
   );
 }

@@ -20,7 +20,7 @@ import {
   Catalog,
   TaskComplete,
 } from '@carbon/icons-react';
-import { useHasData } from '@/hooks';
+import { useHasData, useAvailableSheets } from '@/hooks';
 import { ROUTES } from '@/utils/constants';
 
 // Route groups for active-state detection
@@ -30,11 +30,11 @@ const infrastructureRoutes = [
 ];
 
 const assessRoutes = [
-  ROUTES.riskAssessment, ROUTES.migrationTimeline, ROUTES.networkDesign,
+  ROUTES.migrationTimeline,
 ];
 
 const migrationRoutes = [
-  ROUTES.roksMigration, ROUTES.vsiMigration, ROUTES.preflightReport,
+  ROUTES.roksMigration, ROUTES.vsiMigration, ROUTES.preflightReport, ROUTES.riskAssessment,
 ];
 
 const referenceRoutes = [
@@ -50,18 +50,25 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const hasData = useHasData();
+  const sheets = useAvailableSheets();
 
   const isActive = (path: string) => location.pathname === path;
   const isInGroup = (routes: string[]) => routes.includes(location.pathname);
 
-  const handleNavClick = (e: React.MouseEvent, path: string, requiresData = false) => {
+  const handleNavClick = (e: React.MouseEvent, path: string, requiresData = false, enabled = true) => {
     e.preventDefault();
     if (requiresData && !hasData) return;
+    if (!enabled) return;
     navigate(path);
   };
 
   const disabledClass = !hasData ? 'sidenav-link--disabled' : '';
 
+  // Per-item sheet requirements
+  const storageEnabled = !hasData || sheets.hasVDatastore || sheets.hasVDisk;
+  const networkEnabled = !hasData || sheets.hasVNetwork;
+  const clustersEnabled = !hasData || sheets.hasVCluster;
+  const hostsEnabled = !hasData || sheets.hasVHost;
   return (
     <CarbonSideNav
       aria-label="Side navigation"
@@ -92,6 +99,69 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
           Dashboard
         </SideNavLink>
 
+        {/* Infrastructure Details — collapsible */}
+        <SideNavMenu
+          renderIcon={Catalog}
+          title="Infrastructure Details"
+          defaultExpanded={isInGroup(infrastructureRoutes)}
+          isActive={isInGroup(infrastructureRoutes)}
+          className={disabledClass}
+        >
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.compute, true)}
+            isActive={isActive(ROUTES.compute)}
+          >
+            Compute
+          </SideNavMenuItem>
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.storage, true, storageEnabled)}
+            isActive={isActive(ROUTES.storage)}
+            className={hasData && !storageEnabled ? 'sidenav-link--disabled' : ''}
+          >
+            Storage
+          </SideNavMenuItem>
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.network, true, networkEnabled)}
+            isActive={isActive(ROUTES.network)}
+            className={hasData && !networkEnabled ? 'sidenav-link--disabled' : ''}
+          >
+            Network
+          </SideNavMenuItem>
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.cluster, true, clustersEnabled)}
+            isActive={isActive(ROUTES.cluster)}
+            className={hasData && !clustersEnabled ? 'sidenav-link--disabled' : ''}
+          >
+            Clusters
+          </SideNavMenuItem>
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.hosts, true, hostsEnabled)}
+            isActive={isActive(ROUTES.hosts)}
+            className={hasData && !hostsEnabled ? 'sidenav-link--disabled' : ''}
+          >
+            Hosts
+          </SideNavMenuItem>
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.resourcePools, true)}
+            isActive={isActive(ROUTES.resourcePools)}
+          >
+            Resource Pools
+          </SideNavMenuItem>
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.tables, true)}
+            isActive={isActive(ROUTES.tables)}
+          >
+            Data Tables
+          </SideNavMenuItem>
+        </SideNavMenu>
+
         {/* Step 2: Prepare */}
         <SideNavLink
           renderIcon={Search}
@@ -113,87 +183,14 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
         >
           <SideNavMenuItem
             href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.riskAssessment, true)}
-            isActive={isActive(ROUTES.riskAssessment)}
-          >
-            Risk Assessment
-          </SideNavMenuItem>
-          <SideNavMenuItem
-            href="#"
             onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.migrationTimeline, true)}
             isActive={isActive(ROUTES.migrationTimeline)}
           >
             Migration Timeline
           </SideNavMenuItem>
-          <SideNavMenuItem
-            href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.networkDesign, true)}
-            isActive={isActive(ROUTES.networkDesign)}
-          >
-            Network Design
-          </SideNavMenuItem>
         </SideNavMenu>
 
-        {/* Infrastructure Details — collapsible */}
-        <SideNavMenu
-          renderIcon={Catalog}
-          title="Infrastructure Details"
-          defaultExpanded={isInGroup(infrastructureRoutes)}
-          isActive={isInGroup(infrastructureRoutes)}
-          className={disabledClass}
-        >
-          <SideNavMenuItem
-            href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.compute, true)}
-            isActive={isActive(ROUTES.compute)}
-          >
-            Compute
-          </SideNavMenuItem>
-          <SideNavMenuItem
-            href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.storage, true)}
-            isActive={isActive(ROUTES.storage)}
-          >
-            Storage
-          </SideNavMenuItem>
-          <SideNavMenuItem
-            href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.network, true)}
-            isActive={isActive(ROUTES.network)}
-          >
-            Network
-          </SideNavMenuItem>
-          <SideNavMenuItem
-            href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.cluster, true)}
-            isActive={isActive(ROUTES.cluster)}
-          >
-            Clusters
-          </SideNavMenuItem>
-          <SideNavMenuItem
-            href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.hosts, true)}
-            isActive={isActive(ROUTES.hosts)}
-          >
-            Hosts
-          </SideNavMenuItem>
-          <SideNavMenuItem
-            href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.resourcePools, true)}
-            isActive={isActive(ROUTES.resourcePools)}
-          >
-            Resource Pools
-          </SideNavMenuItem>
-          <SideNavMenuItem
-            href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.tables, true)}
-            isActive={isActive(ROUTES.tables)}
-          >
-            Data Tables
-          </SideNavMenuItem>
-        </SideNavMenu>
-
-        {/* Step 3: Migrate — collapsible */}
+        {/* Step 4: Migrate — collapsible */}
         <SideNavMenu
           renderIcon={LogoKubernetes}
           title="Migration Assessment"
@@ -221,6 +218,13 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
             isActive={isActive(ROUTES.preflightReport)}
           >
             Pre-Flight Report
+          </SideNavMenuItem>
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.riskAssessment, true)}
+            isActive={isActive(ROUTES.riskAssessment)}
+          >
+            Risk Assessment
           </SideNavMenuItem>
         </SideNavMenu>
 

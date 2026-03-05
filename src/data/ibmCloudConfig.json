@@ -2746,12 +2746,25 @@
   },
   "roks": {
     "ocpLicense": {
-      "perCoreMonthly": 50,
-      "description": "OpenShift Container Platform license per core"
+      "perVCPUHourly": 0.04275,
+      "perVCPUMonthly": 31.21,
+      "description": "OpenShift Container Platform license per vCPU-hour"
+    },
+    "odf": {
+      "advanced": {
+        "bareMetalPerNodeMonthly": 681.818,
+        "vsiPerVCPUHourly": 0.00725,
+        "description": "ODF Advanced"
+      },
+      "essentials": {
+        "bareMetalPerNodeMonthly": 545.455,
+        "vsiPerVCPUHourly": 0.00575,
+        "description": "ODF Essentials"
+      }
     },
     "clusterManagement": {
       "perClusterMonthly": 0,
-      "description": "ROKS cluster management fee"
+      "description": "ROKS cluster management fee (included)"
     }
   },
   "odfWorkloadProfiles": {

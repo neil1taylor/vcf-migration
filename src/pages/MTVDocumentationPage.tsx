@@ -144,7 +144,7 @@ const workflowPhases = [
     phase: 1,
     name: 'Analysis',
     description: 'Assess VMware environment compatibility and identify migration candidates',
-    color: '#0f62fe',
+    color: 'var(--cds-link-primary)',
     activities: [
       'Export data from RVTools',
       'Upload to RVTools Analyzer',
@@ -158,7 +158,7 @@ const workflowPhases = [
     phase: 2,
     name: 'Preparation',
     description: 'Resolve blockers and prepare VMs for migration',
-    color: '#8a3ffc',
+    color: 'var(--cds-link-visited)',
     activities: [
       'Consolidate or delete snapshots',
       'Disconnect CD-ROM drives',
@@ -173,7 +173,7 @@ const workflowPhases = [
     phase: 3,
     name: 'Migration',
     description: 'Execute migration waves using MTV operator',
-    color: '#198038',
+    color: 'var(--cds-support-success)',
     activities: [
       'Deploy MTV operator in OpenShift',
       'Configure VMware provider credentials',
@@ -187,7 +187,7 @@ const workflowPhases = [
     phase: 4,
     name: 'Validation',
     description: 'Verify migrated VMs and complete cutover',
-    color: '#fa4d56',
+    color: 'var(--cds-support-error)',
     activities: [
       'Verify VM functionality in OpenShift',
       'Test application connectivity',
@@ -312,7 +312,7 @@ export function MTVDocumentationPage() {
                       </div>
                       <div>
                         <h4 style={{ margin: 0 }}>{phase.name}</h4>
-                        <p style={{ margin: 0, color: '#525252' }}>{phase.description}</p>
+                        <p style={{ margin: 0, color: 'var(--cds-text-secondary)' }}>{phase.description}</p>
                       </div>
                     </div>
                     <UnorderedList>
@@ -329,7 +329,7 @@ export function MTVDocumentationPage() {
             <AccordionItem title="Pre-Flight Checks: Blockers">
               <div className="documentation-page__section">
                 <Tile className="documentation-page__metric-card">
-                  <h4 style={{ color: '#da1e28' }}>
+                  <h4 style={{ color: 'var(--cds-support-error)' }}>
                     <ErrorFilled style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
                     Migration Blockers
                   </h4>
@@ -346,7 +346,7 @@ export function MTVDocumentationPage() {
                       </div>
                     </div>
                     <p>{check.description}</p>
-                    <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f4f4f4', borderRadius: '4px' }}>
+                    <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: 'var(--cds-layer-01)', borderRadius: '4px' }}>
                       <strong>Remediation:</strong> {check.remediation}
                     </div>
                   </Tile>
@@ -358,7 +358,7 @@ export function MTVDocumentationPage() {
             <AccordionItem title="Pre-Flight Checks: Warnings">
               <div className="documentation-page__section">
                 <Tile className="documentation-page__metric-card">
-                  <h4 style={{ color: '#f1c21b' }}>
+                  <h4 style={{ color: 'var(--cds-support-warning)' }}>
                     <WarningFilled style={{ marginRight: '0.5rem', verticalAlign: 'middle' }} />
                     Migration Warnings
                   </h4>
@@ -375,7 +375,7 @@ export function MTVDocumentationPage() {
                       </div>
                     </div>
                     <p>{check.description}</p>
-                    <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: '#f4f4f4', borderRadius: '4px' }}>
+                    <div style={{ marginTop: '0.5rem', padding: '0.5rem', backgroundColor: 'var(--cds-layer-01)', borderRadius: '4px' }}>
                       <strong>Remediation:</strong> {check.remediation}
                     </div>
                   </Tile>
@@ -514,7 +514,7 @@ export function MTVDocumentationPage() {
               <div className="documentation-page__section">
                 <Tile className="documentation-page__metric-card">
                   <h4>
-                    <CheckmarkFilled style={{ marginRight: '0.5rem', verticalAlign: 'middle', color: '#24a148' }} />
+                    <CheckmarkFilled style={{ marginRight: '0.5rem', verticalAlign: 'middle', color: 'var(--cds-support-success)' }} />
                     Planning Best Practices
                   </h4>
                   <UnorderedList>
@@ -528,7 +528,7 @@ export function MTVDocumentationPage() {
 
                 <Tile className="documentation-page__metric-card">
                   <h4>
-                    <CheckmarkFilled style={{ marginRight: '0.5rem', verticalAlign: 'middle', color: '#24a148' }} />
+                    <CheckmarkFilled style={{ marginRight: '0.5rem', verticalAlign: 'middle', color: 'var(--cds-support-success)' }} />
                     Execution Best Practices
                   </h4>
                   <UnorderedList>
@@ -542,7 +542,7 @@ export function MTVDocumentationPage() {
 
                 <Tile className="documentation-page__metric-card">
                   <h4>
-                    <CheckmarkFilled style={{ marginRight: '0.5rem', verticalAlign: 'middle', color: '#24a148' }} />
+                    <CheckmarkFilled style={{ marginRight: '0.5rem', verticalAlign: 'middle', color: 'var(--cds-support-success)' }} />
                     Post-Migration Best Practices
                   </h4>
                   <UnorderedList>

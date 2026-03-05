@@ -13,7 +13,7 @@ This section covers how to use the VCF Migration application for migration plann
 ## Key Features
 
 ### Data Import & Analysis
-- **RVTools Import** — Parse and analyze RVTools Excel exports (vInfo, vCPU, vMemory, vDisk, vNetwork, vHost, vDatastore tabs)
+- **RVTools Import** — Parse and analyze RVTools Excel exports (only vInfo required; vDisk, vDatastore, vNetwork, vHost, vCluster recommended for full analysis)
 - **vInventory Support** — Convert vInventory (PowerShell-based) Excel exports to RVTools format using the included [converter script](scripts/convert_vinventory.py)
 - **Environment Overview** — Dashboard with VM counts, resource utilization, and health metrics
 - **Inventory Visualization** — Interactive charts and tables for exploring your VMware environment
@@ -40,7 +40,7 @@ This section covers how to use the VCF Migration application for migration plann
 - **Dynamic Pricing** — Real-time pricing from IBM Cloud Global Catalog API
 - **Regional Pricing** — Support for all IBM Cloud regions with regional multipliers
 - **Discount Options** — On-Demand, 1-Year Reserved, and 3-Year Reserved pricing
-- **Cost Breakdown** — Detailed line-item costs for compute, storage, and networking
+- **Cost Breakdown** — Detailed line-item costs for compute, licensing (OCP), storage (including ODF), and networking
 - **Monthly/Annual Projections** — Cost forecasting for budget planning
 - **Custom Profiles** — Override auto-mapped VSI profiles or define custom profiles with specific vCPUs, memory, and pricing
 
@@ -61,6 +61,13 @@ This section covers how to use the VCF Migration application for migration plann
 - **Excel Workbooks** — Multi-sheet analysis with VM mapping and recommendations
 - **Word Documents** — Formatted migration planning documents
 - **YAML Templates** — MTV operator configuration files for migration execution
+
+### Assessment & Planning
+- **Risk Assessment** — 5-domain risk analysis (cost, infrastructure, complexity, security, other) with Go/No-Go recommendation and manual override capability
+- **Pre-Assessment Summary** — Environment snapshot with risk heat map, key blockers, and Go/No-Go banner
+- **Migration Timeline** — Interactive Gantt chart with editable phase durations, start date selection, and total duration calculation
+- **VPC Network Design** — VMware port group to IBM Cloud VPC subnet mapping with zone distribution, security group generation, and ACL suggestions
+- **VPC Topology Visualization** — D3-based hierarchical diagram showing region, VPC, zones, and subnets color-coded by workload type
 
 ### Migration Planning
 - **Wave Planning** — Network-based or complexity-based migration grouping
@@ -83,26 +90,33 @@ This section covers how to use the VCF Migration application for migration plann
 > ```
 > Then upload `output_rvtools.xlsx` to the app.
 
-### 2. Analyze Migration Targets
+### 2. Assess Your Environment
+
+Navigate to **Assess** in the sidebar:
+- **Risk Assessment** — Review auto-calculated and manual risk domains, set Go/No-Go
+- **Migration Timeline** — View and customize the migration schedule with a Gantt chart
+- **Network Design** — Map VMware port groups to VPC subnets with security groups
+
+### 3. Analyze Migration Targets
 
 Navigate to either:
 - **ROKS Migration** — For OpenShift Virtualization with MTV
 - **VPC VSI Migration** — For traditional VM-to-VSI migration
 
-### 3. Review Readiness
+### 4. Review Readiness
 
 - Check the readiness score and blockers
 - Review OS compatibility status
 - Examine remediation recommendations
 
-### 4. Estimate Costs
+### 5. Estimate Costs
 
 - Select your target region
 - Choose pricing type (On-Demand or Reserved)
 - Review cost breakdown by category
 - Export BOM for detailed cost analysis
 
-### 5. Export Reports
+### 6. Export Reports
 
 - **Export BOM** — Excel spreadsheet with formulas and styling
 - **Export PDF** — Professional assessment report
@@ -115,11 +129,14 @@ Navigate to either:
 For comprehensive step-by-step instructions, see the **[User Guide](docs/USER_GUIDE.md)**.
 
 The guide covers:
-- Quick start (5-step overview)
+- Quick start overview
 - Importing RVTools data
 - Understanding the Dashboard
 - Infrastructure analysis (Compute, Storage, Network, Clusters, Hosts)
 - Workload discovery and VM management (with maintainer-configurable classification and auto-exclusion)
+- Risk assessment with Go/No-Go recommendation
+- Migration timeline planning
+- VPC network design
 - Migration assessment (ROKS and VSI)
 - Wave planning
 - Cost estimation
@@ -586,6 +603,7 @@ The script queries the IBM Kubernetes Service API to determine which bare metal 
 #### Pricing Update (`scripts/update-pricing.ts`)
 - **VSI Pricing** — Hourly rates computed from IBM Cloud Global Catalog plan hierarchy
 - **Bare Metal Pricing** — Flat per-server hourly rates from Global Catalog
+- **ROKS Pricing** — OCP license per-vCPU-hour and ODF storage rates (Advanced/Essentials) from the `containers-kubernetes` service
 - Monthly rates are calculated as `hourlyRate × 730 hours`
 - Supports three pricing models: gen2 component-based (per-vCPU + per-GB), gen3+ flat per-profile, bare metal flat per-server, and Z-series (LinuxONE) Secure Execution rates
 
