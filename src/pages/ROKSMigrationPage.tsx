@@ -26,7 +26,7 @@ import mtvRequirements from '@/data/mtvRequirements.json';
 import './MigrationPage.scss';
 
 export function ROKSMigrationPage() {
-  const { rawData } = useData();
+  const { rawData, calculatedCosts, setCalculatedCosts } = useData();
   const allVmsRaw = useAllVMs();
   const [yamlExporting, setYamlExporting] = useState(false);
   const [yamlExportSuccess, setYamlExportSuccess] = useState(false);
@@ -156,6 +156,14 @@ export function ROKSMigrationPage() {
       setYamlExporting(false);
     }
   }, [wavePlanning.activeWaves, poweredOnVMs, networks, rawData?.vDatastore]);
+
+  // Update calculated costs for risk assessment
+  const handleRoksEstimateChange = useCallback((totalMonthly: number | null) => {
+    setCalculatedCosts({
+      roksMonthlyCost: totalMonthly,
+      vsiMonthlyCost: calculatedCosts?.vsiMonthlyCost ?? null,
+    });
+  }, [setCalculatedCosts, calculatedCosts?.vsiMonthlyCost]);
 
   // Handle profile selection from Cost Estimation tiles
   const handleProfileSelect = useCallback((profileId: string) => {
@@ -543,7 +551,7 @@ export function ROKSMigrationPage() {
               <TabPanel>
                 <Grid className="migration-page__tab-content">
                   <Column lg={16} md={8} sm={4}>
-                    <CostEstimation type="roks" roksSizing={roksSizing} roksNodeDetails={roksNodeDetails} title="ROKS Cluster Cost Estimation" onProfileSelect={handleProfileSelect} />
+                    <CostEstimation type="roks" roksSizing={roksSizing} roksNodeDetails={roksNodeDetails} title="ROKS Cluster Cost Estimation" onProfileSelect={handleProfileSelect} onEstimateChange={handleRoksEstimateChange} />
                   </Column>
                   <Column lg={16} md={8} sm={4}>
                     <Tile className="migration-page__cost-tile">

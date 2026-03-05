@@ -1,5 +1,5 @@
 // Risk Domain Assessment Card
-import { Tile, Tag, Dropdown, TextArea, UnorderedList, ListItem } from '@carbon/react';
+import { Tile, Tag, Dropdown, TextArea, NumberInput, UnorderedList, ListItem } from '@carbon/react';
 import type { RiskDomainAssessment, RiskDomainId, RiskSeverity } from '@/types/riskAssessment';
 import { RISK_SEVERITY_COLORS } from '@/types/riskAssessment';
 import './RiskDomainCard.scss';
@@ -8,15 +8,27 @@ interface RiskDomainCardProps {
   domain: RiskDomainAssessment;
   onOverrideSeverity: (domainId: RiskDomainId, severity: RiskSeverity | null) => void;
   onNotesChange: (domainId: RiskDomainId, notes: string) => void;
+  currentMonthlyCost?: number | null;
+  onCurrentMonthlyCostChange?: (cost: number | null) => void;
 }
 
-const SEVERITY_OPTIONS = [
+const AUTO_SEVERITY_OPTIONS = [
   { id: 'auto', text: 'Auto-detect' },
   { id: 'low', text: 'Low' },
   { id: 'medium', text: 'Medium' },
   { id: 'high', text: 'High' },
   { id: 'critical', text: 'Critical' },
 ];
+
+const MANUAL_SEVERITY_OPTIONS = [
+  { id: 'not-assessed', text: 'Not assessed' },
+  { id: 'low', text: 'Low' },
+  { id: 'medium', text: 'Medium' },
+  { id: 'high', text: 'High' },
+  { id: 'critical', text: 'Critical' },
+];
+
+type DropdownItem = { id: string; text: string };
 
 const TAG_TYPE_MAP: Record<RiskSeverity, 'green' | 'gray' | 'warm-gray' | 'red'> = {
   low: 'green',
@@ -25,10 +37,14 @@ const TAG_TYPE_MAP: Record<RiskSeverity, 'green' | 'gray' | 'warm-gray' | 'red'>
   critical: 'red',
 };
 
-export function RiskDomainCard({ domain, onOverrideSeverity, onNotesChange }: RiskDomainCardProps) {
+export function RiskDomainCard({ domain, onOverrideSeverity, onNotesChange, currentMonthlyCost, onCurrentMonthlyCostChange }: RiskDomainCardProps) {
+  const isManual = domain.mode === 'manual';
+  const options = isManual ? MANUAL_SEVERITY_OPTIONS : AUTO_SEVERITY_OPTIONS;
+  const defaultOptionId = isManual ? 'not-assessed' : 'auto';
+
   const selectedItem = domain.overrideSeverity
-    ? SEVERITY_OPTIONS.find(o => o.id === domain.overrideSeverity)
-    : SEVERITY_OPTIONS[0];
+    ? options.find(o => o.id === domain.overrideSeverity)
+    : options.find(o => o.id === defaultOptionId);
 
   return (
     <Tile className="risk-domain-card">
@@ -39,7 +55,7 @@ export function RiskDomainCard({ domain, onOverrideSeverity, onNotesChange }: Ri
           size="md"
           style={{
             backgroundColor: RISK_SEVERITY_COLORS[domain.effectiveSeverity],
-            color: domain.effectiveSeverity === 'medium' ? '#161616' : '#fff',
+            color: domain.effectiveSeverity === 'medium' ? 'var(--cds-text-primary)' : 'var(--cds-text-on-color)',
           }}
         >
           {domain.effectiveSeverity.toUpperCase()}
@@ -59,15 +75,32 @@ export function RiskDomainCard({ domain, onOverrideSeverity, onNotesChange }: Ri
         )}
       </div>
 
+      {domain.domainId === 'cost' && onCurrentMonthlyCostChange && (
+        <NumberInput
+          id="risk-current-monthly-cost"
+          label="Current monthly cost ($)"
+          helperText="Enter your current VMware monthly spend for comparison"
+          min={0}
+          step={100}
+          value={currentMonthlyCost ?? ''}
+          onChange={(_e: unknown, { value }: { value: string | number }) => {
+            const num = typeof value === 'string' ? parseFloat(value) : value;
+            onCurrentMonthlyCostChange(isNaN(num) ? null : num);
+          }}
+          allowEmpty
+          size="sm"
+        />
+      )}
+
       <Dropdown
         id={`risk-override-${domain.domainId}`}
         titleText="Override severity"
         label="Select severity"
-        items={SEVERITY_OPTIONS}
-        itemToString={(item: (typeof SEVERITY_OPTIONS)[number] | null) => item?.text ?? ''}
+        items={options}
+        itemToString={(item: DropdownItem | null) => item?.text ?? ''}
         selectedItem={selectedItem}
-        onChange={({ selectedItem: item }: { selectedItem: (typeof SEVERITY_OPTIONS)[number] | null }) => {
-          if (!item || item.id === 'auto') {
+        onChange={({ selectedItem: item }: { selectedItem: DropdownItem | null }) => {
+          if (!item || item.id === 'auto' || item.id === 'not-assessed') {
             onOverrideSeverity(domain.domainId, null);
           } else {
             onOverrideSeverity(domain.domainId, item.id as RiskSeverity);

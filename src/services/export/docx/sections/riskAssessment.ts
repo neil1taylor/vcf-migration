@@ -1,7 +1,7 @@
 // Risk Assessment DOCX Section
 
 import { HeadingLevel } from 'docx';
-import type { RiskAssessment } from '@/types/riskAssessment';
+import type { RiskAssessment, RiskDomainId } from '@/types/riskAssessment';
 import type { DocumentContent } from '../types';
 import { createHeading, createParagraph, createStyledTable, createTableCaption, createBulletList } from '../utils/helpers';
 
@@ -11,6 +11,8 @@ const GO_NO_GO_LABELS = {
   'no-go': 'NO-GO — Migration Not Recommended',
 };
 
+const DOMAIN_ORDER: RiskDomainId[] = ['cost', 'readiness', 'security', 'operational', 'compliance', 'timeline'];
+
 export function buildRiskAssessmentSection(assessment: RiskAssessment): DocumentContent[] {
   const sections: DocumentContent[] = [
     createHeading('Risk Assessment', HeadingLevel.HEADING_1),
@@ -18,22 +20,26 @@ export function buildRiskAssessmentSection(assessment: RiskAssessment): Document
     createParagraph(`Overall Risk Level: ${assessment.overallSeverity.toUpperCase()}`),
   ];
 
-  // Risk domain table
+  // Risk domain table — ordered consistently
   const headers = ['Domain', 'Auto', 'Override', 'Effective'];
-  const rows = Object.values(assessment.domains).map(d => [
-    d.label,
-    d.autoSeverity?.toUpperCase() ?? '—',
-    d.overrideSeverity?.toUpperCase() ?? '—',
-    d.effectiveSeverity.toUpperCase(),
-  ]);
+  const rows = DOMAIN_ORDER.map(domainId => {
+    const d = assessment.domains[domainId];
+    return [
+      d.label,
+      d.autoSeverity?.toUpperCase() ?? '—',
+      d.overrideSeverity?.toUpperCase() ?? '—',
+      d.effectiveSeverity.toUpperCase(),
+    ];
+  });
 
   sections.push(
     ...createTableCaption('Risk Assessment Summary', 'Risk severity across all assessment domains'),
     createStyledTable(headers, rows),
   );
 
-  // Evidence details per domain
-  Object.values(assessment.domains).forEach(domain => {
+  // Evidence details per domain — ordered
+  DOMAIN_ORDER.forEach(domainId => {
+    const domain = assessment.domains[domainId];
     if (domain.evidence.length > 0 || domain.notes) {
       sections.push(createHeading(domain.label, HeadingLevel.HEADING_2));
 

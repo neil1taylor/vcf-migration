@@ -1,5 +1,5 @@
 // Cost Estimation Component
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Tile,
   Select,
@@ -47,9 +47,10 @@ interface CostEstimationProps {
   title?: string;
   showPricingRefresh?: boolean;
   onProfileSelect?: (profileId: string) => void;
+  onEstimateChange?: (totalMonthly: number | null) => void;
 }
 
-export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true, onProfileSelect }: CostEstimationProps) {
+export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true, onProfileSelect, onEstimateChange }: CostEstimationProps) {
   const [region, setRegion] = useState<RegionCode>('us-south');
   const [discountType, setDiscountType] = useState<DiscountType>('onDemand');
   const showDetails = true; // Always show details
@@ -114,6 +115,11 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
     }
     return null;
   }, [type, roksSizing, vsiSizing, region, discountType, pricing, networkingOptions]);
+
+  // Notify parent of estimate changes
+  useEffect(() => {
+    onEstimateChange?.(estimate?.totalMonthly ?? null);
+  }, [estimate?.totalMonthly, onEstimateChange]);
 
   // Calculate costs for all bare metal profiles (ROKS only)
   const allProfileCosts = useMemo(() => {

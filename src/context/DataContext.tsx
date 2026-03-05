@@ -1,7 +1,7 @@
 // Data context for global state management
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useReducer, useCallback, type ReactNode } from 'react';
-import { dataReducer, initialState, type DataState, type DataAction, type ChartFilter } from './dataReducer';
+import { dataReducer, initialState, type DataState, type DataAction, type ChartFilter, type CalculatedCosts } from './dataReducer';
 import type { RVToolsData, AnalysisResults } from '@/types';
 
 // Context value interface
@@ -12,6 +12,7 @@ interface DataContextValue extends DataState {
   setError: (error: string | null) => void;
   setChartFilter: (filter: ChartFilter | null) => void;
   clearChartFilter: () => void;
+  setCalculatedCosts: (costs: CalculatedCosts) => void;
   clearData: () => void;
   dispatch: React.Dispatch<DataAction>;
 }
@@ -53,6 +54,10 @@ export function DataProvider({ children }: DataProviderProps) {
     dispatch({ type: 'SET_CHART_FILTER', payload: null });
   }, []);
 
+  const setCalculatedCosts = useCallback((costs: CalculatedCosts) => {
+    dispatch({ type: 'SET_CALCULATED_COSTS', payload: costs });
+  }, []);
+
   const clearData = useCallback(() => {
     dispatch({ type: 'CLEAR_DATA' });
   }, []);
@@ -65,6 +70,7 @@ export function DataProvider({ children }: DataProviderProps) {
     setError,
     setChartFilter,
     clearChartFilter,
+    setCalculatedCosts,
     clearData,
     dispatch,
   };

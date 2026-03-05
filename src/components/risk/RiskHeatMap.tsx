@@ -1,4 +1,4 @@
-// Risk Heat Map — 5-domain color-coded summary table
+// Risk Heat Map — 6-domain color-coded summary table
 import {
   Table,
   TableHead,
@@ -22,7 +22,7 @@ const TAG_TYPE_MAP: Record<RiskSeverity, 'green' | 'gray' | 'warm-gray' | 'red'>
   critical: 'red',
 };
 
-const DOMAIN_ORDER: RiskDomainId[] = ['cost', 'infrastructure', 'complexity', 'security', 'other'];
+const DOMAIN_ORDER: RiskDomainId[] = ['cost', 'readiness', 'security', 'operational', 'compliance', 'timeline'];
 
 export function RiskHeatMap({ assessment }: RiskHeatMapProps) {
   return (
@@ -65,7 +65,7 @@ export function RiskHeatMap({ assessment }: RiskHeatMapProps) {
                   size="sm"
                   style={{
                     backgroundColor: RISK_SEVERITY_COLORS[domain.effectiveSeverity],
-                    color: domain.effectiveSeverity === 'medium' ? '#161616' : '#fff',
+                    color: domain.effectiveSeverity === 'medium' ? 'var(--cds-text-primary)' : 'var(--cds-text-on-color)',
                   }}
                 >
                   {domain.effectiveSeverity.toUpperCase()}

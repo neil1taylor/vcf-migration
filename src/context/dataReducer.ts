@@ -8,6 +8,12 @@ export interface ChartFilter {
   source: string;     // which chart triggered it
 }
 
+// Calculated cost totals for risk assessment cost comparison
+export interface CalculatedCosts {
+  roksMonthlyCost: number | null;
+  vsiMonthlyCost: number | null;
+}
+
 // State interface
 export interface DataState {
   rawData: RVToolsData | null;
@@ -16,6 +22,7 @@ export interface DataState {
   error: string | null;
   lastUpdated: Date | null;
   chartFilter: ChartFilter | null;
+  calculatedCosts: CalculatedCosts | null;
 }
 
 // Action types
@@ -25,6 +32,7 @@ export type DataAction =
   | { type: 'SET_LOADING'; payload: boolean }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_CHART_FILTER'; payload: ChartFilter | null }
+  | { type: 'SET_CALCULATED_COSTS'; payload: CalculatedCosts }
   | { type: 'CLEAR_DATA' };
 
 // Initial state
@@ -35,6 +43,7 @@ export const initialState: DataState = {
   error: null,
   lastUpdated: null,
   chartFilter: null,
+  calculatedCosts: null,
 };
 
 // Reducer function
@@ -72,6 +81,12 @@ export function dataReducer(state: DataState, action: DataAction): DataState {
       return {
         ...state,
         chartFilter: action.payload,
+      };
+
+    case 'SET_CALCULATED_COSTS':
+      return {
+        ...state,
+        calculatedCosts: action.payload,
       };
 
     case 'CLEAR_DATA':

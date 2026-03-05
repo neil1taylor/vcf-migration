@@ -1,6 +1,6 @@
 // VSI (IBM Cloud VPC Virtual Server) Migration page - Refactored with shared hooks and components
 
-import { useState, useMemo, lazy, Suspense } from 'react';
+import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Grid, Column, Tile, Tabs, TabList, Tab, TabPanels, TabPanel, Loading, Tooltip } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
 import { Information, Report } from '@carbon/icons-react';
@@ -16,14 +16,17 @@ import { AIWaveAnalysisPanel } from '@/components/ai/AIWaveAnalysisPanel';
 import { AICostAnalysisPanel } from '@/components/ai/AICostAnalysisPanel';
 import { getVSIProfiles } from '@/services/migration';
 
-// Lazy load CustomProfileEditor - only loaded when user opens the modal
+// Lazy load heavy components
+const LazyNetworkDesignPanel = lazy(() =>
+  import('@/components/migration/NetworkDesignPanel').then(m => ({ default: m.NetworkDesignPanel }))
+);
 const CustomProfileEditor = lazy(() =>
   import('@/components/sizing/CustomProfileEditor').then(m => ({ default: m.CustomProfileEditor }))
 );
 import './MigrationPage.scss';
 
 export function VSIMigrationPage() {
-  const { rawData } = useData();
+  const { rawData, calculatedCosts, setCalculatedCosts } = useData();
   const allVmsRaw = useAllVMs();
   const [showCustomProfileEditor, setShowCustomProfileEditor] = useState(false);
 
@@ -61,6 +64,14 @@ export function VSIMigrationPage() {
   const envFingerprint = useMemo(() => {
     return rawData ? getEnvironmentFingerprint(rawData) : '';
   }, [rawData]);
+
+  // Update calculated costs for risk assessment
+  const handleVsiEstimateChange = useCallback((totalMonthly: number | null) => {
+    setCalculatedCosts({
+      roksMonthlyCost: calculatedCosts?.roksMonthlyCost ?? null,
+      vsiMonthlyCost: totalMonthly,
+    });
+  }, [setCalculatedCosts, calculatedCosts?.roksMonthlyCost]);
 
   // Derive data from rawData - these are used by hooks below
   const snapshots = useMemo(() => rawData?.vSnapshot ?? [], [rawData?.vSnapshot]);
@@ -259,6 +270,7 @@ export function VSIMigrationPage() {
               <Tab>Wave Planning</Tab>
               <Tab>OS Compatibility</Tab>
               <Tab>Complexity</Tab>
+              <Tab>Network Design</Tab>
               <Tab>AI Insights</Tab>
             </TabList>
             <TabPanels>
@@ -302,7 +314,7 @@ export function VSIMigrationPage() {
               <TabPanel>
                 <Grid className="migration-page__tab-content">
                   <Column lg={16} md={8} sm={4}>
-                    <CostEstimation type="vsi" vsiSizing={vsiSizing} vmDetails={vmDetails} title="VPC VSI Cost Estimation" />
+                    <CostEstimation type="vsi" vsiSizing={vsiSizing} vmDetails={vmDetails} title="VPC VSI Cost Estimation" onEstimateChange={handleVsiEstimateChange} />
                   </Column>
                   <Column lg={16} md={8} sm={4}>
                     <SectionErrorBoundary sectionName="AI Cost Optimization">
@@ -346,6 +358,13 @@ export function VSIMigrationPage() {
                   chartData={complexityChartData}
                   topComplexVMs={topComplexVMs}
                 />
+              </TabPanel>
+
+              {/* Network Design Panel */}
+              <TabPanel>
+                <Suspense fallback={<Loading description="Loading network design..." withOverlay={false} />}>
+                  <LazyNetworkDesignPanel />
+                </Suspense>
               </TabPanel>
 
               {/* AI Insights Panel */}

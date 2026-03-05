@@ -1,7 +1,7 @@
-// Risk Assessment Types
+// Risk Assessment Types — v2
 
 export type RiskSeverity = 'low' | 'medium' | 'high' | 'critical';
-export type RiskDomainId = 'cost' | 'infrastructure' | 'complexity' | 'security' | 'other';
+export type RiskDomainId = 'cost' | 'readiness' | 'security' | 'operational' | 'compliance' | 'timeline';
 export type GoNoGoDecision = 'go' | 'no-go' | 'conditional';
 
 export interface RiskEvidence {
@@ -27,6 +27,12 @@ export interface RiskAssessment {
   goNoGo: GoNoGoDecision;
 }
 
+export interface CostComparisonInput {
+  currentMonthlyCost: number | null;
+  calculatedROKSMonthlyCost: number | null;
+  calculatedVSIMonthlyCost: number | null;
+}
+
 export interface RiskOverrides {
   version: number;
   environmentFingerprint: string;
@@ -34,16 +40,20 @@ export interface RiskOverrides {
     severity?: RiskSeverity;
     notes?: string;
   }>;
+  costInput?: {
+    currentMonthlyCost: number | null;
+  };
   createdAt: string;
   modifiedAt: string;
 }
 
 export const RISK_DOMAIN_LABELS: Record<RiskDomainId, string> = {
-  cost: 'Cost & Licensing',
-  infrastructure: 'Infrastructure / NFRs',
-  complexity: 'Complexity & Compatibility',
+  cost: 'Cost Comparison',
+  readiness: 'Migration Readiness',
   security: 'Security & Compliance',
-  other: 'Other Risks',
+  operational: 'Operational Risk',
+  compliance: 'Data & Compliance Risk',
+  timeline: 'Timeline & Resource Risk',
 };
 
 export const RISK_SEVERITY_ORDER: Record<RiskSeverity, number> = {
