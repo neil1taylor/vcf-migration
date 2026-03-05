@@ -43,8 +43,10 @@ export interface NetworkingOptions {
 export interface VSISizingInput {
   vmProfiles: { profile: string; count: number }[];
   storageTiB: number;
-  storageTier?: '5iops' | '10iops';
+  storageTier?: 'general-purpose' | '5iops' | '10iops';
   networking?: NetworkingOptions;
+  bootStorageGiB?: number;
+  storageByTier?: Record<string, number>; // TiB per tier
 }
 
 // ===== VALIDATION =====
@@ -134,8 +136,8 @@ export function validateVSISizingInput(input: VSISizingInput): ValidationResult 
 
   // Storage tier validation (optional)
   if (input.storageTier !== undefined && input.storageTier !== null) {
-    if (!['5iops', '10iops'].includes(input.storageTier)) {
-      errors.push({ field: 'storageTier', message: 'Storage tier must be "5iops" or "10iops"' });
+    if (!['general-purpose', '5iops', '10iops'].includes(input.storageTier)) {
+      errors.push({ field: 'storageTier', message: 'Storage tier must be "general-purpose", "5iops", or "10iops"' });
     }
   }
 
@@ -578,8 +580,43 @@ export function calculateVSICost(
     });
   }
 
-  // Block storage
-  if (input.storageTiB > 0) {
+  // Block storage — per-tier breakdown when available
+  if (input.storageByTier && Object.keys(input.storageByTier).length > 0) {
+    // Boot volumes (always general-purpose)
+    if (input.bootStorageGiB && input.bootStorageGiB > 0) {
+      const gpTierData = pricingToUse.blockStorage?.['general-purpose'];
+      const costPerGB = (gpTierData?.costPerGBMonth || 0.10) * multiplier;
+      lineItems.push({
+        category: 'Storage - Block',
+        description: 'Boot Volumes (General Purpose)',
+        quantity: input.bootStorageGiB,
+        unit: 'GB',
+        unitCost: costPerGB,
+        monthlyCost: input.bootStorageGiB * costPerGB,
+        annualCost: input.bootStorageGiB * costPerGB * 12,
+        notes: '3 IOPS/GB boot volumes',
+      });
+    }
+
+    // Data volumes per tier
+    for (const [tier, tiB] of Object.entries(input.storageByTier)) {
+      if (tiB <= 0) continue;
+      const storageTierData = pricingToUse.blockStorage?.[tier];
+      const storageGB = tiB * 1024;
+      const costPerGB = (storageTierData?.costPerGBMonth || 0.10) * multiplier;
+      lineItems.push({
+        category: 'Storage - Block',
+        description: `Data Storage - ${storageTierData?.tierName || tier}`,
+        quantity: storageGB,
+        unit: 'GB',
+        unitCost: costPerGB,
+        monthlyCost: storageGB * costPerGB,
+        annualCost: storageGB * costPerGB * 12,
+        notes: storageTierData?.description || `${tier} IOPS tier`,
+      });
+    }
+  } else if (input.storageTiB > 0) {
+    // Fallback: single-tier behavior for backward compatibility
     const tier = input.storageTier || '10iops';
     const storageTierData = pricingToUse.blockStorage?.[tier];
     const storageGB = input.storageTiB * 1024;

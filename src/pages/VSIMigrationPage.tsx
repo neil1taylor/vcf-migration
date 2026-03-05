@@ -42,6 +42,10 @@ export function VSIMigrationPage() {
     addCustomProfile,
     updateCustomProfile,
     removeCustomProfile,
+    setStorageTierOverride,
+    removeStorageTierOverride,
+    getEffectiveStorageTier,
+    hasStorageTierOverride,
   } = useCustomProfiles();
 
   // Filter out excluded VMs using unified three-tier exclusion
@@ -175,6 +179,8 @@ export function VSIMigrationPage() {
     customProfiles,
     getEffectiveProfile,
     hasOverride,
+    getEffectiveStorageTier,
+    hasStorageTierOverride,
     complexityScores,
     blockerCount,
     warningCount,
@@ -287,6 +293,8 @@ export function VSIMigrationPage() {
                   setProfileOverride={setProfileOverride}
                   removeProfileOverride={removeProfileOverride}
                   aiRecommendations={aiRecommendations}
+                  setStorageTierOverride={setStorageTierOverride}
+                  removeStorageTierOverride={removeStorageTierOverride}
                 />
               </TabPanel>
 

@@ -9,6 +9,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import type { StorageTierType } from '@/utils/workloadClassification';
 
 // ===== TYPES =====
 
@@ -41,6 +42,13 @@ export interface UseCustomProfilesReturn {
   getEffectiveProfile: (vmName: string, autoMappedProfile: string) => string;
   hasOverride: (vmName: string) => boolean;
 
+  // Storage tier overrides (per VM)
+  storageTierOverrides: Record<string, StorageTierType>;
+  setStorageTierOverride: (vmName: string, tier: StorageTierType) => void;
+  removeStorageTierOverride: (vmName: string) => void;
+  getEffectiveStorageTier: (vmName: string, autoTier: StorageTierType) => StorageTierType;
+  hasStorageTierOverride: (vmName: string) => boolean;
+
   // Custom profiles
   customProfiles: CustomProfile[];
   addCustomProfile: (profile: Omit<CustomProfile, 'id' | 'isCustom'>) => CustomProfile;
@@ -61,6 +69,7 @@ export interface UseCustomProfilesReturn {
 
 const STORAGE_KEY_OVERRIDES = 'vcf-profile-overrides';
 const STORAGE_KEY_CUSTOM = 'vcf-custom-profiles';
+const STORAGE_KEY_TIER_OVERRIDES = 'vcf-storage-tier-overrides';
 const HOURS_PER_MONTH = 730;
 
 // Standard IBM Cloud VPC profiles for reference
@@ -114,6 +123,10 @@ export function useCustomProfiles(): UseCustomProfilesReturn {
     loadFromStorage(STORAGE_KEY_CUSTOM, [])
   );
 
+  const [storageTierOverrides, setStorageTierOverrides] = useState<Record<string, StorageTierType>>(() =>
+    loadFromStorage(STORAGE_KEY_TIER_OVERRIDES, {})
+  );
+
   // Persist overrides to localStorage
   useEffect(() => {
     saveToStorage(STORAGE_KEY_OVERRIDES, profileOverrides);
@@ -123,6 +136,11 @@ export function useCustomProfiles(): UseCustomProfilesReturn {
   useEffect(() => {
     saveToStorage(STORAGE_KEY_CUSTOM, customProfiles);
   }, [customProfiles]);
+
+  // Persist storage tier overrides to localStorage
+  useEffect(() => {
+    saveToStorage(STORAGE_KEY_TIER_OVERRIDES, storageTierOverrides);
+  }, [storageTierOverrides]);
 
   // ===== OVERRIDE FUNCTIONS =====
 
@@ -163,6 +181,28 @@ export function useCustomProfiles(): UseCustomProfilesReturn {
   const hasOverride = useCallback((vmName: string): boolean => {
     return vmName in profileOverrides;
   }, [profileOverrides]);
+
+  // ===== STORAGE TIER OVERRIDE FUNCTIONS =====
+
+  const setStorageTierOverride = useCallback((vmName: string, tier: StorageTierType) => {
+    setStorageTierOverrides(prev => ({ ...prev, [vmName]: tier }));
+  }, []);
+
+  const removeStorageTierOverride = useCallback((vmName: string) => {
+    setStorageTierOverrides(prev => {
+      const { [vmName]: _removed, ...rest } = prev;
+      void _removed;
+      return rest;
+    });
+  }, []);
+
+  const getEffectiveStorageTier = useCallback((vmName: string, autoTier: StorageTierType): StorageTierType => {
+    return storageTierOverrides[vmName] ?? autoTier;
+  }, [storageTierOverrides]);
+
+  const hasStorageTierOverride = useCallback((vmName: string): boolean => {
+    return vmName in storageTierOverrides;
+  }, [storageTierOverrides]);
 
   // ===== CUSTOM PROFILE FUNCTIONS =====
 
@@ -224,12 +264,13 @@ export function useCustomProfiles(): UseCustomProfilesReturn {
 
   const exportSettings = useCallback((): string => {
     return JSON.stringify({
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       profileOverrides,
       customProfiles,
+      storageTierOverrides,
     }, null, 2);
-  }, [profileOverrides, customProfiles]);
+  }, [profileOverrides, customProfiles, storageTierOverrides]);
 
   const importSettings = useCallback((json: string): boolean => {
     try {
@@ -239,6 +280,9 @@ export function useCustomProfiles(): UseCustomProfilesReturn {
       }
       if (data.customProfiles) {
         setCustomProfiles(data.customProfiles);
+      }
+      if (data.storageTierOverrides) {
+        setStorageTierOverrides(data.storageTierOverrides);
       }
       return true;
     } catch (error) {
@@ -250,8 +294,10 @@ export function useCustomProfiles(): UseCustomProfilesReturn {
   const resetAll = useCallback(() => {
     setProfileOverrides({});
     setCustomProfiles([]);
+    setStorageTierOverrides({});
     localStorage.removeItem(STORAGE_KEY_OVERRIDES);
     localStorage.removeItem(STORAGE_KEY_CUSTOM);
+    localStorage.removeItem(STORAGE_KEY_TIER_OVERRIDES);
   }, []);
 
   return {
@@ -262,6 +308,13 @@ export function useCustomProfiles(): UseCustomProfilesReturn {
     clearAllOverrides,
     getEffectiveProfile,
     hasOverride,
+
+    // Storage tier overrides
+    storageTierOverrides,
+    setStorageTierOverride,
+    removeStorageTierOverride,
+    getEffectiveStorageTier,
+    hasStorageTierOverride,
 
     // Custom profiles
     customProfiles,

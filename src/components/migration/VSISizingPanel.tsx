@@ -7,12 +7,13 @@ import { formatNumber } from '@/utils/formatters';
 import { DoughnutChart, HorizontalBarChart } from '@/components/charts';
 import { EnhancedDataTable } from '@/components/tables';
 import { MetricCard, RedHatDocLink } from '@/components/common';
-import { ProfileSelector } from '@/components/sizing';
+import { ProfileSelector, StorageTierSelector } from '@/components/sizing';
 import { isBurstableProfile } from '@/services/migration';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { VMProfileMapping } from '@/services/migration';
 import type { CustomProfile } from '@/hooks/useCustomProfiles';
 import type { ProfileRecommendation as AIProfileRecommendation } from '@/services/ai/types';
+import type { StorageTierType } from '@/utils/workloadClassification';
 
 export interface VSISizingPanelProps {
   totalVSIs: number;
@@ -30,6 +31,8 @@ export interface VSISizingPanelProps {
   setProfileOverride: (vmName: string, profileName: string, originalProfile: string) => void;
   removeProfileOverride: (vmName: string) => void;
   aiRecommendations: Record<string, AIProfileRecommendation>;
+  setStorageTierOverride: (vmName: string, tier: StorageTierType) => void;
+  removeStorageTierOverride: (vmName: string) => void;
 }
 
 export function VSISizingPanel({
@@ -47,6 +50,8 @@ export function VSISizingPanel({
   setProfileOverride,
   removeProfileOverride,
   aiRecommendations,
+  setStorageTierOverride,
+  removeStorageTierOverride,
 }: VSISizingPanelProps) {
   // Table columns
   type ProfileMappingRow = VMProfileMapping;
@@ -152,6 +157,41 @@ export function VSISizingPanel({
           </span>
         );
       },
+    },
+    {
+      id: 'storage',
+      header: 'Storage (GiB)',
+      enableSorting: true,
+      accessorFn: (row) => row.provisionedStorageGiB,
+      cell: ({ row }) => {
+        const provisioned = row.original.provisionedStorageGiB;
+        const inUse = row.original.inUseStorageGiB;
+        return (
+          <span>
+            {formatNumber(provisioned)}
+            {inUse > 0 && (
+              <span style={{ color: '#6f6f6f', fontSize: '0.75rem' }}> ({formatNumber(inUse)} used)</span>
+            )}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'storageTier',
+      header: 'Storage Tier',
+      enableSorting: true,
+      accessorFn: (row) => row.storageTier,
+      cell: ({ row }) => (
+        <StorageTierSelector
+          vmName={row.original.vmName}
+          currentTier={row.original.storageTier}
+          autoTier={row.original.autoStorageTier}
+          isOverridden={row.original.isStorageTierOverridden}
+          workloadCategory={row.original.workloadCategory}
+          onTierChange={setStorageTierOverride}
+          onResetToAuto={removeStorageTierOverride}
+        />
+      ),
     },
   ];
 

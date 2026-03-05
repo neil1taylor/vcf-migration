@@ -329,7 +329,7 @@ describe('useCustomProfiles', () => {
       const exported = result.current.exportSettings();
       const parsed = JSON.parse(exported);
 
-      expect(parsed.version).toBe(1);
+      expect(parsed.version).toBe(2);
       expect(parsed.exportedAt).toBeDefined();
       expect(parsed.customProfiles.length).toBe(1);
       expect(Object.keys(parsed.profileOverrides).length).toBe(1);

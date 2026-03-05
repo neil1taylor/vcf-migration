@@ -2,6 +2,7 @@
 
 import { mibToGiB } from '@/utils/formatters';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
+import type { StorageTierType } from '@/utils/workloadClassification';
 
 export interface VSIProfile {
   name: string;
@@ -39,6 +40,12 @@ export interface VMProfileMapping {
   effectiveProfileName: string;
   isOverridden: boolean;
   classification: VMClassification;
+  storageTier: StorageTierType;
+  autoStorageTier: StorageTierType;
+  isStorageTierOverridden: boolean;
+  workloadCategory: string | null;
+  provisionedStorageGiB: number;
+  inUseStorageGiB: number;
 }
 
 export type ProfileFamily = 'balanced' | 'compute' | 'memory';
@@ -346,6 +353,12 @@ export function createVMProfileMappings(
       effectiveProfileName,
       isOverridden,
       classification,
+      storageTier: 'general-purpose' as StorageTierType,
+      autoStorageTier: 'general-purpose' as StorageTierType,
+      isStorageTierOverridden: false,
+      workloadCategory: null,
+      provisionedStorageGiB: 0,
+      inUseStorageGiB: 0,
     };
   });
 }

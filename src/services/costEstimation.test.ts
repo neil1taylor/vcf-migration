@@ -217,6 +217,57 @@ describe('Cost Estimation Service', () => {
       const result = calculateVSICost(basicVSIInput, 'us-south', 'onDemand');
       expect(result.totalAnnual).toBe(result.totalMonthly * 12);
     });
+
+    it('should accept general-purpose as a valid storage tier', () => {
+      const input: VSISizingInput = {
+        ...basicVSIInput,
+        storageTier: 'general-purpose',
+      };
+      const result = calculateVSICost(input, 'us-south', 'onDemand');
+      expect(result.lineItems.length).toBeGreaterThan(0);
+    });
+
+    it('should generate per-tier storage line items when storageByTier is provided', () => {
+      const input: VSISizingInput = {
+        vmProfiles: [{ profile: 'bx2-4x16', count: 5 }],
+        storageTiB: 20,
+        bootStorageGiB: 500,
+        storageByTier: {
+          'general-purpose': 5,
+          '10iops': 10,
+        },
+      };
+      const result = calculateVSICost(input, 'us-south', 'onDemand');
+
+      const storageItems = result.lineItems.filter(item => item.category === 'Storage - Block');
+      expect(storageItems.length).toBe(3); // boot + 2 tiers
+
+      const bootItem = storageItems.find(item => item.description.startsWith('Boot'));
+      expect(bootItem).toBeDefined();
+      expect(bootItem?.quantity).toBe(500);
+
+      const gpDataItem = storageItems.find(item => item.description.startsWith('Data Storage') && item.description.includes('General Purpose'));
+      expect(gpDataItem).toBeDefined();
+      expect(gpDataItem?.quantity).toBe(5 * 1024);
+
+      const highItem = storageItems.find(item => item.description.startsWith('Data Storage') && item.description.includes('10 IOPS'));
+      expect(highItem).toBeDefined();
+      expect(highItem?.quantity).toBe(10 * 1024);
+    });
+
+    it('should fall back to single-tier when storageByTier is empty', () => {
+      const input: VSISizingInput = {
+        vmProfiles: [{ profile: 'bx2-4x16', count: 2 }],
+        storageTiB: 5,
+        storageTier: '5iops',
+        storageByTier: {},
+      };
+      const result = calculateVSICost(input, 'us-south', 'onDemand');
+
+      const storageItems = result.lineItems.filter(item => item.category === 'Storage - Block');
+      expect(storageItems.length).toBe(1);
+      expect(storageItems[0].description).toContain('5 IOPS');
+    });
   });
 
   describe('calculateROKSCost', () => {

@@ -14,6 +14,8 @@ import type { RemediationItem } from '@/components/common';
 import type { ComplexityScore } from '@/services/migration';
 import type { UseWavePlanningReturn } from '@/hooks/useWavePlanning';
 import type { CustomProfile } from '@/hooks/useCustomProfiles';
+import type { StorageTierType } from '@/utils/workloadClassification';
+import { getVMWorkloadCategory, getStorageTierForWorkload } from '@/utils/workloadClassification';
 
 // ===== INPUT TYPE =====
 
@@ -27,6 +29,8 @@ export interface UseVSIPageDataConfig {
   customProfiles: CustomProfile[];
   getEffectiveProfile: (vmName: string, autoMappedProfile: string) => string;
   hasOverride: (vmName: string) => boolean;
+  getEffectiveStorageTier: (vmName: string, autoTier: StorageTierType) => StorageTierType;
+  hasStorageTierOverride: (vmName: string) => boolean;
   complexityScores: ComplexityScore[];
   blockerCount: number;
   warningCount: number;
@@ -69,6 +73,8 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
     customProfiles,
     getEffectiveProfile,
     hasOverride,
+    getEffectiveStorageTier,
+    hasStorageTierOverride,
     complexityScores,
     blockerCount,
     warningCount,
@@ -79,57 +85,84 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
   const vsiProfiles = getVSIProfiles();
 
   // ===== VPC VSI PROFILE MAPPING =====
-  const vmProfileMappings = useMemo<VMProfileMapping[]>(() => poweredOnVMs.map(vm => {
-    const memoryGiB = mibToGiB(vm.memory);
-
-    // Classify VM for burstable eligibility
-    const classification: VMClassification = classifyVMForBurstable(vm.vmName, vm.guestOS, vm.nics);
-
-    // Get both standard and burstable profiles
-    const standardProfile: VSIProfile = mapVMToVSIProfile(vm.cpus, memoryGiB);
-    const burstableProfile = findBurstableProfile(vm.cpus, memoryGiB);
-
-    // Default auto profile based on classification
-    const autoProfile = classification.recommendation === 'burstable' && burstableProfile
-      ? burstableProfile
-      : standardProfile;
-
-    const effectiveProfileName = getEffectiveProfile(vm.vmName, autoProfile.name);
-    const isOverridden = hasOverride(vm.vmName);
-
-    let effectiveProfile = autoProfile;
-    if (isOverridden) {
-      const customProfile = customProfiles.find(p => p.name === effectiveProfileName);
-      if (customProfile) {
-        effectiveProfile = {
-          name: customProfile.name,
-          vcpus: customProfile.vcpus,
-          memoryGiB: customProfile.memoryGiB,
-          bandwidthGbps: customProfile.bandwidth || 16,
-          hourlyRate: 0,
-          monthlyRate: 0,
-        };
-      } else {
-        const allProfiles = [...vsiProfiles.balanced, ...vsiProfiles.compute, ...vsiProfiles.memory];
-        const matchedProfile = allProfiles.find(p => p.name === effectiveProfileName);
-        if (matchedProfile) effectiveProfile = matchedProfile;
-      }
+  const vmProfileMappings = useMemo<VMProfileMapping[]>(() => {
+    // Build per-VM disk lookup for storage info
+    const vmDiskMap = new Map<string, VDiskInfo[]>();
+    for (const d of disks) {
+      const existing = vmDiskMap.get(d.vmName);
+      if (existing) existing.push(d);
+      else vmDiskMap.set(d.vmName, [d]);
     }
 
-    return {
-      vmName: vm.vmName,
-      vcpus: vm.cpus,
-      memoryGiB: Math.round(memoryGiB),
-      nics: vm.nics,
-      guestOS: vm.guestOS,
-      autoProfile,
-      burstableProfile,
-      profile: effectiveProfile,
-      effectiveProfileName,
-      isOverridden,
-      classification,
-    };
-  }), [poweredOnVMs, customProfiles, getEffectiveProfile, hasOverride, vsiProfiles]);
+    return poweredOnVMs.map(vm => {
+      const memoryGiB = mibToGiB(vm.memory);
+
+      // Classify VM for burstable eligibility
+      const classification: VMClassification = classifyVMForBurstable(vm.vmName, vm.guestOS, vm.nics);
+
+      // Get both standard and burstable profiles
+      const standardProfile: VSIProfile = mapVMToVSIProfile(vm.cpus, memoryGiB);
+      const burstableProfile = findBurstableProfile(vm.cpus, memoryGiB);
+
+      // Default auto profile based on classification
+      const autoProfile = classification.recommendation === 'burstable' && burstableProfile
+        ? burstableProfile
+        : standardProfile;
+
+      const effectiveProfileName = getEffectiveProfile(vm.vmName, autoProfile.name);
+      const isOverridden = hasOverride(vm.vmName);
+
+      let effectiveProfile = autoProfile;
+      if (isOverridden) {
+        const customProfile = customProfiles.find(p => p.name === effectiveProfileName);
+        if (customProfile) {
+          effectiveProfile = {
+            name: customProfile.name,
+            vcpus: customProfile.vcpus,
+            memoryGiB: customProfile.memoryGiB,
+            bandwidthGbps: customProfile.bandwidth || 16,
+            hourlyRate: 0,
+            monthlyRate: 0,
+          };
+        } else {
+          const allProfiles = [...vsiProfiles.balanced, ...vsiProfiles.compute, ...vsiProfiles.memory];
+          const matchedProfile = allProfiles.find(p => p.name === effectiveProfileName);
+          if (matchedProfile) effectiveProfile = matchedProfile;
+        }
+      }
+
+      // Storage tier classification
+      const workloadCategory = getVMWorkloadCategory(vm.vmName, vm.annotation ?? null);
+      const autoStorageTier = getStorageTierForWorkload(workloadCategory);
+      const storageTier = getEffectiveStorageTier(vm.vmName, autoStorageTier);
+      const isStorageTierOverridden = hasStorageTierOverride(vm.vmName);
+
+      // Storage capacity
+      const vmDisks = vmDiskMap.get(vm.vmName) || [];
+      const provisionedStorageGiB = Math.round(vmDisks.reduce((sum, d) => sum + mibToGiB(d.capacityMiB), 0));
+      const inUseStorageGiB = Math.round(mibToGiB(vm.inUseMiB));
+
+      return {
+        vmName: vm.vmName,
+        vcpus: vm.cpus,
+        memoryGiB: Math.round(memoryGiB),
+        nics: vm.nics,
+        guestOS: vm.guestOS,
+        autoProfile,
+        burstableProfile,
+        profile: effectiveProfile,
+        effectiveProfileName,
+        isOverridden,
+        classification,
+        storageTier,
+        autoStorageTier,
+        isStorageTierOverridden,
+        workloadCategory,
+        provisionedStorageGiB,
+        inUseStorageGiB,
+      };
+    });
+  }, [poweredOnVMs, customProfiles, getEffectiveProfile, hasOverride, getEffectiveStorageTier, hasStorageTierOverride, vsiProfiles, disks]);
 
   // ===== PROFILE COUNTS & CHART DATA =====
   const profileCounts = useMemo(() => vmProfileMappings.reduce((acc, mapping) => {
@@ -162,15 +195,59 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
 
   // ===== VSI SIZING FOR COST ESTIMATION =====
   const vsiSizing = useMemo<VSISizingInput>(() => {
-    const poweredOnVMNames = new Set(poweredOnVMs.map(vm => vm.vmName));
-    const filteredDisks = disks.filter(d => poweredOnVMNames.has(d.vmName));
-    const totalStorageGiB = filteredDisks.reduce((sum, d) => sum + mibToGiB(d.capacityMiB), 0);
     const profileGroupings = vmProfileMappings.reduce((acc, mapping) => {
       acc[mapping.profile.name] = (acc[mapping.profile.name] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     const vmProfiles = Object.entries(profileGroupings).map(([profile, count]) => ({ profile, count }));
-    return { vmProfiles, storageTiB: Math.ceil(totalStorageGiB / 1024) };
+
+    // Compute per-VM boot/data disk breakdown with per-tier storage
+    let totalBootStorageGiB = 0;
+    const storageByTierGiB: Record<string, number> = {};
+    const poweredOnVMNames = new Set(poweredOnVMs.map(vm => vm.vmName));
+
+    for (const mapping of vmProfileMappings) {
+      const vmDisks = disks
+        .filter(d => d.vmName === mapping.vmName && poweredOnVMNames.has(d.vmName))
+        .sort((a, b) => (a.diskKey || 0) - (b.diskKey || 0));
+
+      if (vmDisks.length === 0) continue;
+
+      // Boot disk: lowest diskKey, always general-purpose
+      const bootDisk = vmDisks[0];
+      const isWindows = mapping.guestOS.toLowerCase().includes('windows');
+      const bootGiB = Math.min(
+        Math.max(Math.round(mibToGiB(bootDisk.capacityMiB)), isWindows ? 120 : 100),
+        250
+      );
+      totalBootStorageGiB += bootGiB;
+
+      // Data disks: use VM's workload-based tier
+      const dataDisks = vmDisks.slice(1);
+      if (dataDisks.length > 0) {
+        const dataGiB = dataDisks.reduce((sum, d) => sum + Math.round(mibToGiB(d.capacityMiB)), 0);
+        const tier = mapping.storageTier;
+        storageByTierGiB[tier] = (storageByTierGiB[tier] || 0) + dataGiB;
+      }
+    }
+
+    // Convert GiB to TiB for the storageByTier map
+    const storageByTier: Record<string, number> = {};
+    for (const [tier, gib] of Object.entries(storageByTierGiB)) {
+      storageByTier[tier] = Math.ceil(gib / 1024);
+    }
+
+    // Total storage in TiB (for backward compatibility)
+    const totalStorageGiB = disks
+      .filter(d => poweredOnVMNames.has(d.vmName))
+      .reduce((sum, d) => sum + mibToGiB(d.capacityMiB), 0);
+
+    return {
+      vmProfiles,
+      storageTiB: Math.ceil(totalStorageGiB / 1024),
+      bootStorageGiB: totalBootStorageGiB,
+      storageByTier,
+    };
   }, [vmProfileMappings, disks, poweredOnVMs]);
 
   // ===== AI INSIGHTS DATA =====

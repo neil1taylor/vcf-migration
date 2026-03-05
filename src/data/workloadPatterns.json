@@ -37,6 +37,7 @@
     "middleware": {
       "name": "Middleware / Application Servers",
       "icon": "Application",
+      "defaultStorageTier": "5iops",
       "description": "Application servers and web infrastructure often require reconfiguration for cloud deployment. Consider containerizing stateless middleware where possible, and verify vendor support for the target platform.",
       "patterns": [
         "jboss", "wildfly", "tomcat", "weblogic", "websphere", "spring",
@@ -46,6 +47,7 @@
     "databases": {
       "name": "Databases",
       "icon": "DataBase",
+      "defaultStorageTier": "10iops",
       "description": "Database VMs require careful migration planning due to data integrity, replication, and performance requirements. Consider managed database services where appropriate, and plan for data migration windows.",
       "patterns": [
         "oracle", "postgres", "postgresql", "mysql", "mariadb", "mssql",
@@ -57,6 +59,7 @@
     "enterprise": {
       "name": "Enterprise Applications",
       "icon": "Enterprise",
+      "defaultStorageTier": "10iops",
       "description": "Enterprise applications (SAP, SharePoint, etc.) often have complex dependencies, licensing constraints, and vendor-specific migration requirements. Engage application owners early in the planning process.",
       "patterns": [
         "sap", "hana", "s4hana", "documentum", "filenet", "sas",
@@ -67,6 +70,7 @@
     "backup": {
       "name": "Backup & Recovery",
       "icon": "Save",
+      "defaultStorageTier": "general-purpose",
       "description": "Backup and recovery infrastructure may need to be replaced with cloud-native solutions. Evaluate IBM Cloud backup services and ensure data protection continuity during migration.",
       "patterns": [
         "veeam", "veritas", "netbackup", "commvault", "avamar", "networker",
@@ -77,6 +81,7 @@
     "security": {
       "name": "Security & Compliance",
       "icon": "Security",
+      "defaultStorageTier": "general-purpose",
       "description": "Security appliances and compliance tools may require platform-specific alternatives in IBM Cloud. Review VPC Security Groups, Network ACLs, and IBM Cloud security services as potential replacements.",
       "patterns": [
         "paloalto", "palo-alto", "qualys", "cyberark", "checkpoint",
@@ -88,6 +93,7 @@
     "monitoring": {
       "name": "Monitoring & Management",
       "icon": "Dashboard",
+      "defaultStorageTier": "5iops",
       "description": "Monitoring and management tools may need reconfiguration or replacement with cloud-native observability solutions. Consider IBM Cloud Monitoring, Log Analysis, and Activity Tracker.",
       "patterns": [
         "nagios", "zabbix", "prometheus", "grafana", "datadog", "dynatrace",
@@ -98,6 +104,7 @@
     "virtualization": {
       "name": "Virtualization Infrastructure",
       "icon": "VirtualMachine",
+      "defaultStorageTier": "general-purpose",
       "description": "VMware virtualization infrastructure (vCenter, NSX, vSAN) is typically not migrated. These components are replaced by the target platform's native infrastructure.",
       "patterns": [
         "vcenter", "vsphere", "vsan", "nsx", "vrni", "vra", "vrops",
@@ -107,6 +114,7 @@
     "containers": {
       "name": "Container Platforms",
       "icon": "ContainerImage",
+      "defaultStorageTier": "5iops",
       "description": "Existing container platforms may be consolidated into the target ROKS environment. Evaluate container workload portability and orchestration compatibility.",
       "patterns": [
         "kubernetes", "k8s", "openshift", "ocp", "docker", "rancher",
@@ -116,6 +124,7 @@
     "messaging": {
       "name": "Messaging & Integration",
       "icon": "Email",
+      "defaultStorageTier": "5iops",
       "description": "Messaging and integration middleware requires careful handling of message queues and data in-flight during migration. Consider IBM Cloud Event Streams (Kafka) and MQ services.",
       "patterns": [
         "rabbitmq", "kafka", "activemq", "mq", "ibmmq", "tibco",
@@ -125,6 +134,7 @@
     "storage": {
       "name": "Storage Systems",
       "icon": "ObjectStorage",
+      "defaultStorageTier": "10iops",
       "description": "Virtual storage appliances may need to be replaced with IBM Cloud Block Storage, File Storage, or Object Storage services depending on access patterns and performance requirements.",
       "patterns": [
         "netapp", "pure", "purestorage", "emc", "powerstore", "unity",
@@ -135,6 +145,7 @@
     "network": {
       "name": "Network Equipment",
       "icon": "Network",
+      "defaultStorageTier": "general-purpose",
       "description": "Virtual network appliances (routers, load balancers, firewalls) often require platform-specific alternatives. Consider IBM Cloud VPC native services like Load Balancer for VPC, Security Groups, and Network ACLs as potential replacements.",
       "patterns": [
         "cisco", "ucs", "nexus", "aci", "f5", "bigip", "ltm", "gtm",
@@ -148,6 +159,7 @@
     "cloud": {
       "name": "Cloud Services",
       "icon": "Cloud",
+      "defaultStorageTier": "general-purpose",
       "description": "Existing cloud service integrations and infrastructure-as-code tools may need reconfiguration for the IBM Cloud target environment. Review Terraform providers and automation scripts.",
       "patterns": [
         "aws", "amazon", "azure", "gcp", "google", "ibmcloud", "oci",
@@ -157,6 +169,7 @@
     "devops": {
       "name": "DevOps & CI/CD",
       "icon": "Build",
+      "defaultStorageTier": "5iops",
       "description": "CI/CD pipelines and DevOps tools typically continue operating after migration with updated deployment targets. Plan for pipeline reconfiguration to target IBM Cloud environments.",
       "patterns": [
         "jenkins", "gitlab", "github", "bitbucket", "bamboo", "teamcity",
@@ -166,6 +179,7 @@
     "identity": {
       "name": "Identity & Access",
       "icon": "UserAccess",
+      "defaultStorageTier": "general-purpose",
       "description": "Identity and access management services are critical infrastructure. Plan for integration with IBM Cloud IAM and ensure directory services connectivity is maintained during migration.",
       "patterns": [
         "ldap", "activedirectory", "ad", "adfs", "okta", "ping", "keycloak",
