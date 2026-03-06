@@ -1,4 +1,5 @@
 // Shared Chat UI component - used by both ChatWidget and ChatPage
+// Supports streaming responses, markdown rendering, and persistent history
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
@@ -8,7 +9,7 @@ import {
   InlineNotification,
   InlineLoading,
 } from '@carbon/react';
-import { Send, TrashCan, Renew } from '@carbon/icons-react';
+import { Send, TrashCan, Renew, StopFilled } from '@carbon/icons-react';
 import type { ChatMessage, ChatContext } from '@/services/ai/types';
 import { useAIChat } from '@/hooks/useAIChat';
 import { useData } from '@/hooks';
@@ -26,9 +27,11 @@ export function ChatPanel({ className = '' }: ChatPanelProps) {
   const {
     messages,
     isLoading,
+    isStreaming,
     error,
     suggestedFollowUps,
-    sendUserMessage,
+    sendUserMessageStreaming,
+    stopStreaming,
     clearConversation,
     isAvailable,
   } = useAIChat();
@@ -37,7 +40,7 @@ export function ChatPanel({ className = '' }: ChatPanelProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-scroll to bottom on new messages
+  // Auto-scroll to bottom on new messages or streaming updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -48,12 +51,13 @@ export function ChatPanel({ className = '' }: ChatPanelProps) {
 
   const handleSend = useCallback(async () => {
     const trimmed = inputValue.trim();
-    if (!trimmed || isLoading) return;
+    if (!trimmed || isLoading || isStreaming) return;
 
     setInputValue('');
-    await sendUserMessage(trimmed, buildContext());
+    // Use streaming by default for better UX
+    sendUserMessageStreaming(trimmed, buildContext());
     inputRef.current?.focus();
-  }, [inputValue, isLoading, sendUserMessage, buildContext]);
+  }, [inputValue, isLoading, isStreaming, sendUserMessageStreaming, buildContext]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -67,9 +71,9 @@ export function ChatPanel({ className = '' }: ChatPanelProps) {
 
   const handleSuggestedClick = useCallback(
     (question: string) => {
-      sendUserMessage(question, buildContext());
+      sendUserMessageStreaming(question, buildContext());
     },
-    [sendUserMessage, buildContext]
+    [sendUserMessageStreaming, buildContext]
   );
 
   if (!isAvailable) {
@@ -108,7 +112,7 @@ export function ChatPanel({ className = '' }: ChatPanelProps) {
           <MessageBubble key={msg.id} message={msg} />
         ))}
 
-        {isLoading && (
+        {isLoading && !isStreaming && (
           <div className="chat-panel__loading" role="status" aria-live="polite">
             <InlineLoading status="active" description="Thinking..." />
           </div>
@@ -131,7 +135,7 @@ export function ChatPanel({ className = '' }: ChatPanelProps) {
       </div>
 
       {/* Suggested follow-ups */}
-      {suggestedFollowUps.length > 0 && !isLoading && (
+      {suggestedFollowUps.length > 0 && !isLoading && !isStreaming && (
         <div className="chat-panel__suggestions">
           <SuggestedQuestions
             questions={suggestedFollowUps}
@@ -151,18 +155,29 @@ export function ChatPanel({ className = '' }: ChatPanelProps) {
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           ref={inputRef}
-          disabled={isLoading}
+          disabled={isLoading || isStreaming}
           size="lg"
         />
-        <Button
-          kind="primary"
-          size="lg"
-          renderIcon={Send}
-          iconDescription="Send"
-          hasIconOnly
-          onClick={handleSend}
-          disabled={!inputValue.trim() || isLoading}
-        />
+        {isStreaming ? (
+          <Button
+            kind="danger--tertiary"
+            size="lg"
+            renderIcon={StopFilled}
+            iconDescription="Stop generating"
+            hasIconOnly
+            onClick={stopStreaming}
+          />
+        ) : (
+          <Button
+            kind="primary"
+            size="lg"
+            renderIcon={Send}
+            iconDescription="Send"
+            hasIconOnly
+            onClick={handleSend}
+            disabled={!inputValue.trim() || isLoading}
+          />
+        )}
         <Button
           kind="ghost"
           size="lg"
@@ -170,7 +185,7 @@ export function ChatPanel({ className = '' }: ChatPanelProps) {
           iconDescription={messages.length > 0 ? 'Clear conversation' : 'Refresh'}
           hasIconOnly
           onClick={clearConversation}
-          disabled={isLoading && messages.length === 0}
+          disabled={(isLoading || isStreaming) && messages.length === 0}
         />
       </div>
     </div>
@@ -191,12 +206,88 @@ function MessageBubble({ message }: { message: ChatMessage }) {
           </Tag>
         )}
         <div className="chat-panel__text">
-          {message.content.split('\n').map((line, i) => (
-            <p key={`${message.id}-line-${i}`}>{line}</p>
-          ))}
+          <MarkdownContent content={message.content} messageId={message.id} />
         </div>
       </div>
     </div>
+  );
+}
+
+/** Simple markdown renderer — handles bold, italic, lists, code blocks */
+function MarkdownContent({ content, messageId }: { content: string; messageId: string }) {
+  if (!content) {
+    return <p className="chat-panel__streaming-cursor" />;
+  }
+
+  const lines = content.split('\n');
+  const elements: React.ReactNode[] = [];
+  let inCodeBlock = false;
+  let codeContent = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    if (line.startsWith('```')) {
+      if (inCodeBlock) {
+        elements.push(
+          <pre key={`${messageId}-code-${i}`} className="chat-panel__code-block">
+            <code>{codeContent.trim()}</code>
+          </pre>
+        );
+        codeContent = '';
+        inCodeBlock = false;
+      } else {
+        inCodeBlock = true;
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeContent += line + '\n';
+      continue;
+    }
+
+    if (line.startsWith('- ') || line.startsWith('* ')) {
+      elements.push(
+        <li key={`${messageId}-li-${i}`}>
+          <InlineFormatted text={line.slice(2)} />
+        </li>
+      );
+    } else if (/^\d+\.\s/.test(line)) {
+      elements.push(
+        <li key={`${messageId}-oli-${i}`}>
+          <InlineFormatted text={line.replace(/^\d+\.\s/, '')} />
+        </li>
+      );
+    } else if (line.trim() === '') {
+      // Skip empty lines but add spacing
+    } else {
+      elements.push(
+        <p key={`${messageId}-p-${i}`}>
+          <InlineFormatted text={line} />
+        </p>
+      );
+    }
+  }
+
+  return <>{elements}</>;
+}
+
+/** Handles inline **bold** and `code` formatting */
+function InlineFormatted({ text }: { text: string }) {
+  const parts = text.split(/(\*\*.*?\*\*|`[^`]+`)/g);
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={i}>{part.slice(2, -2)}</strong>;
+        }
+        if (part.startsWith('`') && part.endsWith('`')) {
+          return <code key={i} className="chat-panel__inline-code">{part.slice(1, -1)}</code>;
+        }
+        return <span key={i}>{part}</span>;
+      })}
+    </>
   );
 }
 

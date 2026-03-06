@@ -20,6 +20,20 @@ import type {
   CostOptimizationResponse,
   RemediationRequest,
   RemediationResponse,
+  TargetSelectionRequest,
+  TargetSelectionResponse,
+  WaveSequencingRequest,
+  WaveSequencingResponse,
+  AnomalyDetectionRequest,
+  AnomalyDetectionResponse,
+  RiskAnalysisRequest,
+  RiskAnalysisResponse,
+  ReportNarrativeRequest,
+  ReportNarrativeResponse,
+  DiscoveryQuestionsRequest,
+  DiscoveryQuestionsResponse,
+  InterviewRequest,
+  InterviewResponse,
 } from './types';
 
 const logger = createLogger('AI Proxy');
@@ -278,6 +292,106 @@ export async function getRemediationGuidance(
 ): Promise<RemediationResponse> {
   return postToProxy<RemediationRequest, RemediationResponse>(
     '/api/remediation',
+    request,
+    options
+  );
+}
+
+// ===== NEW FEATURE ENDPOINTS =====
+
+/**
+ * Get AI target selection (ROKS vs VSI)
+ */
+export async function getTargetSelection(
+  request: TargetSelectionRequest,
+  options?: { timeout?: number }
+): Promise<TargetSelectionResponse> {
+  return postToProxy<TargetSelectionRequest, TargetSelectionResponse>(
+    '/api/target-selection',
+    request,
+    options
+  );
+}
+
+/**
+ * Get AI wave sequencing recommendations
+ */
+export async function getWaveSequencing(
+  request: WaveSequencingRequest,
+  options?: { timeout?: number }
+): Promise<WaveSequencingResponse> {
+  return postToProxy<WaveSequencingRequest, WaveSequencingResponse>(
+    '/api/wave-sequencing',
+    request,
+    options
+  );
+}
+
+/**
+ * Get AI anomaly detection results
+ */
+export async function getAnomalyDetection(
+  request: AnomalyDetectionRequest,
+  options?: { timeout?: number }
+): Promise<AnomalyDetectionResponse> {
+  return postToProxy<AnomalyDetectionRequest, AnomalyDetectionResponse>(
+    '/api/anomaly-detection',
+    request,
+    options
+  );
+}
+
+/**
+ * Get AI risk analysis
+ */
+export async function getRiskAnalysis(
+  request: RiskAnalysisRequest,
+  options?: { timeout?: number }
+): Promise<RiskAnalysisResponse> {
+  return postToProxy<RiskAnalysisRequest, RiskAnalysisResponse>(
+    '/api/risk-analysis',
+    request,
+    options
+  );
+}
+
+/**
+ * Get AI report narratives
+ */
+export async function getReportNarrative(
+  request: ReportNarrativeRequest,
+  options?: { timeout?: number }
+): Promise<ReportNarrativeResponse> {
+  return postToProxy<ReportNarrativeRequest, ReportNarrativeResponse>(
+    '/api/report-narrative',
+    request,
+    options
+  );
+}
+
+/**
+ * Get AI discovery questions
+ */
+export async function getDiscoveryQuestions(
+  request: DiscoveryQuestionsRequest,
+  options?: { timeout?: number }
+): Promise<DiscoveryQuestionsResponse> {
+  return postToProxy<DiscoveryQuestionsRequest, DiscoveryQuestionsResponse>(
+    '/api/discovery-questions',
+    request,
+    options
+  );
+}
+
+/**
+ * Send interview answer
+ */
+export async function sendInterviewAnswer(
+  request: InterviewRequest,
+  options?: { timeout?: number }
+): Promise<InterviewResponse> {
+  return postToProxy<InterviewRequest, InterviewResponse>(
+    '/api/interview',
     request,
     options
   );

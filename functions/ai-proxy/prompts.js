@@ -216,6 +216,31 @@ The user has loaded an RVTools export with the following environment:
       envInfo += `\nEstimated monthly cost: $${context.costEstimate.monthly.toLocaleString()} (${context.costEstimate.region})`;
     }
 
+    // Enriched context slices
+    if (context.networkTopology && context.networkTopology.length > 0) {
+      envInfo += '\nNetwork topology (top port groups): ' + context.networkTopology.join(', ');
+    }
+
+    if (context.osDistribution && context.osDistribution.length > 0) {
+      envInfo += '\nOS distribution: ' + context.osDistribution.join(', ');
+    }
+
+    if (context.topResourceConsumers && context.topResourceConsumers.length > 0) {
+      envInfo += '\nTop resource consumers (specs only): ' + context.topResourceConsumers.join('; ');
+    }
+
+    if (context.snapshotSummary) {
+      envInfo += '\nSnapshots: ' + context.snapshotSummary;
+    }
+
+    if (context.datastoreSummary) {
+      envInfo += '\nDatastores: ' + context.datastoreSummary;
+    }
+
+    if (context.riskSummary) {
+      envInfo += '\nRisk: ' + context.riskSummary;
+    }
+
     envInfo += `\nUser is currently on the "${context.currentPage}" page.`;
   }
 
@@ -362,6 +387,282 @@ Provide a JSON response with:
 Respond ONLY with valid JSON, no other text.`;
 }
 
+/**
+ * Build a target selection prompt (ROKS vs VPC VSI)
+ *
+ * @param {Array<Object>} vms - VM summaries with workload types
+ * @returns {string} Formatted prompt
+ */
+function buildTargetSelectionPrompt(vms) {
+  const vmDescriptions = vms.map((vm, i) =>
+    `${i + 1}. Name: "${vm.vmName}", OS: "${vm.guestOS || 'unknown'}", Workload: "${vm.workloadType || 'unknown'}", vCPUs: ${vm.vCPUs}, Memory MB: ${vm.memoryMB}, Storage MB: ${vm.storageMB || 0}, NICs: ${vm.nicCount || 1}${vm.hasRDM ? ', has RDM disks' : ''}${vm.hasSharedVMDK ? ', has shared VMDK' : ''}${vm.hasVGPU ? ', has vGPU' : ''}`
+  ).join('\n');
+
+  return `You are an IBM Cloud migration target selection expert. For each VM, recommend whether it should migrate to ROKS (Red Hat OpenShift on IBM Cloud with OpenShift Virtualization) or VPC VSI (Virtual Server Instances).
+
+Decision framework:
+1. **OS constraints**: Windows VMs → VSI (ROKS/OpenShift Virt does not support Windows). Linux VMs are candidates for both.
+2. **Resource requirements**: VMs needing >512 GiB RAM → ROKS bare metal workers. Very large VMs (>16 vCPU, >128GB) may benefit from ROKS bare metal.
+3. **Workload affinity**: Databases and stateful enterprise apps → VSI (simpler management). Middleware, app servers, containerizable workloads → ROKS. DevOps/CI-CD → ROKS. Backup/monitoring infrastructure → VSI.
+4. **Migration complexity**: VMs with RDM disks, shared VMDKs, or vGPU → VSI (fewer constraints). Simple Linux VMs → ROKS (lower operational overhead at scale).
+5. **Operational model**: If the workload benefits from Kubernetes orchestration → ROKS. If it needs traditional VM management → VSI.
+
+VMs to evaluate:
+${vmDescriptions}
+
+Respond with a JSON array. Each element must have:
+- "vmName": exact VM name from input
+- "target": "roks" or "vsi"
+- "confidence": number 0.0-1.0 indicating selection certainty
+- "reasoning": brief explanation (1-2 sentences)
+- "alternativeTarget": the other option ("roks" or "vsi")
+- "alternativeReasoning": why the alternative could also work (1 sentence)
+
+Respond ONLY with valid JSON, no other text.`;
+}
+
+/**
+ * Build a wave sequencing prompt with dependency detection
+ *
+ * @param {Object} data - Wave data with VM details
+ * @returns {string} Formatted prompt
+ */
+function buildWaveSequencingPrompt(data) {
+  const waveDescriptions = data.waves.map((w, i) => {
+    let desc = `${i + 1}. "${w.name}": ${w.vmCount} VMs, ${w.totalVCPUs} vCPUs, ${Math.round(w.totalMemoryGiB)} GiB RAM`;
+    desc += `, workloads: ${w.workloadTypes.join(', ') || 'mixed'}`;
+    if (w.networkGroups && w.networkGroups.length > 0) {
+      desc += `, networks: ${w.networkGroups.join(', ')}`;
+    }
+    if (w.vmSummaries && w.vmSummaries.length > 0) {
+      desc += '\n   VMs: ' + w.vmSummaries.map(v =>
+        `${v.workloadType}(${v.vCPUs}vCPU/${Math.round(v.memoryGiB)}GiB, net:${v.networkGroup || 'unknown'})`
+      ).join(', ');
+    }
+    return desc;
+  }).join('\n');
+
+  return `You are a migration wave sequencing expert. Analyze the following wave plan and detect dependencies, suggest reordering, and recommend VM moves between waves.
+
+Migration target: ${data.migrationTarget || 'not specified'}
+Total VMs: ${data.totalVMs}
+
+Current wave plan:
+${waveDescriptions}
+
+Analyze for:
+1. **Dependencies**: VMs on the same subnet should migrate together. Database VMs should migrate before application servers that depend on them.
+2. **Risk scheduling**: Put low-risk, low-complexity waves first. Critical infrastructure last.
+3. **Balance**: Waves should be roughly balanced in size and complexity.
+4. **Network coherence**: VMs sharing network segments should be in the same wave when possible.
+
+Provide a JSON response with:
+- "suggestedOrder": array of wave names in recommended execution order
+- "dependencies": array of objects with "from" (wave name), "to" (wave name), "reason" (why this dependency exists)
+- "riskSchedule": array of objects with "waveName", "riskLevel" ("low"/"medium"/"high"), "riskReason"
+- "vmMoveRecommendations": array of objects with "vmDescription" (workload type + specs), "fromWave", "toWave", "reason"
+
+Respond ONLY with valid JSON, no other text.`;
+}
+
+/**
+ * Build an anomaly detection prompt
+ *
+ * @param {Object} data - Pre-computed anomaly candidates
+ * @returns {string} Formatted prompt
+ */
+function buildAnomalyDetectionPrompt(data) {
+  const candidateDescriptions = data.anomalyCandidates.map((a, i) =>
+    `${i + 1}. Category: "${a.category}", Details: ${a.description}, Affected: ${a.affectedCount} VMs, Stats: ${a.stats || 'n/a'}`
+  ).join('\n');
+
+  return `You are a VMware environment health analyst. Review these pre-detected anomaly candidates and provide analysis with remediation recommendations.
+
+Environment: ${data.totalVMs} total VMs, ${data.totalHosts || 0} hosts, ${data.totalClusters || 0} clusters.
+
+Anomaly candidates (detected via statistical analysis):
+${candidateDescriptions}
+
+For each anomaly candidate:
+1. Validate whether it's a genuine concern or a false positive
+2. Assess severity (critical, high, medium, low)
+3. Explain the migration impact
+4. Recommend remediation steps
+
+Provide a JSON response with:
+- "anomalies": array of objects, each with:
+  - "category": one of "resource-misconfig", "security-concern", "migration-risk", "network-anomaly", "storage-anomaly", "configuration-drift"
+  - "severity": "critical", "high", "medium", or "low"
+  - "title": short title (5-10 words)
+  - "description": explanation of the issue (2-3 sentences)
+  - "affectedCount": number of affected VMs
+  - "recommendation": specific remediation advice (1-2 sentences)
+  - "isValid": boolean (false if this is a false positive)
+
+Respond ONLY with valid JSON, no other text.`;
+}
+
+/**
+ * Build a risk analysis prompt
+ *
+ * @param {Object} data - Risk assessment data
+ * @returns {string} Formatted prompt
+ */
+function buildRiskAnalysisPrompt(data) {
+  const domainSummaries = (data.riskAssessment.domains || []).map(d =>
+    `- ${d.name}: severity=${d.severity}, auto-calculated=${d.autoSeverity !== null}, evidence: ${(d.evidence || []).map(e => e.title).join(', ') || 'none'}`
+  ).join('\n');
+
+  return `You are a migration risk assessment expert. Review the current risk assessment and provide AI-enhanced analysis.
+
+Environment: ${data.totalVMs || 0} VMs, ${data.totalHosts || 0} hosts
+Overall risk: ${data.riskAssessment.overallRisk || 'unknown'}
+Go/No-Go: ${data.riskAssessment.goNoGo || 'unknown'}
+
+Current risk domains:
+${domainSummaries}
+
+${data.blockerSummary ? `Key blockers: ${data.blockerSummary.join('; ')}` : ''}
+${data.complexitySummary ? `Complexity: ${data.complexitySummary.simple} simple, ${data.complexitySummary.moderate} moderate, ${data.complexitySummary.complex} complex, ${data.complexitySummary.blocker} blockers` : ''}
+
+Analyze:
+1. Validate auto-calculated severities — are they appropriate given the evidence?
+2. Identify any missed risks not covered by the current assessment
+3. For the Security domain (manual-only), suggest specific security risks based on the environment
+4. Provide an overall Go/No-Go recommendation with confidence
+
+Provide a JSON response with:
+- "severityAdjustments": array of objects with "domain", "currentSeverity", "suggestedSeverity", "reasoning"
+- "missedRisks": array of objects with "domain", "title", "severity", "description"
+- "securityRisks": array of objects with "title", "severity", "description", "recommendation"
+- "goNoGoAnalysis": object with "recommendation" ("go", "conditional", "no-go"), "confidence" (0-1), "reasoning" (2-3 sentences), "keyConditions" (array of strings, conditions for "conditional")
+
+Respond ONLY with valid JSON, no other text.`;
+}
+
+/**
+ * Build a report narrative prompt
+ *
+ * @param {Object} data - Full environment summary for report generation
+ * @returns {string} Formatted prompt
+ */
+function buildReportNarrativePrompt(data) {
+  let envSection = `Environment: ${data.totalVMs} VMs, ${data.totalVCPUs} vCPUs, ${Math.round(data.totalMemoryGiB)} GiB RAM, ${Number(data.totalStorageTiB).toFixed(2)} TiB storage`;
+  envSection += `\nClusters: ${data.clusterCount}, Hosts: ${data.hostCount}`;
+  envSection += `\nMigration target: ${data.migrationTarget || 'not specified'}`;
+
+  if (data.workloadBreakdown) {
+    envSection += '\nWorkloads: ' + Object.entries(data.workloadBreakdown).map(([t, c]) => `${t}: ${c}`).join(', ');
+  }
+
+  if (data.costEstimate) {
+    envSection += `\nEstimated monthly cost: $${data.costEstimate.monthly.toLocaleString()}`;
+  }
+
+  if (data.riskSummary) {
+    envSection += `\nOverall risk: ${data.riskSummary.overallRisk}, Go/No-Go: ${data.riskSummary.goNoGo}`;
+  }
+
+  if (data.wavePlan) {
+    envSection += `\nWave plan: ${data.wavePlan.totalWaves} waves, ${data.wavePlan.totalDuration} weeks estimated`;
+  }
+
+  return `You are a senior cloud migration consultant writing a formal migration assessment report. Generate professional narratives for each section based on the environment data.
+
+${envSection}
+
+Write in a formal, professional tone suitable for executive stakeholders. Use specific numbers from the data. Each section should be self-contained.
+
+Provide a JSON response with:
+- "executiveSummary": 3-4 paragraph executive summary covering scope, key findings, and recommendation
+- "environmentAnalysis": 2-3 paragraphs analyzing the current VMware environment
+- "migrationRecommendation": 2-3 paragraphs with the recommended migration approach and justification
+- "riskNarrative": 2-3 paragraphs covering key risks and mitigations
+- "costJustification": 2-3 paragraphs justifying the migration costs and expected ROI
+- "nextSteps": array of 5-7 specific next steps as strings
+- "assumptions": array of 3-5 key assumptions as strings
+
+Respond ONLY with valid JSON, no other text.`;
+}
+
+/**
+ * Build discovery questions prompt
+ *
+ * @param {Object} data - Environment summary + context
+ * @returns {string} Formatted prompt
+ */
+function buildDiscoveryQuestionsPrompt(data) {
+  let envContext = '';
+  if (data.totalVMs) {
+    envContext = `Environment: ${data.totalVMs} VMs, ${data.totalVCPUs || 0} vCPUs, ${Math.round(data.totalMemoryGiB || 0)} GiB RAM.`;
+  }
+  if (data.workloadBreakdown) {
+    envContext += '\nWorkloads: ' + Object.entries(data.workloadBreakdown).map(([t, c]) => `${t}: ${c}`).join(', ');
+  }
+
+  const pageContext = data.currentPage || 'general';
+
+  return `You are a migration discovery consultant. Generate structured interview questions to gather information needed for a VMware to IBM Cloud migration assessment.
+
+${envContext}
+Current context: ${pageContext}
+
+Generate questions organized by topic that a consultant would ask to fill gaps in the migration plan. Questions should be specific to this environment's size and composition.
+
+Topics to cover:
+1. Business Context — timelines, budget, compliance requirements, stakeholders
+2. Technical Requirements — performance SLAs, HA/DR requirements, networking constraints
+3. Risk Tolerance — acceptable downtime, rollback requirements, data sensitivity
+4. Operational Readiness — team skills, support contracts, monitoring requirements
+5. Application Dependencies — inter-VM relationships, external integrations, shared storage
+
+Provide a JSON response with:
+- "questionGroups": array of objects, each with:
+  - "topic": topic name
+  - "relevance": why this topic matters for this environment (1 sentence)
+  - "questions": array of objects with "id" (unique string), "question" (the question text), "priority" ("high"/"medium"/"low"), "context" (why this question matters, 1 sentence)
+
+Respond ONLY with valid JSON, no other text.`;
+}
+
+/**
+ * Build interview prompt for interactive Q&A
+ *
+ * @param {Object} data - Interview state
+ * @returns {string} Formatted prompt
+ */
+function buildInterviewPrompt(data) {
+  let historyText = '';
+  if (data.interviewHistory && data.interviewHistory.length > 0) {
+    historyText = '\nPrevious Q&A:\n' + data.interviewHistory.map(h =>
+      `Q: ${h.question}\nA: ${h.answer}`
+    ).join('\n\n');
+  }
+
+  let envContext = '';
+  if (data.environmentContext) {
+    envContext = `\nEnvironment: ${data.environmentContext.totalVMs || 0} VMs, ${data.environmentContext.migrationTarget || 'not specified'} target.`;
+  }
+
+  return `You are a migration discovery consultant conducting an interactive interview. Based on the user's answer, provide insights and determine the next question.
+${envContext}
+Current question ID: ${data.currentQuestionId || 'initial'}
+User's answer: "${data.userAnswer}"
+${historyText}
+
+Analyze the user's answer and:
+1. Extract any useful insights for the migration plan
+2. Determine the most relevant next question based on what we now know
+3. Provide brief context for why the next question matters
+
+Provide a JSON response with:
+- "nextQuestion": object with "id" (unique string), "question" (text), "topic" (category)
+- "followUpContext": why this next question is important given the previous answer (1 sentence)
+- "insightsFromAnswer": array of strings — key facts or decisions extracted from the user's answer
+
+Respond ONLY with valid JSON, no other text.`;
+}
+
 module.exports = {
   buildClassificationPrompt,
   buildRightsizingPrompt,
@@ -370,4 +671,11 @@ module.exports = {
   buildWaveSuggestionsPrompt,
   buildCostOptimizationPrompt,
   buildRemediationPrompt,
+  buildTargetSelectionPrompt,
+  buildWaveSequencingPrompt,
+  buildAnomalyDetectionPrompt,
+  buildRiskAnalysisPrompt,
+  buildReportNarrativePrompt,
+  buildDiscoveryQuestionsPrompt,
+  buildInterviewPrompt,
 };

@@ -18,7 +18,6 @@ import {
   Settings,
   Report,
   Catalog,
-  TaskComplete,
 } from '@carbon/icons-react';
 import { useHasData, useAvailableSheets } from '@/hooks';
 import { ROUTES } from '@/utils/constants';
@@ -29,12 +28,8 @@ const infrastructureRoutes = [
   ROUTES.cluster, ROUTES.hosts, ROUTES.resourcePools, ROUTES.tables,
 ];
 
-const assessRoutes = [
-  ROUTES.migrationTimeline,
-];
-
 const migrationRoutes = [
-  ROUTES.roksMigration, ROUTES.vsiMigration, ROUTES.migrationComparison, ROUTES.preflightReport, ROUTES.riskAssessment,
+  ROUTES.preflightReport, ROUTES.roksMigration, ROUTES.vsiMigration, ROUTES.migrationComparison, ROUTES.migrationTimeline, ROUTES.riskAssessment,
 ];
 
 const referenceRoutes = [
@@ -173,24 +168,7 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
           Discovery
         </SideNavLink>
 
-        {/* Step 3: Assess */}
-        <SideNavMenu
-          renderIcon={TaskComplete}
-          title="Assess"
-          defaultExpanded={isInGroup(assessRoutes)}
-          isActive={isInGroup(assessRoutes)}
-          className={disabledClass}
-        >
-          <SideNavMenuItem
-            href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.migrationTimeline, true)}
-            isActive={isActive(ROUTES.migrationTimeline)}
-          >
-            Migration Timeline
-          </SideNavMenuItem>
-        </SideNavMenu>
-
-        {/* Step 4: Migrate — collapsible */}
+        {/* Step 3: Migrate — collapsible */}
         <SideNavMenu
           renderIcon={LogoKubernetes}
           title="Migration Assessment"
@@ -198,6 +176,13 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
           isActive={isInGroup(migrationRoutes)}
           className={disabledClass}
         >
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.preflightReport, true)}
+            isActive={isActive(ROUTES.preflightReport)}
+          >
+            Pre-Flight Report
+          </SideNavMenuItem>
           <SideNavMenuItem
             href="#"
             onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.roksMigration, true)}
@@ -221,10 +206,10 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
           </SideNavMenuItem>
           <SideNavMenuItem
             href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.preflightReport, true)}
-            isActive={isActive(ROUTES.preflightReport)}
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.migrationTimeline, true)}
+            isActive={isActive(ROUTES.migrationTimeline)}
           >
-            Pre-Flight Report
+            Migration Timeline
           </SideNavMenuItem>
           <SideNavMenuItem
             href="#"

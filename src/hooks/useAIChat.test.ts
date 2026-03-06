@@ -18,6 +18,16 @@ vi.mock('@/services/ai/aiChatApi', () => ({
   ),
 }));
 
+vi.mock('@/services/ai/aiStreamClient', () => ({
+  streamFromProxy: vi.fn(),
+}));
+
+vi.mock('@/services/ai/aiChatCache', () => ({
+  getCachedChatHistory: vi.fn(() => []),
+  setCachedChatHistory: vi.fn(),
+  clearChatHistory: vi.fn(),
+}));
+
 vi.mock('./useAISettings', () => ({
   useAISettings: vi.fn(() => ({
     settings: { enabled: true, consentGiven: true },

@@ -187,29 +187,48 @@ The Sizing Calculator shows 4-segment breakdowns: VM requirements, Virt overhead
 
 ## AI Integration (watsonx.ai)
 
-Optional AI features via Code Engine proxy → IBM watsonx.ai (Granite model).
+Optional AI features via Code Engine proxy → IBM watsonx.ai (Granite models).
+
+### Model Tiers
+
+The proxy uses a tiered model approach for optimal performance:
+- **Fast model** (`ibm/granite-3-1-8b-instruct`): Classification, right-sizing, remediation, discovery questions
+- **Complex model** (`ibm/granite-3-1-34b-instruct`): Insights, chat, risk analysis, report narrative, target selection, anomaly detection, wave sequencing
+
+Override via env vars: `WATSONX_FAST_MODEL_ID`, `WATSONX_COMPLEX_MODEL_ID`.
 
 ### Key Files
 
 | Directory | Purpose |
 |-----------|---------|
-| `functions/ai-proxy/` | Code Engine Express.js proxy |
-| `src/services/ai/` | Client API, cache, context builder, types |
+| `functions/ai-proxy/` | Code Engine Express.js proxy (endpoints, prompts, watsonx client) |
+| `src/services/ai/` | Client API, cache, context builder, stream client, types |
 | `src/hooks/useAI*.ts` | React hooks for all AI features |
-| `src/components/ai/` | UI components (panels, chat, status) |
+| `src/components/ai/` | UI components (panels, chat, anomaly, risk, report, interview) |
 | `src/services/ai/insightsInputBuilder.ts` | Builds InsightsInput for report AI integration |
+| `src/services/ai/anomalyInputBuilder.ts` | Client-side statistical analysis for anomaly detection |
+| `src/services/ai/reportInputBuilder.ts` | Assembles aggregated data for report narrative |
 
 ### AI Features
 
-| Feature | Endpoint | Hook |
-|---------|----------|------|
-| Classification | `/api/classify` | `useAIClassification` |
-| Right-sizing | `/api/rightsizing` | `useAIRightsizing` |
-| Insights | `/api/insights` | `useAIInsights` |
-| Chat | `/api/chat` | `useAIChat` |
-| Wave Suggestions | `/api/wave-suggestions` | `useAIWaveSuggestions` |
-| Cost Optimization | `/api/cost-optimization` | `useAICostOptimization` |
-| Remediation | `/api/remediation` | `useAIRemediation` |
+| Feature | Endpoint | Hook | Model |
+|---------|----------|------|-------|
+| Classification | `/api/classify` | `useAIClassification` | Fast |
+| Right-sizing | `/api/rightsizing` | `useAIRightsizing` | Fast |
+| Insights | `/api/insights` | `useAIInsights` | Complex |
+| Chat | `/api/chat` | `useAIChat` | Complex |
+| Chat (streaming) | `/api/chat/stream` | `useAIChat` | Complex |
+| Insights (streaming) | `/api/insights/stream` | `useAIInsights` | Complex |
+| Wave Suggestions | `/api/wave-suggestions` | `useAIWaveSuggestions` | Fast |
+| Cost Optimization | `/api/cost-optimization` | `useAICostOptimization` | Fast |
+| Remediation | `/api/remediation` | `useAIRemediation` | Fast |
+| Target Selection | `/api/target-selection` | `useAITargetSelection` | Complex |
+| Wave Sequencing | `/api/wave-sequencing` | `useAIWaveSuggestions` | Complex |
+| Anomaly Detection | `/api/anomaly-detection` | `useAIAnomalyDetection` | Complex |
+| Risk Analysis | `/api/risk-analysis` | `useAIRiskAnalysis` | Complex |
+| Report Narrative | `/api/report-narrative` | `useAIReport` | Complex |
+| Discovery Questions | `/api/discovery-questions` | `useAIDiscoveryQuestions` | Fast |
+| Interview | `/api/interview` | `useAIInterview` | Fast |
 
 ### AI Behavior
 
@@ -219,6 +238,10 @@ Optional AI features via Code Engine proxy → IBM watsonx.ai (Granite model).
 - Reports (DOCX, PDF, Excel, BOM) include AI sections when enabled, with watsonx.ai disclaimer
 - Fallback: Without proxy → components render nothing; proxy unavailable → rule-based logic; AI disabled → same as unconfigured
 - Proxy access: CORS origin restriction via `ALLOWED_ORIGINS` env var; `/health` is unauthenticated; rate limited (30 req/min)
+- **Streaming**: Chat and insights support SSE streaming via `/api/chat/stream` and `/api/insights/stream`. Client uses `aiStreamClient.ts` with `ReadableStream` reader.
+- **Persistent chat**: Chat history stored in localStorage (`vcf-ai-chat-history`), scoped by environment fingerprint, max 100 messages.
+- **Parallel batching**: Classification and right-sizing process batches concurrently (max 5 parallel LLM calls) for faster results on large environments.
+- **Anomaly detection**: Client-side statistical analysis (z-scores, outlier detection) runs first, then AI validates and provides narrative. No VM names sent to AI.
 - Caching: Proxy 30min (in-memory), Client 24hr (localStorage)
 
 ## Version Management
@@ -344,11 +367,12 @@ Maps VMware port groups to IBM Cloud VPC subnets. Distributes across 3 zones. Ge
 
 Side-by-side ROKS vs VSI comparison with auto-classification, user overrides, and 5-tab analysis. Route: `/migration-comparison`.
 
-**Target Classification** — 7-rule heuristic (priority order): Windows→VSI, ROKS OS unsupported→VSI, VSI OS unsupported→ROKS, memory >512GB→ROKS, workload type heuristics, Linux default→ROKS, fallback→VSI. Recommendation: >70% one target → recommend that target; else split.
+**Target Classification** — Data-driven rule engine (`src/data/targetClassificationRules.json`) evaluated in priority order: OS compatibility crosscheck (consults ROKS/VSI compat JSON), memory >512GB→ROKS, workload type heuristics, Linux default→ROKS, fallback→VSI. No hardcoded OS checks — Windows VMs are routed by actual compatibility data (e.g., Windows Server 2022 is supported on both targets). Recommendation: >70% one target → recommend that target; else split.
 
 | File | Purpose |
 |------|---------|
-| `src/services/migration/targetClassification.ts` | `classifyVMTarget()`, `classifyAllVMs()`, `getRecommendation()` |
+| `src/data/targetClassificationRules.json` | Data-driven classification rules (priority, type, target, confidence, reason templates) |
+| `src/services/migration/targetClassification.ts` | Rule engine: `classifyVMTarget()`, `classifyAllVMs()`, `getRecommendation()` |
 | `src/hooks/useTargetAssignments.ts` | localStorage `vcf-target-assignments`, env fingerprinting, user overrides |
 | `src/hooks/useComparisonData.ts` | Split VMs by target, compute per-target metrics |
 | `src/pages/MigrationComparisonPage.tsx` | Main page with 5 tabs |

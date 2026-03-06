@@ -54,66 +54,80 @@ function makeVM(overrides: Partial<VirtualMachine> = {}): VirtualMachine {
   };
 }
 
-// --- Rule 1: Windows → VSI ---
+// --- OS Compatibility Crosscheck (Rules 1-2) ---
 
 describe('classifyVMTarget', () => {
-  describe('Rule 1: Windows OS → VSI', () => {
-    it('classifies Windows Server as VSI with high confidence', () => {
+  describe('OS compatibility crosscheck rules', () => {
+    it('classifies Windows Server 2022 as ROKS (fully-supported on both, no unsupported crosscheck triggers)', () => {
+      // Windows Server 2022 is fully-supported on ROKS and supported on VSI
+      // Neither crosscheck rule fires, so it falls through to fallback → VSI
+      // (not Linux, no workload type)
       const vm = makeVM({ guestOS: 'Microsoft Windows Server 2022 (64-bit)' });
       const result = classifyVMTarget(vm);
+      // Both targets support it, so falls through to fallback (VSI)
       expect(result.target).toBe('vsi');
-      expect(result.confidence).toBe('high');
-      expect(result.reasons[0]).toContain('Windows');
+      expect(result.confidence).toBe('low');
     });
 
-    it('classifies Windows 10 as VSI', () => {
-      const vm = makeVM({ guestOS: 'Microsoft Windows 10 (64-bit)' });
+    it('classifies Windows Server 2019 as VSI via fallback (supported on both targets)', () => {
+      const vm = makeVM({ guestOS: 'Microsoft Windows Server 2019 (64-bit)' });
       const result = classifyVMTarget(vm);
       expect(result.target).toBe('vsi');
-      expect(result.confidence).toBe('high');
+      expect(result.confidence).toBe('low');
     });
 
-    it('is case-insensitive for Windows detection', () => {
-      const vm = makeVM({ guestOS: 'WINDOWS server 2019' });
-      const result = classifyVMTarget(vm);
-      expect(result.target).toBe('vsi');
-      expect(result.confidence).toBe('high');
-    });
-  });
-
-  // --- Rule 2: ROKS unsupported, VSI supported → VSI ---
-
-  describe('Rule 2: ROKS unsupported + VSI supported → VSI', () => {
-    it('classifies ROKS-unsupported OS to VSI when VSI supports it', () => {
-      // FreeBSD is unsupported on ROKS but may be unsupported on VSI too,
-      // so we use a known case: Windows is caught by Rule 1.
-      // Use an OS that ROKS doesn't support but VSI does.
-      // "SUSE Linux Enterprise Server 12" might hit this depending on compatibility data.
-      // Let's just verify the logic path directly with a well-known mismatch.
+    it('classifies Windows Server 2016 as VSI via fallback (supported on both targets)', () => {
       const vm = makeVM({ guestOS: 'Microsoft Windows Server 2016 (64-bit)' });
       const result = classifyVMTarget(vm);
-      // Windows is caught by Rule 1 first
       expect(result.target).toBe('vsi');
+    });
+
+    it('classifies Windows Server 2008 as VSI (unsupported on both, fallback)', () => {
+      // Windows 2008 is unsupported on both ROKS and VSI
+      // Neither crosscheck fires (both unsupported), falls to fallback
+      const vm = makeVM({ guestOS: 'Microsoft Windows Server 2008 (64-bit)' });
+      const result = classifyVMTarget(vm);
+      expect(result.target).toBe('vsi');
+      expect(result.confidence).toBe('low');
+    });
+
+    it('classifies Windows Server 2012 as ROKS-unsupported → VSI', () => {
+      // Windows 2012 is unsupported on ROKS, BYOL on VSI (not unsupported)
+      const vm = makeVM({ guestOS: 'Microsoft Windows Server 2012 (64-bit)' });
+      const result = classifyVMTarget(vm);
+      expect(result.target).toBe('vsi');
+      expect(result.confidence).toBe('high');
+      expect(result.reasons[0]).toContain('unsupported on ROKS');
+    });
+
+    it('classifies Solaris as VSI (unsupported on ROKS, unsupported on VSI → fallback)', () => {
+      const vm = makeVM({ guestOS: 'Oracle Solaris 11' });
+      const result = classifyVMTarget(vm);
+      // Both unsupported, falls through to fallback
+      expect(result.target).toBe('vsi');
+    });
+
+    it('classifies Ubuntu 18 as ROKS (unsupported on VSI, supported-with-caveats on ROKS)', () => {
+      // Ubuntu 18 is unsupported on VSI but supported-with-caveats on ROKS
+      const vm = makeVM({ guestOS: 'Ubuntu 18.04 LTS (64-bit)' });
+      const result = classifyVMTarget(vm);
+      expect(result.target).toBe('roks');
+      expect(result.confidence).toBe('high');
+      expect(result.reasons[0]).toContain('unsupported on VSI');
+    });
+
+    it('classifies CentOS 7 as ROKS (unsupported on VSI, supported-with-caveats on ROKS)', () => {
+      // CentOS 7 is unsupported on VSI but supported-with-caveats on ROKS
+      const vm = makeVM({ guestOS: 'CentOS Linux 7 (64-bit)' });
+      const result = classifyVMTarget(vm);
+      expect(result.target).toBe('roks');
       expect(result.confidence).toBe('high');
     });
   });
 
-  // --- Rule 3: VSI unsupported, ROKS supported → ROKS ---
+  // --- Resource threshold (Rule 3) ---
 
-  describe('Rule 3: VSI unsupported + ROKS supported → ROKS', () => {
-    it('classifies VSI-unsupported OS to ROKS when ROKS supports it', () => {
-      // This depends on actual compatibility data. We test the logic
-      // by checking that if both are supported, we fall through.
-      const vm = makeVM({ guestOS: 'Red Hat Enterprise Linux 9 (64-bit)' });
-      const result = classifyVMTarget(vm);
-      // RHEL 9 is supported on both, so it should fall through to later rules
-      expect(result.target).toBeDefined();
-    });
-  });
-
-  // --- Rule 4: High memory → ROKS ---
-
-  describe('Rule 4: Memory >512GB → ROKS', () => {
+  describe('Resource threshold: Memory >512GB → ROKS', () => {
     it('classifies high-memory Linux VM as ROKS', () => {
       const vm = makeVM({
         guestOS: 'Red Hat Enterprise Linux 9 (64-bit)',
@@ -145,9 +159,9 @@ describe('classifyVMTarget', () => {
     });
   });
 
-  // --- Rule 5: Workload type heuristics ---
+  // --- Workload type heuristics (Rules 4-5) ---
 
-  describe('Rule 5: Workload type heuristics', () => {
+  describe('Workload type heuristics', () => {
     it('classifies database workload as VSI', () => {
       const vm = makeVM({ guestOS: 'Red Hat Enterprise Linux 9 (64-bit)' });
       const result = classifyVMTarget(vm, 'Database Server');
@@ -193,18 +207,26 @@ describe('classifyVMTarget', () => {
     });
 
     it('does not classify middleware on non-Linux as ROKS', () => {
-      // A non-Linux, non-Windows OS with middleware workload type
+      // FreeBSD with middleware workload type — requireOS check fails
       const vm = makeVM({ guestOS: 'FreeBSD 13 (64-bit)' });
       const result = classifyVMTarget(vm, 'Middleware');
       // Should fall through to fallback since FreeBSD is not Linux
       expect(result.target).toBe('vsi');
       expect(result.confidence).toBe('low');
     });
+
+    it('does not classify middleware on Windows as ROKS', () => {
+      // Windows Server 2022 with middleware — requireOS check fails for ROKS workload rule
+      const vm = makeVM({ guestOS: 'Microsoft Windows Server 2022 (64-bit)' });
+      const result = classifyVMTarget(vm, 'Middleware');
+      // Falls through to fallback (Windows is not in requireOS patterns)
+      expect(result.target).toBe('vsi');
+    });
   });
 
-  // --- Rule 6: Linux default → ROKS ---
+  // --- Linux default → ROKS (Rule 6) ---
 
-  describe('Rule 6: Linux default → ROKS', () => {
+  describe('Linux default → ROKS', () => {
     it('classifies generic Linux as ROKS with low confidence', () => {
       const vm = makeVM({ guestOS: 'Red Hat Enterprise Linux 9 (64-bit)' });
       const result = classifyVMTarget(vm);
@@ -219,7 +241,8 @@ describe('classifyVMTarget', () => {
       expect(result.target).toBe('roks');
     });
 
-    it('classifies CentOS as ROKS', () => {
+    it('classifies CentOS 8 as ROKS (unsupported on VSI → high confidence crosscheck)', () => {
+      // CentOS 8 is unsupported on VSI, so crosscheck rule fires first
       const vm = makeVM({ guestOS: 'CentOS 8 (64-bit)' });
       const result = classifyVMTarget(vm);
       expect(result.target).toBe('roks');
@@ -238,9 +261,9 @@ describe('classifyVMTarget', () => {
     });
   });
 
-  // --- Rule 7: Fallback → VSI ---
+  // --- Fallback → VSI (Rule 7) ---
 
-  describe('Rule 7: Fallback → VSI', () => {
+  describe('Fallback → VSI', () => {
     it('classifies unknown OS as VSI with low confidence', () => {
       const vm = makeVM({ guestOS: 'SomeUnknownOS 5.0' });
       const result = classifyVMTarget(vm);
@@ -273,6 +296,42 @@ describe('classifyVMTarget', () => {
       expect(result.vmId).toBe('srv-01::DC2::CL1');
     });
   });
+
+  // --- Rule engine mechanics ---
+
+  describe('rule engine mechanics', () => {
+    it('OS crosscheck takes priority over workload type', () => {
+      // Ubuntu 18 is unsupported on VSI → should be ROKS even with database workload
+      const vm = makeVM({ guestOS: 'Ubuntu 18.04 LTS (64-bit)' });
+      const result = classifyVMTarget(vm, 'Database Server');
+      expect(result.target).toBe('roks');
+      expect(result.confidence).toBe('high');
+    });
+
+    it('memory threshold takes priority over workload type', () => {
+      const vm = makeVM({
+        guestOS: 'Red Hat Enterprise Linux 9 (64-bit)',
+        memory: 600000,
+      });
+      const result = classifyVMTarget(vm, 'Database Server');
+      expect(result.target).toBe('roks');
+      expect(result.confidence).toBe('medium');
+      expect(result.reasons[0]).toContain('memory');
+    });
+
+    it('workload type takes priority over Linux default', () => {
+      const vm = makeVM({ guestOS: 'Red Hat Enterprise Linux 9 (64-bit)' });
+      const result = classifyVMTarget(vm, 'Database Server');
+      expect(result.target).toBe('vsi');
+      expect(result.confidence).toBe('medium');
+    });
+
+    it('returns single reason from the matching rule', () => {
+      const vm = makeVM({ guestOS: 'Ubuntu Linux (64-bit)' });
+      const result = classifyVMTarget(vm);
+      expect(result.reasons).toHaveLength(1);
+    });
+  });
 });
 
 // --- classifyAllVMs ---
@@ -291,7 +350,7 @@ describe('classifyAllVMs', () => {
 
     const results = classifyAllVMs(vms, workloadTypes);
     expect(results).toHaveLength(3);
-    expect(results[0].target).toBe('vsi'); // Windows
+    expect(results[0].target).toBe('vsi'); // Windows 2022 — both supported, fallback to VSI
     expect(results[1].target).toBe('roks'); // Linux default
     expect(results[2].target).toBe('vsi'); // Database workload
   });

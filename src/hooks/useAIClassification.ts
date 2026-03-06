@@ -15,6 +15,7 @@ export interface UseAIClassificationReturn {
   classifications: Record<string, VMClassificationResult>;
   isLoading: boolean;
   error: string | null;
+  progress: number; // 0-100
   getClassification: (vmName: string) => VMClassificationResult | null;
   refreshClassifications: () => Promise<void>;
   clearCache: () => void;
@@ -35,6 +36,7 @@ export function useAIClassification(
   const [classifications, setClassifications] = useState<Record<string, VMClassificationResult>>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState(0);
   const isAvailable = isAIProxyConfigured() && settings.enabled;
   const fetchedRef = useRef(false);
 
@@ -43,6 +45,7 @@ export function useAIClassification(
 
     setIsLoading(true);
     setError(null);
+    setProgress(0);
 
     try {
       const results = await fetchAIClassifications(vms, environmentFingerprint);
@@ -51,6 +54,7 @@ export function useAIClassification(
         map[r.vmName] = r;
       }
       setClassifications(map);
+      setProgress(100);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Classification failed';
       setError(message);
@@ -91,6 +95,7 @@ export function useAIClassification(
     classifications,
     isLoading,
     error,
+    progress,
     getClassification,
     refreshClassifications,
     clearCache,

@@ -136,7 +136,7 @@ SheetJS is particularly useful when RVTools exports have multiple tabs (e.g. `vI
 
 ### FileReader API (Web Standard)
 
-The native **FileReader** Web API is used under the hood to read user-selected files (CSV/Excel) from disk into memory, creating binary or text blobs that parsing libraries (like PapaParse and SheetJS) turn into usable data structures.
+The native **FileReader** Web API is used under the hood to read user-selected files (Excel) from disk into memory, creating binary blobs that SheetJS turns into usable data structures.
 
 Key features:
 - Browser-native, no extra dependency
@@ -163,10 +163,10 @@ For the simple normalization of parsed data into consistent table models, native
 
 ### Why These Matter
 
-Enterprise-scale exports like those from RVTools can be *large* and *tabular*, with inconsistent column naming between versions. Using the combination of native FileReader + PapaParse + SheetJS enables:
+Enterprise-scale exports like those from RVTools can be *large* and *tabular*, with inconsistent column naming between versions. Using the combination of native FileReader + SheetJS enables:
 
 - Browser-side parsing without server service
-- Support for both CSV and Excel formats
+- Support for Excel formats (.xlsx, .xls)
 - Mapping tabs to specific inventory views
 - Safe, asynchronous handling of large files
 
@@ -307,6 +307,43 @@ D3 is used directly (not via a React wrapper) following the same pattern as the 
 
 ---
 
+## Data Tables with TanStack Table
+
+**TanStack Table** (formerly React Table) provides headless, framework-agnostic table utilities for building powerful data grids. The application uses it for sortable, filterable, and paginated VM inventory tables throughout the migration assessment views.
+
+Key capabilities used:
+- Column sorting and filtering
+- Pagination for large datasets
+- Flexible column definitions with custom cell renderers
+
+🔗 https://tanstack.com/table
+
+---
+
+## Date Handling with date-fns
+
+**date-fns** is a lightweight, modular JavaScript date utility library used for date formatting, calculations, and manipulation throughout the application — particularly in migration timeline planning and snapshot age calculations.
+
+🔗 https://date-fns.org/
+
+---
+
+## Screenshot Capture with html2canvas
+
+**html2canvas** renders HTML elements to canvas for capturing screenshots of charts and UI components. Used alongside jsPDF for embedding visual snapshots of dashboards and topology diagrams into PDF reports.
+
+🔗 https://html2canvas.hertzen.com/
+
+---
+
+## UUID Generation
+
+The **uuid** library generates RFC-compliant unique identifiers used for creating deterministic or random IDs for VM overrides, export records, and other internal data structures that require guaranteed uniqueness.
+
+🔗 https://github.com/uuidjs/uuid
+
+---
+
 ## Summary
 
 This technology stack combines a modern React frontend with strong typing, fast build tooling, and an enterprise-grade design system. Together, these technologies provide a scalable foundation for building a robust UI to support VMware Cloud Foundation migration and infrastructure analysis workflows.
@@ -328,12 +365,21 @@ This technology stack combines a modern React frontend with strong typing, fast 
 | Generate Word documents | docx |
 | Read/write basic Excel | SheetJS (`xlsx`) |
 
+### Data Management
+
+| Responsibility | Technology |
+|----------------|------------|
+| Data tables (sort, filter, paginate) | TanStack Table |
+| Date formatting and calculations | date-fns |
+| Unique ID generation | uuid |
+
 ### Visualization
 
 | Responsibility | Technology |
 |----------------|------------|
 | Charts and graphs | Chart.js |
 | Network topology diagrams | D3.js |
+| Screenshot capture for exports | html2canvas |
 | UI components | IBM Carbon Design System |
 | Responsive layout | CSS3 / Carbon Grid |
 

@@ -173,6 +173,13 @@ export interface ChatContext {
     region: string;
   };
   currentPage: string;
+  // Enriched context — aggregated data slices, never individual VM data
+  networkTopology?: string[];
+  osDistribution?: string[];
+  topResourceConsumers?: string[];
+  snapshotSummary?: string;
+  datastoreSummary?: string;
+  riskSummary?: string;
 }
 
 export interface ChatRequest {
@@ -290,6 +297,354 @@ export interface RemediationRequest {
 
 export interface RemediationResponse {
   result: RemediationResult;
+  model: string;
+  processingTimeMs: number;
+}
+
+// ===== STREAMING TYPES =====
+
+export interface StreamCallbacks {
+  onChunk: (text: string) => void;
+  onDone: (fullText: string) => void;
+  onError: (error: Error) => void;
+}
+
+// ===== TARGET SELECTION TYPES =====
+
+export type MigrationTarget = 'roks' | 'vsi';
+
+export interface TargetSelectionInput {
+  vmName: string;
+  guestOS?: string;
+  workloadType?: string;
+  vCPUs: number;
+  memoryMB: number;
+  storageMB?: number;
+  nicCount?: number;
+  hasRDM?: boolean;
+  hasSharedVMDK?: boolean;
+  hasVGPU?: boolean;
+}
+
+export interface TargetSelectionResult {
+  vmName: string;
+  target: MigrationTarget;
+  confidence: number; // 0-1
+  reasoning: string;
+  alternativeTarget: MigrationTarget;
+  alternativeReasoning: string;
+  source: 'ai' | 'rule-based';
+}
+
+export interface TargetSelectionRequest {
+  vms: TargetSelectionInput[];
+}
+
+export interface TargetSelectionResponse {
+  selections: TargetSelectionResult[];
+  model: string;
+  processingTimeMs: number;
+}
+
+// ===== WAVE SEQUENCING TYPES =====
+
+export interface WaveSequencingInput {
+  waves: Array<{
+    name: string;
+    vmCount: number;
+    totalVCPUs: number;
+    totalMemoryGiB: number;
+    workloadTypes: string[];
+    networkGroups?: string[];
+    vmSummaries?: Array<{
+      workloadType: string;
+      vCPUs: number;
+      memoryGiB: number;
+      networkGroup?: string;
+    }>;
+  }>;
+  totalVMs: number;
+  migrationTarget: MigrationTarget | 'both';
+}
+
+export interface DependencyDetection {
+  from: string;
+  to: string;
+  reason: string;
+}
+
+export interface VMMoveSuggestion {
+  vmDescription: string;
+  fromWave: string;
+  toWave: string;
+  reason: string;
+}
+
+export interface WaveSequencingResult {
+  suggestedOrder: string[];
+  dependencies: DependencyDetection[];
+  riskSchedule: Array<{ waveName: string; riskLevel: 'low' | 'medium' | 'high'; riskReason: string }>;
+  vmMoveRecommendations: VMMoveSuggestion[];
+  source: AISource;
+}
+
+export interface WaveSequencingRequest {
+  data: WaveSequencingInput;
+}
+
+export interface WaveSequencingResponse {
+  result: WaveSequencingResult;
+  model: string;
+  processingTimeMs: number;
+}
+
+// ===== ANOMALY DETECTION TYPES =====
+
+export type AnomalyCategory =
+  | 'resource-misconfig'
+  | 'security-concern'
+  | 'migration-risk'
+  | 'network-anomaly'
+  | 'storage-anomaly'
+  | 'configuration-drift';
+
+export type AnomalySeverity = 'critical' | 'high' | 'medium' | 'low';
+
+export interface AnomalyCandidate {
+  category: AnomalyCategory;
+  description: string;
+  affectedCount: number;
+  stats?: string;
+}
+
+export interface AnomalyDetectionInput {
+  anomalyCandidates: AnomalyCandidate[];
+  totalVMs: number;
+  totalHosts?: number;
+  totalClusters?: number;
+}
+
+export interface AnomalyResult {
+  category: AnomalyCategory;
+  severity: AnomalySeverity;
+  title: string;
+  description: string;
+  affectedCount: number;
+  recommendation: string;
+  isValid: boolean;
+}
+
+export interface AnomalyDetectionResult {
+  anomalies: AnomalyResult[];
+  source: AISource;
+}
+
+export interface AnomalyDetectionRequest {
+  data: AnomalyDetectionInput;
+}
+
+export interface AnomalyDetectionResponse {
+  result: AnomalyDetectionResult;
+  model: string;
+  processingTimeMs: number;
+}
+
+// ===== AI RISK ANALYSIS TYPES =====
+
+export interface RiskAnalysisInput {
+  riskAssessment: {
+    overallRisk: string;
+    goNoGo: string;
+    domains: Array<{
+      name: string;
+      severity: string;
+      autoSeverity: string | null;
+      evidence: Array<{ title: string }>;
+    }>;
+  };
+  totalVMs: number;
+  totalHosts?: number;
+  blockerSummary?: string[];
+  complexitySummary?: {
+    simple: number;
+    moderate: number;
+    complex: number;
+    blocker: number;
+  };
+}
+
+export interface SeverityAdjustment {
+  domain: string;
+  currentSeverity: string;
+  suggestedSeverity: string;
+  reasoning: string;
+}
+
+export interface MissedRisk {
+  domain: string;
+  title: string;
+  severity: string;
+  description: string;
+}
+
+export interface SecurityRisk {
+  title: string;
+  severity: string;
+  description: string;
+  recommendation: string;
+}
+
+export interface GoNoGoAnalysis {
+  recommendation: 'go' | 'conditional' | 'no-go';
+  confidence: number;
+  reasoning: string;
+  keyConditions: string[];
+}
+
+export interface RiskAnalysisResult {
+  severityAdjustments: SeverityAdjustment[];
+  missedRisks: MissedRisk[];
+  securityRisks: SecurityRisk[];
+  goNoGoAnalysis: GoNoGoAnalysis;
+  source: AISource;
+}
+
+export interface RiskAnalysisRequest {
+  data: RiskAnalysisInput;
+}
+
+export interface RiskAnalysisResponse {
+  result: RiskAnalysisResult;
+  model: string;
+  processingTimeMs: number;
+}
+
+// ===== REPORT NARRATIVE TYPES =====
+
+export interface ReportInput {
+  totalVMs: number;
+  totalVCPUs: number;
+  totalMemoryGiB: number;
+  totalStorageTiB: number;
+  clusterCount: number;
+  hostCount: number;
+  migrationTarget?: string;
+  workloadBreakdown?: Record<string, number>;
+  costEstimate?: {
+    monthly: number;
+    annual: number;
+    region: string;
+  };
+  riskSummary?: {
+    overallRisk: string;
+    goNoGo: string;
+  };
+  wavePlan?: {
+    totalWaves: number;
+    totalDuration: number;
+  };
+}
+
+export interface ReportNarrativeResult {
+  executiveSummary: string;
+  environmentAnalysis: string;
+  migrationRecommendation: string;
+  riskNarrative: string;
+  costJustification: string;
+  nextSteps: string[];
+  assumptions: string[];
+  source: AISource;
+}
+
+export interface ReportNarrativeRequest {
+  data: ReportInput;
+}
+
+export interface ReportNarrativeResponse {
+  result: ReportNarrativeResult;
+  model: string;
+  processingTimeMs: number;
+}
+
+// ===== DISCOVERY QUESTIONS TYPES =====
+
+export interface DiscoveryQuestionsInput {
+  totalVMs?: number;
+  totalVCPUs?: number;
+  totalMemoryGiB?: number;
+  workloadBreakdown?: Record<string, number>;
+  currentPage?: string;
+}
+
+export interface DiscoveryQuestion {
+  id: string;
+  question: string;
+  priority: 'high' | 'medium' | 'low';
+  context: string;
+}
+
+export interface QuestionGroup {
+  topic: string;
+  relevance: string;
+  questions: DiscoveryQuestion[];
+}
+
+export interface DiscoveryQuestionsResult {
+  questionGroups: QuestionGroup[];
+  source: AISource;
+}
+
+export interface DiscoveryQuestionsRequest {
+  data: DiscoveryQuestionsInput;
+}
+
+export interface DiscoveryQuestionsResponse {
+  result: DiscoveryQuestionsResult;
+  model: string;
+  processingTimeMs: number;
+}
+
+// ===== INTERVIEW TYPES =====
+
+export interface InterviewInput {
+  currentQuestionId?: string;
+  userAnswer: string;
+  interviewHistory?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  environmentContext?: {
+    totalVMs?: number;
+    migrationTarget?: string;
+  };
+}
+
+export interface InterviewResult {
+  nextQuestion: {
+    id: string;
+    question: string;
+    topic: string;
+  };
+  followUpContext: string;
+  insightsFromAnswer: string[];
+  source: AISource;
+}
+
+export interface InterviewRequest {
+  currentQuestionId?: string;
+  userAnswer: string;
+  interviewHistory?: Array<{
+    question: string;
+    answer: string;
+  }>;
+  environmentContext?: {
+    totalVMs?: number;
+    migrationTarget?: string;
+  };
+}
+
+export interface InterviewResponse {
+  result: InterviewResult;
   model: string;
   processingTimeMs: number;
 }

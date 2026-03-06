@@ -1,13 +1,16 @@
 /**
  * Target Classification Service
  *
- * Classifies VMs into migration targets (ROKS or VSI) based on OS compatibility,
- * resource requirements, and workload type heuristics.
+ * Data-driven rule engine that classifies VMs into migration targets (ROKS or VSI).
+ * Rules are defined in src/data/targetClassificationRules.json and evaluated in
+ * priority order. OS compatibility is determined by consulting the actual
+ * compatibility JSON data rather than hardcoded OS checks.
  */
 
 import type { VirtualMachine } from '@/types/rvtools';
 import { getROKSOSCompatibility, getVSIOSCompatibility } from './osCompatibility';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
+import rulesData from '@/data/targetClassificationRules.json';
 
 // --- Types ---
 
@@ -32,57 +35,112 @@ export interface ComparisonRecommendation {
   vsiPercentage: number;
 }
 
-// --- Constants ---
-
-const MEMORY_THRESHOLD_MIB = 524288; // 512 GB in MiB
-
-const LINUX_PATTERNS = [
-  'linux',
-  'ubuntu',
-  'centos',
-  'rhel',
-  'red hat',
-  'debian',
-  'suse',
-  'fedora',
-  'oracle linux',
-  'alma',
-  'rocky',
-];
-
-const VSI_WORKLOAD_TYPES = [
-  'database',
-  'enterprise',
-  'backup',
-  'monitoring',
-];
-
-const ROKS_WORKLOAD_TYPES = [
-  'middleware',
-  'dev',
-];
-
-// --- Helpers ---
-
-function isWindows(guestOS: string): boolean {
-  return guestOS.toLowerCase().includes('windows');
+interface ClassificationRule {
+  id: string;
+  priority: number;
+  type: string;
+  target: MigrationTarget;
+  confidence: ConfidenceLevel;
+  reasonTemplate: string;
+  // os-compatibility-crosscheck
+  unsupportedOn?: string;
+  supportedOn?: string;
+  // resource-threshold
+  field?: string;
+  operator?: string;
+  value?: number;
+  unit?: string;
+  // workload-type
+  workloadTypes?: string[];
+  requireOS?: string[];
+  // os-pattern
+  patterns?: string[];
 }
 
-function isLinux(guestOS: string): boolean {
+// --- Rule Engine ---
+
+const sortedRules: ClassificationRule[] = [...rulesData.rules]
+  .sort((a, b) => a.priority - b.priority) as ClassificationRule[];
+
+function matchesOSPatterns(guestOS: string, patterns: string[]): boolean {
   const osLower = guestOS.toLowerCase();
-  return LINUX_PATTERNS.some(pattern => osLower.includes(pattern));
+  return patterns.some(p => osLower.includes(p));
 }
 
-function isVSIWorkload(workloadType: string | undefined): boolean {
-  if (!workloadType) return false;
-  const lower = workloadType.toLowerCase();
-  return VSI_WORKLOAD_TYPES.some(t => lower.includes(t));
+function interpolateReason(template: string, vars: Record<string, string>): string {
+  return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '');
 }
 
-function isROKSWorkload(workloadType: string | undefined, guestOS: string): boolean {
-  if (!workloadType) return false;
-  const lower = workloadType.toLowerCase();
-  return ROKS_WORKLOAD_TYPES.some(t => lower.includes(t)) && isLinux(guestOS);
+function evaluateRule(
+  rule: ClassificationRule,
+  vm: VirtualMachine,
+  workloadType: string | undefined,
+): string | null {
+  switch (rule.type) {
+    case 'os-compatibility-crosscheck': {
+      const roksCompat = getROKSOSCompatibility(vm.guestOS);
+      const vsiCompat = getVSIOSCompatibility(vm.guestOS);
+      const roksUnsupported = roksCompat.compatibilityStatus === 'unsupported';
+      const vsiUnsupported = vsiCompat.status === 'unsupported';
+
+      if (rule.unsupportedOn === 'roks' && rule.supportedOn === 'vsi') {
+        if (roksUnsupported && !vsiUnsupported) {
+          return interpolateReason(rule.reasonTemplate, { guestOS: vm.guestOS });
+        }
+      } else if (rule.unsupportedOn === 'vsi' && rule.supportedOn === 'roks') {
+        if (vsiUnsupported && !roksUnsupported) {
+          return interpolateReason(rule.reasonTemplate, { guestOS: vm.guestOS });
+        }
+      }
+      return null;
+    }
+
+    case 'resource-threshold': {
+      if (!rule.field || !rule.operator || rule.value === undefined) return null;
+      const fieldValue = (vm as unknown as Record<string, unknown>)[rule.field];
+      if (typeof fieldValue !== 'number') return null;
+
+      let matches = false;
+      if (rule.operator === '>') matches = fieldValue > rule.value;
+      else if (rule.operator === '>=') matches = fieldValue >= rule.value;
+      else if (rule.operator === '<') matches = fieldValue < rule.value;
+      else if (rule.operator === '<=') matches = fieldValue <= rule.value;
+
+      if (matches) {
+        const memoryGB = rule.field === 'memory' ? String(Math.round(fieldValue / 1024)) : String(fieldValue);
+        return interpolateReason(rule.reasonTemplate, { memoryGB, [rule.field]: String(fieldValue) });
+      }
+      return null;
+    }
+
+    case 'workload-type': {
+      if (!workloadType || !rule.workloadTypes) return null;
+      const lower = workloadType.toLowerCase();
+      const typeMatches = rule.workloadTypes.some(t => lower.includes(t));
+      if (!typeMatches) return null;
+
+      if (rule.requireOS && !matchesOSPatterns(vm.guestOS, rule.requireOS)) {
+        return null;
+      }
+
+      return interpolateReason(rule.reasonTemplate, { workloadType });
+    }
+
+    case 'os-pattern': {
+      if (!rule.patterns) return null;
+      if (matchesOSPatterns(vm.guestOS, rule.patterns)) {
+        return interpolateReason(rule.reasonTemplate, { guestOS: vm.guestOS });
+      }
+      return null;
+    }
+
+    case 'fallback': {
+      return interpolateReason(rule.reasonTemplate, { guestOS: vm.guestOS });
+    }
+
+    default:
+      return null;
+  }
 }
 
 // --- Classification ---
@@ -90,76 +148,36 @@ function isROKSWorkload(workloadType: string | undefined, guestOS: string): bool
 /**
  * Classify a single VM into a migration target (ROKS or VSI).
  *
- * Heuristic priority:
- * 1. Windows OS → VSI (ROKS doesn't support Windows)
- * 2. ROKS unsupported + VSI supported → VSI
- * 3. VSI unsupported + ROKS supported → ROKS
- * 4. Memory >512GB → ROKS (bare metal)
- * 5. Workload type heuristics
- * 6. Linux default → ROKS
- * 7. Fallback → VSI
+ * Evaluates data-driven rules from targetClassificationRules.json in priority order.
+ * The first matching rule determines the classification.
  */
 export function classifyVMTarget(
   vm: VirtualMachine,
   workloadType?: string,
 ): VMClassification {
   const vmId = getVMIdentifier(vm);
-  const reasons: string[] = [];
 
-  // Rule 1: Windows → VSI
-  if (isWindows(vm.guestOS)) {
-    reasons.push('Windows OS is not supported on ROKS (OpenShift Virtualization)');
-    return { vmId, vmName: vm.vmName, target: 'vsi', reasons, confidence: 'high' };
+  for (const rule of sortedRules) {
+    const reason = evaluateRule(rule, vm, workloadType);
+    if (reason !== null) {
+      return {
+        vmId,
+        vmName: vm.vmName,
+        target: rule.target,
+        reasons: [reason],
+        confidence: rule.confidence,
+      };
+    }
   }
 
-  // Rule 2 & 3: OS compatibility cross-check
-  const roksCompat = getROKSOSCompatibility(vm.guestOS);
-  const vsiCompat = getVSIOSCompatibility(vm.guestOS);
-
-  const roksUnsupported = roksCompat.compatibilityStatus === 'unsupported';
-  const vsiUnsupported = vsiCompat.status === 'unsupported';
-  const roksSupported = !roksUnsupported;
-  const vsiSupported = !vsiUnsupported;
-
-  // Rule 2: ROKS unsupported, VSI supported → VSI
-  if (roksUnsupported && vsiSupported) {
-    reasons.push(`OS "${vm.guestOS}" is unsupported on ROKS but supported on VSI`);
-    return { vmId, vmName: vm.vmName, target: 'vsi', reasons, confidence: 'high' };
-  }
-
-  // Rule 3: VSI unsupported, ROKS supported → ROKS
-  if (vsiUnsupported && roksSupported) {
-    reasons.push(`OS "${vm.guestOS}" is unsupported on VSI but supported on ROKS`);
-    return { vmId, vmName: vm.vmName, target: 'roks', reasons, confidence: 'high' };
-  }
-
-  // Rule 4: High memory → ROKS (bare metal)
-  if (vm.memory > MEMORY_THRESHOLD_MIB) {
-    const memGB = Math.round(vm.memory / 1024);
-    reasons.push(`High memory (${memGB} GB) requires bare metal, best suited for ROKS`);
-    return { vmId, vmName: vm.vmName, target: 'roks', reasons, confidence: 'medium' };
-  }
-
-  // Rule 5: Workload type heuristics
-  if (isVSIWorkload(workloadType)) {
-    reasons.push(`Workload type "${workloadType}" is typically better suited for VSI`);
-    return { vmId, vmName: vm.vmName, target: 'vsi', reasons, confidence: 'medium' };
-  }
-
-  if (isROKSWorkload(workloadType, vm.guestOS)) {
-    reasons.push(`Workload type "${workloadType}" on Linux is well suited for ROKS`);
-    return { vmId, vmName: vm.vmName, target: 'roks', reasons, confidence: 'medium' };
-  }
-
-  // Rule 6: Linux default → ROKS
-  if (isLinux(vm.guestOS)) {
-    reasons.push('Linux workload defaults to ROKS (OpenShift Virtualization)');
-    return { vmId, vmName: vm.vmName, target: 'roks', reasons, confidence: 'low' };
-  }
-
-  // Rule 7: Fallback → VSI
-  reasons.push('Default classification: VSI (no specific ROKS indicators)');
-  return { vmId, vmName: vm.vmName, target: 'vsi', reasons, confidence: 'low' };
+  // Should never reach here if fallback rule exists
+  return {
+    vmId,
+    vmName: vm.vmName,
+    target: 'vsi',
+    reasons: ['Default classification: VSI (no specific ROKS indicators)'],
+    confidence: 'low',
+  };
 }
 
 /**

@@ -1,6 +1,11 @@
 /**
  * watsonx.ai SDK client with IAM authentication and token caching
+ *
+ * Supports both synchronous and streaming text generation/chat.
  */
+
+const API_VERSION = '2024-05-31';
+const BASE_URL = 'https://us-south.ml.cloud.ibm.com';
 
 // Token cache with 5-minute expiry buffer
 let tokenCache = {
@@ -87,7 +92,7 @@ async function generateText({
   const startTime = Date.now();
 
   const response = await fetch(
-    'https://us-south.ml.cloud.ibm.com/ml/v1/text/generation?version=2024-05-31',
+    `${BASE_URL}/ml/v1/text/generation?version=${API_VERSION}`,
     {
       method: 'POST',
       headers: {
@@ -153,7 +158,7 @@ async function chat({
   const startTime = Date.now();
 
   const response = await fetch(
-    'https://us-south.ml.cloud.ibm.com/ml/v1/text/chat?version=2024-05-31',
+    `${BASE_URL}/ml/v1/text/chat?version=${API_VERSION}`,
     {
       method: 'POST',
       headers: {
@@ -182,8 +187,155 @@ async function chat({
   return data.choices[0].message.content;
 }
 
+/**
+ * Stream text generation from watsonx.ai via SSE
+ *
+ * Pipes SSE events from watsonx to an Express response.
+ *
+ * @param {Object} options
+ * @param {string} options.prompt - The prompt to send
+ * @param {string} options.apiKey - IBM Cloud API key
+ * @param {string} options.projectId - watsonx.ai project ID
+ * @param {string} options.modelId - Model identifier
+ * @param {Object} [options.parameters] - Generation parameters
+ * @param {import('express').Response} options.res - Express response to pipe SSE into
+ */
+async function generateTextStream({
+  prompt,
+  apiKey,
+  projectId,
+  modelId,
+  parameters = {},
+  res,
+}) {
+  const token = await getAccessToken(apiKey);
+
+  const defaultParams = {
+    decoding_method: 'greedy',
+    max_new_tokens: 2048,
+    temperature: 0.1,
+    top_p: 1,
+    repetition_penalty: 1.05,
+    stop_sequences: [],
+  };
+
+  const requestBody = {
+    model_id: modelId,
+    input: prompt,
+    project_id: projectId,
+    parameters: { ...defaultParams, ...parameters },
+  };
+
+  const response = await fetch(
+    `${BASE_URL}/ml/v1/text/generation_stream?version=${API_VERSION}`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(requestBody),
+    }
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`watsonx.ai stream API error ${response.status}: ${errorBody}`);
+  }
+
+  // Pipe the SSE stream through to the client
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      res.write(chunk);
+    }
+  } finally {
+    res.write('data: [DONE]\n\n');
+    res.end();
+  }
+}
+
+/**
+ * Stream chat response from watsonx.ai via SSE
+ *
+ * @param {Object} options
+ * @param {Array<{role: string, content: string}>} options.messages - Chat messages
+ * @param {string} options.apiKey - IBM Cloud API key
+ * @param {string} options.projectId - watsonx.ai project ID
+ * @param {string} options.modelId - Model identifier
+ * @param {Object} [options.parameters] - Generation parameters
+ * @param {import('express').Response} options.res - Express response to pipe SSE into
+ */
+async function chatStream({
+  messages,
+  apiKey,
+  projectId,
+  modelId,
+  parameters = {},
+  res,
+}) {
+  const token = await getAccessToken(apiKey);
+
+  const defaultParams = {
+    max_tokens: 2048,
+    temperature: 0.3,
+    top_p: 0.95,
+    frequency_penalty: 0.1,
+  };
+
+  const requestBody = {
+    model_id: modelId,
+    messages,
+    project_id: projectId,
+    ...{ ...defaultParams, ...parameters },
+    stream: true,
+  };
+
+  const response = await fetch(
+    `${BASE_URL}/ml/v1/text/chat_stream?version=${API_VERSION}`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(requestBody),
+    }
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`watsonx.ai chat stream API error ${response.status}: ${errorBody}`);
+  }
+
+  // Pipe the SSE stream through to the client
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      res.write(chunk);
+    }
+  } finally {
+    res.write('data: [DONE]\n\n');
+    res.end();
+  }
+}
+
 module.exports = {
   generateText,
   chat,
+  generateTextStream,
+  chatStream,
   getAccessToken,
 };

@@ -14,7 +14,7 @@
 
 const express = require('express');
 const cors = require('cors');
-const { generateText, chat } = require('./watsonx');
+const { generateText, chat, generateTextStream, chatStream } = require('./watsonx');
 const {
   buildClassificationPrompt,
   buildRightsizingPrompt,
@@ -23,6 +23,13 @@ const {
   buildWaveSuggestionsPrompt,
   buildCostOptimizationPrompt,
   buildRemediationPrompt,
+  buildTargetSelectionPrompt,
+  buildWaveSequencingPrompt,
+  buildAnomalyDetectionPrompt,
+  buildRiskAnalysisPrompt,
+  buildReportNarrativePrompt,
+  buildDiscoveryQuestionsPrompt,
+  buildInterviewPrompt,
 } = require('./prompts');
 
 const app = express();
@@ -32,6 +39,91 @@ const PORT = process.env.PORT || 8080;
 const API_KEY = process.env.IBM_CLOUD_API_KEY;
 const PROJECT_ID = process.env.WATSONX_PROJECT_ID;
 const MODEL_ID = process.env.WATSONX_MODEL_ID || 'ibm/granite-3-8b-instruct';
+
+// Tiered model selection — lighter model for simple tasks, larger for complex reasoning
+const FAST_MODEL = process.env.WATSONX_FAST_MODEL_ID || 'ibm/granite-3-1-8b-instruct';
+const COMPLEX_MODEL = process.env.WATSONX_COMPLEX_MODEL_ID || 'ibm/granite-3-1-34b-instruct';
+
+/**
+ * Select model based on task complexity
+ */
+function selectModel(task) {
+  const complexTasks = [
+    'insights', 'chat', 'risk-analysis', 'report-narrative',
+    'target-selection', 'anomaly-detection', 'wave-sequencing',
+  ];
+  if (complexTasks.includes(task)) {
+    return COMPLEX_MODEL;
+  }
+  return FAST_MODEL;
+}
+
+/**
+ * Run batches in parallel with concurrency limit
+ * @param {Array} items - Items to process
+ * @param {number} batchSize - Items per batch
+ * @param {number} concurrency - Max concurrent batches
+ * @param {Function} processBatch - Async function to process a batch
+ * @param {Function} [onProgress] - Optional progress callback
+ * @returns {Promise<Array>} Flattened results
+ */
+async function parallelBatch(items, batchSize, concurrency, processBatch, onProgress) {
+  const batches = [];
+  for (let i = 0; i < items.length; i += batchSize) {
+    batches.push(items.slice(i, i + batchSize));
+  }
+
+  const results = [];
+  let completed = 0;
+
+  // Process batches with concurrency limit using a semaphore
+  const semaphore = { active: 0, queue: [] };
+
+  function acquire() {
+    return new Promise((resolve) => {
+      if (semaphore.active < concurrency) {
+        semaphore.active++;
+        resolve();
+      } else {
+        semaphore.queue.push(resolve);
+      }
+    });
+  }
+
+  function release() {
+    semaphore.active--;
+    if (semaphore.queue.length > 0) {
+      semaphore.active++;
+      semaphore.queue.shift()();
+    }
+  }
+
+  const promises = batches.map(async (batch, index) => {
+    await acquire();
+    try {
+      const result = await processBatch(batch, index);
+      completed++;
+      if (onProgress) onProgress(completed, batches.length);
+      return result;
+    } catch (error) {
+      completed++;
+      if (onProgress) onProgress(completed, batches.length);
+      console.warn(`Batch ${index + 1} failed: ${error.message}`);
+      return [];
+    } finally {
+      release();
+    }
+  });
+
+  const batchResults = await Promise.allSettled(promises);
+  for (const result of batchResults) {
+    if (result.status === 'fulfilled' && Array.isArray(result.value)) {
+      results.push(...result.value);
+    }
+  }
+
+  return results;
+}
 // Cache configuration
 const CACHE_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const cache = new Map(); // key -> { data, timestamp }
@@ -94,7 +186,10 @@ app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
     model: MODEL_ID,
+    fastModel: FAST_MODEL,
+    complexModel: COMPLEX_MODEL,
     projectId: PROJECT_ID ? 'configured' : 'not configured',
+    streaming: true,
   });
 });
 
@@ -298,43 +393,34 @@ app.post('/api/classify', async (req, res) => {
     ];
 
     const startTime = Date.now();
+    const modelId = selectModel('classify');
 
-    // Process in batches of 10 (smaller batches reduce LLM output truncation)
-    const batchSize = 10;
-    const allClassifications = [];
-
-    for (let i = 0; i < vms.length; i += batchSize) {
-      const batch = vms.slice(i, i + batchSize);
-      const prompt = buildClassificationPrompt(batch, categories);
-
-      try {
+    // Process in parallel batches (10 VMs per batch, max 5 concurrent)
+    const allClassifications = await parallelBatch(
+      vms, 10, 5,
+      async (batch) => {
+        const prompt = buildClassificationPrompt(batch, categories);
         const rawResponse = await generateText({
           prompt,
           apiKey: API_KEY,
           projectId: PROJECT_ID,
-          modelId: MODEL_ID,
+          modelId,
           parameters: { max_new_tokens: 8192, temperature: 0.1 },
         });
-
         const parsed = parseJSONResponse(rawResponse);
         const classifications = Array.isArray(parsed) ? parsed : parsed.classifications || [];
-
-        // Add source field
         for (const c of classifications) {
           c.source = 'ai';
         }
-
-        allClassifications.push(...classifications);
-      } catch (batchError) {
-        console.warn(`[classify] Batch ${Math.floor(i / batchSize) + 1} failed: ${batchError.message}. Skipping batch.`);
-        // Continue with next batch instead of failing the entire request
+        return classifications;
       }
-    }
+    );
 
     const result = {
       classifications: allClassifications,
-      model: MODEL_ID,
+      model: modelId,
       processingTimeMs: Date.now() - startTime,
+      totalBatches: Math.ceil(vms.length / 10),
     };
 
     setCache(cacheKey, result);
@@ -371,41 +457,32 @@ app.post('/api/rightsizing', async (req, res) => {
     }
 
     const startTime = Date.now();
+    const modelId = selectModel('rightsizing');
 
-    // Process in batches of 10 (smaller batches reduce LLM output truncation)
-    const batchSize = 10;
-    const allRecommendations = [];
-
-    for (let i = 0; i < vms.length; i += batchSize) {
-      const batch = vms.slice(i, i + batchSize);
-      const prompt = buildRightsizingPrompt(batch, availableProfiles);
-
-      try {
+    // Process in parallel batches (10 VMs per batch, max 5 concurrent)
+    const allRecommendations = await parallelBatch(
+      vms, 10, 5,
+      async (batch) => {
+        const prompt = buildRightsizingPrompt(batch, availableProfiles);
         const rawResponse = await generateText({
           prompt,
           apiKey: API_KEY,
           projectId: PROJECT_ID,
-          modelId: MODEL_ID,
+          modelId,
           parameters: { max_new_tokens: 8192, temperature: 0.1 },
         });
-
         const parsed = parseJSONResponse(rawResponse);
         const recommendations = Array.isArray(parsed) ? parsed : parsed.recommendations || [];
-
         for (const r of recommendations) {
           r.source = 'ai';
         }
-
-        allRecommendations.push(...recommendations);
-      } catch (batchError) {
-        console.warn(`[rightsizing] Batch ${Math.floor(i / batchSize) + 1} failed: ${batchError.message}. Skipping batch.`);
-        // Continue with next batch instead of failing the entire request
+        return recommendations;
       }
-    }
+    );
 
     const result = {
       recommendations: allRecommendations,
-      model: MODEL_ID,
+      model: modelId,
       processingTimeMs: Date.now() - startTime,
     };
 
@@ -446,13 +523,14 @@ app.post('/api/insights', async (req, res) => {
     }
 
     const startTime = Date.now();
+    const modelId = selectModel('insights');
     const prompt = buildInsightsPrompt(data);
 
     const rawResponse = await generateText({
       prompt,
       apiKey: API_KEY,
       projectId: PROJECT_ID,
-      modelId: MODEL_ID,
+      modelId,
       parameters: { max_new_tokens: 2048, temperature: 0.2 },
     });
 
@@ -504,7 +582,7 @@ app.post('/api/insights', async (req, res) => {
       // Don't cache invalid responses - return without caching
       return res.json({
         insights: normalizedInsights,
-        model: MODEL_ID,
+        model: modelId,
         processingTimeMs: Date.now() - startTime,
         warning: 'Response may be incomplete',
       });
@@ -512,7 +590,7 @@ app.post('/api/insights', async (req, res) => {
 
     const result = {
       insights: normalizedInsights,
-      model: MODEL_ID,
+      model: modelId,
       processingTimeMs: Date.now() - startTime,
     };
 
@@ -541,6 +619,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const startTime = Date.now();
+    const modelId = selectModel('chat');
     const systemPrompt = buildChatSystemPrompt(context);
 
     // Build messages array for chat API
@@ -564,7 +643,7 @@ app.post('/api/chat', async (req, res) => {
       messages,
       apiKey: API_KEY,
       projectId: PROJECT_ID,
-      modelId: MODEL_ID,
+      modelId,
       parameters: { max_tokens: 1024, temperature: 0.3 },
     });
 
@@ -574,7 +653,7 @@ app.post('/api/chat', async (req, res) => {
     const result = {
       response: responseText,
       suggestedFollowUps,
-      model: MODEL_ID,
+      model: modelId,
       processingTimeMs: Date.now() - startTime,
     };
 
@@ -608,13 +687,14 @@ app.post('/api/wave-suggestions', async (req, res) => {
     }
 
     const startTime = Date.now();
+    const modelId = selectModel('wave-suggestions');
     const prompt = buildWaveSuggestionsPrompt(data);
 
     const rawResponse = await generateText({
       prompt,
       apiKey: API_KEY,
       projectId: PROJECT_ID,
-      modelId: MODEL_ID,
+      modelId,
       parameters: { max_new_tokens: 2048, temperature: 0.2 },
     });
 
@@ -625,7 +705,7 @@ app.post('/api/wave-suggestions', async (req, res) => {
         ...parsed,
         source: 'watsonx',
       },
-      model: MODEL_ID,
+      model: modelId,
       processingTimeMs: Date.now() - startTime,
     };
 
@@ -659,13 +739,14 @@ app.post('/api/cost-optimization', async (req, res) => {
     }
 
     const startTime = Date.now();
+    const modelId = selectModel('cost-optimization');
     const prompt = buildCostOptimizationPrompt(data);
 
     const rawResponse = await generateText({
       prompt,
       apiKey: API_KEY,
       projectId: PROJECT_ID,
-      modelId: MODEL_ID,
+      modelId,
       parameters: { max_new_tokens: 2048, temperature: 0.2 },
     });
 
@@ -676,7 +757,7 @@ app.post('/api/cost-optimization', async (req, res) => {
         ...parsed,
         source: 'watsonx',
       },
-      model: MODEL_ID,
+      model: modelId,
       processingTimeMs: Date.now() - startTime,
     };
 
@@ -711,13 +792,14 @@ app.post('/api/remediation', async (req, res) => {
     }
 
     const startTime = Date.now();
+    const modelId = selectModel('remediation');
     const prompt = buildRemediationPrompt(data);
 
     const rawResponse = await generateText({
       prompt,
       apiKey: API_KEY,
       projectId: PROJECT_ID,
-      modelId: MODEL_ID,
+      modelId,
       parameters: { max_new_tokens: 2048, temperature: 0.2 },
     });
 
@@ -728,7 +810,7 @@ app.post('/api/remediation', async (req, res) => {
         ...parsed,
         source: 'watsonx',
       },
-      model: MODEL_ID,
+      model: modelId,
       processingTimeMs: Date.now() - startTime,
     };
 
@@ -793,12 +875,426 @@ function generateSuggestedFollowUps(context) {
   return suggestions.slice(0, 3);
 }
 
+// ===== STREAMING ENDPOINTS =====
+
+/**
+ * POST /api/chat/stream - Streaming chat endpoint (SSE)
+ */
+app.post('/api/chat/stream', async (req, res) => {
+  try {
+    const { message, conversationHistory, context } = req.body;
+
+    if (!message || typeof message !== 'string') {
+      return res.status(400).json({ error: 'Request must include a message string' });
+    }
+
+    const modelId = selectModel('chat');
+    const systemPrompt = buildChatSystemPrompt(context);
+
+    const messages = [{ role: 'system', content: systemPrompt }];
+    if (conversationHistory && Array.isArray(conversationHistory)) {
+      const recentHistory = conversationHistory.slice(-20);
+      for (const msg of recentHistory) {
+        messages.push({ role: msg.role, content: msg.content });
+      }
+    }
+    messages.push({ role: 'user', content: message });
+
+    // Set SSE headers
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Model-Id': modelId,
+    });
+
+    await chatStream({
+      messages,
+      apiKey: API_KEY,
+      projectId: PROJECT_ID,
+      modelId,
+      parameters: { max_tokens: 1024, temperature: 0.3 },
+      res,
+    });
+  } catch (error) {
+    console.error('[chat/stream] Error:', error.message);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Chat stream failed', message: error.message });
+    }
+    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    res.end();
+  }
+});
+
+/**
+ * POST /api/insights/stream - Streaming insights endpoint (SSE)
+ */
+app.post('/api/insights/stream', async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || typeof data.totalVMs !== 'number') {
+      return res.status(400).json({ error: 'Request must include valid migration data' });
+    }
+
+    const modelId = selectModel('insights');
+    const prompt = buildInsightsPrompt(data);
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      Connection: 'keep-alive',
+      'X-Model-Id': modelId,
+    });
+
+    await generateTextStream({
+      prompt,
+      apiKey: API_KEY,
+      projectId: PROJECT_ID,
+      modelId,
+      parameters: { max_new_tokens: 2048, temperature: 0.2 },
+      res,
+    });
+  } catch (error) {
+    console.error('[insights/stream] Error:', error.message);
+    if (!res.headersSent) {
+      return res.status(500).json({ error: 'Insights stream failed', message: error.message });
+    }
+    res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
+    res.end();
+  }
+});
+
+// ===== NEW FEATURE ENDPOINTS =====
+
+/**
+ * POST /api/target-selection - AI-powered ROKS vs VPC target selection
+ */
+app.post('/api/target-selection', async (req, res) => {
+  try {
+    const { vms } = req.body;
+
+    if (!vms || !Array.isArray(vms) || vms.length === 0) {
+      return res.status(400).json({ error: 'Request must include a non-empty vms array' });
+    }
+
+    const cacheKey = `target-selection:${JSON.stringify(vms.map(v => v.vmName).sort())}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
+
+    const startTime = Date.now();
+    const modelId = selectModel('target-selection');
+
+    const allSelections = await parallelBatch(
+      vms, 10, 5,
+      async (batch) => {
+        const prompt = buildTargetSelectionPrompt(batch);
+        const rawResponse = await generateText({
+          prompt,
+          apiKey: API_KEY,
+          projectId: PROJECT_ID,
+          modelId,
+          parameters: { max_new_tokens: 8192, temperature: 0.2 },
+        });
+        const parsed = parseJSONResponse(rawResponse);
+        const selections = Array.isArray(parsed) ? parsed : parsed.selections || [];
+        for (const s of selections) {
+          s.source = 'ai';
+        }
+        return selections;
+      }
+    );
+
+    const result = {
+      selections: allSelections,
+      model: modelId,
+      processingTimeMs: Date.now() - startTime,
+    };
+
+    setCache(cacheKey, result);
+    return res.json(result);
+  } catch (error) {
+    console.error('[target-selection] Error:', error.message);
+    return res.status(500).json({ error: 'Target selection failed', message: error.message });
+  }
+});
+
+/**
+ * POST /api/wave-sequencing - AI-powered wave dependency detection and reordering
+ */
+app.post('/api/wave-sequencing', async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || !Array.isArray(data.waves) || data.waves.length === 0) {
+      return res.status(400).json({ error: 'Request must include valid wave data' });
+    }
+
+    const cacheKey = `wave-sequencing:${data.waves.length}:${data.totalVMs}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
+
+    const startTime = Date.now();
+    const modelId = selectModel('wave-sequencing');
+    const prompt = buildWaveSequencingPrompt(data);
+
+    const rawResponse = await generateText({
+      prompt,
+      apiKey: API_KEY,
+      projectId: PROJECT_ID,
+      modelId,
+      parameters: { max_new_tokens: 4096, temperature: 0.2 },
+    });
+
+    const parsed = parseJSONResponse(rawResponse);
+
+    const result = {
+      result: { ...parsed, source: 'watsonx' },
+      model: modelId,
+      processingTimeMs: Date.now() - startTime,
+    };
+
+    setCache(cacheKey, result);
+    return res.json(result);
+  } catch (error) {
+    console.error('[wave-sequencing] Error:', error.message);
+    return res.status(500).json({ error: 'Wave sequencing failed', message: error.message });
+  }
+});
+
+/**
+ * POST /api/anomaly-detection - AI analysis of pre-computed anomalies
+ */
+app.post('/api/anomaly-detection', async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || !Array.isArray(data.anomalyCandidates)) {
+      return res.status(400).json({ error: 'Request must include anomalyCandidates array' });
+    }
+
+    const cacheKey = `anomaly-detection:${data.anomalyCandidates.length}:${data.totalVMs || 0}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
+
+    const startTime = Date.now();
+    const modelId = selectModel('anomaly-detection');
+    const prompt = buildAnomalyDetectionPrompt(data);
+
+    const rawResponse = await generateText({
+      prompt,
+      apiKey: API_KEY,
+      projectId: PROJECT_ID,
+      modelId,
+      parameters: { max_new_tokens: 4096, temperature: 0.2 },
+    });
+
+    const parsed = parseJSONResponse(rawResponse);
+
+    const result = {
+      result: { ...parsed, source: 'watsonx' },
+      model: modelId,
+      processingTimeMs: Date.now() - startTime,
+    };
+
+    setCache(cacheKey, result);
+    return res.json(result);
+  } catch (error) {
+    console.error('[anomaly-detection] Error:', error.message);
+    return res.status(500).json({ error: 'Anomaly detection failed', message: error.message });
+  }
+});
+
+/**
+ * POST /api/risk-analysis - AI-enhanced risk assessment
+ */
+app.post('/api/risk-analysis', async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || !data.riskAssessment) {
+      return res.status(400).json({ error: 'Request must include riskAssessment data' });
+    }
+
+    const cacheKey = `risk-analysis:${data.riskAssessment.overallRisk || 'unknown'}:${data.totalVMs || 0}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
+
+    const startTime = Date.now();
+    const modelId = selectModel('risk-analysis');
+    const prompt = buildRiskAnalysisPrompt(data);
+
+    const rawResponse = await generateText({
+      prompt,
+      apiKey: API_KEY,
+      projectId: PROJECT_ID,
+      modelId,
+      parameters: { max_new_tokens: 4096, temperature: 0.2 },
+    });
+
+    const parsed = parseJSONResponse(rawResponse);
+
+    const result = {
+      result: { ...parsed, source: 'watsonx' },
+      model: modelId,
+      processingTimeMs: Date.now() - startTime,
+    };
+
+    setCache(cacheKey, result);
+    return res.json(result);
+  } catch (error) {
+    console.error('[risk-analysis] Error:', error.message);
+    return res.status(500).json({ error: 'Risk analysis failed', message: error.message });
+  }
+});
+
+/**
+ * POST /api/report-narrative - AI-generated migration report narratives
+ */
+app.post('/api/report-narrative', async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data || typeof data.totalVMs !== 'number') {
+      return res.status(400).json({ error: 'Request must include valid report data' });
+    }
+
+    const cacheKey = `report-narrative:${data.totalVMs}:${data.migrationTarget || 'both'}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
+
+    const startTime = Date.now();
+    const modelId = selectModel('report-narrative');
+    const prompt = buildReportNarrativePrompt(data);
+
+    const rawResponse = await generateText({
+      prompt,
+      apiKey: API_KEY,
+      projectId: PROJECT_ID,
+      modelId,
+      parameters: { max_new_tokens: 4096, temperature: 0.3 },
+    });
+
+    const parsed = parseJSONResponse(rawResponse);
+
+    const result = {
+      result: { ...parsed, source: 'watsonx' },
+      model: modelId,
+      processingTimeMs: Date.now() - startTime,
+    };
+
+    setCache(cacheKey, result);
+    return res.json(result);
+  } catch (error) {
+    console.error('[report-narrative] Error:', error.message);
+    return res.status(500).json({ error: 'Report narrative failed', message: error.message });
+  }
+});
+
+/**
+ * POST /api/discovery-questions - Generate discovery questions for environment
+ */
+app.post('/api/discovery-questions', async (req, res) => {
+  try {
+    const { data } = req.body;
+
+    if (!data) {
+      return res.status(400).json({ error: 'Request must include environment data' });
+    }
+
+    const cacheKey = `discovery-questions:${data.totalVMs || 0}:${data.currentPage || 'general'}`;
+    const cached = getCached(cacheKey);
+    if (cached) {
+      return res.json({ ...cached, cached: true });
+    }
+
+    const startTime = Date.now();
+    const modelId = selectModel('discovery-questions');
+    const prompt = buildDiscoveryQuestionsPrompt(data);
+
+    const rawResponse = await generateText({
+      prompt,
+      apiKey: API_KEY,
+      projectId: PROJECT_ID,
+      modelId,
+      parameters: { max_new_tokens: 2048, temperature: 0.3 },
+    });
+
+    const parsed = parseJSONResponse(rawResponse);
+
+    const result = {
+      result: { ...parsed, source: 'watsonx' },
+      model: modelId,
+      processingTimeMs: Date.now() - startTime,
+    };
+
+    setCache(cacheKey, result);
+    return res.json(result);
+  } catch (error) {
+    console.error('[discovery-questions] Error:', error.message);
+    return res.status(500).json({ error: 'Discovery questions failed', message: error.message });
+  }
+});
+
+/**
+ * POST /api/interview - Interactive interview mode (specialized chat)
+ */
+app.post('/api/interview', async (req, res) => {
+  try {
+    const { currentQuestionId, userAnswer, interviewHistory, environmentContext } = req.body;
+
+    if (!userAnswer || typeof userAnswer !== 'string') {
+      return res.status(400).json({ error: 'Request must include a userAnswer string' });
+    }
+
+    const startTime = Date.now();
+    const modelId = selectModel('discovery-questions');
+    const prompt = buildInterviewPrompt({
+      currentQuestionId,
+      userAnswer,
+      interviewHistory,
+      environmentContext,
+    });
+
+    const rawResponse = await generateText({
+      prompt,
+      apiKey: API_KEY,
+      projectId: PROJECT_ID,
+      modelId,
+      parameters: { max_new_tokens: 1024, temperature: 0.3 },
+    });
+
+    const parsed = parseJSONResponse(rawResponse);
+
+    const result = {
+      result: { ...parsed, source: 'watsonx' },
+      model: modelId,
+      processingTimeMs: Date.now() - startTime,
+    };
+
+    return res.json(result);
+  } catch (error) {
+    console.error('[interview] Error:', error.message);
+    return res.status(500).json({ error: 'Interview failed', message: error.message });
+  }
+});
+
 // ===== START SERVER =====
 
 app.listen(PORT, () => {
   console.log(`AI proxy server listening on port ${PORT}`);
   console.log(`API key configured: ${API_KEY ? 'Yes' : 'No'}`);
   console.log(`Project ID configured: ${PROJECT_ID ? 'Yes' : 'No'}`);
-  console.log(`Model: ${MODEL_ID}`);
+  console.log(`Models — default: ${MODEL_ID}, fast: ${FAST_MODEL}, complex: ${COMPLEX_MODEL}`);
   console.log(`CORS: ${process.env.ALLOWED_ORIGINS ? 'restricted' : 'open'}`);
 });

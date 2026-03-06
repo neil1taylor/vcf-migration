@@ -595,8 +595,67 @@ export function UserGuidePage() {
               </div>
             </AccordionItem>
 
+            {/* AI Features */}
+            <AccordionItem title="13. AI Features (Optional)">
+              <div className="user-guide-page__section">
+                <Tile className="user-guide-page__card">
+                  <h4>Overview</h4>
+                  <p>The application includes optional AI-powered features using IBM watsonx.ai (Granite models). AI features are <strong>disabled by default</strong> and must be enabled in the{' '}
+                    <Link onClick={() => navigate(ROUTES.settings)} style={{ cursor: 'pointer' }}>Settings page</Link>.
+                  </p>
+                  <OrderedList>
+                    <ListItem>Navigate to <strong>Settings</strong> in the sidebar</ListItem>
+                    <ListItem>Toggle <strong>Enable AI Features</strong> on</ListItem>
+                    <ListItem>The app will test connectivity to the AI proxy</ListItem>
+                    <ListItem>Once connected, AI features become available throughout the app</ListItem>
+                  </OrderedList>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>Available AI Features</h4>
+                  <table className="user-guide-page__table">
+                    <thead>
+                      <tr>
+                        <th>Feature</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Workload Classification</td><td>LLM-based VM workload detection with confidence scores</td></tr>
+                      <tr><td>Right-Sizing</td><td>AI-recommended VSI profiles considering workload context</td></tr>
+                      <tr><td>Migration Insights</td><td>Executive summaries, risk assessments, and recommendations</td></tr>
+                      <tr><td>Chat Assistant</td><td>Conversational interface for migration planning questions</td></tr>
+                      <tr><td>Wave Suggestions</td><td>AI-powered wave strategy with risk narratives</td></tr>
+                      <tr><td>Cost Optimization</td><td>Prioritized cost reduction recommendations</td></tr>
+                      <tr><td>Remediation Guidance</td><td>Step-by-step remediation for migration blockers</td></tr>
+                      <tr><td>Target Selection</td><td>AI-powered ROKS vs VSI classification per VM</td></tr>
+                      <tr><td>Anomaly Detection</td><td>Statistical outlier detection with AI narrative</td></tr>
+                      <tr><td>Risk Analysis</td><td>AI-enhanced risk severity suggestions</td></tr>
+                      <tr><td>Report Narrative</td><td>AI-generated executive summaries for exports</td></tr>
+                      <tr><td>Discovery Questions</td><td>Structured interview questions by topic</td></tr>
+                      <tr><td>Interactive Interview</td><td>Step-by-step consultant-style interview</td></tr>
+                    </tbody>
+                  </table>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>Data Privacy</h4>
+                  <UnorderedList>
+                    <ListItem>Only <strong>aggregated environment summaries</strong> are sent to watsonx.ai (VM counts, resource totals, workload categories)</ListItem>
+                    <ListItem><strong>Individual VM names, IP addresses, and raw RVTools data are never transmitted</strong></ListItem>
+                    <ListItem>AI features can be disabled at any time via the Settings page</ListItem>
+                  </UnorderedList>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>AI-Enhanced Reports</h4>
+                  <p>When AI is enabled, exported reports (PDF, Word, Excel, BOM) include additional AI-generated sections such as executive summaries, risk narratives, and cost optimization recommendations. All AI-generated content is marked with a watsonx.ai disclaimer.</p>
+                </Tile>
+              </div>
+            </AccordionItem>
+
             {/* Generating Reports */}
-            <AccordionItem title="13. Generating Reports">
+            <AccordionItem title="14. Generating Reports">
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>PDF Reports</h4>
@@ -642,7 +701,7 @@ export function UserGuidePage() {
             </AccordionItem>
 
             {/* Reference Documentation */}
-            <AccordionItem title="14. Reference Documentation">
+            <AccordionItem title="15. Reference Documentation">
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>In-App Reference Pages</h4>

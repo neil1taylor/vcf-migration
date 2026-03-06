@@ -1,6 +1,34 @@
 {
   "releases": [
     {
+      "version": "unreleased",
+      "date": "2026-03-06",
+      "sections": {
+        "added": [
+          "AI Infrastructure: Tiered model selection — lightweight model (Granite 3.1 8B) for fast tasks, larger model (Granite 3.1 34B) for complex reasoning",
+          "AI Infrastructure: Server-Sent Events (SSE) streaming for chat and insights — text appears progressively instead of waiting for full response",
+          "AI Infrastructure: Persistent chat history — conversation preserved across navigation via localStorage with environment fingerprint scoping",
+          "AI Infrastructure: Parallel batch processing with concurrency limit (5 concurrent LLM calls) for faster classification and right-sizing of large environments",
+          "AI Feature: Target Selection — AI-powered ROKS vs VPC VSI classification with confidence scores and reasoning for each VM",
+          "AI Feature: Wave Sequencing — dependency detection, risk-aware scheduling, and VM move recommendations for migration wave planning",
+          "AI Feature: Anomaly Detection — client-side statistical analysis (z-scores, outlier detection) combined with AI narrative and remediation recommendations",
+          "AI Feature: Risk Analysis — AI-enhanced risk assessment with severity adjustment suggestions, missed risk detection, and security risk recommendations",
+          "AI Feature: Report Narrative — AI-generated executive summaries, environment analysis, migration recommendations, and cost justifications for exports",
+          "AI Feature: Discovery Questions — structured interview questions organized by topic (Business, Technical, Risk, Operations, Dependencies) with priority ranking",
+          "AI Feature: Interactive Interview — step-by-step consultant-style interview with insights extraction and persistent answer history",
+          "AI Chat: Markdown rendering (bold, code blocks, lists), Stop generating button during streaming, enriched context with network topology, OS distribution, and resource consumer data",
+          "New components: AIAnomalyPanel, AIRiskPanel, AIReportPreview, DiscoveryQuestionsPanel, InterviewPanel"
+        ],
+        "changed": [
+          "Target Classification: Replaced hardcoded 7-rule heuristic with data-driven rule engine (targetClassificationRules.json) — Windows VMs now classified by OS compatibility data instead of blanket Windows→VSI rule",
+          "AI proxy upgraded from single model to tiered model selection (fast vs complex tasks)",
+          "Chat panel now uses streaming by default for better responsiveness",
+          "Chat context builder now includes enriched data slices (network, OS, snapshots, datastores) for more accurate AI responses",
+          "Classification and right-sizing batch processing upgraded from sequential to parallel with configurable concurrency"
+        ]
+      }
+    },
+    {
       "version": "1.2.7",
       "date": "2026-03-06",
       "sections": {

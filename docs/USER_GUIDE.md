@@ -30,8 +30,9 @@ Get started in 5 simple steps:
 10. [Migration Assessment](#10-migration-assessment)
 11. [Wave Planning](#11-wave-planning)
 12. [Cost Estimation](#12-cost-estimation)
-13. [Generating Reports](#13-generating-reports)
-14. [Reference Documentation](#14-reference-documentation)
+13. [AI Features (Optional)](#13-ai-features-optional)
+14. [Generating Reports](#14-generating-reports)
+15. [Reference Documentation](#15-reference-documentation)
 
 ---
 
@@ -690,7 +691,64 @@ The pricing indicator shows the data source:
 
 ---
 
-## 13. Generating Reports
+## 13. AI Features (Optional)
+
+The application includes optional AI-powered features using IBM watsonx.ai (Granite models). AI features are **disabled by default** and must be enabled in the Settings page.
+
+### Enabling AI Features
+
+1. Navigate to **Settings** (`/settings`) in the sidebar
+2. Toggle **Enable AI Features** on
+3. The app will test connectivity to the AI proxy
+4. Once connected, AI features become available throughout the app
+
+### Available AI Features
+
+| Feature | Description | Location |
+|---------|-------------|----------|
+| **Workload Classification** | LLM-based VM workload detection with confidence scores | Discovery page |
+| **Right-Sizing** | AI-recommended VSI profiles considering workload context | VSI Migration sizing |
+| **Migration Insights** | Executive summaries, risk assessments, and recommendations | Migration pages |
+| **Chat Assistant** | Conversational interface for migration planning questions | Chat widget (bottom-right) |
+| **Wave Suggestions** | AI-powered wave strategy with risk narratives | Wave Planning |
+| **Cost Optimization** | Prioritized cost reduction recommendations | Cost panels |
+| **Remediation Guidance** | Step-by-step remediation for migration blockers | Pre-flight pages |
+| **Target Selection** | AI-powered ROKS vs VSI classification per VM | Migration Comparison |
+| **Anomaly Detection** | Statistical outlier detection with AI narrative | Discovery page |
+| **Risk Analysis** | AI-enhanced risk severity suggestions | Risk Assessment |
+| **Report Narrative** | AI-generated executive summaries for exports | Export functions |
+| **Discovery Questions** | Structured interview questions by topic | Discovery page |
+| **Interactive Interview** | Step-by-step consultant-style interview | Discovery page |
+
+### AI Chat Assistant
+
+The chat assistant is available as a floating widget throughout the app:
+
+1. Click the **chat icon** in the bottom-right corner
+2. Ask questions about your migration (e.g., "What are the main risks?")
+3. The assistant is aware of your loaded environment data
+4. Responses stream in real-time with markdown formatting
+5. Chat history is preserved across navigation
+
+### Data Privacy
+
+- Only **aggregated environment summaries** are sent to watsonx.ai (VM counts, resource totals, workload categories)
+- **Individual VM names, IP addresses, and raw RVTools data are never transmitted**
+- AI features can be disabled at any time via the Settings page
+
+### AI-Enhanced Reports
+
+When AI is enabled, exported reports (PDF, Word, Excel, BOM) include additional AI-generated sections:
+- Executive summary
+- Risk assessment narrative
+- Cost optimization recommendations
+- Migration recommendations
+
+All AI-generated content is marked with a watsonx.ai disclaimer.
+
+---
+
+## 14. Generating Reports
 
 Export your analysis in multiple formats for stakeholders and planning.
 
@@ -769,7 +827,7 @@ For automated migration with RackWare:
 
 ---
 
-## 14. Reference Documentation
+## 15. Reference Documentation
 
 ### In-App Reference Pages
 
