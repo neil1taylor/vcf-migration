@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Grid, Column, Tabs, TabList, Tab, TabPanels, TabPanel } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
-import { useData, useAllVMs, useVMOverrides, useAutoExclusion, useTargetAssignments, useComparisonData } from '@/hooks';
+import { useData, useAllVMs, useVMOverrides, useAutoExclusion, useTargetAssignments, useComparisonData, usePlatformSelection } from '@/hooks';
 import { ROUTES } from '@/utils/constants';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { getVMWorkloadCategory } from '@/utils/workloadClassification';
@@ -14,6 +14,7 @@ import {
   ReadinessComparisonPanel,
   ArchitectureFitPanel,
   MigrationEffortPanel,
+  PlatformSelectionPanel,
 } from '@/components/comparison';
 import './MigrationPage.scss';
 
@@ -22,6 +23,7 @@ export function MigrationComparisonPage() {
   const allVmsRaw = useAllVMs();
   const vmOverrides = useVMOverrides();
   const { getAutoExclusionById } = useAutoExclusion();
+  const { answers, setAnswer, resetAll: resetPlatformSelection, score: platformScore } = usePlatformSelection();
 
   // Filter excluded VMs (same pattern as VSIMigrationPage)
   const vms = useMemo(() => {
@@ -85,7 +87,7 @@ export function MigrationComparisonPage() {
         </Column>
 
         <Column lg={16} md={8} sm={4} style={{ marginBottom: '1rem' }}>
-          <RecommendationBanner recommendation={recommendation} />
+          <RecommendationBanner recommendation={recommendation} platformScore={platformScore} />
         </Column>
 
         {/* Summary tiles */}
@@ -106,6 +108,7 @@ export function MigrationComparisonPage() {
         <Column lg={16} md={8} sm={4}>
           <Tabs>
             <TabList aria-label="Migration comparison tabs">
+              <Tab>Platform Selection</Tab>
               <Tab>VM Assignments</Tab>
               <Tab>Cost Comparison</Tab>
               <Tab>Readiness</Tab>
@@ -113,6 +116,14 @@ export function MigrationComparisonPage() {
               <Tab>Migration Effort</Tab>
             </TabList>
             <TabPanels>
+              <TabPanel>
+                <PlatformSelectionPanel
+                  answers={answers}
+                  onAnswer={setAnswer}
+                  onReset={resetPlatformSelection}
+                  score={platformScore}
+                />
+              </TabPanel>
               <TabPanel>
                 <VMAssignmentTable
                   assignments={assignments}

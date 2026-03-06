@@ -91,6 +91,18 @@ export interface RedundancyValidation {
   allPass: boolean;
 }
 
+export interface VMFitValidation {
+  allFit: boolean;
+  oversizedVMs: Array<{
+    vmName: string;
+    resource: 'memory' | 'cpu' | 'both';
+    vmMemoryGiB: number;
+    vmCPUs: number;
+    nodeMemoryCapacity: number;
+    nodeCPUCapacity: number;
+  }>;
+}
+
 export interface ProfileItem {
   id: string;
   text: string;
@@ -174,6 +186,7 @@ export interface UseSizingCalculatorReturn {
   nodeCapacity: NodeCapacity;
   nodeRequirements: NodeRequirements | null;
   redundancyValidation: RedundancyValidation | null;
+  vmFitValidation: VMFitValidation | null;
 }
 
 interface UseSizingCalculatorParams {
@@ -627,6 +640,52 @@ export function useSizingCalculator({
     };
   }, [nodeRequirements, nodeCapacity, nodeRedundancy, evictionThreshold, operationalCapacity]);
 
+  // Per-VM fit validation — check if any individual VM exceeds node capacity
+  const vmFitValidation = useMemo<VMFitValidation | null>(() => {
+    if (!hasData || !rawData) return null;
+
+    const vms = rawData.vInfo.filter(vm => {
+      if (vm.template || vm.powerState !== 'poweredOn') return false;
+      const vmId = getVMIdentifier(vm);
+      return !vmOverrides.isExcluded(vmId);
+    });
+
+    const oversizedVMs: VMFitValidation['oversizedVMs'] = [];
+
+    for (const vm of vms) {
+      // Add per-VM virtualization overhead
+      const vmMemGiB = vm.memory / 1024;
+      const vmWithOverheadMemGiB =
+        vmMemGiB * (1 + memoryProportionalPercent / 100) +
+        memoryFixedPerVMMiB / 1024;
+      const vmWithOverheadCPUs =
+        vm.cpus * (1 + cpuProportionalPercent / 100) + cpuFixedPerVM;
+
+      const exceedsMemory = vmWithOverheadMemGiB > nodeCapacity.memoryCapacity;
+      const exceedsCPU = vmWithOverheadCPUs > nodeCapacity.vcpuCapacity;
+
+      if (exceedsMemory || exceedsCPU) {
+        oversizedVMs.push({
+          vmName: vm.vmName,
+          resource: exceedsMemory && exceedsCPU ? 'both' : exceedsMemory ? 'memory' : 'cpu',
+          vmMemoryGiB: Math.round(vmWithOverheadMemGiB * 10) / 10,
+          vmCPUs: Math.round(vmWithOverheadCPUs * 10) / 10,
+          nodeMemoryCapacity: nodeCapacity.memoryCapacity,
+          nodeCPUCapacity: nodeCapacity.vcpuCapacity,
+        });
+      }
+    }
+
+    // Sort by how much they exceed capacity (worst first)
+    oversizedVMs.sort((a, b) => {
+      const aMemExcess = a.nodeMemoryCapacity > 0 ? a.vmMemoryGiB / a.nodeMemoryCapacity : 0;
+      const bMemExcess = b.nodeMemoryCapacity > 0 ? b.vmMemoryGiB / b.nodeMemoryCapacity : 0;
+      return bMemExcess - aMemExcess;
+    });
+
+    return { allFit: oversizedVMs.length === 0, oversizedVMs };
+  }, [hasData, rawData, nodeCapacity, vmOverrides, cpuFixedPerVM, cpuProportionalPercent, memoryFixedPerVMMiB, memoryProportionalPercent]);
+
   // Track previous sizing to avoid unnecessary parent updates
   const prevSizingRef = useRef<string>('');
 
@@ -722,5 +781,6 @@ export function useSizingCalculator({
     nodeCapacity,
     nodeRequirements,
     redundancyValidation,
+    vmFitValidation,
   };
 }

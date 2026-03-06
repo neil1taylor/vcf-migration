@@ -1,0 +1,79 @@
+{
+  "factors": [
+    {
+      "id": "vsi-lift-shift",
+      "label": "Lift-and-shift of existing VMs with minimal changes",
+      "target": "vsi",
+      "description": "VPC VSI preserves the traditional VM model, requiring minimal application refactoring."
+    },
+    {
+      "id": "vsi-windows",
+      "label": "Windows workloads or mixed OS environments",
+      "target": "vsi",
+      "description": "VPC VSI natively supports Windows Server licensing and mixed Linux/Windows estates."
+    },
+    {
+      "id": "vsi-independent-vms",
+      "label": "Independent VMs that don't need shared orchestration",
+      "target": "vsi",
+      "description": "Standalone VMs without inter-service dependencies are simpler to manage on VSI."
+    },
+    {
+      "id": "vsi-simple-networking",
+      "label": "Simple networking with VPC security groups and ACLs",
+      "target": "vsi",
+      "description": "VPC provides straightforward networking primitives without overlay network complexity."
+    },
+    {
+      "id": "vsi-team-familiarity",
+      "label": "Team is more familiar with traditional VM administration",
+      "target": "vsi",
+      "description": "Existing sysadmin skills transfer directly to VSI management."
+    },
+    {
+      "id": "roks-containerize",
+      "label": "Plan to containerize workloads during or after migration",
+      "target": "roks",
+      "description": "ROKS/OpenShift Virtualization can run VMs alongside containers, enabling gradual modernization."
+    },
+    {
+      "id": "roks-kubernetes",
+      "label": "Kubernetes/OpenShift skills available in the team",
+      "target": "roks",
+      "description": "Teams with Kubernetes experience can leverage OpenShift Virtualization immediately."
+    },
+    {
+      "id": "roks-unified-platform",
+      "label": "Desire for a unified platform for VMs and containers",
+      "target": "roks",
+      "description": "ROKS runs both VMs and containers on a single control plane, simplifying operations."
+    },
+    {
+      "id": "roks-cicd",
+      "label": "CI/CD pipelines and GitOps workflows in place or planned",
+      "target": "roks",
+      "description": "OpenShift integrates natively with GitOps, Tekton, and ArgoCD for automated deployments."
+    },
+    {
+      "id": "roks-service-mesh",
+      "label": "Need for service mesh, observability, or advanced networking",
+      "target": "roks",
+      "description": "OpenShift provides built-in service mesh, monitoring, and software-defined networking."
+    },
+    {
+      "id": "roks-scaling",
+      "label": "Auto-scaling or dynamic workload placement requirements",
+      "target": "roks",
+      "description": "Kubernetes-native auto-scaling and scheduling optimize resource utilization automatically."
+    },
+    {
+      "id": "roks-multicloud",
+      "label": "Multi-cloud or hybrid cloud strategy with consistent tooling",
+      "target": "roks",
+      "description": "OpenShift provides a consistent platform across on-prem, IBM Cloud, and other clouds."
+    }
+  ],
+  "notes": [
+    "For workloads requiring IBM Power architecture or very high single-VM memory (>512 GiB), consider PowerVS connected via Transit Gateway."
+  ]
+}

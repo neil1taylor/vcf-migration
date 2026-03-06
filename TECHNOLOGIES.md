@@ -248,13 +248,10 @@ This allows exported BOMs to be fully editable — users can adjust quantities o
 
 ### Integration with React
 
-Chart.js integrates with React through wrapper components that handle:
-- Canvas rendering and cleanup
-- Responsive resizing
-- Theme-aware styling (IBM Carbon colors)
-- Interactive tooltips and legends
+Chart.js integrates with React through **react-chartjs-2**, a lightweight React wrapper that provides declarative component APIs (`<Bar>`, `<Doughnut>`, `<Pie>`, etc.) for Chart.js. This handles canvas lifecycle management, responsive resizing, theme-aware styling (IBM Carbon colors), and interactive tooltips and legends.
 
 🔗 https://www.chartjs.org/
+🔗 https://react-chartjs-2.js.org/
 
 ---
 
@@ -294,6 +291,28 @@ AI features are optional and follow the same Code Engine proxy pattern as the pr
 ### Privacy
 
 Only aggregated environment summaries (VM counts, resource totals, workload categories) are sent to watsonx.ai. Individual VM names, IP addresses, and raw RVTools data are never transmitted.
+
+---
+
+## Client-Side Routing with React Router
+
+**React Router** (`react-router-dom`) provides declarative, component-based routing for the application. It enables client-side navigation between pages (Dashboard, Migration Assessment, Settings, etc.) without full page reloads, maintaining application state across views.
+
+Key usage:
+- `BrowserRouter` for HTML5 history-based routing
+- `Routes` and `Route` for page component mapping
+- `useNavigate` for programmatic navigation
+- `Navigate` for redirect handling (e.g., redirecting to home when no data is loaded)
+
+🔗 https://reactrouter.com/
+
+---
+
+## Utility Functions with Lodash
+
+**Lodash** is a utility library providing helper functions for common data manipulation tasks. The application uses it selectively for operations like deep cloning, object merging, and collection processing where native JavaScript methods would be verbose or error-prone.
+
+🔗 https://lodash.com/
 
 ---
 
@@ -372,15 +391,23 @@ This technology stack combines a modern React frontend with strong typing, fast 
 | Data tables (sort, filter, paginate) | TanStack Table |
 | Date formatting and calculations | date-fns |
 | Unique ID generation | uuid |
+| Utility functions | Lodash |
 
 ### Visualization
 
 | Responsibility | Technology |
 |----------------|------------|
-| Charts and graphs | Chart.js |
+| Charts and graphs | Chart.js + react-chartjs-2 |
 | Network topology diagrams | D3.js |
 | Screenshot capture for exports | html2canvas |
 | UI components | IBM Carbon Design System |
 | Responsive layout | CSS3 / Carbon Grid |
+
+### Application Infrastructure
+
+| Responsibility | Technology |
+|----------------|------------|
+| Client-side routing | React Router |
+| AI-powered features | IBM watsonx.ai (Granite models) |
 
 Each of these has broad community support and clear documentation, so you can extend or swap them as the project evolves without large rewrites.

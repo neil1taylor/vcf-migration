@@ -25,7 +25,7 @@ export type { UseDynamicProfilesConfig, UseDynamicProfilesReturn } from './useDy
 export { useCustomProfiles } from './useCustomProfiles';
 export type { CustomProfile, ProfileOverride, UseCustomProfilesReturn } from './useCustomProfiles';
 export { useSizingCalculator } from './useSizingCalculator';
-export type { BareMetalProfile, NodeCapacity, NodeRequirements, RedundancyValidation, ProfileItem, UseSizingCalculatorReturn } from './useSizingCalculator';
+export type { BareMetalProfile, NodeCapacity, NodeRequirements, RedundancyValidation, VMFitValidation, ProfileItem, UseSizingCalculatorReturn } from './useSizingCalculator';
 
 // AI hooks
 export { useAISettings } from './useAISettings';
@@ -64,6 +64,13 @@ export { usePreflightChecks } from './usePreflightChecks';
 export type { UsePreflightChecksConfig, UsePreflightChecksReturn } from './usePreflightChecks';
 
 export { useVSIPageData } from './useVSIPageData';
+
+// Platform selection
+export { usePlatformSelection } from './usePlatformSelection';
+export type { FactorAnswer, PlatformSelectionScore, UsePlatformSelectionReturn } from './usePlatformSelection';
+
+// Data quality
+export { useDataInconsistencies } from './useDataInconsistencies';
 
 // Sheet availability
 export { useAvailableSheets } from './useAvailableSheets';

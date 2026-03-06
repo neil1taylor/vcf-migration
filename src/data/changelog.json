@@ -5,6 +5,9 @@
       "date": "2026-03-06",
       "sections": {
         "added": [
+          "Data Quality Warnings in Sizing Calculator — rule-based detection of suspicious VM resource allocations (memory/CPU outliers, ratio anomalies, name-resource mismatches) without requiring AI",
+          "Per-VM Node Fit Check in Sizing Calculator — validates every individual VM (with virtualization overhead) fits within selected bare metal node capacity, flags oversized VMs with remediation guidance",
+          "Platform Selection Questionnaire on Migration Comparison page — 12-factor decision matrix (5 VSI, 7 ROKS) to capture organizational and strategic platform preferences, with score summary and recommendation banner integration",
           "AI Infrastructure: Tiered model selection — lightweight model (Granite 3.1 8B) for fast tasks, larger model (Granite 3.1 34B) for complex reasoning",
           "AI Infrastructure: Server-Sent Events (SSE) streaming for chat and insights — text appears progressively instead of waiting for full response",
           "AI Infrastructure: Persistent chat history — conversation preserved across navigation via localStorage with environment fingerprint scoping",

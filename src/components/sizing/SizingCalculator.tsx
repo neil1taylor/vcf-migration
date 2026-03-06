@@ -11,6 +11,9 @@ import { SizingStorageSection } from '@/components/sizing/SizingStorageSection';
 import { SizingNodeCapacity } from '@/components/sizing/SizingNodeCapacity';
 import { SizingWorkloadResults } from '@/components/sizing/SizingWorkloadResults';
 import { SizingRedundancyValidation } from '@/components/sizing/SizingRedundancyValidation';
+import { SizingVMFitValidation } from '@/components/sizing/SizingVMFitValidation';
+import { SizingDataQualityBanner } from '@/components/sizing/SizingDataQualityBanner';
+import { useDataInconsistencies } from '@/hooks';
 import './SizingCalculator.scss';
 
 export interface SizingResult {
@@ -28,6 +31,7 @@ interface SizingCalculatorProps {
 
 export function SizingCalculator({ onSizingChange, requestedProfile, onRequestedProfileHandled }: SizingCalculatorProps) {
   const sizing = useSizingCalculator({ onSizingChange, requestedProfile, onRequestedProfileHandled });
+  const dataInconsistencies = useDataInconsistencies();
 
   return (
     <div className="sizing-calculator">
@@ -137,6 +141,19 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
             cephOverhead={sizing.cephOverhead}
             evictionThreshold={sizing.evictionThreshold}
             odfReservation={sizing.odfReservation}
+          />
+        )}
+
+        {/* Per-VM Node Fit Check */}
+        {sizing.vmFitValidation && !sizing.vmFitValidation.allFit && (
+          <SizingVMFitValidation vmFitValidation={sizing.vmFitValidation} />
+        )}
+
+        {/* Data Quality Warnings */}
+        {dataInconsistencies.warnings.length > 0 && (
+          <SizingDataQualityBanner
+            warnings={dataInconsistencies.warnings}
+            hasCritical={dataInconsistencies.hasCritical}
           />
         )}
 
