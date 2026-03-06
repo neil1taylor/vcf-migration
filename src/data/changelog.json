@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "version": "1.2.7",
+      "date": "2026-03-06",
+      "sections": {
+        "fixed": [
+          "Stale chunk loading after deployment — app now auto-reloads when navigating to a route whose code bundle changed",
+          "nginx now returns 404 for missing hashed assets instead of serving index.html as JavaScript",
+          "Added proper cache headers: hashed assets cached immutably, index.html never cached"
+        ]
+      }
+    },
+    {
       "version": "1.2.6",
       "date": "2026-03-05",
       "sections": {

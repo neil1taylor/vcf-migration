@@ -2,7 +2,8 @@
 import { Component } from 'react';
 import type { ErrorInfo, ReactNode } from 'react';
 import { Tile, Button } from '@carbon/react';
-import { Warning } from '@carbon/icons-react';
+import { Warning, Renew } from '@carbon/icons-react';
+import { isChunkLoadError } from '@/router';
 import './ErrorBoundary.scss';
 
 interface Props {
@@ -52,21 +53,39 @@ export class ErrorBoundary extends Component<Props, State> {
         return fallback;
       }
 
+      const chunkError = isChunkLoadError(error);
+
       return (
         <div className="error-boundary">
           <Tile className="error-boundary__tile">
-            <Warning size={48} className="error-boundary__icon" />
-            <h3 className="error-boundary__title">Something went wrong</h3>
+            {chunkError ? (
+              <Renew size={48} className="error-boundary__icon" />
+            ) : (
+              <Warning size={48} className="error-boundary__icon" />
+            )}
+            <h3 className="error-boundary__title">
+              {chunkError ? 'A new version is available' : 'Something went wrong'}
+            </h3>
             <p className="error-boundary__message">
-              {error?.message || 'An unexpected error occurred'}
+              {chunkError
+                ? 'The application has been updated since you last loaded it. Please reload to get the latest version.'
+                : (error?.message || 'An unexpected error occurred')}
             </p>
             <div className="error-boundary__actions">
-              <Button kind="primary" onClick={this.handleReset}>
-                Try Again
-              </Button>
-              <Button kind="secondary" onClick={() => window.location.reload()}>
-                Reload Page
-              </Button>
+              {chunkError ? (
+                <Button kind="primary" renderIcon={Renew} onClick={() => window.location.reload()}>
+                  Reload Application
+                </Button>
+              ) : (
+                <>
+                  <Button kind="primary" onClick={this.handleReset}>
+                    Try Again
+                  </Button>
+                  <Button kind="secondary" onClick={() => window.location.reload()}>
+                    Reload Page
+                  </Button>
+                </>
+              )}
             </div>
           </Tile>
         </div>

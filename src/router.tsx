@@ -1,40 +1,69 @@
 // Application router configuration with lazy loading for code splitting
 /* eslint-disable react-refresh/only-export-components */
 import { lazy, Suspense } from 'react';
+import type { ComponentType } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout';
 import { ROUTES } from '@/utils/constants';
 import { Loading } from '@carbon/react';
 
+// Detects chunk load failures (stale deploys, missing hashed assets)
+export function isChunkLoadError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message.toLowerCase();
+  return (
+    msg.includes('failed to fetch dynamically imported module') ||
+    msg.includes('importing a module script failed') ||
+    msg.includes('loading chunk') ||
+    msg.includes('loading css chunk') ||
+    (msg.includes('failed to fetch') && error.name === 'TypeError')
+  );
+}
+
+// Wraps React.lazy() to auto-reload once on chunk load failure
+function lazyWithRetry(importFn: () => Promise<{ default: ComponentType<unknown> }>) {
+  return lazy(() =>
+    importFn().catch((error: unknown) => {
+      if (isChunkLoadError(error) && !sessionStorage.getItem('chunk-failed')) {
+        sessionStorage.setItem('chunk-failed', '1');
+        window.location.reload();
+        return { default: (() => null) as unknown as ComponentType<unknown> };
+      }
+      sessionStorage.removeItem('chunk-failed');
+      throw error;
+    })
+  );
+}
+
 // Eagerly load landing page for immediate render
 import { LandingPage } from '@/pages/LandingPage';
 
-// Lazy load all other pages for code splitting
-const DashboardPage = lazy(() => import('@/pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
-const ComputePage = lazy(() => import('@/pages/ComputePage').then(m => ({ default: m.ComputePage })));
-const StoragePage = lazy(() => import('@/pages/StoragePage').then(m => ({ default: m.StoragePage })));
-const NetworkPage = lazy(() => import('@/pages/NetworkPage').then(m => ({ default: m.NetworkPage })));
-const ClusterPage = lazy(() => import('@/pages/ClusterPage').then(m => ({ default: m.ClusterPage })));
-const HostsPage = lazy(() => import('@/pages/HostsPage').then(m => ({ default: m.HostsPage })));
-const ResourcePoolPage = lazy(() => import('@/pages/ResourcePoolPage').then(m => ({ default: m.ResourcePoolPage })));
-const ROKSMigrationPage = lazy(() => import('@/pages/ROKSMigrationPage').then(m => ({ default: m.ROKSMigrationPage })));
-const VSIMigrationPage = lazy(() => import('@/pages/VSIMigrationPage').then(m => ({ default: m.VSIMigrationPage })));
-const MigrationComparisonPage = lazy(() => import('@/pages/MigrationComparisonPage').then(m => ({ default: m.MigrationComparisonPage })));
-const PreFlightReportPage = lazy(() => import('@/pages/PreFlightReportPage').then(m => ({ default: m.PreFlightReportPage })));
-const DiscoveryPage = lazy(() => import('@/pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage })));
-const RiskAssessmentPage = lazy(() => import('@/pages/RiskAssessmentPage').then(m => ({ default: m.RiskAssessmentPage })));
-const MigrationTimelinePage = lazy(() => import('@/pages/MigrationTimelinePage').then(m => ({ default: m.MigrationTimelinePage })));
-const TablesPage = lazy(() => import('@/pages/TablesPage').then(m => ({ default: m.TablesPage })));
-const InfoPage = lazy(() => import('@/pages/InfoPage').then(m => ({ default: m.InfoPage })));
-const DocumentationPage = lazy(() => import('@/pages/DocumentationPage').then(m => ({ default: m.DocumentationPage })));
-const UserGuidePage = lazy(() => import('@/pages/UserGuidePage').then(m => ({ default: m.UserGuidePage })));
-const VSIMigrationMethodsPage = lazy(() => import('@/pages/VSIMigrationMethodsPage').then(m => ({ default: m.VSIMigrationMethodsPage })));
-const MTVDocumentationPage = lazy(() => import('@/pages/MTVDocumentationPage').then(m => ({ default: m.MTVDocumentationPage })));
-const AboutPage = lazy(() => import('@/pages/AboutPage').then(m => ({ default: m.AboutPage })));
-const OverheadReferencePage = lazy(() => import('@/pages/OverheadReferencePage').then(m => ({ default: m.OverheadReferencePage })));
-const ChatPage = lazy(() => import('@/pages/ChatPage').then(m => ({ default: m.ChatPage })));
-const ExportPage = lazy(() => import('@/pages/ExportPage').then(m => ({ default: m.ExportPage })));
-const SettingsPage = lazy(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+// Lazy load all other pages for code splitting (with retry on stale chunks)
+const DashboardPage = lazyWithRetry(() => import('@/pages/DashboardPage').then(m => ({ default: m.DashboardPage as ComponentType<unknown> })));
+const ComputePage = lazyWithRetry(() => import('@/pages/ComputePage').then(m => ({ default: m.ComputePage as ComponentType<unknown> })));
+const StoragePage = lazyWithRetry(() => import('@/pages/StoragePage').then(m => ({ default: m.StoragePage as ComponentType<unknown> })));
+const NetworkPage = lazyWithRetry(() => import('@/pages/NetworkPage').then(m => ({ default: m.NetworkPage as ComponentType<unknown> })));
+const ClusterPage = lazyWithRetry(() => import('@/pages/ClusterPage').then(m => ({ default: m.ClusterPage as ComponentType<unknown> })));
+const HostsPage = lazyWithRetry(() => import('@/pages/HostsPage').then(m => ({ default: m.HostsPage as ComponentType<unknown> })));
+const ResourcePoolPage = lazyWithRetry(() => import('@/pages/ResourcePoolPage').then(m => ({ default: m.ResourcePoolPage as ComponentType<unknown> })));
+const ROKSMigrationPage = lazyWithRetry(() => import('@/pages/ROKSMigrationPage').then(m => ({ default: m.ROKSMigrationPage as ComponentType<unknown> })));
+const VSIMigrationPage = lazyWithRetry(() => import('@/pages/VSIMigrationPage').then(m => ({ default: m.VSIMigrationPage as ComponentType<unknown> })));
+const MigrationComparisonPage = lazyWithRetry(() => import('@/pages/MigrationComparisonPage').then(m => ({ default: m.MigrationComparisonPage as ComponentType<unknown> })));
+const PreFlightReportPage = lazyWithRetry(() => import('@/pages/PreFlightReportPage').then(m => ({ default: m.PreFlightReportPage as ComponentType<unknown> })));
+const DiscoveryPage = lazyWithRetry(() => import('@/pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage as ComponentType<unknown> })));
+const RiskAssessmentPage = lazyWithRetry(() => import('@/pages/RiskAssessmentPage').then(m => ({ default: m.RiskAssessmentPage as ComponentType<unknown> })));
+const MigrationTimelinePage = lazyWithRetry(() => import('@/pages/MigrationTimelinePage').then(m => ({ default: m.MigrationTimelinePage as ComponentType<unknown> })));
+const TablesPage = lazyWithRetry(() => import('@/pages/TablesPage').then(m => ({ default: m.TablesPage as ComponentType<unknown> })));
+const InfoPage = lazyWithRetry(() => import('@/pages/InfoPage').then(m => ({ default: m.InfoPage as ComponentType<unknown> })));
+const DocumentationPage = lazyWithRetry(() => import('@/pages/DocumentationPage').then(m => ({ default: m.DocumentationPage as ComponentType<unknown> })));
+const UserGuidePage = lazyWithRetry(() => import('@/pages/UserGuidePage').then(m => ({ default: m.UserGuidePage as ComponentType<unknown> })));
+const VSIMigrationMethodsPage = lazyWithRetry(() => import('@/pages/VSIMigrationMethodsPage').then(m => ({ default: m.VSIMigrationMethodsPage as ComponentType<unknown> })));
+const MTVDocumentationPage = lazyWithRetry(() => import('@/pages/MTVDocumentationPage').then(m => ({ default: m.MTVDocumentationPage as ComponentType<unknown> })));
+const AboutPage = lazyWithRetry(() => import('@/pages/AboutPage').then(m => ({ default: m.AboutPage as ComponentType<unknown> })));
+const OverheadReferencePage = lazyWithRetry(() => import('@/pages/OverheadReferencePage').then(m => ({ default: m.OverheadReferencePage as ComponentType<unknown> })));
+const ChatPage = lazyWithRetry(() => import('@/pages/ChatPage').then(m => ({ default: m.ChatPage as ComponentType<unknown> })));
+const ExportPage = lazyWithRetry(() => import('@/pages/ExportPage').then(m => ({ default: m.ExportPage as ComponentType<unknown> })));
+const SettingsPage = lazyWithRetry(() => import('@/pages/SettingsPage').then(m => ({ default: m.SettingsPage as ComponentType<unknown> })));
 
 // Suspense wrapper for lazy-loaded pages
 export function PageLoader({ children }: { children: React.ReactNode }) {
