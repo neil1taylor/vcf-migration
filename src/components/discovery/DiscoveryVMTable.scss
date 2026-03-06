@@ -68,7 +68,9 @@
   }
 
   &__status-filter {
-    min-width: 10rem;
+    min-width: 12rem;
+    align-self: flex-start;
+    margin-top: -0.5rem;
   }
 
   &__unclassified {
@@ -129,4 +131,13 @@
       width: auto;
     }
   }
+}
+
+// Workload modal styles — outside .discovery-vm-table because Carbon Modal renders in a portal
+.discovery-vm-table__workload-modal .cds--modal-container {
+  min-height: 28rem;
+}
+
+.discovery-vm-table__workload-modal .cds--modal-content {
+  overflow: visible;
 }

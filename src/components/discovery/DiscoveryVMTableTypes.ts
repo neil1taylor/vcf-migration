@@ -25,7 +25,7 @@ export interface DiscoveryVMTableProps {
   workloadsByCategory: Record<string, { name: string; vms: Set<string> }>;
 }
 
-export type FilterOption = 'all' | 'included' | 'auto-excluded' | 'manually-excluded' | 'overridden';
+export type FilterOption = 'included' | 'auto-excluded' | 'manually-excluded' | 'overridden' | 'unclassified';
 
 export interface VMRow {
   id: string;
@@ -55,11 +55,11 @@ export interface VMRow {
 // ===== CONSTANTS =====
 
 export const FILTER_OPTIONS: Array<{ id: FilterOption; text: string }> = [
-  { id: 'all', text: 'All VMs' },
   { id: 'included', text: 'Included' },
   { id: 'auto-excluded', text: 'Auto-Excluded' },
   { id: 'manually-excluded', text: 'Manually Excluded' },
   { id: 'overridden', text: 'Overridden' },
+  { id: 'unclassified', text: 'Unclassified' },
 ];
 
 // ===== HELPERS =====

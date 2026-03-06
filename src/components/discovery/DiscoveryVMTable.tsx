@@ -36,7 +36,7 @@ import {
   OverflowMenuItem,
   Pagination,
   Tooltip,
-  Dropdown,
+  MultiSelect,
 } from '@carbon/react';
 import {
   Download,
@@ -45,6 +45,8 @@ import {
   View,
   DocumentExport,
   Reset,
+  Category,
+  NotebookReference,
 } from '@carbon/icons-react';
 import { NO_AUTO_EXCLUSION } from '@/utils/autoExclusion';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
@@ -79,7 +81,7 @@ export function DiscoveryVMTable({
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
-  const [statusFilter, setStatusFilter] = useState<FilterOption>('all');
+  const [statusFilters, setStatusFilters] = useState<FilterOption[]>([]);
 
   const workloadCategories = useMemo(() => getWorkloadCategories(), []);
 
@@ -152,21 +154,22 @@ export function DiscoveryVMTable({
     return vmRows.filter(r => r.category === selectedCategory);
   }, [vmRows, selectedCategory]);
 
-  // Apply status filter
+  // Apply status filter (multi-select: empty = all)
   const statusFilteredRows = useMemo(() => {
-    switch (statusFilter) {
-      case 'included':
-        return categoryFilteredRows.filter(r => !r.isEffectivelyExcluded);
-      case 'auto-excluded':
-        return categoryFilteredRows.filter(r => r.isAutoExcluded && !r.isForceIncluded);
-      case 'manually-excluded':
-        return categoryFilteredRows.filter(r => r.isManuallyExcluded && !r.isAutoExcluded);
-      case 'overridden':
-        return categoryFilteredRows.filter(r => r.isForceIncluded);
-      default:
-        return categoryFilteredRows;
-    }
-  }, [categoryFilteredRows, statusFilter]);
+    if (statusFilters.length === 0) return categoryFilteredRows;
+    return categoryFilteredRows.filter(r => {
+      return statusFilters.some(f => {
+        switch (f) {
+          case 'included': return !r.isEffectivelyExcluded;
+          case 'auto-excluded': return r.isAutoExcluded && !r.isForceIncluded;
+          case 'manually-excluded': return r.isManuallyExcluded && !r.isAutoExcluded;
+          case 'overridden': return r.isForceIncluded;
+          case 'unclassified': return r.category === '_unclassified';
+          default: return false;
+        }
+      });
+    });
+  }, [categoryFilteredRows, statusFilters]);
 
   // Filter by search term
   const filteredRows = useMemo(() => {
@@ -199,6 +202,12 @@ export function DiscoveryVMTable({
     setEditingNotes,
     editingWorkload,
     setEditingWorkload,
+    bulkWorkloadVMs,
+    setBulkWorkloadVMs,
+    bulkNotesVMs,
+    setBulkNotesVMs,
+    bulkNotesText,
+    setBulkNotesText,
     showImportModal,
     setShowImportModal,
     importJson,
@@ -207,6 +216,10 @@ export function DiscoveryVMTable({
     setImportError,
     handleBulkExclude,
     handleBulkInclude,
+    handleBulkEditWorkload,
+    handleBulkSaveWorkload,
+    handleBulkEditNotes,
+    handleBulkSaveNotes,
     handleToggleExclusion,
     handleEditNotes,
     handleSaveNotes,
@@ -397,6 +410,20 @@ export function DiscoveryVMTable({
                   >
                     Include in Migration
                   </TableBatchAction>
+                  <TableBatchAction
+                    tabIndex={batchActionProps.shouldShowBatchActions ? 0 : -1}
+                    renderIcon={Category}
+                    onClick={() => handleBulkEditWorkload(selectedRows)}
+                  >
+                    Change Workload Type
+                  </TableBatchAction>
+                  <TableBatchAction
+                    tabIndex={batchActionProps.shouldShowBatchActions ? 0 : -1}
+                    renderIcon={NotebookReference}
+                    onClick={() => handleBulkEditNotes(selectedRows)}
+                  >
+                    Add Notes
+                  </TableBatchAction>
                 </TableBatchActions>
                 <TableToolbarContent>
                   <TableToolbarSearch
@@ -410,15 +437,15 @@ export function DiscoveryVMTable({
                     value={searchTerm}
                     persistent
                   />
-                  <Dropdown
+                  <MultiSelect
                     id="discovery-status-filter"
                     titleText=""
-                    label="Filter"
+                    label="Status filter"
                     items={FILTER_OPTIONS}
                     itemToString={(item) => item?.text || ''}
-                    selectedItem={FILTER_OPTIONS.find(o => o.id === statusFilter) || FILTER_OPTIONS[0]}
-                    onChange={({ selectedItem }) => {
-                      setStatusFilter(selectedItem?.id || 'all');
+                    selectedItems={FILTER_OPTIONS.filter(o => statusFilters.includes(o.id))}
+                    onChange={({ selectedItems }) => {
+                      setStatusFilters(selectedItems.map(i => i.id));
                       setPage(1);
                     }}
                     size="sm"
@@ -521,7 +548,7 @@ export function DiscoveryVMTable({
           <Tag type="gray" size="sm">
             {formatNumber(filteredRows.length)} VMs
           </Tag>
-          {(searchTerm || selectedCategory || statusFilter !== 'all') && (
+          {(searchTerm || selectedCategory || statusFilters.length > 0) && (
             <Tag type="blue" size="sm">
               Filtered from {formatNumber(vmRows.length)}
             </Tag>
@@ -549,6 +576,14 @@ export function DiscoveryVMTable({
         setEditingWorkload={setEditingWorkload}
         handleSaveWorkload={handleSaveWorkload}
         workloadCategories={workloadCategories}
+        bulkWorkloadVMs={bulkWorkloadVMs}
+        setBulkWorkloadVMs={setBulkWorkloadVMs}
+        handleBulkSaveWorkload={handleBulkSaveWorkload}
+        bulkNotesVMs={bulkNotesVMs}
+        setBulkNotesVMs={setBulkNotesVMs}
+        bulkNotesText={bulkNotesText}
+        setBulkNotesText={setBulkNotesText}
+        handleBulkSaveNotes={handleBulkSaveNotes}
         showImportModal={showImportModal}
         setShowImportModal={setShowImportModal}
         importJson={importJson}
