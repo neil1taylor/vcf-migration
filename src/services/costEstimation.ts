@@ -18,6 +18,8 @@ export interface ValidationResult {
   errors: ValidationError[];
 }
 
+export type OdfTier = 'advanced' | 'essentials';
+
 export interface ROKSSizingInput {
   computeNodes: number;
   computeProfile: string;
@@ -27,6 +29,8 @@ export interface ROKSSizingInput {
   storageTier?: '5iops' | '10iops';
   useNvme?: boolean;
   odfProfile?: string;
+  odfTier?: OdfTier;
+  includeAcm?: boolean;
 }
 
 export interface NetworkingOptions {
@@ -561,40 +565,70 @@ export function calculateROKSCost(
     });
   }
 
-  // ODF Storage (OpenShift Data Foundation Advanced)
-  const odfAdvanced = pricingToUse.roks?.odf?.advanced;
+  // ODF Storage (OpenShift Data Foundation)
+  const selectedOdfTier = input.odfTier ?? 'advanced';
+  const odfTierData = pricingToUse.roks?.odf?.[selectedOdfTier]
+    ?? pricingToUse.roks?.odf?.advanced;
+  const odfTierLabel = selectedOdfTier === 'essentials' ? 'Essentials' : 'Advanced';
   if (input.useNvme && computeProfile?.hasNvme) {
     // Converged: per-node monthly rate
-    const odfPerNode = odfAdvanced?.bareMetalPerNodeMonthly ?? 681.818;
+    const odfPerNode = odfTierData?.bareMetalPerNodeMonthly ?? 681.818;
     const odfMonthlyCost = odfPerNode * input.computeNodes * multiplier;
     lineItems.push({
       category: 'Storage - ODF',
-      description: 'OpenShift Data Foundation Advanced',
+      description: `OpenShift Data Foundation ${odfTierLabel}`,
       quantity: input.computeNodes,
       unit: 'nodes',
       unitCost: odfPerNode * multiplier,
       monthlyCost: odfMonthlyCost,
       annualCost: odfMonthlyCost * 12,
-      notes: 'ODF Advanced license for converged bare metal nodes',
+      notes: `ODF ${odfTierLabel} license for converged bare metal nodes`,
     });
   } else if (input.storageNodes && input.storageProfile) {
     // Hybrid: per-vCPU-hour rate on storage VSIs
     const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
     if (storageVSI) {
-      const odfVCPUHourly = odfAdvanced?.vsiPerVCPUHourly ?? 0.00725;
+      const odfVCPUHourly = odfTierData?.vsiPerVCPUHourly ?? 0.00725;
       const storageVCPUs = storageVSI.vcpus * input.storageNodes;
       const odfMonthlyCost = storageVCPUs * odfVCPUHourly * 730 * multiplier;
       lineItems.push({
         category: 'Storage - ODF',
-        description: 'OpenShift Data Foundation Advanced',
+        description: `OpenShift Data Foundation ${odfTierLabel}`,
         quantity: storageVCPUs,
         unit: 'vCPUs',
         unitCost: odfVCPUHourly * 730 * multiplier,
         monthlyCost: odfMonthlyCost,
         annualCost: odfMonthlyCost * 12,
-        notes: 'ODF Advanced license for VSI storage workers',
+        notes: `ODF ${odfTierLabel} license for VSI storage workers`,
       });
     }
+  }
+
+  // ACM (Red Hat Advanced Cluster Management) — optional
+  if (input.includeAcm && computeProfile && input.computeNodes > 0) {
+    // ACM is priced per vCPU across all worker nodes
+    // Rates from CDW reseller pricing (not in IBM Cloud Global Catalog)
+    const acmPricing = pricingToUse.roks?.acm;
+    const acmPerVCPUHourly = acmPricing?.perVCPUHourly ?? 0.0298;
+    let totalACMvCPUs = computeProfile.vcpus * input.computeNodes;
+    // In hybrid mode, storage VSI workers also need ACM
+    if (!input.useNvme && input.storageNodes && input.storageProfile) {
+      const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
+      if (storageVSI) {
+        totalACMvCPUs += storageVSI.vcpus * input.storageNodes;
+      }
+    }
+    const acmMonthlyCost = totalACMvCPUs * acmPerVCPUHourly * 730 * multiplier;
+    lineItems.push({
+      category: 'Licensing',
+      description: 'Red Hat Advanced Cluster Management',
+      quantity: totalACMvCPUs,
+      unit: 'vCPUs',
+      unitCost: acmPerVCPUHourly * 730 * multiplier,
+      monthlyCost: acmMonthlyCost,
+      annualCost: acmMonthlyCost * 12,
+      notes: 'ACM license per vCPU-hour (estimated — not in IBM Cloud catalog)',
+    });
   }
 
   // Networking (basic setup)

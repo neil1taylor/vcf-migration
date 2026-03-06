@@ -535,6 +535,9 @@ interface ROKSPricingRates {
 }
 
 // Fetch ROKS pricing (OCP license + ODF) from Global Catalog
+// NOTE: ACM (Red Hat Advanced Cluster Management) pricing is NOT in Global Catalog.
+// ACM rates are manually maintained in ibmCloudConfig.json under roks.acm.
+// Current rates derived from CDW reseller pricing (~$0.0298/vCPU-hr premium).
 async function fetchROKSPricing(token: string): Promise<ROKSPricingRates | null> {
   console.log('');
   console.log('--- ROKS Pricing (OCP License + ODF) ---');

@@ -48,9 +48,11 @@ interface CostEstimationProps {
   showPricingRefresh?: boolean;
   onProfileSelect?: (profileId: string) => void;
   onEstimateChange?: (totalMonthly: number | null) => void;
+  onOdfTierChange?: (tier: 'advanced' | 'essentials') => void;
+  onIncludeAcmChange?: (include: boolean) => void;
 }
 
-export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true, onProfileSelect, onEstimateChange }: CostEstimationProps) {
+export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true, onProfileSelect, onEstimateChange, onOdfTierChange, onIncludeAcmChange }: CostEstimationProps) {
   const [region, setRegion] = useState<RegionCode>('us-south');
   const [discountType, setDiscountType] = useState<DiscountType>('onDemand');
   const showDetails = true; // Always show details
@@ -290,6 +292,31 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
             ))}
           </Select>
         </div>
+
+        {/* ROKS Licensing Options */}
+        {type === 'roks' && (
+          <div className="cost-estimation__roks-options">
+            <Select
+              id="odf-tier-select"
+              labelText="ODF Tier"
+              value={roksSizing?.odfTier ?? 'advanced'}
+              onChange={(e) => onOdfTierChange?.(e.target.value as 'advanced' | 'essentials')}
+            >
+              <SelectItem value="advanced" text="ODF Advanced ($681.82/node/mo)" />
+              <SelectItem value="essentials" text="ODF Essentials ($545.46/node/mo)" />
+            </Select>
+
+            <Toggle
+              id="acm-toggle"
+              labelText="Advanced Cluster Management (ACM)"
+              labelA="Off"
+              labelB="On"
+              toggled={roksSizing?.includeAcm ?? false}
+              onToggle={(checked) => onIncludeAcmChange?.(checked)}
+            />
+            <span className="cost-estimation__networking-hint">Per-vCPU charge (~$21.75/vCPU/mo, estimated)</span>
+          </div>
+        )}
 
         {/* Networking Options (VSI only) */}
         {type === 'vsi' && (

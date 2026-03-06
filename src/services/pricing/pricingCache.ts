@@ -86,6 +86,7 @@ export interface IBMCloudPricing {
       essentials: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number; description: string };
     };
     clusterManagement: { perClusterMonthly: number; description: string };
+    acm?: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
   };
   networking: NetworkPricing;
   storageAddons: {
@@ -254,6 +255,7 @@ export function getStaticPricing(): IBMCloudPricing {
         essentials: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number; description: string };
       };
       clusterManagement: { perClusterMonthly: number; description: string };
+      acm?: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
     };
     odfWorkloadProfiles: Record<string, {
       name: string;

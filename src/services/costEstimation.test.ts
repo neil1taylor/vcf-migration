@@ -409,6 +409,72 @@ describe('Cost Estimation Service', () => {
       // The discount amount should be larger now that OCP/ODF are included
       expect(reservedResult.discountAmountMonthly).toBeGreaterThan(0);
     });
+
+    it('should use ODF Essentials pricing when odfTier is essentials', () => {
+      const essentialsInput: ROKSSizingInput = {
+        ...basicROKSInput,
+        odfTier: 'essentials',
+      };
+      const advancedResult = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
+      const essentialsResult = calculateROKSCost(essentialsInput, 'us-south', 'onDemand');
+
+      const advancedOdf = advancedResult.lineItems.find(item => item.category === 'Storage - ODF');
+      const essentialsOdf = essentialsResult.lineItems.find(item => item.category === 'Storage - ODF');
+
+      expect(advancedOdf?.description).toBe('OpenShift Data Foundation Advanced');
+      expect(essentialsOdf?.description).toBe('OpenShift Data Foundation Essentials');
+      expect(essentialsResult.totalMonthly).toBeLessThan(advancedResult.totalMonthly);
+    });
+
+    it('should use ODF Essentials pricing for converged (NVMe) architecture', () => {
+      const nvmeEssentials: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2d-metal-96x384',
+        useNvme: true,
+        odfTier: 'essentials',
+      };
+      const nvmeAdvanced: ROKSSizingInput = {
+        ...nvmeEssentials,
+        odfTier: 'advanced',
+      };
+
+      const essResult = calculateROKSCost(nvmeEssentials, 'us-south', 'onDemand');
+      const advResult = calculateROKSCost(nvmeAdvanced, 'us-south', 'onDemand');
+
+      const essOdf = essResult.lineItems.find(item => item.category === 'Storage - ODF');
+      const advOdf = advResult.lineItems.find(item => item.category === 'Storage - ODF');
+
+      expect(essOdf?.description).toContain('Essentials');
+      expect(advOdf?.description).toContain('Advanced');
+      expect(essOdf?.unitCost).toBeLessThan(advOdf?.unitCost ?? 0);
+    });
+
+    it('should include ACM line item when includeAcm is true', () => {
+      const acmInput: ROKSSizingInput = {
+        ...basicROKSInput,
+        includeAcm: true,
+      };
+      const result = calculateROKSCost(acmInput, 'us-south', 'onDemand');
+      const acmItem = result.lineItems.find(item => item.description === 'Red Hat Advanced Cluster Management');
+
+      expect(acmItem).toBeDefined();
+      expect(acmItem?.category).toBe('Licensing');
+      // Hybrid mode: 3 compute (96 vCPUs) + 3 storage (16 vCPUs) = 336 vCPUs
+      expect(acmItem?.quantity).toBe(336);
+      expect(acmItem?.notes).toContain('estimated');
+    });
+
+    it('should not include ACM when includeAcm is false or undefined', () => {
+      const result = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
+      const acmItem = result.lineItems.find(item => item.description === 'Red Hat Advanced Cluster Management');
+      expect(acmItem).toBeUndefined();
+    });
+
+    it('should increase total cost when ACM is included', () => {
+      const withoutAcm = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
+      const withAcm = calculateROKSCost({ ...basicROKSInput, includeAcm: true }, 'us-south', 'onDemand');
+      expect(withAcm.totalMonthly).toBeGreaterThan(withoutAcm.totalMonthly);
+    });
   });
 
   describe('findClosestPricedProfile', () => {

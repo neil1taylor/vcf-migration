@@ -574,9 +574,6 @@ The application includes scripts to update IBM Cloud profiles and pricing data f
 ```bash
 # Set your IBM Cloud API key
 export IBM_CLOUD_API_KEY=your-api-key
-
-# Or use the Vite environment variable
-export VITE_IBM_CLOUD_API_KEY=your-api-key
 ```
 
 ### Update Commands

@@ -25,15 +25,17 @@ export function SizingDataQualityBanner({ warnings, hasCritical }: SizingDataQua
         kind={hasCritical ? 'error' : 'warning'}
         title="Data quality"
         subtitle={
-          <>
-            {uniqueVMs.size} VM{uniqueVMs.size !== 1 ? 's have' : ' has'} suspicious resource allocations that may affect sizing accuracy.{' '}
-            <Link
-              onClick={(e: React.MouseEvent) => { e.preventDefault(); setExpanded(!expanded); }}
-              style={{ cursor: 'pointer' }}
-            >
-              {expanded ? 'Hide details' : 'Show details'}
-            </Link>
-          </>
+          (
+            <>
+              {uniqueVMs.size} VM{uniqueVMs.size !== 1 ? 's have' : ' has'} suspicious resource allocations that may affect sizing accuracy.{' '}
+              <Link
+                onClick={(e: React.MouseEvent) => { e.preventDefault(); setExpanded(!expanded); }}
+                style={{ cursor: 'pointer' }}
+              >
+                {expanded ? 'Hide details' : 'Show details'}
+              </Link>
+            </>
+          ) as unknown as string
         }
         lowContrast
         hideCloseButton

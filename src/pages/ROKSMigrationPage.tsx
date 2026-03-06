@@ -33,6 +33,8 @@ export function ROKSMigrationPage() {
   const [calculatorSizing, setCalculatorSizing] = useState<SizingResult | null>(null);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [requestedProfile, setRequestedProfile] = useState<string | null>(null);
+  const [odfTier, setOdfTier] = useState<'advanced' | 'essentials'>('advanced');
+  const [includeAcm, setIncludeAcm] = useState(false);
 
   // VM overrides for exclusions
   const vmOverrides = useVMOverrides();
@@ -183,6 +185,8 @@ export function ROKSMigrationPage() {
         computeProfile: calculatorSizing.computeProfile,
         useNvme: calculatorSizing.useNvme,
         storageTiB: calculatorSizing.storageTiB,
+        odfTier,
+        includeAcm,
       };
     }
 
@@ -192,8 +196,10 @@ export function ROKSMigrationPage() {
       computeProfile: 'mx2d.metal.96x768',
       useNvme: true,
       storageTiB: Math.ceil(totalStorageGiB / 1024),
+      odfTier,
+      includeAcm,
     };
-  }, [calculatorSizing, poweredOnVMs]);
+  }, [calculatorSizing, poweredOnVMs, odfTier, includeAcm]);
 
   const roksNodeDetails = useMemo<ROKSNodeDetail[]>(() => {
     const nodes: ROKSNodeDetail[] = [];
@@ -551,7 +557,7 @@ export function ROKSMigrationPage() {
               <TabPanel>
                 <Grid className="migration-page__tab-content">
                   <Column lg={16} md={8} sm={4}>
-                    <CostEstimation type="roks" roksSizing={roksSizing} roksNodeDetails={roksNodeDetails} title="ROKS Cluster Cost Estimation" onProfileSelect={handleProfileSelect} onEstimateChange={handleRoksEstimateChange} />
+                    <CostEstimation type="roks" roksSizing={roksSizing} roksNodeDetails={roksNodeDetails} title="ROKS Cluster Cost Estimation" onProfileSelect={handleProfileSelect} onEstimateChange={handleRoksEstimateChange} onOdfTierChange={setOdfTier} onIncludeAcmChange={setIncludeAcm} />
                   </Column>
                   <Column lg={16} md={8} sm={4}>
                     <Tile className="migration-page__cost-tile">

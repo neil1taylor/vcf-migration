@@ -172,6 +172,24 @@
     min-width: 200px;
   }
 
+  &__roks-options {
+    display: flex;
+    align-items: center;
+    gap: $spacing-05;
+    flex-wrap: wrap;
+    margin-top: $spacing-05;
+    padding-top: $spacing-05;
+    border-top: 1px solid var(--cds-border-subtle, $gray-20);
+
+    .cds--select {
+      min-width: 280px;
+    }
+
+    .cds--toggle {
+      min-width: 280px;
+    }
+  }
+
   // Profile Comparison Section
   &__profile-comparison {
     padding: $spacing-05;

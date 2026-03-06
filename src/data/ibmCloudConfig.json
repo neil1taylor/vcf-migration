@@ -2765,6 +2765,11 @@
     "clusterManagement": {
       "perClusterMonthly": 0,
       "description": "ROKS cluster management fee (included)"
+    },
+    "acm": {
+      "perVCPUHourly": 0.0298,
+      "perVCPUMonthly": 21.75,
+      "description": "Red Hat Advanced Cluster Management per vCPU-hour (estimated — not in IBM Cloud Global Catalog, derived from CDW reseller pricing)"
     }
   },
   "odfWorkloadProfiles": {
