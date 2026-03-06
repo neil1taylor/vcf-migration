@@ -15,7 +15,10 @@
       "Skill(docs-audit)",
       "Bash(tail:*)",
       "Bash(open:*)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "mcp__carbon-mcp__docs_search",
+      "Skill(commit-commands:commit-push-pr)",
+      "Skill(commit-commands:commit)"
     ],
     "deny": [
       "Bash(rm -rf *)",

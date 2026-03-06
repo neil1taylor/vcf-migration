@@ -8,7 +8,8 @@
           "Migration Comparison page — side-by-side ROKS vs VSI analysis with auto-classification, cost comparison, readiness metrics, architecture fit, and migration effort tabs",
           "VM target classification service with 7-rule heuristic engine (OS compatibility, memory, workload type, Linux default)",
           "VM-to-target assignment overrides with localStorage persistence and environment fingerprinting",
-          "Recommendation banner with data-driven migration strategy suggestion (All ROKS, All VSI, or Split)"
+          "Recommendation banner with data-driven migration strategy suggestion (All ROKS, All VSI, or Split)",
+          "Downloadable diagnostic log bundle on Settings page — exports anonymized app logs, environment info, and state snapshot for remote troubleshooting"
         ]
       }
     },

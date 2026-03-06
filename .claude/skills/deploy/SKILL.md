@@ -45,7 +45,7 @@ ibmcloud plugin show code-engine
 echo "${IBM_CLOUD_API_KEY:+set}"
 ```
 
-If `IBM_CLOUD_API_KEY` is not set, tell the user:
+If `IBM_CLOUD_API_KEY` is not set look in the .env file and if not found, tell the user:
 ```
 export IBM_CLOUD_API_KEY=your-api-key
 ```

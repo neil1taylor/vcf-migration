@@ -18,6 +18,7 @@ import {
   Reset,
   Settings as SettingsIcon,
   Education,
+  Download,
 } from '@carbon/icons-react';
 import { useAISettings } from '@/hooks/useAISettings';
 import { useAIStatus } from '@/hooks/useAIStatus';
@@ -29,12 +30,20 @@ import { clearProfilesCache } from '@/services/profiles/profilesCache';
 import { isProxyConfigured, testProxyConnection } from '@/services/pricing/globalCatalogApi';
 import { isProfilesProxyConfigured, testProfilesProxyConnection } from '@/services/ibmCloudProfilesApi';
 import { useTour } from '@/hooks/useTour';
+import { useData } from '@/hooks/useData';
+import { useVMOverrides } from '@/hooks/useVMOverrides';
+import { useAutoExclusion } from '@/hooks/useAutoExclusion';
+import { getVMIdentifier } from '@/utils/vmIdentifier';
+import { buildDiagnosticBundle, downloadDiagnosticBundle } from '@/services/diagnosticBundle';
 import './SettingsPage.scss';
 
 export function SettingsPage() {
   const { settings, updateSettings } = useAISettings();
   const tour = useTour();
   const { isConfigured, proxyHealth, isTestingProxy, testProxy } = useAIStatus();
+  const { rawData } = useData();
+  const vmOverrides = useVMOverrides();
+  const { getAutoExclusionById } = useAutoExclusion();
 
   // Pricing proxy status
   const pricingProxyConfigured = isProxyConfigured();
@@ -140,6 +149,35 @@ export function SettingsPage() {
     clearPricingCache();
     clearProfilesCache();
   }, []);
+
+  const handleDownloadDiagnostics = useCallback(() => {
+    const vms = rawData?.vInfo ?? [];
+    let excludedCount = 0;
+    for (const vm of vms) {
+      const vmId = getVMIdentifier(vm);
+      const autoResult = getAutoExclusionById(vmId);
+      if (vmOverrides.isEffectivelyExcluded(vmId, autoResult.isAutoExcluded)) {
+        excludedCount++;
+      }
+    }
+
+    const loadedSheets: string[] = [];
+    if (rawData) {
+      const sheetKeys = ['vInfo', 'vCPU', 'vMemory', 'vDisk', 'vPartition', 'vNetwork', 'vCD', 'vSnapshot', 'vTools', 'vCluster', 'vHost', 'vDatastore', 'vResourcePool', 'vLicense', 'vHealth', 'vSource'] as const;
+      for (const key of sheetKeys) {
+        if ((rawData[key]?.length ?? 0) > 0) {
+          loadedSheets.push(key);
+        }
+      }
+    }
+
+    const bundle = buildDiagnosticBundle({
+      vmCount: vms.length,
+      excludedVMCount: excludedCount,
+      loadedSheets,
+    });
+    downloadDiagnosticBundle(bundle);
+  }, [rawData, vmOverrides, getAutoExclusionById]);
 
   return (
     <div className="settings-page">
@@ -505,7 +543,7 @@ export function SettingsPage() {
         </Column>
 
         {/* Guided Tour */}
-        <Column lg={16} md={8} sm={4} style={{ marginBottom: '1rem' }}>
+        <Column lg={8} md={4} sm={4} style={{ marginBottom: '1rem' }}>
           <Tile className="settings-page__tile">
             <h2 className="settings-page__section-title">
               <Education size={20} />
@@ -521,6 +559,28 @@ export function SettingsPage() {
               onClick={tour.resetTour}
             >
               Restart Tour
+            </Button>
+          </Tile>
+        </Column>
+
+        {/* Diagnostics */}
+        <Column lg={8} md={4} sm={4} style={{ marginBottom: '1rem' }}>
+          <Tile className="settings-page__tile">
+            <h2 className="settings-page__section-title">
+              <Download size={20} />
+              Diagnostics
+            </h2>
+            <p className="settings-page__cache-description">
+              Download a diagnostic log bundle for troubleshooting. Contains app logs,
+              environment info, and anonymized state summary. No VM names, IPs, or sensitive data.
+            </p>
+            <Button
+              kind="tertiary"
+              size="sm"
+              renderIcon={Download}
+              onClick={handleDownloadDiagnostics}
+            >
+              Download Diagnostics
             </Button>
           </Tile>
         </Column>

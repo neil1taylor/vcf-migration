@@ -660,9 +660,3 @@ Built with:
 - [IBM Carbon Design System](https://carbondesignsystem.com/)
 - [ExcelJS](https://github.com/exceljs/exceljs)
 - [Chart.js](https://www.chartjs.org/)
-
-
-curl -X POST "https://api.dataplatform.cloud.ibm.com/v2/projects/4cb7c99d-c50b-456d-9160-f9fbd0a44b1d/settings" \
--H "Authorization: Bearer $(ibmcloud iam oauth-tokens --output json | jq -r '.iam_token')" \
--H "Content-Type: application/json" \                                      
--d '{"compute": [{"crn": "crn:v1:bluemix:public:pm-20:us-south:a/3cfdf229dfeb4afb8bf3f1067a9003e3:2412f745-0c10-4836-8188-c5e0fdbc6a2c::", "name": "watsonx.ai-vcf-migration", "type": "machine_learning"}]}'  

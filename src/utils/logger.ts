@@ -1,5 +1,7 @@
 // Standardized logging utility for consistent error reporting
 
+import { pushLogEntry } from './logBuffer';
+
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 export interface LogContext {
@@ -34,14 +36,17 @@ export function createLogger(module: string) {
       if (import.meta.env.DEV) {
         console.debug(formatMessage('debug', module, message, context));
       }
+      pushLogEntry({ timestamp: new Date().toISOString(), level: 'debug', module, message, context });
     },
 
     info(message: string, context?: LogContext): void {
       console.info(formatMessage('info', module, message, context));
+      pushLogEntry({ timestamp: new Date().toISOString(), level: 'info', module, message, context });
     },
 
     warn(message: string, context?: LogContext): void {
       console.warn(formatMessage('warn', module, message, context));
+      pushLogEntry({ timestamp: new Date().toISOString(), level: 'warn', module, message, context });
     },
 
     error(message: string, error?: Error | unknown, context?: LogContext): void {
@@ -51,7 +56,9 @@ export function createLogger(module: string) {
           ? { errorDetails: String(error) }
           : {};
 
-      console.error(formatMessage('error', module, message, { ...context, ...errorDetails }));
+      const mergedContext = { ...context, ...errorDetails };
+      console.error(formatMessage('error', module, message, mergedContext));
+      pushLogEntry({ timestamp: new Date().toISOString(), level: 'error', module, message, context: mergedContext });
     },
   };
 }

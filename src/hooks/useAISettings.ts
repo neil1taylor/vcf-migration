@@ -65,6 +65,13 @@ export function _resetSettingsForTest(): void {
   notifyListeners();
 }
 
+// ===== NON-HOOK ACCESSOR =====
+
+/** Read AI enabled state directly from localStorage (safe to call outside React) */
+export function getAIEnabled(): boolean {
+  return loadFromStorage().enabled;
+}
+
 // ===== HOOK =====
 
 /**
