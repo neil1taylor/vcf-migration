@@ -29,7 +29,7 @@ Category definitions:
 - "Backup & Recovery": Backup software (Veeam, Veritas, Commvault, Rubrik, Cohesity, Zerto)
 - "Security & Compliance": Security tools only - firewalls, antivirus, vulnerability scanners, SIEM (Palo Alto, CrowdStrike, Qualys, CyberArk, Tenable, Nessus)
 - "Monitoring & Management": Monitoring and observability tools (Nagios, Zabbix, Prometheus, Grafana, Datadog, SolarWinds)
-- "Virtualization Infrastructure": VMware management VMs (vCenter, NSX, vRealize, HCX, Horizon, VDI)
+- "VMware Infrastructure": VMware management VMs (vCenter, NSX, vRealize, HCX, Horizon, VDI)
 - "Container Platforms": Kubernetes, OpenShift, Docker, Rancher, Tanzu
 - "Messaging & Integration": Message queues and integration middleware (Kafka, RabbitMQ, MQ, TIBCO, MuleSoft)
 - "Storage Systems": Storage appliances and NAS/SAN VMs (NetApp, Pure, EMC, Ceph, MinIO)

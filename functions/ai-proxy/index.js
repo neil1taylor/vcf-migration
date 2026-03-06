@@ -381,7 +381,7 @@ app.post('/api/classify', async (req, res) => {
       'Backup & Recovery',
       'Security & Compliance',
       'Monitoring & Management',
-      'Virtualization Infrastructure',
+      'VMware Infrastructure',
       'Container Platforms',
       'Messaging & Integration',
       'Storage Systems',

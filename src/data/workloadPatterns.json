@@ -30,6 +30,20 @@
         "patterns": ["cust-edge", "service-edge"],
         "category": "network",
         "description": "Network edge appliances — always classify as Network Equipment regardless of AI"
+      },
+      {
+        "id": "vmware-aria-operations",
+        "match": "contains",
+        "patterns": ["VMware-Aria-Operations"],
+        "category": "virtualization",
+        "description": "VMware Aria Operations — always classify as VMware Infrastructure"
+      },
+      {
+        "id": "adns-servers",
+        "match": "startsWith",
+        "patterns": ["ADNS"],
+        "category": "dns",
+        "description": "ADNS servers — always classify as DNS"
       }
     ]
   },
@@ -102,13 +116,13 @@
       ]
     },
     "virtualization": {
-      "name": "Virtualization Infrastructure",
+      "name": "VMware Infrastructure",
       "icon": "VirtualMachine",
       "defaultStorageTier": "general-purpose",
       "description": "VMware virtualization infrastructure (vCenter, NSX, vSAN) is typically not migrated. These components are replaced by the target platform's native infrastructure.",
       "patterns": [
         "vcenter", "vsphere", "vsan", "nsx", "vrni", "vra", "vrops",
-        "srm", "hcx", "horizon", "vdi", "citrix", "xenapp", "xendesktop", "vcls"
+        "srm", "hcx", "horizon", "vdi", "citrix", "xenapp", "xendesktop", "vcls", "aria"
       ]
     },
     "containers": {
@@ -185,6 +199,13 @@
         "ldap", "activedirectory", "ad", "adfs", "okta", "ping", "keycloak",
         "sso", "saml", "oauth", "radius", "tacacs", "ipa", "freeipa"
       ]
+    },
+    "dns": {
+      "name": "DNS",
+      "icon": "Network",
+      "defaultStorageTier": "general-purpose",
+      "description": "DNS infrastructure servers providing name resolution services. Evaluate IBM Cloud DNS Services or VPC DNS as potential replacements.",
+      "patterns": []
     }
   },
   "autoExclusionRules": {
@@ -251,11 +272,11 @@
         "description": "vCenter Server Appliance (VCSA)"
       },
       {
-        "id": "windows-adns",
-        "label": "Windows AD/DNS",
-        "match": "startsWith",
-        "patterns": ["adnsvcs"],
-        "description": "Windows AD/DNS infrastructure servers"
+        "id": "vmware-aria-operations",
+        "label": "VMware Infrastructure",
+        "match": "contains",
+        "patterns": ["VMware-Aria-Operations"],
+        "description": "VMware Aria Operations (monitoring/management) appliances"
       },
       {
         "id": "network-edge-appliance",
