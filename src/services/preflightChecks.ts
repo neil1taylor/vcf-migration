@@ -16,6 +16,7 @@ import {
   SNAPSHOT_BLOCKER_AGE_DAYS,
 } from '@/utils/constants';
 import osCompatibilityData from '@/data/redhatOSCompatibility.json';
+import { getVSIOSCompatibility } from '@/services/migration/osCompatibility';
 
 // ===== TYPE DEFINITIONS =====
 
@@ -279,42 +280,25 @@ function isRFC1123Compliant(name: string): boolean {
   return rfc1123Pattern.test(lowerName);
 }
 
-function getROKSOSCompatibility(guestOS: string): { status: string; score: number } {
+function getROKSOSCompatibility(guestOS: string): {
+  status: string; score: number;
+  notes?: string; recommendedUpgrade?: string; eolDate?: string;
+} {
   const osLower = guestOS.toLowerCase();
   for (const entry of osCompatibilityData.osEntries) {
     if (entry.patterns.some((p: string) => osLower.includes(p))) {
-      return { status: entry.compatibilityStatus, score: entry.compatibilityScore };
+      return {
+        status: entry.compatibilityStatus,
+        score: entry.compatibilityScore,
+        notes: entry.notes,
+        recommendedUpgrade: entry.recommendedUpgrade,
+        eolDate: entry.eolDate,
+      };
     }
   }
   return { status: 'unsupported', score: 0 };
 }
 
-// IBM Cloud VPC supported OS mapping
-const vpcOSSupport: Record<string, { supported: boolean; notes: string }> = {
-  rhel: { supported: true, notes: 'RHEL 7.x, 8.x, 9.x supported' },
-  centos: { supported: true, notes: 'CentOS 7.x, 8.x - community supported' },
-  ubuntu: { supported: true, notes: 'Ubuntu 18.04, 20.04, 22.04 supported' },
-  debian: { supported: true, notes: 'Debian 10, 11 - community supported' },
-  'windows server 2016': { supported: true, notes: 'Windows Server 2016+' },
-  'windows server 2019': { supported: true, notes: 'Windows Server 2019' },
-  'windows server 2022': { supported: true, notes: 'Windows Server 2022' },
-  'windows 2016': { supported: true, notes: 'Windows Server 2016+' },
-  'windows 2019': { supported: true, notes: 'Windows Server 2019' },
-  'windows 2022': { supported: true, notes: 'Windows Server 2022' },
-  sles: { supported: true, notes: 'SUSE Linux Enterprise Server' },
-  rocky: { supported: true, notes: 'Rocky Linux - community supported' },
-  alma: { supported: true, notes: 'AlmaLinux - community supported' },
-};
-
-function getVPCOSSupport(guestOS: string): { supported: boolean; notes: string } {
-  const osLower = guestOS.toLowerCase();
-  for (const [pattern, support] of Object.entries(vpcOSSupport)) {
-    if (osLower.includes(pattern)) {
-      return support;
-    }
-  }
-  return { supported: false, notes: 'Not validated for IBM Cloud VPC' };
-}
 
 // ===== CHECK CONTEXT =====
 
@@ -631,26 +615,35 @@ function evaluateCheck(
         return {
           status: 'fail',
           value: vm.guestOS.substring(0, 30),
-          message: 'Not supported by OpenShift Virtualization',
+          message: compat.notes || 'Not supported by OpenShift Virtualization',
         };
       }
       if (compat.status === 'supported-with-caveats') {
+        const parts = [compat.notes];
+        if (compat.recommendedUpgrade) parts.push(compat.recommendedUpgrade);
         return {
           status: 'warn',
           value: vm.guestOS.substring(0, 30),
-          message: 'Supported with caveats',
+          message: parts.filter(Boolean).join('. '),
         };
       }
       return { status: 'pass', value: vm.guestOS.substring(0, 30) };
     }
 
     case 'vsi-os': {
-      const compat = getVPCOSSupport(vm.guestOS);
-      if (!compat.supported) {
+      const compat = getVSIOSCompatibility(vm.guestOS);
+      if (compat.status === 'unsupported') {
         return {
           status: 'fail',
           value: vm.guestOS.substring(0, 30),
           message: compat.notes,
+        };
+      }
+      if (compat.status === 'byol') {
+        return {
+          status: 'warn',
+          value: vm.guestOS.substring(0, 30),
+          message: `${compat.notes} — BYOL custom image required`,
         };
       }
       return { status: 'pass', value: vm.guestOS.substring(0, 30), message: compat.notes };
