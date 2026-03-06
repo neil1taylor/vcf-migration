@@ -32,6 +32,7 @@ import {
   buildROKSOverview,
   buildVSIOverview,
   buildCostEstimation,
+  buildDay2OperationsSection,
   buildNextSteps,
   buildAppendices,
   buildRiskAssessmentSection,
@@ -152,6 +153,7 @@ export async function generateDocxReport(
     sections.push(...buildCostEstimation(roksSizing, vsiMappings, aiInsights));
   }
 
+  sections.push(...buildDay2OperationsSection());
   sections.push(...buildNextSteps(finalOptions, aiInsights));
 
   // Add appendices if there are more VMs than shown in main body

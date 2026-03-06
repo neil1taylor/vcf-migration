@@ -13,6 +13,7 @@ vi.mock('./sections', () => ({
   buildROKSOverview: vi.fn(() => []),
   buildVSIOverview: vi.fn(() => []),
   buildCostEstimation: vi.fn(() => []),
+  buildDay2OperationsSection: vi.fn(() => []),
   buildNextSteps: vi.fn(() => []),
   buildAppendices: vi.fn(() => []),
 }));
@@ -61,6 +62,7 @@ vi.mock('./utils/helpers', () => ({
   createTableCell: vi.fn(() => ({})),
   getCurrentTableNumber: vi.fn(() => 0),
   getCurrentFigureNumber: vi.fn(() => 0),
+  createDocLink: vi.fn(() => ({})),
 }));
 
 // Mock docx library
@@ -88,6 +90,9 @@ vi.mock('docx', () => {
       constructor() {}
     },
     PageBreak: class MockPageBreak {
+      constructor() {}
+    },
+    ExternalHyperlink: class MockExternalHyperlink {
       constructor() {}
     },
     PageNumber: {},

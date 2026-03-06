@@ -12,6 +12,7 @@ import {
   ShadingType,
   HeadingLevel,
   Bookmark,
+  ExternalHyperlink,
 } from 'docx';
 import type { ITableCellOptions } from 'docx';
 import { STYLES, FONT_FAMILY, type DocumentContent } from '../types';
@@ -410,6 +411,47 @@ export function createBulletList(items: string[]): Paragraph[] {
         ],
       })
   );
+}
+
+// ===== DOC LINK HELPERS =====
+
+/**
+ * Create a paragraph with descriptive text followed by a clickable hyperlink.
+ * Pattern: "{description} {linkText}."
+ */
+export function createDocLink(description: string, linkText: string, url: string): Paragraph {
+  return new Paragraph({
+    spacing: { before: 80, after: 80 },
+    children: [
+      new TextRun({
+        text: description + ' ',
+        italics: true,
+        size: STYLES.smallSize,
+        color: STYLES.secondaryColor,
+        font: FONT_FAMILY,
+      }),
+      new ExternalHyperlink({
+        link: url,
+        children: [
+          new TextRun({
+            text: linkText,
+            style: 'Hyperlink',
+            size: STYLES.smallSize,
+            color: STYLES.primaryColor,
+            underline: {},
+            font: FONT_FAMILY,
+          }),
+        ],
+      }),
+      new TextRun({
+        text: '.',
+        italics: true,
+        size: STYLES.smallSize,
+        color: STYLES.secondaryColor,
+        font: FONT_FAMILY,
+      }),
+    ],
+  });
 }
 
 // ===== AI CONTENT HELPERS =====

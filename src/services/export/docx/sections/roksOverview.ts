@@ -3,7 +3,8 @@
 import { Paragraph, PageBreak, HeadingLevel, AlignmentType } from 'docx';
 import reportTemplates from '@/data/reportTemplates.json';
 import { type DocumentContent, type ROKSSizing } from '../types';
-import { createHeading, createParagraph, createBulletList, createStyledTable, createTableDescription, createTableLabel } from '../utils/helpers';
+import { createHeading, createParagraph, createBulletList, createStyledTable, createTableDescription, createTableLabel, createDocLink } from '../utils/helpers';
+import { DOC_LINKS } from '../utils/docLinks';
 
 // Type assertion for templates with table/figure descriptions
 const templates = reportTemplates as typeof reportTemplates & {
@@ -20,10 +21,30 @@ export function buildROKSOverview(sizing: ROKSSizing): DocumentContent[] {
 
     createHeading('6.1 ' + roksTemplates.whatIsRoks.title, HeadingLevel.HEADING_2),
     createParagraph(roksTemplates.whatIsRoks.content),
+    createDocLink(
+      'For the OpenShift Virtualization reference architecture, see',
+      'ROKS Reference Architecture',
+      DOC_LINKS.roksArchitecture
+    ),
 
     createHeading('6.2 ' + roksTemplates.architecture.title, HeadingLevel.HEADING_2),
     createParagraph(roksTemplates.architecture.content),
     ...createBulletList(roksTemplates.architecture.components),
+    createDocLink(
+      'For detailed compute design guidance, see',
+      'OpenShift Compute Design',
+      DOC_LINKS.roksCompute
+    ),
+    createDocLink(
+      'For detailed storage design guidance, see',
+      'OpenShift Storage Design',
+      DOC_LINKS.roksStorage
+    ),
+    createDocLink(
+      'For detailed networking design guidance, see',
+      'OpenShift Network Design',
+      DOC_LINKS.roksNetworking
+    ),
 
     createHeading('6.3 ' + roksTemplates.benefits.title, HeadingLevel.HEADING_2),
     ...roksTemplates.benefits.items.flatMap((b) => [

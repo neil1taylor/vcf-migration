@@ -10,6 +10,7 @@ export { buildMigrationStrategy } from './migrationStrategy';
 export { buildROKSOverview } from './roksOverview';
 export { buildVSIOverview } from './vsiOverview';
 export { buildCostEstimation } from './costEstimation';
+export { buildDay2OperationsSection } from './day2Operations';
 export { buildNextSteps } from './nextSteps';
 export { buildAppendices } from './appendices';
 export { buildRiskAssessmentSection } from './riskAssessment';

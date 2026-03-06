@@ -3,7 +3,8 @@
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle, AlignmentType } from 'docx';
 import reportTemplates from '@/data/reportTemplates.json';
 import { STYLES, type DocumentContent, type VSIMapping } from '../types';
-import { createHeading, createParagraph, createBulletList, createTableCell, createTableDescription, createTableLabel } from '../utils/helpers';
+import { createHeading, createParagraph, createBulletList, createTableCell, createTableDescription, createTableLabel, createDocLink } from '../utils/helpers';
+import { DOC_LINKS } from '../utils/docLinks';
 
 // Type assertion for templates with table/figure descriptions
 const templates = reportTemplates as typeof reportTemplates & {
@@ -25,10 +26,30 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
 
     createHeading('7.1 ' + vsiTemplates.whatIsVsi.title, HeadingLevel.HEADING_2),
     createParagraph(vsiTemplates.whatIsVsi.content),
+    createDocLink(
+      'For the VPC Virtual Servers reference architecture, see',
+      'VPC VSI Reference Architecture',
+      DOC_LINKS.vsiArchitecture
+    ),
 
     createHeading('7.2 ' + vsiTemplates.architecture.title, HeadingLevel.HEADING_2),
     createParagraph(vsiTemplates.architecture.content),
     ...createBulletList(vsiTemplates.architecture.components),
+    createDocLink(
+      'For detailed compute design guidance, see',
+      'VPC Compute Design',
+      DOC_LINKS.vsiCompute
+    ),
+    createDocLink(
+      'For detailed storage design guidance, see',
+      'VPC Storage Design',
+      DOC_LINKS.vsiStorage
+    ),
+    createDocLink(
+      'For detailed networking design guidance, see',
+      'VPC Network Design',
+      DOC_LINKS.vsiNetworking
+    ),
 
     createHeading('7.3 ' + vsiTemplates.profileFamilies.title, HeadingLevel.HEADING_2),
     createParagraph(vsiTemplates.profileFamilies.description),
