@@ -174,6 +174,23 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
 
   sections.push(...createBulletList(riskItems));
 
+  // Common migration risks (static, from industry experience)
+  sections.push(
+    new Paragraph({ spacing: { before: 240 } }),
+    createHeading('3.4.1 Common Migration Risks', HeadingLevel.HEADING_3),
+    createParagraph(
+      'In addition to the environment-specific risks above, the following risks are commonly encountered in VMware migration projects and should be considered during planning.'
+    ),
+    ...createBulletList([
+      'VMware lock-in — processes relying on VMware-specific tooling (vMotion, SRM workflows, proprietary appliances, third-party integrations) may require alternative approaches on the target platform.',
+      'Large monolithic workloads — VMs tightly coupled to specific storage or network topology may require additional design work.',
+      'Multi-TB VMDKs — very large disk images increase replication time and extend maintenance windows; warm migration is strongly recommended.',
+      'Data residency — regulatory requirements may restrict geographic transfer if no IBM Cloud VPC region exists in the required country.',
+      'No application owner — VMs without an identified business owner cannot be validated post-migration, creating risk of undetected functional issues.',
+      'Skill gaps — client teams unfamiliar with VPC or OpenShift may need upskilling before they can operate the target environment independently.',
+    ])
+  );
+
   // Add AI risk assessment if available
   if (aiInsights?.riskAssessment) {
     sections.push(

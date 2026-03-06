@@ -3,7 +3,7 @@
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle } from 'docx';
 import reportTemplates from '@/data/reportTemplates.json';
 import { STYLES, type DocumentContent } from '../types';
-import { createHeading, createParagraph, createBulletList, createTableCell, createTableDescription, createTableLabel, createDocLink } from '../utils/helpers';
+import { createHeading, createParagraph, createBulletList, createStyledTable, createTableCell, createTableDescription, createTableLabel, createDocLink } from '../utils/helpers';
 import { DOC_LINKS } from '../utils/docLinks';
 
 // Type assertion for templates with table/figure descriptions
@@ -85,14 +85,87 @@ export function buildMigrationOptions(): DocumentContent[] {
             createTableCell('Quick migration with minimal change'),
           ],
         }),
+        new TableRow({
+          children: [
+            createTableCell('Backup & Recovery', { bold: true }),
+            createTableCell('OADP, IBM Cloud Backup and Recovery, Veeam Kasten'),
+            createTableCell('IBM Cloud native snapshots, Veeam'),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createTableCell('Disaster Recovery', { bold: true }),
+            createTableCell('ODF Regional DR with multi-cluster + RHACM'),
+            createTableCell('Cross-region snapshots, Wanclouds VPC+, RackWare RMM'),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createTableCell('Observability', { bold: true }),
+            createTableCell('Built-in OpenShift monitoring + IBM Cloud Monitoring & Logging'),
+            createTableCell('IBM Cloud Monitoring & Logging'),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createTableCell('Security Model', { bold: true }),
+            createTableCell('OpenShift RBAC + VPC security groups'),
+            createTableCell('VPC security groups, firewalls, IAM'),
+          ],
+        }),
+        new TableRow({
+          children: [
+            createTableCell('Networking', { bold: true }),
+            createTableCell('OpenShift OVN SDN + VPC networking'),
+            createTableCell('VPC subnets, security groups, ACLs'),
+          ],
+        }),
       ],
     }),
     createTableLabel(templates.tableDescriptions.migrationComparison.title),
 
+    // Decision factors guide
+    ...buildDecisionFactorsSection(),
+
     // Migration Process section
     ...buildMigrationProcess(),
 
+    // Build-Ahead section
+    ...buildBuildAheadSection(),
+
+    // Partner Engagement section
+    ...buildPartnerEngagementSection(),
+
     new Paragraph({ children: [new PageBreak()] }),
+  ];
+}
+
+function buildDecisionFactorsSection(): DocumentContent[] {
+  return [
+    createHeading('Choosing the Right Target', HeadingLevel.HEADING_2),
+    createParagraph(
+      'The choice between VPC Virtual Servers and ROKS with OpenShift Virtualization depends on your team\'s skills, modernisation goals, and workload characteristics. The following table summarises the key decision factors.'
+    ),
+    createStyledTable(
+      ['Factor', 'Favours'],
+      [
+        ['Team knows traditional infrastructure', 'VPC VSI'],
+        ['Small-to-medium VM estate', 'VPC VSI'],
+        ['Cloud experience without learning Kubernetes', 'VPC VSI'],
+        ['Certified for SAP workloads', 'VPC VSI'],
+        ['IBM-provided OS licences included', 'VPC VSI'],
+        ['Want containers alongside VMs', 'ROKS'],
+        ['Plan to modernise VMs to containers', 'ROKS'],
+        ['Need hybrid/multi-cloud consistency', 'ROKS'],
+        ['Team already knows OpenShift', 'ROKS'],
+        ['Large estate with modernisation roadmap', 'ROKS'],
+        ['Wants to adopt DevOps approach for VMs', 'ROKS'],
+      ]
+    ),
+    createParagraph(
+      'Some clients may need both. Enterprise workloads like Oracle or SAP may need PowerVS — all environments can be connected via Transit Gateways.',
+      { spacing: { after: 200 } }
+    ),
   ];
 }
 
@@ -216,5 +289,185 @@ function buildMigrationProcess(): DocumentContent[] {
       'Pre-Migration Planning',
       DOC_LINKS.vsiPreMigration
     ),
+  ];
+}
+
+function buildBuildAheadSection(): DocumentContent[] {
+  return [
+    createHeading('4.2 Build-Ahead: Alternative for Infrastructure Services', HeadingLevel.HEADING_2),
+    createParagraph(
+      'Not all workloads benefit from a lift-and-shift approach. Infrastructure services such as Active Directory, DNS, monitoring, and backup are often better served by provisioning fresh cloud-native or managed services on IBM Cloud and migrating only the data and configuration. This reduces complexity, eliminates legacy configuration debt, and takes advantage of cloud-native capabilities such as managed high availability, auto-scaling, and built-in patching.'
+    ),
+    createParagraph(
+      'The build-ahead approach complements lift-and-shift by addressing workloads where recreating the service is simpler and more reliable than migrating the underlying virtual machine. It applies to a subset of VMs — typically infrastructure services rather than business applications — and runs in parallel with the main migration waves.',
+      { spacing: { after: 200 } }
+    ),
+
+    createHeading('4.2.1 When to Use Build-Ahead', HeadingLevel.HEADING_3),
+    createParagraph(
+      'Build-ahead is the preferred approach when:'
+    ),
+    ...createBulletList([
+      'The workload is an infrastructure service rather than a business application.',
+      'A cloud-native or managed equivalent exists on IBM Cloud.',
+      'The service\'s data can be replicated or exported independently of the VM (e.g., AD replication, DNS zone transfer, database logical export).',
+      'The legacy VM carries configuration debt — old operating system, manual patches, undocumented customisations.',
+      'The service supports native replication or synchronisation, enabling a low-risk parallel cutover.',
+    ]),
+
+    createHeading('4.2.2 Build-Ahead Candidates', HeadingLevel.HEADING_3),
+    createParagraph(
+      'The following table maps common infrastructure workload types to their recommended IBM Cloud replacements and the typical migration path for each.',
+      { spacing: { after: 120 } }
+    ),
+    createStyledTable(
+      ['Workload Type', 'IBM Cloud Alternative', 'Migration Path'],
+      [
+        [
+          'Active Directory / Domain Controllers',
+          'Fresh Windows Server VMs in VPC',
+          'Promote new cloud DCs \u2192 replicate AD \u2192 transfer FSMO roles \u2192 demote old DCs',
+        ],
+        [
+          'DNS Servers',
+          'IBM Cloud DNS Services or fresh DNS VMs in VPC',
+          'Export zones \u2192 import to cloud DNS \u2192 update NS delegation \u2192 decommission',
+        ],
+        [
+          'Database Servers',
+          'IBM Cloud Databases (managed) or fresh DB VMs',
+          'Logical export/replication \u2192 validate \u2192 cutover application connection strings',
+        ],
+        [
+          'Backup & Recovery',
+          'Veeam on IBM Cloud + Object Storage',
+          'Deploy cloud backup \u2192 redirect backup jobs \u2192 validate restores \u2192 retire appliance',
+        ],
+        [
+          'Monitoring & Observability',
+          'IBM Cloud Monitoring / Instana',
+          'Deploy cloud monitoring \u2192 install agents on migrated VMs \u2192 retire legacy',
+        ],
+        [
+          'Container Platforms',
+          'Target ROKS cluster',
+          'Migrate container workloads via MTC \u2192 consolidate \u2192 retire source cluster VMs',
+        ],
+        [
+          'CI/CD & DevOps',
+          'Jenkins on ROKS / GitHub Actions / GitLab CI',
+          'Rebuild pipelines targeting cloud \u2192 parallel run \u2192 retire old CI server',
+        ],
+        [
+          'Network Appliances',
+          'VPC Load Balancer, Security Groups, DNS Services',
+          'Design VPC networking \u2192 cutover traffic at DNS/LB layer \u2192 retire appliance VMs',
+        ],
+        [
+          'Storage Appliances',
+          'Block Storage, File Storage, Object Storage',
+          'Migrate data to cloud storage \u2192 retarget application mounts \u2192 retire appliance',
+        ],
+        [
+          'Security Tools',
+          'IBM Cloud SCC, VPC Security Groups, Red Hat ACS',
+          'Deploy cloud security \u2192 migrate policies \u2192 validate compliance \u2192 retire VMs',
+        ],
+      ]
+    ),
+
+    createHeading('4.2.3 The Build-Ahead Process', HeadingLevel.HEADING_3),
+    createParagraph(
+      'The build-ahead process follows a consistent pattern regardless of the specific workload type:'
+    ),
+    ...createBulletList([
+      'Provision — Deploy the replacement service on IBM Cloud, whether a managed service or a fresh virtual machine.',
+      'Configure — Apply equivalent policies, rules, and settings from the source environment.',
+      'Replicate — Synchronise data using native replication mechanisms (AD replication, database logical replication, DNS zone transfer, backup job redirect).',
+      'Validate — Verify the cloud service operates correctly in parallel with the source, confirming data consistency and functional equivalence.',
+      'Cutover — Switch traffic and clients to the cloud service (DNS update, connection string change, FSMO role transfer).',
+      'Decommission — Retire the legacy VM once the cloud service is confirmed stable and all dependent workloads have been validated.',
+    ]),
+    createParagraph(
+      'Build-ahead VMs are typically excluded from the lift-and-shift migration waves. They should be provisioned early in the migration timeline — during the Environment Preparation phase — so that they are ready to serve migrated workloads as they arrive.',
+      { spacing: { after: 200 } }
+    ),
+  ];
+}
+
+function buildPartnerEngagementSection(): DocumentContent[] {
+  return [
+    createHeading('4.3 Next Steps: Migration Partner Engagement', HeadingLevel.HEADING_2),
+    createParagraph(
+      'This assessment provides the analytical foundation for migration planning — identifying workloads, assessing readiness, estimating sizing, and recommending target platforms. The next step is to engage an IBM migration partner who will work with your team to translate these findings into a detailed, executable migration plan tailored to your environment and business requirements.'
+    ),
+
+    createHeading('4.3.1 Proof of Value / Proof of Concept', HeadingLevel.HEADING_3),
+    createParagraph(
+      'Before committing to a full-scale migration, a Proof of Value (PoV) or Proof of Concept (PoC) is typically conducted. This is a structured, time-boxed exercise — usually 2 to 4 weeks — in which a small number of representative workloads are migrated to IBM Cloud to validate the approach end to end.'
+    ),
+    createParagraph(
+      'The PoV/PoC validates that:',
+      { spacing: { after: 60 } }
+    ),
+    ...createBulletList([
+      'Migration tooling works correctly with your VMware environment and vCenter configuration.',
+      'Network connectivity between source and target (Direct Link or VPN) meets latency and throughput requirements.',
+      'Application functionality is preserved after migration — validated by your application owners.',
+      'Performance on the target platform meets or exceeds current baseline.',
+      'Cutover procedures and rollback processes work as designed.',
+      'Operational processes (monitoring, backup, patching) function on the new platform.',
+    ]),
+    createParagraph(
+      'The PoV/PoC provides concrete evidence that the migration approach works for your specific environment, reducing risk before the production migration begins.',
+      { spacing: { after: 200 } }
+    ),
+
+    createHeading('4.3.2 What the Migration Partner Delivers', HeadingLevel.HEADING_3),
+    createParagraph(
+      'Once engaged, the IBM migration partner will develop a comprehensive migration plan that builds on this assessment. Key deliverables include:'
+    ),
+    ...createBulletList([
+      'Detailed migration design — network topology, storage mapping, security architecture, and connectivity design specific to your environment.',
+      'Migration runbook — step-by-step procedures for each migration wave, including pre-checks, execution steps, validation criteria, and rollback procedures.',
+      'Risk register and mitigation plan — identified risks with severity, likelihood, and specific mitigation actions.',
+      'Timeline and wave plan — sequenced migration waves with dependencies, maintenance windows, and resource assignments.',
+      'Testing and validation plan — acceptance criteria for each workload, performance baselines, and sign-off procedures.',
+      'Operational handover — documentation, training, and knowledge transfer for day-2 operations on IBM Cloud.',
+    ]),
+    createParagraph(
+      'This assessment report is designed to accelerate that engagement by providing a comprehensive inventory of your VMware environment, a readiness assessment with identified blockers and remediation steps, workload classification, target platform recommendations, and preliminary sizing and cost estimates. The migration partner can use these findings as the starting point for detailed planning, significantly reducing the time required to move from assessment to execution.',
+      { spacing: { after: 200 } }
+    ),
+
+    createHeading('4.3.3 IBM Migration Support Programme', HeadingLevel.HEADING_3),
+    createParagraph(
+      'IBM provides a structured support programme to help clients migrate from VMware. The programme includes:'
+    ),
+    ...createBulletList([
+      'Complimentary assessment — IBM\'s CoE Solutioning Architect assesses your environment, sizes the target, and produces the initial migration design at no cost.',
+      'Free Proof of Concept environment — up to 10% of your VMware footprint provisioned on IBM Cloud for 90 days to validate the migration approach.',
+      'Dual-run credits — 90 days of credits to cover the cost of running workloads on both VMware and IBM Cloud during the transition period.',
+      'Free migration services — specialist migration partner assigned to execute the migration at no additional cost.',
+      'Continuous engagement — your assigned IBM resource remains throughout the migration until steady state is achieved.',
+    ]),
+
+    createHeading('4.3.4 Roles and Responsibilities', HeadingLevel.HEADING_3),
+    createParagraph(
+      'A successful migration requires coordinated effort from both IBM and the client organisation. The key roles are outlined below.'
+    ),
+    createParagraph('IBM Team:', { bold: true, spacing: { after: 60 } }),
+    ...createBulletList([
+      'Customer Success Manager (CSM) — primary IBM contact; coordinates meetings, manages the relationship, liaises with the migration partner.',
+      'Technical Account Manager (TAM) — provides account context and infrastructure knowledge.',
+      'CoE Solutioning Architect — assesses the environment, sizes the target, recommends a landing zone, produces the migration design and handover pack.',
+      'Migration Partner — executes detailed discovery, designs target infrastructure, migrates workloads.',
+    ]),
+    createParagraph('Client Team:', { bold: true, spacing: { before: 120, after: 60 } }),
+    ...createBulletList([
+      'Client Stakeholders / Decision Makers — approve timelines, budgets, and scope; make go/no-go decisions.',
+      'VMware / Infrastructure Administrator — provides RVTools exports, network diagrams, and IaaS component details; performs pre-migration remediation.',
+      'Application Owners — validate workload functionality post-migration; confirm dependencies and criticality per VM.',
+    ]),
   ];
 }
