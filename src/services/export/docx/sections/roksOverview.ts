@@ -72,7 +72,37 @@ export function buildROKSOverview(sizing: ROKSSizing): DocumentContent[] {
       'Headroom for workload growth without immediate capacity expansion',
     ]),
 
-    createHeading('6.5.2 CPU Over-commitment', HeadingLevel.HEADING_3),
+    createHeading('6.5.2 ODF Edition Comparison', HeadingLevel.HEADING_3),
+    createParagraph(
+      'Red Hat OpenShift Data Foundation is available in two editions: Essentials and Advanced. ' +
+      'Essentials provides core block and file storage with Ceph 3-way replication. ' +
+      'Advanced adds object storage, client-side encryption, external mode, and disaster recovery capabilities.',
+      { spacing: { after: 120 } }
+    ),
+    createStyledTable(
+      ['Feature', 'Essentials', 'Advanced'],
+      [
+        ['Block storage (RBD)', 'Yes', 'Yes'],
+        ['File storage (CephFS)', 'Yes', 'Yes'],
+        ['Ceph 3-way replication', 'Yes', 'Yes'],
+        ['Snapshot & clone', 'Yes', 'Yes'],
+        ['Thick / thin provisioning', 'Yes', 'Yes'],
+        ['Multicloud Object Gateway (MCG)', '-', 'Yes'],
+        ['Client-side encryption (per-PV)', '-', 'Yes'],
+        ['External mode (dedicated storage cluster)', '-', 'Yes'],
+        ['Regional DR (metro stretch / async)', '-', 'Yes'],
+        ['ODF Disaster Recovery (RHACM integration)', '-', 'Yes'],
+        ['Ceph RGW (S3-compatible object storage)', '-', 'Yes'],
+      ],
+      { columnAligns: [AlignmentType.LEFT, AlignmentType.CENTER, AlignmentType.CENTER] }
+    ),
+    createParagraph(
+      'This report\'s cost estimation uses the ODF tier selected in the sizing calculator. ' +
+      'ODF Advanced is recommended for environments requiring disaster recovery or object storage.',
+      { spacing: { before: 120, after: 120 } }
+    ),
+
+    createHeading('6.5.3 CPU Over-commitment', HeadingLevel.HEADING_3),
     createParagraph(
       'OpenShift Virtualization supports CPU over-commitment. The sizing calculations in this report use a conservative 1.8:1 CPU over-commit ratio.',
       { spacing: { after: 120 } }
@@ -83,7 +113,7 @@ export function buildROKSOverview(sizing: ROKSSizing): DocumentContent[] {
       'Node Capacity: OpenShift reserves ~15% CPU for system services',
     ]),
 
-    createHeading('6.5.3 Memory Over-commitment', HeadingLevel.HEADING_3),
+    createHeading('6.5.4 Memory Over-commitment', HeadingLevel.HEADING_3),
     createParagraph(
       'Memory over-commitment is supported but not enabled by default. This sizing uses 1:1 memory allocation for predictable VM performance.',
       { spacing: { after: 120 } }
@@ -95,7 +125,7 @@ export function buildROKSOverview(sizing: ROKSSizing): DocumentContent[] {
     ]),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('6.5.4 Recommended Configuration', HeadingLevel.HEADING_3),
+    createHeading('6.5.5 Recommended Configuration', HeadingLevel.HEADING_3),
     // ROKS sizing table - description above, label below
     ...createTableDescription(
       templates.tableDescriptions.roksSizing.title,
