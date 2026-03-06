@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "1.2.10",
+      "date": "2026-03-06",
+      "sections": {
+        "added": [
+          "Bulk Add Notes batch action in Discovery VM table — set the same note on multiple selected VMs at once"
+        ]
+      }
+    },
+    {
       "version": "1.2.9",
       "date": "2026-03-06",
       "sections": {
