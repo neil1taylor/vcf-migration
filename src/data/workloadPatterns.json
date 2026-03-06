@@ -44,6 +44,20 @@
         "patterns": ["ADNS"],
         "category": "dns",
         "description": "ADNS servers — always classify as DNS"
+      },
+      {
+        "id": "jump-servers",
+        "match": "contains",
+        "patterns": ["jmp", "jump"],
+        "category": "jumpServer",
+        "description": "Jump servers — always classify as Jump Server"
+      },
+      {
+        "id": "extreme-scale-servers",
+        "match": "contains",
+        "patterns": ["xcat", "xtr"],
+        "category": "extremeScale",
+        "description": "Extreme scale servers (xCAT/xtr) — always classify as Extreme Scale Servers"
       }
     ]
   },
@@ -200,12 +214,26 @@
         "sso", "saml", "oauth", "radius", "tacacs", "ipa", "freeipa"
       ]
     },
+    "jumpServer": {
+      "name": "Jump Server",
+      "icon": "UserAccess",
+      "defaultStorageTier": "general-purpose",
+      "description": "Jump servers (bastion hosts) provide secure access points to the environment. Evaluate IBM Cloud VPC bastion host patterns and VPN alternatives for cloud migration.",
+      "patterns": ["jmp", "jump", "jumpbox", "jumphost", "bastion"]
+    },
     "dns": {
       "name": "DNS",
       "icon": "Network",
       "defaultStorageTier": "general-purpose",
       "description": "DNS infrastructure servers providing name resolution services. Evaluate IBM Cloud DNS Services or VPC DNS as potential replacements.",
       "patterns": []
+    },
+    "extremeScale": {
+      "name": "Extreme Scale Servers",
+      "icon": "Enterprise",
+      "defaultStorageTier": "10iops",
+      "description": "Extreme scale server workloads (xCAT, xtr) typically running high-performance computing or large-scale cluster management. These require careful capacity planning and may need bare metal or high-memory VPC instances.",
+      "patterns": ["xcat", "xtr"]
     }
   },
   "autoExclusionRules": {
