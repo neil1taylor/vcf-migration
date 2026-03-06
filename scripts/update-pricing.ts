@@ -358,7 +358,7 @@ async function fetchComponentPricing(
       const name = missingFromBulk[i];
 
       // Try direct lookup first (works for VSI profiles)
-      let entry = await fetchCatalogEntry(token, name);
+      const entry = await fetchCatalogEntry(token, name);
       let measures = entry ? extractProfileMeasures(entry) : null;
 
       // If direct lookup didn't get measures, try search (needed for bare metal)
