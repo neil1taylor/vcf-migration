@@ -36,12 +36,50 @@
     background: var(--cds-layer-02, #f4f4f4);
   }
 
-  &__tooltip {
-    max-width: 300px;
+  // Label variant for expanded row display
+  &--with-label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+    height: auto;
+    border-radius: 0;
+    background: transparent;
+    cursor: default;
+    padding: spacing.$spacing-02 0;
+
+    &:hover {
+      transform: none;
+    }
+
+    // Keep color on the icon only in label mode
+    svg {
+      flex-shrink: 0;
+    }
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    gap: spacing.$spacing-02;
+  }
+
+  &__label {
+    @include type.type-style('body-compact-01');
+    color: var(--cds-text-primary, #161616);
+    white-space: nowrap;
+  }
+
+  &__message {
+    @include type.type-style('helper-text-01');
+    color: var(--cds-text-secondary, #525252);
+    padding-left: calc(16px + spacing.$spacing-02);
+    white-space: normal;
+    word-break: break-word;
   }
 }
 
-// Tooltip content - uses light text on dark Carbon tooltip background
+// Toggletip content — Carbon provides correct token context
 .check-result-tooltip {
   text-align: left;
 
@@ -49,12 +87,10 @@
     @include type.type-style('heading-compact-01');
     display: block;
     margin-bottom: spacing.$spacing-02;
-    color: #ffffff;
   }
 
   &__description {
     @include type.type-style('body-compact-01');
-    color: #c6c6c6; // Light gray for readability on dark bg
     margin-bottom: spacing.$spacing-03;
   }
 
@@ -69,15 +105,13 @@
   &__value,
   &__threshold {
     @include type.type-style('label-01');
-    color: #e0e0e0; // Light gray for labels
   }
 
   &__message {
     @include type.type-style('helper-text-01');
-    color: #ffffff;
     margin-top: spacing.$spacing-02;
     padding-top: spacing.$spacing-02;
-    border-top: 1px solid rgba(255, 255, 255, 0.3);
+    border-top: 1px solid var(--cds-border-subtle, #e0e0e0);
     font-style: italic;
   }
 }

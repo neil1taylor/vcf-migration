@@ -127,49 +127,64 @@
 
   &__table {
     margin-bottom: spacing.$spacing-07;
+  }
 
-    // Make table horizontally scrollable for many columns
-    :global(.cds--data-table-content) {
-      overflow-x: auto;
+  // Applied directly on the <table> element via className prop
+  &__fixed-table {
+    table-layout: fixed !important;
+    width: 100% !important;
+
+    td,
+    th {
+      vertical-align: middle;
     }
 
-    // Compact cell styling for check columns
-    :global(.cds--data-table) {
-      td {
-        padding: spacing.$spacing-03;
-        vertical-align: middle;
-      }
-
-      // Make check columns narrower
-      th:not(:nth-child(-n + 4)),
-      td:not(:nth-child(-n + 4)) {
-        min-width: 70px;
-        max-width: 80px;
-        text-align: center;
-      }
-
-      // Keep VM name column wider
-      th:first-child,
-      td:first-child {
-        min-width: 200px;
-        max-width: 250px;
-      }
-
-      // Cluster and Guest OS columns
-      th:nth-child(2),
-      td:nth-child(2),
-      th:nth-child(3),
-      td:nth-child(3) {
-        min-width: 100px;
-        max-width: 150px;
-      }
-
-      // Status column
-      th:nth-child(4),
-      td:nth-child(4) {
-        min-width: 100px;
-        max-width: 120px;
-      }
+    // Truncate long text in cells
+    td {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+  }
+
+  // Override Carbon's overflow-x:auto on the table wrapper
+  &__table :global(.cds--data-table-content) {
+    overflow-x: hidden !important;
+  }
+
+  // Expanded row content
+  &__expanded-content {
+    padding: spacing.$spacing-05 spacing.$spacing-06;
+  }
+
+  &__check-categories {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: spacing.$spacing-05;
+  }
+
+  &__check-category {
+    padding: spacing.$spacing-04;
+    background-color: theme.$layer-01;
+    border: 1px solid var(--cds-border-subtle, #e0e0e0);
+    border-radius: 4px;
+    min-width: 0;
+  }
+
+  &__category-label {
+    @include type.type-style('label-01');
+    color: theme.$text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.32px;
+    padding-bottom: spacing.$spacing-03;
+    margin-bottom: spacing.$spacing-03;
+    border-bottom: 1px solid var(--cds-border-subtle, #e0e0e0);
+  }
+
+  &__check-items {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
   }
 }

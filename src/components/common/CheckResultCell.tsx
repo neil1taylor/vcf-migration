@@ -1,5 +1,5 @@
 // Check result cell component for pre-flight report table
-import { Tooltip } from '@carbon/react';
+import { Toggletip, ToggletipButton, ToggletipContent } from '@carbon/react';
 import { Checkmark, Close, WarningAlt, Subtract } from '@carbon/icons-react';
 import type { CheckResult, CheckDefinition } from '@/services/preflightChecks';
 import './CheckResultCell.scss';
@@ -7,9 +7,10 @@ import './CheckResultCell.scss';
 interface CheckResultCellProps {
   result: CheckResult;
   checkDef: CheckDefinition;
+  showLabel?: boolean;
 }
 
-export function CheckResultCell({ result, checkDef }: CheckResultCellProps) {
+export function CheckResultCell({ result, checkDef, showLabel }: CheckResultCellProps) {
   const getIcon = () => {
     switch (result.status) {
       case 'pass':
@@ -24,6 +25,7 @@ export function CheckResultCell({ result, checkDef }: CheckResultCellProps) {
   };
 
   const getSeverityLabel = () => {
+    if (result.status === 'warn') return 'Warning';
     switch (checkDef.severity) {
       case 'blocker':
         return 'Blocker';
@@ -33,6 +35,21 @@ export function CheckResultCell({ result, checkDef }: CheckResultCellProps) {
         return 'Info';
     }
   };
+
+  if (showLabel) {
+    const showMessage = result.message && (result.status === 'fail' || result.status === 'warn');
+    return (
+      <div className={`check-result-cell check-result-cell--with-label check-result-cell--${result.status}`}>
+        <div className="check-result-cell__row">
+          {getIcon()}
+          <span className="check-result-cell__label">{checkDef.name}</span>
+        </div>
+        {showMessage && (
+          <span className="check-result-cell__message">{result.message}</span>
+        )}
+      </div>
+    );
+  }
 
   const tooltipContent = (
     <div className="check-result-tooltip">
@@ -60,14 +77,15 @@ export function CheckResultCell({ result, checkDef }: CheckResultCellProps) {
   );
 
   return (
-    <Tooltip
-      align="bottom"
-      label={tooltipContent}
-      className="check-result-cell__tooltip"
-    >
-      <span className={`check-result-cell check-result-cell--${result.status}`}>
-        {getIcon()}
-      </span>
-    </Tooltip>
+    <Toggletip align="bottom" autoAlign>
+      <ToggletipButton label={checkDef.name}>
+        <span className={`check-result-cell check-result-cell--${result.status}`}>
+          {getIcon()}
+        </span>
+      </ToggletipButton>
+      <ToggletipContent>
+        {tooltipContent}
+      </ToggletipContent>
+    </Toggletip>
   );
 }
