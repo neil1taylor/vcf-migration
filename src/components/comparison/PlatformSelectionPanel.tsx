@@ -78,9 +78,10 @@ export function PlatformSelectionPanel({ answers, onAnswer, onReset, score, roks
         )}
       </div>
 
-      <Grid narrow>
+      {/* Factor columns — Grid with stretch so both columns match height */}
+      <Grid narrow style={{ alignItems: 'stretch' }}>
         {/* VSI Column */}
-        <Column lg={8} md={4} sm={4}>
+        <Column lg={8} md={4} sm={4} style={{ marginBottom: '1rem' }}>
           <h5 style={{ marginBottom: '0.75rem', color: '#0f62fe' }}>Factors favouring VPC VSI</h5>
           {vsiFactors.map(factor => (
             <div key={factor.id} style={{ marginBottom: '1rem' }}>
@@ -101,7 +102,7 @@ export function PlatformSelectionPanel({ answers, onAnswer, onReset, score, roks
         </Column>
 
         {/* ROKS Column */}
-        <Column lg={8} md={4} sm={4}>
+        <Column lg={8} md={4} sm={4} style={{ marginBottom: '1rem' }}>
           <h5 style={{ marginBottom: '0.75rem', color: '#009d9a' }}>Factors favouring ROKS</h5>
           {roksFactors.map(factor => (
             <div key={factor.id} style={{ marginBottom: '1rem' }}>
@@ -120,7 +121,9 @@ export function PlatformSelectionPanel({ answers, onAnswer, onReset, score, roks
             </div>
           ))}
         </Column>
+      </Grid>
 
+      <Grid narrow>
         {/* Dynamic factors (cost) - full width */}
         {dynamicFactors.length > 0 && (
           <Column lg={16} md={8} sm={4} style={{ marginTop: '0.5rem' }}>

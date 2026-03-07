@@ -2,9 +2,10 @@
   "releases": [
     {
       "version": "1.2.10",
-      "date": "2026-03-06",
+      "date": "2026-03-07",
       "sections": {
         "added": [
+          "DOCX report: hypervisor-dependent tooling incompatibility warnings in Migration Readiness risks and new Section 4.1.6 with VMware-to-IBM Cloud tool replacement mapping table",
           "Dynamic cost factor in Platform Selection questionnaire — 'Is cost an important factor?' automatically favours whichever platform has lower estimated monthly cost",
           "All ROKS and All VSI cost tiles moved into Platform Selection tab for at-a-glance cost context",
           "VM Assignment table defaults to platform selection questionnaire's favoured platform — SAP/Oracle VMs default to PowerVS, neutral falls back to auto-classification rules",

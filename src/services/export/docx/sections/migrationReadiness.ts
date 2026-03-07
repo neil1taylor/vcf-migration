@@ -183,6 +183,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
     ),
     ...createBulletList([
       'VMware lock-in — processes relying on VMware-specific tooling (vMotion, SRM workflows, proprietary appliances, third-party integrations) may require alternative approaches on the target platform.',
+      'Hypervisor-dependent tooling — tools that rely on the VMware hypervisor layer will not function on IBM Cloud VPC VSI or ROKS. This includes disaster recovery tools (Zerto, VMware SRM), continuous data protection (Veeam CDP with VMware agents), operational management (VMware Aria Operations, Aria Automation), and any solution that depends on vSphere APIs, VADP, or CBT for ongoing operations. Replacement solutions must be identified and deployed as part of the migration — see Section 4 for recommended alternatives.',
       'Large monolithic workloads — VMs tightly coupled to specific storage or network topology may require additional design work.',
       'Multi-TB VMDKs — very large disk images increase replication time and extend maintenance windows; warm migration is strongly recommended.',
       'Data residency — regulatory requirements may restrict geographic transfer if no IBM Cloud VPC region exists in the required country.',

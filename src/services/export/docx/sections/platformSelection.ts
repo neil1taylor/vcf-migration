@@ -78,6 +78,16 @@ export function buildPlatformSelectionSection(data: PlatformSelectionExport): Do
     createStyledTable(factorHeaders, factorRows),
   );
 
+  // Callout for unanswered / "Not Sure" responses
+  const notSureCount = factorsData.factors.filter(f => !answers[f.id] || answers[f.id] === 'not-sure').length;
+  if (notSureCount > 0) {
+    sections.push(
+      createParagraph(
+        `${notSureCount} question${notSureCount > 1 ? 's' : ''} answered with 'Not Sure' or left unanswered should be resolved with your IBM representative to ensure correct target platform selection.`
+      ),
+    );
+  }
+
   sections.push(
     createParagraph(
       'Platform selection scores are indicative and should be considered alongside workload-specific requirements, organizational constraints, and the detailed migration assessment findings in this report.'

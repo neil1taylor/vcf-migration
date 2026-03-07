@@ -289,6 +289,27 @@ function buildMigrationProcess(): DocumentContent[] {
       'Pre-Migration Planning',
       DOC_LINKS.vsiPreMigration
     ),
+
+    createHeading('4.1.6 Replacing Hypervisor-Dependent Tooling', HeadingLevel.HEADING_3),
+    createParagraph(
+      'Tools that depend on the VMware hypervisor layer — including those that use vSphere APIs, VADP (vStorage APIs for Data Protection), or Changed Block Tracking (CBT) — will not function on IBM Cloud VPC VSI or ROKS, because neither platform runs a VMware hypervisor. Replacement solutions must be identified and validated as part of the migration project. The table below maps common VMware-dependent tools to their IBM Cloud equivalents.'
+    ),
+    createStyledTable(
+      ['VMware Tool', 'Function', 'ROKS Replacement', 'VPC VSI Replacement'],
+      [
+        ['VMware SRM', 'Disaster Recovery', 'ODF Regional DR + RHACM', 'Cross-region snapshots, Wanclouds VPC+, RackWare'],
+        ['Zerto', 'DR / CDP', 'ODF Regional DR + RHACM', 'Wanclouds VPC+, RackWare RMM'],
+        ['Veeam B&R (VADP)', 'Backup via VMware APIs', 'OADP, Veeam Kasten', 'IBM Cloud Backup, Veeam (agent-based)'],
+        ['Veeam CDP', 'Continuous Data Protection', 'ODF Regional DR', 'Cross-region snapshots'],
+        ['Aria Operations', 'Monitoring / Capacity', 'OpenShift Monitoring + IBM Cloud Monitoring', 'IBM Cloud Monitoring + Instana'],
+        ['Aria Automation', 'Provisioning / IaC', 'OpenShift GitOps (ArgoCD) + Ansible', 'Terraform + Ansible + Schematics'],
+        ['vSphere DRS/HA', 'Cluster Management', 'Kubernetes scheduling + pod anti-affinity', 'VPC placement groups + auto-recovery'],
+      ]
+    ),
+    createParagraph(
+      'The PoV/PoC phase (Section 4.3.1) should validate replacement tooling alongside the VM migration itself. Early testing ensures that backup, DR, monitoring, and provisioning workflows are operational on the target platform before production workloads are migrated.',
+      { spacing: { after: 200 } }
+    ),
   ];
 }
 
