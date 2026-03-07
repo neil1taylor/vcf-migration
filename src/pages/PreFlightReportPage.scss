@@ -47,9 +47,15 @@
 
   &__metric-card {
     cursor: pointer;
+    height: 100%;
 
-    &--selected {
-      border-bottom: 3px solid var(--cds-link-primary, #0f62fe);
+    :global(.metric-card) {
+      margin-bottom: 0;
+      height: 100%;
+    }
+
+    &--selected :global(.metric-card) {
+      box-shadow: inset 0 -3px 0 0 var(--cds-link-primary, #0f62fe);
     }
   }
 
@@ -162,7 +168,7 @@
   &__check-categories {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: spacing.$spacing-05;
+    gap: spacing.$spacing-07;
   }
 
   &__check-category {
@@ -171,6 +177,7 @@
     border: 1px solid var(--cds-border-subtle, #e0e0e0);
     border-radius: 4px;
     min-width: 0;
+    height: 100%;
   }
 
   &__category-label {
