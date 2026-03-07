@@ -36,6 +36,9 @@ import {
 } from '@/services/costEstimation';
 import { downloadBOM, downloadVSIBOMExcel, downloadROKSBOMExcel } from '@/services/export';
 import type { VMDetail, ROKSNodeDetail } from '@/services/export';
+import { calculateOdfReservation } from '@/utils/odfCalculation';
+import type { OdfTuningProfile, OdfCpuUnitMode } from '@/utils/odfCalculation';
+import { calculateNodesForProfile } from '@/utils/nodeCalculation';
 import './CostEstimation.scss';
 
 interface CostEstimationProps {
@@ -133,27 +136,89 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
     const nvmeProfiles = profiles.filter(p => p.hasNvme);
 
     const costs = nvmeProfiles.map(profile => {
+      // Calculate per-profile node count if we have the workload params
+      let nodeCount = roksSizing.computeNodes;
+      if (roksSizing.nodeCalcParams) {
+        nodeCount = calculateNodesForProfile(
+          {
+            physicalCores: profile.physicalCores,
+            memoryGiB: profile.memoryGiB,
+            hasNvme: profile.hasNvme,
+            nvmeDisks: profile.nvmeDisks,
+            totalNvmeGB: profile.totalNvmeGB,
+          },
+          roksSizing.nodeCalcParams,
+        );
+      }
+
       const profileSizing: ROKSSizingInput = {
         ...roksSizing,
         computeProfile: profile.id,
+        computeNodes: nodeCount,
       };
       const cost = calculateROKSCost(profileSizing, region, discountType, pricing);
+
+      // Check if ODF reservation exceeds this profile's CPU capacity
+      let cpuViable = true;
+      if (roksSizing.odfSettings) {
+        const { odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw, systemReservedCpu, cpuOvercommit } = roksSizing.odfSettings;
+        const odf = calculateOdfReservation(
+          odfTuningProfile as OdfTuningProfile,
+          profile.nvmeDisks ?? 0,
+          3,
+          includeRgw,
+          odfCpuUnitMode as OdfCpuUnitMode,
+          htMultiplier,
+          useHyperthreading,
+        );
+        // Check if workload CPU capacity would be zero
+        let effectiveCores: number;
+        if (odfCpuUnitMode === 'physical') {
+          const availableCores = Math.max(0, profile.physicalCores - odf.totalCpu - systemReservedCpu);
+          effectiveCores = useHyperthreading ? availableCores * htMultiplier : availableCores;
+        } else {
+          const totalVcpus = useHyperthreading ? profile.physicalCores * htMultiplier : profile.physicalCores;
+          const systemReservedVcpu = useHyperthreading ? systemReservedCpu * htMultiplier : systemReservedCpu;
+          effectiveCores = Math.max(0, totalVcpus - odf.totalCpu - systemReservedVcpu);
+        }
+        cpuViable = Math.floor(effectiveCores * cpuOvercommit) > 0;
+      }
+
       return {
         profile,
         estimate: cost,
         isSelected: profile.id === roksSizing.computeProfile,
+        cpuViable,
+        nodeCount,
       };
     });
 
-    // Sort by monthly cost to find most efficient (exclude unpriced custom profiles)
-    const priceableCosts = costs.filter(c => !(c.profile.isCustom && (!c.profile.monthlyRate || c.profile.monthlyRate === 0)));
+    // Sort by monthly cost to find most efficient (exclude unpriced custom profiles and CPU-exceeded profiles)
+    const priceableCosts = costs.filter(c =>
+      !(c.profile.isCustom && (!c.profile.monthlyRate || c.profile.monthlyRate === 0)) && c.cpuViable
+    );
     const sortedCosts = [...priceableCosts].sort((a, b) => a.estimate.totalMonthly - b.estimate.totalMonthly);
     const lowestCostProfileId = sortedCosts[0]?.profile.id;
 
-    return costs.map(c => ({
-      ...c,
-      isBestValue: c.profile.id === lowestCostProfileId,
-    }));
+    return costs
+      .map(c => ({
+        ...c,
+        isBestValue: c.profile.id === lowestCostProfileId,
+      }))
+      .sort((a, b) => {
+        // Selected always first
+        if (a.isSelected !== b.isSelected) return a.isSelected ? -1 : 1;
+        // Non-viable to the end
+        if (a.cpuViable !== b.cpuViable) return a.cpuViable ? -1 : 1;
+        // Unpriced custom to the end
+        const aUnpriced = a.profile.isCustom && (!a.profile.monthlyRate || a.profile.monthlyRate === 0);
+        const bUnpriced = b.profile.isCustom && (!b.profile.monthlyRate || b.profile.monthlyRate === 0);
+        if (aUnpriced !== bUnpriced) return aUnpriced ? 1 : -1;
+        // Best value second
+        if (a.isBestValue !== b.isBestValue) return a.isBestValue ? -1 : 1;
+        // Then ascending monthly cost
+        return a.estimate.totalMonthly - b.estimate.totalMonthly;
+      });
   }, [type, roksSizing, region, discountType, pricing]);
 
   // Detect if the selected profile has no pricing (custom profile with $0 rates)
@@ -456,11 +521,13 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
             Bare Metal Profile Cost Comparison
           </h4>
           <p className="cost-estimation__profile-comparison-subtitle">
-            Costs for {roksSizing?.computeNodes || 0} nodes with {roksSizing?.useNvme ? 'NVMe storage' : 'block storage'}
+            {roksSizing?.nodeCalcParams
+              ? `Per-profile node counts for your workload with ${roksSizing?.useNvme ? 'NVMe storage' : 'block storage'}`
+              : `Costs for ${roksSizing?.computeNodes || 0} nodes with ${roksSizing?.useNvme ? 'NVMe storage' : 'block storage'}`}
             {onProfileSelect && ' — click a profile to select it in the Sizing Calculator'}
           </p>
           <div className="cost-estimation__profile-grid">
-            {allProfileCosts.map(({ profile, estimate: profileEstimate, isSelected, isBestValue }) => (
+            {allProfileCosts.map(({ profile, estimate: profileEstimate, isSelected, isBestValue, cpuViable, nodeCount }) => (
               <div
                 key={profile.id}
                 className={`cost-estimation__profile-card ${isSelected ? 'cost-estimation__profile-card--selected' : ''} ${isBestValue ? 'cost-estimation__profile-card--best-value' : ''} ${onProfileSelect ? 'cost-estimation__profile-card--clickable' : ''}`}
@@ -475,6 +542,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
                   <div className="cost-estimation__profile-tags">
                     {isBestValue && <Tag type="green" size="sm">Best Value</Tag>}
                     {isSelected && <Tag type="blue" size="sm">Selected</Tag>}
+                    {!cpuViable && <Tag type="magenta" size="sm">ODF exceeds CPU</Tag>}
                     {profile.isCustom && profile.tag ? (
                       <Tag type="purple" size="sm">{profile.tag}</Tag>
                     ) : profile.roksSupported ? (
@@ -485,6 +553,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
                   </div>
                 </div>
                 <div className="cost-estimation__profile-specs">
+                  <span>{nodeCount} nodes</span>
                   <span>{profile.physicalCores} cores</span>
                   <span>{profile.memoryGiB} GiB RAM</span>
                   {profile.hasNvme && profile.totalNvmeGB && (
