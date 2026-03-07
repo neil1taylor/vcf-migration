@@ -5,6 +5,7 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useData, useDynamicProfiles, useDynamicPricing, useVMOverrides } from '@/hooks';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { getBareMetalProfiles as getPricedProfiles } from '@/services/costEstimation';
+import { calculateNodesForProfile } from '@/utils/nodeCalculation';
 import { createLogger } from '@/utils/logger';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import virtualizationOverhead from '@/data/virtualizationOverhead.json';
@@ -70,6 +71,7 @@ export interface NodeRequirements {
   totalNodes: number;
   limitingFactor: 'cpu' | 'memory' | 'storage';
   vmCount: number;
+  cpuCapacityExceeded: boolean;
 }
 
 export interface RedundancyValidation {
@@ -280,17 +282,11 @@ export function useSizingCalculator({
   const [selectedProfileName, setSelectedProfileName] = useState<string>(() => defaultProfileName);
   const hasUserSelectedProfileRef = useRef(false);
 
-  // Update default when pricing loads (only if user hasn't manually changed)
-  useEffect(() => {
-    if (!hasUserSelectedProfileRef.current && defaultProfileName) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync default when pricing loads async
-      setSelectedProfileName(defaultProfileName);
-    }
-  }, [defaultProfileName]);
 
   // Apply requested profile from parent (e.g., clicking a tile in Cost Estimation)
   useEffect(() => {
     if (requestedProfile && bareMetalProfiles.some(p => p.name === requestedProfile)) {
+      hasUserSelectedProfileRef.current = true;
       // eslint-disable-next-line react-hooks/set-state-in-effect -- sync parent-requested profile selection
       setSelectedProfileName(requestedProfile);
       onRequestedProfileHandled?.();
@@ -481,10 +477,17 @@ export function useSizingCalculator({
     const effectiveMemoryCapacity = nodeCapacity.memoryCapacity * evictionFactor;
     const effectiveStorageCapacity = nodeCapacity.usableStorageGiB;
 
+    // Raw per-node vCPU capacity (before ODF/system subtraction) for fallback calculation
+    const rawVcpuPerNode = Math.floor(
+      (useHyperthreading ? selectedProfile.physicalCores * htMultiplier : selectedProfile.physicalCores) * cpuOvercommit
+    );
+
     // Nodes required for each dimension at eviction threshold
     const nodesForCPUAtThreshold = effectiveCpuCapacity > 0
       ? Math.ceil(totalVCPUs / effectiveCpuCapacity)
-      : 0;
+      : rawVcpuPerNode > 0 && totalVCPUs > 0
+        ? Math.ceil(totalVCPUs / (rawVcpuPerNode * evictionFactor))
+        : 0;
     const nodesForMemoryAtThreshold = effectiveMemoryCapacity > 0
       ? Math.ceil(totalMemoryGiB / effectiveMemoryCapacity)
       : 0;
@@ -505,7 +508,9 @@ export function useSizingCalculator({
     // Also calculate base nodes without redundancy consideration (for display)
     const nodesForCPU = nodeCapacity.vcpuCapacity > 0
       ? Math.ceil(totalVCPUs / nodeCapacity.vcpuCapacity)
-      : 0;
+      : rawVcpuPerNode > 0 && totalVCPUs > 0
+        ? Math.ceil(totalVCPUs / rawVcpuPerNode)
+        : 0;
     const nodesForMemory = nodeCapacity.memoryCapacity > 0
       ? Math.ceil(totalMemoryGiB / nodeCapacity.memoryCapacity)
       : 0;
@@ -551,8 +556,64 @@ export function useSizingCalculator({
       totalNodes,
       limitingFactor,
       vmCount,
+      cpuCapacityExceeded: nodeCapacity.vcpuCapacity === 0 && totalVCPUs > 0,
     };
   }, [hasData, rawData, nodeCapacity, nodeRedundancy, evictionThreshold, storageMetric, annualGrowthRate, planningHorizonYears, virtOverhead, cpuFixedPerVM, cpuProportionalPercent, memoryFixedPerVMMiB, memoryProportionalPercent, vmOverrides]);
+
+  // Best-value profile: lowest total cost (nodeCount × monthlyRate) once workload data is available
+  const bestValueProfileName = useMemo(() => {
+    if (!nodeRequirements) return null;
+    const pricedProfiles = getPricedProfiles(pricing).data;
+    const candidates = pricedProfiles.filter(p => p.hasNvme && p.roksSupported && p.monthlyRate > 0);
+    if (candidates.length === 0) return null;
+
+    const nodeCalcParams = {
+      totalVCPUs: nodeRequirements.totalVCPUs,
+      totalMemoryGiB: nodeRequirements.totalMemoryGiB,
+      totalStorageGiB: nodeRequirements.totalStorageGiB,
+      evictionThreshold,
+      nodeRedundancy,
+      memoryOvercommit,
+      cpuOvercommit,
+      replicaFactor,
+      cephOverhead,
+      operationalCapacity,
+      odfTuningProfile,
+      odfCpuUnitMode,
+      htMultiplier,
+      useHyperthreading,
+      includeRgw,
+      systemReservedCpu,
+      systemReservedMemory,
+      odfReservedMemory,
+    };
+
+    let bestId = candidates[0].id;
+    let bestCost = Infinity;
+    for (const p of candidates) {
+      const nodes = calculateNodesForProfile(
+        { physicalCores: p.physicalCores, memoryGiB: p.memoryGiB, hasNvme: p.hasNvme, nvmeDisks: p.nvmeDisks, totalNvmeGB: p.totalNvmeGB },
+        nodeCalcParams,
+      );
+      const totalCost = nodes * p.monthlyRate;
+      if (totalCost < bestCost) {
+        bestCost = totalCost;
+        bestId = p.id;
+      }
+    }
+    return bestId;
+  }, [nodeRequirements, pricing, evictionThreshold, nodeRedundancy, memoryOvercommit, cpuOvercommit, replicaFactor, cephOverhead, operationalCapacity, odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw, systemReservedCpu, systemReservedMemory, odfReservedMemory]);
+
+  // Update default when pricing loads or best-value is computed (only if user hasn't manually changed)
+  useEffect(() => {
+    if (!hasUserSelectedProfileRef.current) {
+      const target = bestValueProfileName || defaultProfileName;
+      if (target) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- sync default when pricing/workload data loads async
+        setSelectedProfileName(target);
+      }
+    }
+  }, [defaultProfileName, bestValueProfileName]);
 
   // Second pass: recalculate ODF reservation with actual node count for accurate cluster-wide distribution.
   // This affects the displayed component breakdown but not the node count calculation
@@ -592,7 +653,7 @@ export function useSizingCalculator({
     // Utilization percentages after failures
     const cpuUtilAfterFailure = nodeCapacity.vcpuCapacity > 0
       ? (cpuPerNodeAfterFailure / nodeCapacity.vcpuCapacity) * 100
-      : 0;
+      : nodeRequirements.totalVCPUs > 0 ? 100 : 0;
     const memoryUtilAfterFailure = nodeCapacity.memoryCapacity > 0
       ? (memoryPerNodeAfterFailure / nodeCapacity.memoryCapacity) * 100
       : 0;
@@ -612,7 +673,7 @@ export function useSizingCalculator({
     // Also calculate healthy state utilization
     const cpuUtilHealthy = nodeCapacity.vcpuCapacity > 0
       ? (nodeRequirements.totalVCPUs / totalNodes / nodeCapacity.vcpuCapacity) * 100
-      : 0;
+      : nodeRequirements.totalVCPUs > 0 ? 100 : 0;
     const memoryUtilHealthy = nodeCapacity.memoryCapacity > 0
       ? (nodeRequirements.totalMemoryGiB / totalNodes / nodeCapacity.memoryCapacity) * 100
       : 0;
@@ -697,15 +758,44 @@ export function useSizingCalculator({
         computeProfile: selectedProfileName,
         storageTiB: Math.ceil(nodeRequirements.totalStorageGiB / 1024),
         useNvme: true,
+        odfSettings: {
+          odfTuningProfile,
+          odfCpuUnitMode,
+          htMultiplier,
+          useHyperthreading,
+          includeRgw,
+          systemReservedCpu,
+          cpuOvercommit,
+        },
+        nodeCalcParams: {
+          totalVCPUs: nodeRequirements.totalVCPUs,
+          totalMemoryGiB: nodeRequirements.totalMemoryGiB,
+          totalStorageGiB: nodeRequirements.totalStorageGiB,
+          evictionThreshold,
+          nodeRedundancy,
+          memoryOvercommit,
+          cpuOvercommit,
+          replicaFactor,
+          cephOverhead,
+          operationalCapacity,
+          odfTuningProfile,
+          odfCpuUnitMode,
+          htMultiplier,
+          useHyperthreading,
+          includeRgw,
+          systemReservedCpu,
+          systemReservedMemory,
+          odfReservedMemory,
+        },
       };
       // Only call parent if values actually changed
-      const sizingKey = `${newSizing.computeNodes}-${newSizing.computeProfile}-${newSizing.storageTiB}`;
+      const sizingKey = `${newSizing.computeNodes}-${newSizing.computeProfile}-${newSizing.storageTiB}-${odfTuningProfile}-${odfCpuUnitMode}-${htMultiplier}-${useHyperthreading}-${includeRgw}-${systemReservedCpu}-${cpuOvercommit}-${evictionThreshold}-${nodeRedundancy}-${memoryOvercommit}-${replicaFactor}-${cephOverhead}-${operationalCapacity}-${systemReservedMemory}-${odfReservedMemory}`;
       if (sizingKey !== prevSizingRef.current) {
         prevSizingRef.current = sizingKey;
         onSizingChange(newSizing);
       }
     }
-  }, [nodeRequirements, selectedProfileName, onSizingChange]);
+  }, [nodeRequirements, selectedProfileName, onSizingChange, odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw, systemReservedCpu, cpuOvercommit, evictionThreshold, nodeRedundancy, memoryOvercommit, replicaFactor, cephOverhead, operationalCapacity, systemReservedMemory, odfReservedMemory]);
 
   // Profile dropdown items - memoized to maintain stable references for Carbon Dropdown
   const profileItems = useMemo(() => bareMetalProfiles.map((p) => {

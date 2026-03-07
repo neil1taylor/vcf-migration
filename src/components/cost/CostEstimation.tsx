@@ -206,18 +206,14 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
         isBestValue: c.profile.id === lowestCostProfileId,
       }))
       .sort((a, b) => {
-        // Selected always first
-        if (a.isSelected !== b.isSelected) return a.isSelected ? -1 : 1;
         // Non-viable to the end
         if (a.cpuViable !== b.cpuViable) return a.cpuViable ? -1 : 1;
         // Unpriced custom to the end
         const aUnpriced = a.profile.isCustom && (!a.profile.monthlyRate || a.profile.monthlyRate === 0);
         const bUnpriced = b.profile.isCustom && (!b.profile.monthlyRate || b.profile.monthlyRate === 0);
         if (aUnpriced !== bUnpriced) return aUnpriced ? 1 : -1;
-        // Best value second
-        if (a.isBestValue !== b.isBestValue) return a.isBestValue ? -1 : 1;
-        // Then ascending monthly cost
-        return a.estimate.totalMonthly - b.estimate.totalMonthly;
+        // Sort by annual cost ascending
+        return a.estimate.totalAnnual - b.estimate.totalAnnual;
       });
   }, [type, roksSizing, region, discountType, pricing]);
 
