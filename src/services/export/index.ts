@@ -28,3 +28,4 @@ export {
   combineWaveAndVMData,
 } from './rackwareRmmGenerator';
 export type { RackwareRmmConfig, RackwareVMData } from './rackwareRmmGenerator';
+export { generateHandoverFile, downloadHandoverFile, SETTINGS_KEYS } from './handoverExporter';

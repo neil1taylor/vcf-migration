@@ -6,9 +6,10 @@ import type { PlatformSelectionScore } from '@/hooks/usePlatformSelection';
 interface RecommendationBannerProps {
   recommendation: ComparisonRecommendation;
   platformScore?: PlatformSelectionScore;
+  roksVariant?: 'full' | 'rov';
 }
 
-export function RecommendationBanner({ recommendation, platformScore }: RecommendationBannerProps) {
+export function RecommendationBanner({ recommendation, platformScore, roksVariant }: RecommendationBannerProps) {
   // Use these colors: all-roks → teal (#009d9a), all-vsi → blue (#0f62fe), split → purple (#8a3ffc)
   const colorMap: Record<string, string> = {
     'all-roks': '#009d9a',
@@ -27,8 +28,17 @@ export function RecommendationBanner({ recommendation, platformScore }: Recommen
     <Tile style={{ borderLeft: `4px solid ${borderColor}`, marginBottom: '1rem' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
         <Recommend size={20} />
-        <h4 style={{ margin: 0 }}>Recommendation: {recommendation.title}</h4>
+        <h4 style={{ margin: 0 }}>
+          Recommendation: {recommendation.type === 'all-roks' && roksVariant === 'rov'
+            ? 'All ROV Migration'
+            : recommendation.title}
+        </h4>
       </div>
+      {recommendation.type === 'all-roks' && roksVariant === 'rov' && (
+        <p style={{ margin: '0 0 0.5rem', fontSize: '0.875rem', color: '#198038' }}>
+          ROV uses reduced OCP licensing for VM-only workloads — same infrastructure and MTV tooling as ROKS.
+        </p>
+      )}
       <UnorderedList>
         {recommendation.reasoning.map((reason, i) => (
           <ListItem key={i}>{reason}</ListItem>

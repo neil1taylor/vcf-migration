@@ -11,6 +11,7 @@ export interface ChartFilter {
 // Calculated cost totals for risk assessment cost comparison
 export interface CalculatedCosts {
   roksMonthlyCost: number | null;
+  rovMonthlyCost: number | null;
   vsiMonthlyCost: number | null;
 }
 
@@ -23,6 +24,8 @@ export interface DataState {
   lastUpdated: Date | null;
   chartFilter: ChartFilter | null;
   calculatedCosts: CalculatedCosts | null;
+  originalFileBuffer: ArrayBuffer | null;
+  originalFileName: string | null;
 }
 
 // Action types
@@ -33,6 +36,7 @@ export type DataAction =
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_CHART_FILTER'; payload: ChartFilter | null }
   | { type: 'SET_CALCULATED_COSTS'; payload: CalculatedCosts }
+  | { type: 'SET_ORIGINAL_FILE'; payload: { buffer: ArrayBuffer; fileName: string } }
   | { type: 'CLEAR_DATA' };
 
 // Initial state
@@ -44,6 +48,8 @@ export const initialState: DataState = {
   lastUpdated: null,
   chartFilter: null,
   calculatedCosts: null,
+  originalFileBuffer: null,
+  originalFileName: null,
 };
 
 // Reducer function
@@ -87,6 +93,13 @@ export function dataReducer(state: DataState, action: DataAction): DataState {
       return {
         ...state,
         calculatedCosts: action.payload,
+      };
+
+    case 'SET_ORIGINAL_FILE':
+      return {
+        ...state,
+        originalFileBuffer: action.payload.buffer,
+        originalFileName: action.payload.fileName,
       };
 
     case 'CLEAR_DATA':

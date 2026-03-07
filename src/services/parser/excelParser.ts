@@ -51,7 +51,23 @@ export async function parseRVToolsFile(
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
 
-    const sheetNames = workbook.SheetNames;
+    const allSheetNames = workbook.SheetNames;
+
+    // Extract bundled settings if present
+    let bundledSettings: Record<string, string> | undefined;
+    if (allSheetNames.includes('_vcfSettings')) {
+      const settingsSheet = workbook.Sheets['_vcfSettings'];
+      const rows = XLSX.utils.sheet_to_json<{ key: string; value: string }>(settingsSheet);
+      bundledSettings = {};
+      for (const row of rows) {
+        if (row.key && typeof row.value === 'string') {
+          bundledSettings[row.key] = row.value;
+        }
+      }
+    }
+
+    // Filter out internal sheets for validation
+    const sheetNames = allSheetNames.filter(name => name !== '_vcfSettings');
     const totalSheets = sheetNames.length;
 
     // Validate required sheets
@@ -61,7 +77,7 @@ export async function parseRVToolsFile(
 
     if (missingRequired.length > 0) {
       errors.push(`Missing required sheets: ${missingRequired.join(', ')}`);
-      return { success: false, data: null, errors, warnings };
+      return { success: false, data: null, errors, warnings, bundledSettings };
     }
 
     // Check for recommended sheets
@@ -181,7 +197,7 @@ export async function parseRVToolsFile(
     // Basic validation
     if (vInfo.length === 0) {
       errors.push('No VMs found in vInfo sheet');
-      return { success: false, data: null, errors, warnings };
+      return { success: false, data: null, errors, warnings, bundledSettings };
     }
 
     // Assemble result
@@ -213,7 +229,7 @@ export async function parseRVToolsFile(
       message: `Successfully parsed ${vInfo.length} VMs`,
     });
 
-    return { success: true, data, errors, warnings };
+    return { success: true, data, errors, warnings, bundledSettings };
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Unknown error occurred';

@@ -19,6 +19,7 @@ import {
   Settings as SettingsIcon,
   Education,
   Download,
+  DataShare,
 } from '@carbon/icons-react';
 import { useAISettings } from '@/hooks/useAISettings';
 import { useAIStatus } from '@/hooks/useAIStatus';
@@ -35,13 +36,14 @@ import { useVMOverrides } from '@/hooks/useVMOverrides';
 import { useAutoExclusion } from '@/hooks/useAutoExclusion';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { buildDiagnosticBundle, downloadDiagnosticBundle } from '@/services/diagnosticBundle';
+import { downloadHandoverFile } from '@/services/export/handoverExporter';
 import './SettingsPage.scss';
 
 export function SettingsPage() {
   const { settings, updateSettings } = useAISettings();
   const tour = useTour();
   const { isConfigured, proxyHealth, isTestingProxy, testProxy } = useAIStatus();
-  const { rawData } = useData();
+  const { rawData, originalFileBuffer, originalFileName } = useData();
   const vmOverrides = useVMOverrides();
   const { getAutoExclusionById } = useAutoExclusion();
 
@@ -178,6 +180,12 @@ export function SettingsPage() {
     });
     downloadDiagnosticBundle(bundle);
   }, [rawData, vmOverrides, getAutoExclusionById]);
+
+  const handleExportHandover = useCallback(() => {
+    if (originalFileBuffer && originalFileName) {
+      downloadHandoverFile(originalFileBuffer, originalFileName);
+    }
+  }, [originalFileBuffer, originalFileName]);
 
   return (
     <div className="settings-page">
@@ -563,8 +571,36 @@ export function SettingsPage() {
           </Tile>
         </Column>
 
+        {/* Export for Handover */}
+        <Column lg={5} md={4} sm={4} style={{ marginBottom: '1rem' }}>
+          <Tile className="settings-page__tile">
+            <h2 className="settings-page__section-title">
+              <DataShare size={20} />
+              Export for Handover
+            </h2>
+            <p className="settings-page__cache-description">
+              Download a copy of your RVTools file bundled with all current settings
+              for handing off to a colleague.
+            </p>
+            {!originalFileBuffer && (
+              <p className="settings-page__error-detail" style={{ marginBottom: '0.5rem' }}>
+                Upload an RVTools file first to enable handover export.
+              </p>
+            )}
+            <Button
+              kind="tertiary"
+              size="sm"
+              renderIcon={DataShare}
+              onClick={handleExportHandover}
+              disabled={!originalFileBuffer}
+            >
+              Export Handover File
+            </Button>
+          </Tile>
+        </Column>
+
         {/* Diagnostics */}
-        <Column lg={8} md={4} sm={4} style={{ marginBottom: '1rem' }}>
+        <Column lg={5} md={4} sm={4} style={{ marginBottom: '1rem' }}>
           <Tile className="settings-page__tile">
             <h2 className="settings-page__section-title">
               <Download size={20} />

@@ -562,6 +562,57 @@ describe('Cost Estimation Service', () => {
     });
   });
 
+  describe('calculateROKSCost with roksVariant', () => {
+    const baseSizing: ROKSSizingInput = {
+      computeNodes: 3,
+      computeProfile: 'bx2d-metal-96x384',
+      useNvme: true,
+      odfTier: 'advanced',
+    };
+
+    it('should use OVE pricing when roksVariant is rov', () => {
+      const fullCost = calculateROKSCost(baseSizing);
+      const rovCost = calculateROKSCost(baseSizing, 'us-south', 'onDemand', undefined, 'rov');
+
+      // ROV should be cheaper than full ROKS (OVE is ~25% of ROKS license rates)
+      expect(rovCost.totalMonthly).toBeLessThan(fullCost.totalMonthly);
+      // Both should have positive costs
+      expect(rovCost.totalMonthly).toBeGreaterThan(0);
+      expect(fullCost.totalMonthly).toBeGreaterThan(0);
+    });
+
+    it('should label license line item as ROV License for rov variant', () => {
+      const rovCost = calculateROKSCost(baseSizing, 'us-south', 'onDemand', undefined, 'rov');
+      const licenseItem = rovCost.lineItems.find(item => item.category === 'Licensing' && item.description.includes('ROV'));
+      expect(licenseItem).toBeDefined();
+      expect(licenseItem!.description).toBe('ROV License');
+      expect(licenseItem!.notes).toContain('OVE');
+    });
+
+    it('should label license line item as OpenShift Container Platform License for full variant', () => {
+      const fullCost = calculateROKSCost(baseSizing, 'us-south', 'onDemand', undefined, 'full');
+      const licenseItem = fullCost.lineItems.find(item => item.category === 'Licensing' && item.description.includes('OpenShift'));
+      expect(licenseItem).toBeDefined();
+      expect(licenseItem!.description).toBe('OpenShift Container Platform License');
+    });
+
+    it('should have same compute cost for full and rov variants', () => {
+      const fullCost = calculateROKSCost(baseSizing);
+      const rovCost = calculateROKSCost(baseSizing, 'us-south', 'onDemand', undefined, 'rov');
+
+      const fullCompute = fullCost.lineItems.find(item => item.category === 'Compute');
+      const rovCompute = rovCost.lineItems.find(item => item.category === 'Compute');
+      expect(fullCompute?.monthlyCost).toBe(rovCompute?.monthlyCost);
+    });
+
+    it('should default to full ROKS pricing when roksVariant is not specified', () => {
+      const defaultCost = calculateROKSCost(baseSizing);
+      const fullCost = calculateROKSCost(baseSizing, 'us-south', 'onDemand', undefined, 'full');
+
+      expect(defaultCost.totalMonthly).toBe(fullCost.totalMonthly);
+    });
+  });
+
   describe('getActivePricing - merge behavior', () => {
     it('should have all static VSI profiles available', () => {
       // When no proxy cache exists, static profiles should all be present

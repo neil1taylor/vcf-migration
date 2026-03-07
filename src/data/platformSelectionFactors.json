@@ -49,10 +49,10 @@
       "description": "ROKS uses ODF (Ceph-based) for VM storage, requiring specialist knowledge for capacity planning and incident response."
     },
     {
-      "id": "vsi-migration-tooling",
-      "label": "Are 3rd party tools and scripting acceptable for migration?",
-      "target": "vsi",
-      "description": "VSI migration uses established tools (Wanclouds VPC+, Rackware RMM, custom scripts). ROKS provides integrated migration via MTV/Forklift but requires cluster readiness first."
+      "id": "roks-migration-tooling",
+      "label": "Is using the Red Hat MTV migration tool preferred over 3rd party tools and scripting?",
+      "target": "roks",
+      "description": "ROKS provides integrated migration via Red Hat MTV (Forklift), offering a structured, repeatable migration path. VSI migration relies on 3rd party tools (Wanclouds VPC+, Rackware RMM) or custom scripts."
     },
     {
       "id": "vsi-os-licence",
@@ -64,6 +64,7 @@
       "id": "roks-containerize",
       "label": "Plan to containerize workloads during or after migration",
       "target": "roks",
+      "containerRelated": true,
       "description": "ROKS/OpenShift Virtualization can run VMs alongside containers, enabling gradual modernization."
     },
     {
@@ -76,24 +77,28 @@
       "id": "roks-unified-platform",
       "label": "Desire for a unified platform for VMs and containers",
       "target": "roks",
+      "containerRelated": true,
       "description": "ROKS runs both VMs and containers on a single control plane, simplifying operations."
     },
     {
       "id": "roks-cicd",
       "label": "CI/CD pipelines and GitOps workflows in place or planned",
       "target": "roks",
+      "containerRelated": true,
       "description": "OpenShift integrates natively with GitOps, Tekton, and ArgoCD for automated deployments."
     },
     {
       "id": "roks-service-mesh",
       "label": "Need for service mesh, observability, or advanced networking",
       "target": "roks",
+      "containerRelated": true,
       "description": "OpenShift provides built-in service mesh, monitoring, and software-defined networking."
     },
     {
       "id": "roks-scaling",
       "label": "Auto-scaling or dynamic workload placement requirements",
       "target": "roks",
+      "containerRelated": true,
       "description": "Kubernetes-native auto-scaling and scheduling optimize resource utilization automatically."
     },
     {

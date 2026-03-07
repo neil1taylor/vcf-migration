@@ -14,6 +14,7 @@ export interface PlatformSelectionExport {
   score: PlatformSelectionScore;
   answers: Record<string, FactorAnswer>;
   roksMonthlyCost?: number | null;
+  rovMonthlyCost?: number | null;
   vsiMonthlyCost?: number | null;
 }
 

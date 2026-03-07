@@ -2772,6 +2772,34 @@
       "description": "Red Hat Advanced Cluster Management per vCPU-hour (estimated — not in IBM Cloud Global Catalog, derived from CDW reseller pricing)"
     }
   },
+  "ove": {
+    "ocpLicense": {
+      "perVCPUHourly": 0.01069,
+      "perVCPUMonthly": 7.8,
+      "description": "OpenShift Virtualization Engine OCP license per vCPU-hour (estimated — 25% of ROKS OCP rate, not yet in IBM Cloud Global Catalog)"
+    },
+    "odf": {
+      "advanced": {
+        "bareMetalPerNodeMonthly": 170.455,
+        "vsiPerVCPUHourly": 0.00181,
+        "description": "ODF Advanced (estimated — 25% of ROKS ODF rate)"
+      },
+      "essentials": {
+        "bareMetalPerNodeMonthly": 136.364,
+        "vsiPerVCPUHourly": 0.00144,
+        "description": "ODF Essentials (estimated — 25% of ROKS ODF rate)"
+      }
+    },
+    "clusterManagement": {
+      "perClusterMonthly": 0,
+      "description": "OVE cluster management fee (included)"
+    },
+    "acm": {
+      "perVCPUHourly": 0.00745,
+      "perVCPUMonthly": 5.44,
+      "description": "Red Hat Advanced Cluster Management per vCPU-hour (estimated — 25% of ROKS ACM rate, not yet in IBM Cloud Global Catalog)"
+    }
+  },
   "odfWorkloadProfiles": {
     "entry": {
       "name": "Entry",

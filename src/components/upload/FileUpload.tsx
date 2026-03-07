@@ -9,7 +9,7 @@ import type { RVToolsData } from '@/types';
 import './FileUpload.scss';
 
 interface FileUploadProps {
-  onDataParsed: (data: RVToolsData) => void;
+  onDataParsed: (data: RVToolsData, file: File, bundledSettings?: Record<string, string>) => void;
   onError?: (errors: string[]) => void;
 }
 
@@ -46,7 +46,7 @@ export function FileUpload({ onDataParsed, onError }: FileUploadProps) {
         if (result.success && result.data) {
           setState('complete');
           setWarnings(result.warnings);
-          onDataParsed(result.data);
+          onDataParsed(result.data, file, result.bundledSettings);
         } else {
           setState('error');
           setErrors(result.errors);

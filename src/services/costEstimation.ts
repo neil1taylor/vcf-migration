@@ -244,6 +244,7 @@ function getActivePricing(): IBMCloudPricing {
       blockStorage: current.data.blockStorage || staticData.blockStorage,
       networking: current.data.networking || staticData.networking,
       roks: current.data.roks || staticData.roks,
+      ove: current.data.ove || staticData.ove,
       storageAddons: current.data.storageAddons || staticData.storageAddons,
       odfWorkloadProfiles: current.data.odfWorkloadProfiles || staticData.odfWorkloadProfiles,
     };
@@ -488,9 +489,12 @@ export function calculateROKSCost(
   input: ROKSSizingInput,
   region: RegionCode = 'us-south',
   discountType: DiscountType = 'onDemand',
-  pricing?: IBMCloudPricing
+  pricing?: IBMCloudPricing,
+  roksVariant?: 'full' | 'rov'
 ): CostEstimate {
   const pricingToUse = pricing || getActivePricing();
+  // When ROV variant, use OVE pricing for licenses (fall back to ROKS if OVE missing)
+  const licensePricing = roksVariant === 'rov' && pricingToUse.ove ? pricingToUse.ove : pricingToUse.roks;
   const lineItems: CostLineItem[] = [];
 
   // Defensive checks for required pricing data
@@ -573,7 +577,9 @@ export function calculateROKSCost(
   }
 
   // OCP License (applies to all worker node vCPUs — compute + storage VSIs)
-  const ocpHourlyRate = pricingToUse.roks?.ocpLicense?.perVCPUHourly ?? 0.04275;
+  const isRov = roksVariant === 'rov';
+  const ocpLicenseLabel = isRov ? 'ROV License' : 'OpenShift Container Platform License';
+  const ocpHourlyRate = licensePricing?.ocpLicense?.perVCPUHourly ?? 0.04275;
   if (computeProfile && input.computeNodes > 0) {
     let totalOCPvCPUs = computeProfile.vcpus * input.computeNodes;
     // In hybrid mode, storage VSI workers also run OCP
@@ -586,20 +592,20 @@ export function calculateROKSCost(
     const ocpMonthlyCost = totalOCPvCPUs * ocpHourlyRate * 730 * multiplier;
     lineItems.push({
       category: 'Licensing',
-      description: 'OpenShift Container Platform License',
+      description: ocpLicenseLabel,
       quantity: totalOCPvCPUs,
       unit: 'vCPUs',
       unitCost: ocpHourlyRate * 730 * multiplier,
       monthlyCost: ocpMonthlyCost,
       annualCost: ocpMonthlyCost * 12,
-      notes: 'OCP entitlement fee per vCPU-hour',
+      notes: isRov ? 'OVE reduced license fee per vCPU-hour' : 'OCP entitlement fee per vCPU-hour',
     });
   }
 
   // ODF Storage (OpenShift Data Foundation)
   const selectedOdfTier = input.odfTier ?? 'advanced';
-  const odfTierData = pricingToUse.roks?.odf?.[selectedOdfTier]
-    ?? pricingToUse.roks?.odf?.advanced;
+  const odfTierData = licensePricing?.odf?.[selectedOdfTier]
+    ?? licensePricing?.odf?.advanced;
   const odfTierLabel = selectedOdfTier === 'essentials' ? 'Essentials' : 'Advanced';
   if (input.useNvme && computeProfile?.hasNvme) {
     // Converged: per-node monthly rate
@@ -639,7 +645,7 @@ export function calculateROKSCost(
   if (input.includeAcm && computeProfile && input.computeNodes > 0) {
     // ACM is priced per vCPU across all worker nodes
     // Rates from CDW reseller pricing (not in IBM Cloud Global Catalog)
-    const acmPricing = pricingToUse.roks?.acm;
+    const acmPricing = licensePricing?.acm;
     const acmPerVCPUHourly = acmPricing?.perVCPUHourly ?? 0.0298;
     let totalACMvCPUs = computeProfile.vcpus * input.computeNodes;
     // In hybrid mode, storage VSI workers also need ACM

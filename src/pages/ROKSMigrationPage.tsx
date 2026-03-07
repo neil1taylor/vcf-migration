@@ -159,21 +159,6 @@ export function ROKSMigrationPage() {
     }
   }, [wavePlanning.activeWaves, poweredOnVMs, networks, rawData?.vDatastore]);
 
-  // Update calculated costs for risk assessment (includes ROV variant)
-  const handleRoksEstimateChange = useCallback((totalMonthly: number | null) => {
-    // Calculate ROV cost using the same sizing but OVE license rates
-    let rovMonthlyCost: number | null = null;
-    if (totalMonthly != null) {
-      const rovEstimate = calcROKSCost(roksSizing, 'us-south', 'onDemand', undefined, 'rov');
-      rovMonthlyCost = rovEstimate.totalMonthly;
-    }
-    setCalculatedCosts({
-      roksMonthlyCost: totalMonthly,
-      rovMonthlyCost,
-      vsiMonthlyCost: calculatedCosts?.vsiMonthlyCost ?? null,
-    });
-  }, [setCalculatedCosts, calculatedCosts?.vsiMonthlyCost, roksSizing]);
-
   // Handle profile selection from Cost Estimation tiles
   const handleProfileSelect = useCallback((profileId: string) => {
     setRequestedProfile(profileId);
@@ -209,6 +194,20 @@ export function ROKSMigrationPage() {
       includeAcm,
     };
   }, [calculatorSizing, poweredOnVMs, odfTier, includeAcm]);
+
+  // Update calculated costs for risk assessment (includes ROV variant)
+  const handleRoksEstimateChange = useCallback((totalMonthly: number | null) => {
+    let rovMonthlyCost: number | null = null;
+    if (totalMonthly != null) {
+      const rovEstimate = calcROKSCost(roksSizing, 'us-south', 'onDemand', undefined, 'rov');
+      rovMonthlyCost = rovEstimate.totalMonthly;
+    }
+    setCalculatedCosts({
+      roksMonthlyCost: totalMonthly,
+      rovMonthlyCost,
+      vsiMonthlyCost: calculatedCosts?.vsiMonthlyCost ?? null,
+    });
+  }, [setCalculatedCosts, calculatedCosts?.vsiMonthlyCost, roksSizing]);
 
   const roksNodeDetails = useMemo<ROKSNodeDetail[]>(() => {
     const nodes: ROKSNodeDetail[] = [];

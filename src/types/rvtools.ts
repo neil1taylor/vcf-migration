@@ -340,4 +340,5 @@ export interface ParseResult {
   data: RVToolsData | null;
   errors: string[];
   warnings: string[];
+  bundledSettings?: Record<string, string>;
 }

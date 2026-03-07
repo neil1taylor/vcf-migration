@@ -46,13 +46,15 @@ function extractText(sections: unknown[]): string[] {
     .filter(Boolean);
 }
 
-function makeData(answers: Record<string, string>): PlatformSelectionExport {
+function makeData(answers: Record<string, string>, overrides?: Partial<PlatformSelectionExport['score']>): PlatformSelectionExport {
   return {
     score: {
       vsiCount: 0,
       roksCount: 0,
       answeredCount: Object.keys(answers).length,
       leaning: 'neutral',
+      roksVariant: 'full',
+      ...overrides,
     },
     answers,
   };
@@ -117,5 +119,28 @@ describe('buildPlatformSelectionSection', () => {
     const callout = texts.find(t => t.includes('should be resolved'));
     expect(callout).toContain('1 question answered');
     expect(callout).not.toContain('1 questions');
+  });
+
+  it('includes ROV recommendation paragraph when roksVariant is rov', () => {
+    const answers: Record<string, string> = {};
+    factorsData.factors.forEach(f => {
+      answers[f.id] = 'yes';
+    });
+    const sections = buildPlatformSelectionSection(makeData(answers, { roksVariant: 'rov', leaning: 'roks', roksCount: 5 }));
+    const texts = extractText(sections);
+    const rovCallout = texts.find(t => t.includes('ROV'));
+    expect(rovCallout).toBeDefined();
+    expect(rovCallout).toContain('Red Hat OpenShift Virtualization');
+  });
+
+  it('does not include ROV paragraph when roksVariant is full', () => {
+    const answers: Record<string, string> = {};
+    factorsData.factors.forEach(f => {
+      answers[f.id] = 'yes';
+    });
+    const sections = buildPlatformSelectionSection(makeData(answers, { roksVariant: 'full' }));
+    const texts = extractText(sections);
+    const rovCallout = texts.find(t => t.includes('ROV'));
+    expect(rovCallout).toBeUndefined();
   });
 });

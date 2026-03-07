@@ -88,6 +88,15 @@ export interface IBMCloudPricing {
     clusterManagement: { perClusterMonthly: number; description: string };
     acm?: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
   };
+  ove?: {
+    ocpLicense: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
+    odf: {
+      advanced: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number; description: string };
+      essentials: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number; description: string };
+    };
+    clusterManagement: { perClusterMonthly: number; description: string };
+    acm?: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
+  };
   networking: NetworkPricing;
   storageAddons: {
     snapshots: { costPerGBMonth: number; description: string };
@@ -257,6 +266,15 @@ export function getStaticPricing(): IBMCloudPricing {
       clusterManagement: { perClusterMonthly: number; description: string };
       acm?: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
     };
+    ove?: {
+      ocpLicense: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
+      odf: {
+        advanced: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number; description: string };
+        essentials: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number; description: string };
+      };
+      clusterManagement: { perClusterMonthly: number; description: string };
+      acm?: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
+    };
     odfWorkloadProfiles: Record<string, {
       name: string;
       cpuPerNode: number;
@@ -350,6 +368,7 @@ export function getStaticPricing(): IBMCloudPricing {
     vsi,
     blockStorage: config.blockStorage,
     roks: config.roks,
+    ove: (config as { ove?: IBMCloudPricing['ove'] }).ove,
     networking: config.networking,
     storageAddons: config.storageAddons,
     regions: config.regions,

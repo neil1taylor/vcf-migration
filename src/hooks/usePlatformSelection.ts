@@ -5,12 +5,15 @@ import factorsData from '@/data/platformSelectionFactors.json';
 
 export type FactorAnswer = 'yes' | 'no' | 'not-sure' | 'no-preference';
 
+export type RoksVariant = 'full' | 'rov';
+
 export interface PlatformSelectionScore {
   vsiCount: number;
   roksCount: number;
   answeredCount: number;
   leaning: 'roks' | 'vsi' | 'neutral';
   costLeaning?: 'vsi' | 'roks' | null;
+  roksVariant: RoksVariant;
 }
 
 export interface PlatformSelectionCostData {
@@ -162,7 +165,22 @@ export function usePlatformSelection(costData?: PlatformSelectionCostData): UseP
       roksCount > vsiCount ? 'roks' :
       'neutral';
 
-    return { vsiCount, roksCount, answeredCount, leaning, costLeaning };
+    // Derive ROV variant: if leaning towards ROKS (or neutral with some ROKS factors)
+    // but no container-related factors answered "yes", suggest ROV instead of full ROKS
+    let roksVariant: RoksVariant = 'full';
+    if (leaning === 'roks' || (leaning === 'neutral' && roksCount > 0)) {
+      const containerFactors = factorsData.factors.filter(
+        (f: { containerRelated?: boolean }) => f.containerRelated
+      );
+      const hasContainerNeed = containerFactors.some(
+        (f: { id: string }) => data.answers[f.id] === 'yes'
+      );
+      if (!hasContainerNeed) {
+        roksVariant = 'rov';
+      }
+    }
+
+    return { vsiCount, roksCount, answeredCount, leaning, costLeaning, roksVariant };
   }, [data.answers, costData?.roksMonthlyCost, costData?.vsiMonthlyCost]);
 
   return { answers: data.answers, setAnswer, resetAll, score };

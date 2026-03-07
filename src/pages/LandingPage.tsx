@@ -1,30 +1,54 @@
 // Landing page with file upload
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Grid, Column, Tile, Tag, Button } from '@carbon/react';
+import { Grid, Column, Tile, Tag, Button, Modal } from '@carbon/react';
 import { WatsonHealthAiResults, Education } from '@carbon/icons-react';
 import { FileUpload } from '@/components/upload';
 import { GuidedTour } from '@/components/common/GuidedTour';
 import { useData } from '@/hooks';
 import { useTour } from '@/hooks/useTour';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
+import { restoreBundledSettings } from '@/services/settingsRestore';
 import type { RVToolsData } from '@/types';
 import { ROUTES } from '@/utils/constants';
 import './LandingPage.scss';
 
 export function LandingPage() {
   const navigate = useNavigate();
-  const { setRawData, setError } = useData();
+  const { setRawData, setOriginalFile, setError } = useData();
   const tour = useTour();
+  const [pendingSettings, setPendingSettings] = useState<Record<string, string> | null>(null);
 
   const handleDataParsed = useCallback(
-    (data: RVToolsData) => {
+    async (data: RVToolsData, file: File, bundledSettings?: Record<string, string>) => {
       setRawData(data);
-      // Navigate to dashboard after successful upload
-      navigate(ROUTES.dashboard);
+
+      // Store original file buffer for handover export
+      const buffer = await file.arrayBuffer();
+      setOriginalFile(buffer, file.name);
+
+      if (bundledSettings && Object.keys(bundledSettings).length > 0) {
+        // Show confirmation modal before restoring settings
+        setPendingSettings(bundledSettings);
+      } else {
+        navigate(ROUTES.dashboard);
+      }
     },
-    [setRawData, navigate]
+    [setRawData, setOriginalFile, navigate]
   );
+
+  const handleRestoreSettings = useCallback(() => {
+    if (pendingSettings) {
+      restoreBundledSettings(pendingSettings);
+    }
+    setPendingSettings(null);
+    navigate(ROUTES.dashboard);
+  }, [pendingSettings, navigate]);
+
+  const handleSkipRestore = useCallback(() => {
+    setPendingSettings(null);
+    navigate(ROUTES.dashboard);
+  }, [navigate]);
 
   const handleError = useCallback(
     (errors: string[]) => {
@@ -141,6 +165,25 @@ export function LandingPage() {
         )}
       </Grid>
       <GuidedTour tour={tour} />
+
+      <Modal
+        open={pendingSettings !== null}
+        modalHeading="Restore bundled settings?"
+        primaryButtonText="Restore settings"
+        secondaryButtonText="Skip"
+        onRequestSubmit={handleRestoreSettings}
+        onRequestClose={handleSkipRestore}
+        onSecondarySubmit={handleSkipRestore}
+        size="sm"
+      >
+        <p style={{ marginBottom: '1rem' }}>
+          This file contains settings from a previous analysis session (VM overrides, platform
+          selection, target assignments, etc.). Would you like to restore them?
+        </p>
+        <p>
+          If you skip, the data will still load but your current settings will remain unchanged.
+        </p>
+      </Modal>
     </div>
   );
 }

@@ -13,6 +13,7 @@ interface DataContextValue extends DataState {
   setChartFilter: (filter: ChartFilter | null) => void;
   clearChartFilter: () => void;
   setCalculatedCosts: (costs: CalculatedCosts) => void;
+  setOriginalFile: (buffer: ArrayBuffer, fileName: string) => void;
   clearData: () => void;
   dispatch: React.Dispatch<DataAction>;
 }
@@ -58,6 +59,10 @@ export function DataProvider({ children }: DataProviderProps) {
     dispatch({ type: 'SET_CALCULATED_COSTS', payload: costs });
   }, []);
 
+  const setOriginalFile = useCallback((buffer: ArrayBuffer, fileName: string) => {
+    dispatch({ type: 'SET_ORIGINAL_FILE', payload: { buffer, fileName } });
+  }, []);
+
   const clearData = useCallback(() => {
     dispatch({ type: 'CLEAR_DATA' });
   }, []);
@@ -71,6 +76,7 @@ export function DataProvider({ children }: DataProviderProps) {
     setChartFilter,
     clearChartFilter,
     setCalculatedCosts,
+    setOriginalFile,
     clearData,
     dispatch,
   };

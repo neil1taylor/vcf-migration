@@ -10,6 +10,7 @@ interface PlatformSelectionPanelProps {
   onReset: () => void;
   score: PlatformSelectionScore;
   roksMonthlyCost?: number | null;
+  rovMonthlyCost?: number | null;
   vsiMonthlyCost?: number | null;
   totalVMCount: number;
 }
@@ -25,7 +26,7 @@ const vsiFactors = factorsData.factors.filter(f => f.target === 'vsi');
 const roksFactors = factorsData.factors.filter(f => f.target === 'roks');
 const dynamicFactors = factorsData.factors.filter(f => f.target === 'dynamic');
 
-export function PlatformSelectionPanel({ answers, onAnswer, onReset, score, roksMonthlyCost, vsiMonthlyCost, totalVMCount }: PlatformSelectionPanelProps) {
+export function PlatformSelectionPanel({ answers, onAnswer, onReset, score, roksMonthlyCost, rovMonthlyCost, vsiMonthlyCost, totalVMCount }: PlatformSelectionPanelProps) {
   const leaningText =
     score.leaning === 'vsi' ? 'VPC VSI' :
     score.leaning === 'roks' ? 'ROKS (OpenShift Virtualization)' :
@@ -43,7 +44,7 @@ export function PlatformSelectionPanel({ answers, onAnswer, onReset, score, roks
     <div style={{ paddingTop: '1rem' }}>
       {/* Cost tiles */}
       <Grid narrow>
-        <Column lg={8} md={4} sm={4} style={{ marginBottom: '1rem' }}>
+        <Column lg={5} md={4} sm={4} style={{ marginBottom: '1rem' }}>
           <Tile style={{ borderLeft: '4px solid #009d9a', height: '100%' }}>
             <h5>All ROKS</h5>
             <p style={{ fontSize: '1.5rem', fontWeight: 600 }}>
@@ -54,7 +55,18 @@ export function PlatformSelectionPanel({ answers, onAnswer, onReset, score, roks
             </p>
           </Tile>
         </Column>
-        <Column lg={8} md={4} sm={4} style={{ marginBottom: '1rem' }}>
+        <Column lg={5} md={4} sm={4} style={{ marginBottom: '1rem' }}>
+          <Tile style={{ borderLeft: `4px solid ${score.roksVariant === 'rov' ? '#24a148' : '#009d9a'}`, height: '100%', opacity: score.roksVariant === 'rov' ? 1 : 0.6 }}>
+            <h5>All ROV</h5>
+            <p style={{ fontSize: '1.5rem', fontWeight: 600 }}>
+              {rovMonthlyCost != null ? `${formatCurrency(rovMonthlyCost)}/mo` : 'Not configured'}
+            </p>
+            <p style={{ fontSize: '0.875rem', color: '#525252' }}>
+              All {totalVMCount} VMs — reduced OCP licence
+            </p>
+          </Tile>
+        </Column>
+        <Column lg={6} md={4} sm={4} style={{ marginBottom: '1rem' }}>
           <Tile style={{ borderLeft: '4px solid #0f62fe', height: '100%' }}>
             <h5>All VSI</h5>
             <p style={{ fontSize: '1.5rem', fontWeight: 600 }}>
@@ -66,6 +78,18 @@ export function PlatformSelectionPanel({ answers, onAnswer, onReset, score, roks
           </Tile>
         </Column>
       </Grid>
+
+      {/* ROV callout when applicable */}
+      {score.roksVariant === 'rov' && score.leaning !== 'vsi' && (
+        <Tile style={{ borderLeft: '4px solid #24a148', marginBottom: '1rem', background: '#defbe6' }}>
+          <h5 style={{ margin: '0 0 0.25rem' }}>ROV Recommended</h5>
+          <p style={{ margin: 0, fontSize: '0.875rem' }}>
+            Based on your responses, you do not require containerisation. <strong>ROV (Red Hat OpenShift Virtualization)</strong> provides
+            the same bare metal infrastructure and MTV migration tooling at a reduced OCP licence cost.
+            If you later need containers, you can upgrade to full ROKS licensing.
+          </p>
+        </Tile>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <p style={{ color: '#525252', margin: 0 }}>
