@@ -164,7 +164,7 @@ export function UserGuidePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr><td>Total VMs</td><td>Count of virtual machines (excluding templates)</td></tr>
+                      <tr><td>Total VMs</td><td>Full RVTools inventory count, with migration scope shown as detail line</td></tr>
                       <tr><td>Total vCPUs</td><td>Sum of all allocated virtual CPUs</td></tr>
                       <tr><td>Total Memory</td><td>Aggregate memory allocated to VMs</td></tr>
                       <tr><td>Provisioned Storage</td><td>Total storage capacity allocated</td></tr>
@@ -289,11 +289,20 @@ export function UserGuidePage() {
                 <Tile className="user-guide-page__card">
                   <h4>Tabs Overview</h4>
                   <UnorderedList>
-                    <ListItem><strong>Workloads</strong> - VMs grouped by detected application type</ListItem>
-                    <ListItem><strong>Appliances</strong> - Virtual appliances (vCenter, NSX, etc.)</ListItem>
-                    <ListItem><strong>Network Equipment</strong> - Virtual network devices</ListItem>
-                    <ListItem><strong>VMs</strong> - Full VM listing with management capabilities</ListItem>
-                    <ListItem><strong>Custom</strong> - VMs with manually assigned workload types</ListItem>
+                    <ListItem><strong>Infrastructure</strong> - Source data center selector, target IBM Cloud MZR dropdown, environment summary (vCenter, clusters, hosts, datastores)</ListItem>
+                    <ListItem><strong>Workload</strong> - VM workload classification with auto-detection and manual overrides</ListItem>
+                    <ListItem><strong>Networks</strong> - Port group and subnet mapping from vNetwork data</ListItem>
+                  </UnorderedList>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>Target MZR Selection</h4>
+                  <p>The Infrastructure tab includes a <strong>Target IBM Cloud MZR</strong> dropdown that auto-selects the nearest multi-zone region based on the source data center.</p>
+                  <UnorderedList>
+                    <ListItem>Auto-populated when you select a source data center (e.g. LON04 selects eu-gb)</ListItem>
+                    <ListItem>Shows &quot;Choose&quot; placeholder when source is on-premise</ListItem>
+                    <ListItem>Can be manually overridden to any MZR regardless of source</ListItem>
+                    <ListItem>Changing the source data center re-auto-selects the Target MZR</ListItem>
                   </UnorderedList>
                 </Tile>
               </div>

@@ -136,7 +136,7 @@ The Dashboard provides an executive summary of your VMware environment.
 
 | Metric | Description |
 |--------|-------------|
-| Total VMs | Count of virtual machines (excluding templates) |
+| Total VMs | Full RVTools inventory count (includes templates and infrastructure VMs), with migration scope shown as detail |
 | Total vCPUs | Sum of all allocated virtual CPUs |
 | Total Memory | Aggregate memory allocated to VMs |
 | Provisioned Storage | Total storage capacity allocated |
@@ -292,11 +292,9 @@ Navigate to **Workload Discovery** in the sidebar.
 
 ### Tabs Overview
 
-- **Workloads** - VMs grouped by detected application type
-- **Appliances** - Virtual appliances (vCenter, NSX, etc.)
-- **Network Equipment** - Virtual network devices
-- **VMs** - Full VM listing with management capabilities
-- **Custom** - VMs with manually assigned workload types
+- **Infrastructure** - Source data center selector, target IBM Cloud MZR dropdown, environment summary (vCenter, clusters, hosts, datastores)
+- **Workload** - VM workload classification with auto-detection and manual overrides
+- **Networks** - Port group and subnet mapping from vNetwork data
 
 ### Using Discovery Data
 

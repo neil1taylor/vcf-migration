@@ -296,7 +296,17 @@ const vms = allVmsRaw.filter(vm => {
 
 ## Discovery
 
-Discovery page (`src/pages/DiscoveryPage.tsx`) has Workload and Networks tabs.
+Discovery page (`src/pages/DiscoveryPage.tsx`) has Infrastructure, Workload, and Networks tabs.
+
+### Infrastructure Tab
+
+Source Data Center selector and Target IBM Cloud MZR dropdown. Source DC auto-selects the nearest MZR; user can override. On-premise sources show "Choose" placeholder (no default MZR). Both values persist in localStorage (`vcf-target-location`).
+
+| File | Purpose |
+|------|---------|
+| `src/components/discovery/InfrastructureTab.tsx` | Infrastructure tab with DC/MZR selectors and environment summary tables |
+| `src/hooks/useTargetLocation.ts` | localStorage `vcf-target-location`, env fingerprinting, DC→MZR mapping |
+| `src/data/ibmCloudDataCenters.json` | IBM Cloud data center codes, cities, MZR mappings |
 
 ### Classification Precedence
 
@@ -311,7 +321,7 @@ Classification and auto-exclusion are independent. Each VM has exactly one workl
 
 | File | Purpose |
 |------|---------|
-| `src/pages/DiscoveryPage.tsx` | Tabbed layout (Workload + Networks) |
+| `src/pages/DiscoveryPage.tsx` | Tabbed layout (Infrastructure + Workload + Networks) |
 | `src/components/discovery/DiscoveryVMTable.tsx` | Unified VM table |
 | `src/components/network/NetworkSummaryTable.tsx` | Network table with editable subnets |
 | `src/data/workloadPatterns.json` | Workload types, authoritative classifications, auto-exclusion rules |
