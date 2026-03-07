@@ -112,6 +112,22 @@ export function WavePlanningPanel({
                   ? `${networkWaves.length} ${networkGroupBy === 'cluster' ? 'clusters' : 'port groups'} — each ${networkGroupBy === 'cluster' ? 'cluster' : 'subnet'} migrates as a single wave`
                   : `VMs organized into ${waveResources.length} waves from simplest to most complex`}
               </p>
+              {isNetworkMode && (
+                <Dropdown
+                  id={`network-group-by-${mode}`}
+                  titleText="Group VMs by"
+                  label="Select grouping method"
+                  items={['cluster', 'portGroup'] as NetworkGroupBy[]}
+                  itemToString={(item) => item === 'cluster' ? 'Cluster (VMware cluster)'
+                    : item === 'portGroup' ? 'Port Group (network subnet)' : ''}
+                  selectedItem={networkGroupBy}
+                  onChange={({ selectedItem }) => selectedItem && onNetworkGroupByChange(selectedItem)}
+                  style={{ minWidth: '300px', marginTop: '0.5rem' }}
+                  helperText={networkGroupBy === 'cluster'
+                    ? '"Big bang" per cluster — all VMs in a cluster move together in one wave. Simplest when clusters map to application groups.'
+                    : 'Subnet-by-subnet migration — VMs sharing a port group move together. Best when preserving network adjacency matters.'}
+                />
+              )}
             </div>
             <div style={{ display: 'flex', gap: '1rem', alignItems: 'flex-end' }}>
               <div>
@@ -125,7 +141,7 @@ export function WavePlanningPanel({
                   <RadioButton labelText="Network-Based" value="network" id={`wave-network-${mode}`} />
                   <RadioButton labelText="Complexity-Based" value="complexity" id={`wave-complexity-${mode}`} />
                 </RadioButtonGroup>
-                <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-helper)', marginTop: '0.25rem', maxWidth: '420px' }}>
+                <p style={{ fontSize: '0.75rem', color: 'var(--cds-text-helper)', marginTop: '0.25rem', maxWidth: '420px', }}>
                   {isNetworkMode
                     ? 'Migrate VMs together that share the same network infrastructure. Best for "keep your IP" strategies where entire subnets or clusters are cut over as a unit.'
                     : 'Migrate VMs in waves ordered by complexity — start with simple workloads to build confidence, then tackle harder ones. Best for "new IP" strategies.'}
@@ -151,24 +167,6 @@ export function WavePlanningPanel({
               </OverflowMenu>
             </div>
           </div>
-          {isNetworkMode && (
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <Dropdown
-                id={`network-group-by-${mode}`}
-                titleText="Group VMs by"
-                label="Select grouping method"
-                items={['cluster', 'portGroup'] as NetworkGroupBy[]}
-                itemToString={(item) => item === 'cluster' ? 'Cluster (VMware cluster)'
-                  : item === 'portGroup' ? 'Port Group (network subnet)' : ''}
-                selectedItem={networkGroupBy}
-                onChange={({ selectedItem }) => selectedItem && onNetworkGroupByChange(selectedItem)}
-                style={{ minWidth: '300px' }}
-                helperText={networkGroupBy === 'cluster'
-                  ? '"Big bang" per cluster — all VMs in a cluster move together in one wave. Simplest when clusters map to application groups.'
-                  : 'Subnet-by-subnet migration — VMs sharing a port group move together. Best when preserving network adjacency matters.'}
-              />
-            </div>
-          )}
         </Tile>
       </Column>
 
