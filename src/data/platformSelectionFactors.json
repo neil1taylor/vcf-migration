@@ -55,6 +55,12 @@
       "description": "VSI migration uses established tools (Wanclouds VPC+, Rackware RMM, custom scripts). ROKS provides integrated migration via MTV/Forklift but requires cluster readiness first."
     },
     {
+      "id": "vsi-os-licence",
+      "label": "Is moving from current BYOL OS licence for Windows/RHEL/SUSE to an IBM Cloud supplied licence important?",
+      "target": "vsi",
+      "description": "VPC VSI includes IBM Cloud supplied OS licences for Windows, RHEL, and SUSE, replacing the need to manage your own BYOL agreements."
+    },
+    {
       "id": "roks-containerize",
       "label": "Plan to containerize workloads during or after migration",
       "target": "roks",
@@ -95,6 +101,12 @@
       "label": "Multi-cloud or hybrid cloud strategy with consistent tooling",
       "target": "roks",
       "description": "OpenShift provides a consistent platform across on-prem, IBM Cloud, and other clouds."
+    },
+    {
+      "id": "roks-rhel-licence",
+      "label": "Is the inclusion of RHEL OS licences important in your subscription?",
+      "target": "roks",
+      "description": "ROKS subscriptions include RHEL licences for OpenShift worker nodes, removing separate RHEL subscription management."
     },
     {
       "id": "cost-preference",
