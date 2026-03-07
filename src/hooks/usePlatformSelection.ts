@@ -3,7 +3,7 @@ import { useData } from './useData';
 import { getEnvironmentFingerprint, fingerprintsMatch } from '@/utils/vmIdentifier';
 import factorsData from '@/data/platformSelectionFactors.json';
 
-export type FactorAnswer = 'yes' | 'no' | 'not-sure';
+export type FactorAnswer = 'yes' | 'no' | 'not-sure' | 'no-preference';
 
 export interface PlatformSelectionScore {
   vsiCount: number;
@@ -152,7 +152,7 @@ export function usePlatformSelection(costData?: PlatformSelectionCostData): UseP
           if (costLeaning === 'vsi') vsiCount++;
           else if (costLeaning === 'roks') roksCount++;
         }
-      } else if (answer === 'no' || answer === 'not-sure') {
+      } else if (answer === 'no' || answer === 'no-preference') {
         answeredCount++;
       }
     }

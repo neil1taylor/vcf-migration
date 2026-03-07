@@ -21,6 +21,7 @@ const ANSWER_LABELS: Record<string, string> = {
   yes: 'Yes',
   no: 'No',
   'not-sure': 'Not Sure',
+  'no-preference': 'No Preference',
 };
 
 export function buildPlatformSelectionSection(data: PlatformSelectionExport): DocumentContent[] {

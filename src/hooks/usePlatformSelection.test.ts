@@ -74,18 +74,28 @@ describe('usePlatformSelection', () => {
     expect(result.current.score.leaning).toBe('vsi');
   });
 
-  it('counts "no" and "not-sure" as answered but not in favour', () => {
+  it('counts "no" and "no-preference" as answered but not in favour', () => {
     const { result } = renderHook(() => usePlatformSelection());
 
     act(() => {
       result.current.setAnswer('vsi-change-risk', 'no');
-      result.current.setAnswer('roks-containerize', 'not-sure');
+      result.current.setAnswer('roks-containerize', 'no-preference');
     });
 
     expect(result.current.score.answeredCount).toBe(2);
     expect(result.current.score.vsiCount).toBe(0);
     expect(result.current.score.roksCount).toBe(0);
     expect(result.current.score.leaning).toBe('neutral');
+  });
+
+  it('does not count "not-sure" as answered', () => {
+    const { result } = renderHook(() => usePlatformSelection());
+
+    act(() => {
+      result.current.setAnswer('vsi-change-risk', 'not-sure');
+    });
+
+    expect(result.current.score.answeredCount).toBe(0);
   });
 
   it('leans toward roks when more roks factors are yes', () => {
