@@ -603,7 +603,7 @@ Organize VMs into migration waves for phased execution.
 
 ### Accessing Wave Planning
 
-Wave planning is available on both ROKS and VSI migration pages.
+Wave planning is available on the **Migration Planning** tab of the Migration Review page.
 
 ### Complexity-Based Waves
 

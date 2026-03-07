@@ -34,6 +34,8 @@ export interface WavePlanningPanelProps {
   }>;
   // Optional: VM details for RackWare RMM export (VSI mode only)
   vmDetails?: VMDetail[];
+  // Optional: platform leaning from Migration Review — controls which platform-specific sections appear
+  platformLeaning?: 'roks' | 'vsi' | 'neutral';
 }
 
 export function WavePlanningPanel({
@@ -47,6 +49,7 @@ export function WavePlanningPanel({
   waveChartData,
   waveResources,
   vmDetails,
+  platformLeaning,
 }: WavePlanningPanelProps) {
   const isNetworkMode = wavePlanningMode === 'network';
   const [showRackwareModal, setShowRackwareModal] = useState(false);
@@ -86,16 +89,19 @@ export function WavePlanningPanel({
     setShowRackwareModal(true);
   };
 
-  // Workflow steps based on mode
-  const workflowSteps = mode === 'vsi' ? [
+  // Use platformLeaning when available, otherwise fall back to mode
+  const effectiveMode = platformLeaning ?? mode;
+
+  // Workflow steps based on effective mode
+  const workflowSteps = effectiveMode === 'vsi' ? [
     { key: '1. Export VM', value: 'Export VM as OVA or VMDK from vSphere' },
     { key: '2. Upload Image', value: 'Upload to IBM Cloud Object Storage' },
     { key: '3. Import Image', value: 'Import custom image into VPC' },
     { key: '4. Create VSI', value: 'Create VSI from imported image' },
   ] : [];
 
-  // Resource links based on mode
-  const resourceLinks = mode === 'vsi' ? [
+  // Resource links based on effective mode
+  const resourceLinks = effectiveMode === 'vsi' ? [
     { href: 'https://cloud.ibm.com/docs/vpc?topic=vpc-importing-custom-images-vpc', label: 'Import Custom Images', description: 'Guide for importing custom images into IBM Cloud VPC' },
     { href: 'https://cloud.ibm.com/docs/vpc?topic=vpc-migrate-vsi-to-vpc', label: 'Migration Guide', description: 'Migrating virtual servers to VPC' },
   ] : [];
@@ -158,7 +164,7 @@ export function WavePlanningPanel({
                   itemText="Export to Excel"
                   onClick={handleExcelExport}
                 />
-                {mode === 'vsi' && (
+                {effectiveMode === 'vsi' && (
                   <OverflowMenuItem
                     itemText="Export for RackWare RMM"
                     onClick={handleRackwareExport}
@@ -260,7 +266,7 @@ export function WavePlanningPanel({
       </Column>
 
       {/* Workflow section for VSI mode */}
-      {mode === 'vsi' && workflowSteps.length > 0 && (
+      {effectiveMode === 'vsi' && workflowSteps.length > 0 && (
         <Column lg={16} md={8} sm={4}>
           <Tile className="migration-page__workflow-resources">
             <h4>VSI Migration Workflow</h4>
@@ -289,7 +295,7 @@ export function WavePlanningPanel({
       )}
 
       {/* RackWare RMM Export Modal */}
-      {mode === 'vsi' && (
+      {effectiveMode === 'vsi' && (
         <RackwareExportModal
           open={showRackwareModal}
           onClose={() => setShowRackwareModal(false)}

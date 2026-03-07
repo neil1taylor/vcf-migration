@@ -164,7 +164,7 @@ export function MigrationComparisonPage() {
         </Column>
 
         <Column lg={16} md={8} sm={4} style={{ marginBottom: '1rem' }}>
-          <RecommendationBanner recommendation={recommendation} platformScore={platformScore} />
+          <RecommendationBanner recommendation={recommendation} platformScore={platformScore} roksVariant={platformScore.roksVariant} />
         </Column>
 
         {/* Summary tiles */}
@@ -201,6 +201,7 @@ export function MigrationComparisonPage() {
                   onReset={resetPlatformSelection}
                   score={platformScore}
                   roksMonthlyCost={calculatedCosts?.roksMonthlyCost}
+                  rovMonthlyCost={calculatedCosts?.rovMonthlyCost}
                   vsiMonthlyCost={calculatedCosts?.vsiMonthlyCost}
                   totalVMCount={vms.length}
                 />

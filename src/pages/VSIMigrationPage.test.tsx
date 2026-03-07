@@ -304,7 +304,6 @@ describe('VSIMigrationPage', () => {
 
     expect(screen.getByRole('tab', { name: /pre-flight/i })).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /complexity/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /wave planning/i })).toBeInTheDocument();
   });
 
   it('displays pre-flight check metrics', () => {
@@ -363,19 +362,6 @@ describe('VSIMigrationPage', () => {
     );
 
     expect(screen.getByTestId('complexity-panel')).toBeInTheDocument();
-  });
-
-  it('renders wave planning panel', () => {
-    vi.mocked(useData).mockReturnValue({ rawData: mockRawData } as unknown as ReturnType<typeof useData>);
-    vi.mocked(useAllVMs).mockReturnValue(mockVMs as unknown as ReturnType<typeof useVMs>);
-
-    render(
-      <MemoryRouter>
-        <VSIMigrationPage />
-      </MemoryRouter>
-    );
-
-    expect(screen.getByTestId('wave-planning-panel')).toBeInTheDocument();
   });
 
   it('handles zero VMs gracefully', () => {

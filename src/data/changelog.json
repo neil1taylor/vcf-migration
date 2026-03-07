@@ -21,7 +21,8 @@
           "Migration Planning tab in Migration Review — replaces Migration Timeline with integrated wave planning, AI wave analysis, and Gantt timeline driven by actual wave count"
         ],
         "removed": [
-          "Cost Comparison tab removed from Migration Comparison — cost tiles now live in the Platform Selection tab"
+          "Cost Comparison tab removed from Migration Comparison — cost tiles now live in the Platform Selection tab",
+          "Wave Planning tabs removed from ROKS and VSI migration pages — wave planning is now consolidated in the Migration Planning tab of Migration Review"
         ],
         "changed": [
           "Migration Timeline wave count now derived from wave planning active waves instead of port group estimation"

@@ -12,13 +12,13 @@ import { MetricCard, RedHatDocLink, RemediationPanel, NextStepBanner, SectionErr
 import { SizingCalculator } from '@/components/sizing';
 import type { SizingResult } from '@/components/sizing';
 import { CostEstimation } from '@/components/cost';
-import { ComplexityAssessmentPanel, WavePlanningPanel, OSCompatibilityPanel } from '@/components/migration';
+import { ComplexityAssessmentPanel, OSCompatibilityPanel } from '@/components/migration';
 import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel';
-import { AIWaveAnalysisPanel } from '@/components/ai/AIWaveAnalysisPanel';
 import { AIRemediationPanel } from '@/components/ai/AIRemediationPanel';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
-import type { InsightsInput, NetworkSummaryForAI, WaveSuggestionInput, RemediationInput } from '@/services/ai/types';
+import type { InsightsInput, NetworkSummaryForAI, RemediationInput } from '@/services/ai/types';
 import type { ROKSSizingInput } from '@/services/costEstimation';
+import { calculateROKSCost as calcROKSCost } from '@/services/costEstimation';
 import type { ROKSNodeDetail } from '@/services/export';
 import { MTVYAMLGenerator, downloadBlob } from '@/services/export';
 import type { MTVExportOptions } from '@/types/mtvYaml';
@@ -159,13 +159,20 @@ export function ROKSMigrationPage() {
     }
   }, [wavePlanning.activeWaves, poweredOnVMs, networks, rawData?.vDatastore]);
 
-  // Update calculated costs for risk assessment
+  // Update calculated costs for risk assessment (includes ROV variant)
   const handleRoksEstimateChange = useCallback((totalMonthly: number | null) => {
+    // Calculate ROV cost using the same sizing but OVE license rates
+    let rovMonthlyCost: number | null = null;
+    if (totalMonthly != null) {
+      const rovEstimate = calcROKSCost(roksSizing, 'us-south', 'onDemand', undefined, 'rov');
+      rovMonthlyCost = rovEstimate.totalMonthly;
+    }
     setCalculatedCosts({
       roksMonthlyCost: totalMonthly,
+      rovMonthlyCost,
       vsiMonthlyCost: calculatedCosts?.vsiMonthlyCost ?? null,
     });
-  }, [setCalculatedCosts, calculatedCosts?.vsiMonthlyCost]);
+  }, [setCalculatedCosts, calculatedCosts?.vsiMonthlyCost, roksSizing]);
 
   // Handle profile selection from Cost Estimation tiles
   const handleProfileSelect = useCallback((profileId: string) => {
@@ -266,27 +273,6 @@ export function ROKSMigrationPage() {
     };
   }, [poweredOnVMs, allVmsRaw.length, vms.length, complexityScores, blockerCount, warningCount, networks, rawData]);
 
-  // ===== AI WAVE SUGGESTIONS DATA =====
-  const waveSuggestionData = useMemo<WaveSuggestionInput | null>(() => {
-    if (!isAIProxyConfigured()) return null;
-    const activeWaves = wavePlanning.wavePlanningMode === 'network' ? wavePlanning.networkWaves : wavePlanning.complexityWaves;
-    if (!activeWaves || activeWaves.length === 0) return null;
-    return {
-      waves: wavePlanning.waveResources.map(w => ({
-        name: w.name,
-        vmCount: w.vmCount,
-        totalVCPUs: w.vcpus,
-        totalMemoryGiB: w.memoryGiB,
-        totalStorageGiB: w.storageGiB,
-        avgComplexity: 0,
-        hasBlockers: w.hasBlockers,
-        workloadTypes: [],
-      })),
-      totalVMs: poweredOnVMs.length,
-      migrationTarget: 'roks',
-    };
-  }, [wavePlanning.wavePlanningMode, wavePlanning.networkWaves, wavePlanning.complexityWaves, wavePlanning.waveResources, poweredOnVMs.length]);
-
   // ===== AI REMEDIATION DATA =====
   const remediationAIData = useMemo<RemediationInput | null>(() => {
     if (!isAIProxyConfigured()) return null;
@@ -377,7 +363,6 @@ export function ROKSMigrationPage() {
               <Tab>Pre-Flight Checks</Tab>
               <Tab>Sizing</Tab>
               <Tab>Cost Estimation</Tab>
-              <Tab>Wave Planning</Tab>
               <Tab>OS Compatibility</Tab>
               <Tab>Complexity</Tab>
               <Tab>AI Insights</Tab>
@@ -572,26 +557,6 @@ export function ROKSMigrationPage() {
                     </Tile>
                   </Column>
                 </Grid>
-              </TabPanel>
-
-              {/* Wave Planning Panel - Using shared component */}
-              <TabPanel>
-                <WavePlanningPanel
-                  mode="roks"
-                  wavePlanningMode={wavePlanning.wavePlanningMode}
-                  networkGroupBy={wavePlanning.networkGroupBy}
-                  onWavePlanningModeChange={wavePlanning.setWavePlanningMode}
-                  onNetworkGroupByChange={wavePlanning.setNetworkGroupBy}
-                  networkWaves={wavePlanning.networkWaves}
-                  complexityWaves={wavePlanning.complexityWaves}
-                  waveChartData={wavePlanning.waveChartData}
-                  waveResources={wavePlanning.waveResources}
-                />
-                <div style={{ marginTop: '1rem' }}>
-                  <SectionErrorBoundary sectionName="AI Wave Analysis">
-                    <AIWaveAnalysisPanel data={waveSuggestionData} title="AI Wave Analysis (ROKS)" />
-                  </SectionErrorBoundary>
-                </div>
               </TabPanel>
 
               {/* OS Compatibility Panel - Using shared component */}

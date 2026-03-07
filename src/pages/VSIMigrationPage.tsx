@@ -10,9 +10,8 @@ import { formatNumber } from '@/utils/formatters';
 import { getVMIdentifier, getEnvironmentFingerprint } from '@/utils/vmIdentifier';
 import { MetricCard, NextStepBanner, SectionErrorBoundary } from '@/components/common';
 import { CostEstimation } from '@/components/cost';
-import { ComplexityAssessmentPanel, WavePlanningPanel, OSCompatibilityPanel, VSIPreFlightPanel, VSISizingPanel } from '@/components/migration';
+import { ComplexityAssessmentPanel, OSCompatibilityPanel, VSIPreFlightPanel, VSISizingPanel } from '@/components/migration';
 import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel';
-import { AIWaveAnalysisPanel } from '@/components/ai/AIWaveAnalysisPanel';
 import { AICostAnalysisPanel } from '@/components/ai/AICostAnalysisPanel';
 import { getVSIProfiles } from '@/services/migration';
 
@@ -69,9 +68,10 @@ export function VSIMigrationPage() {
   const handleVsiEstimateChange = useCallback((totalMonthly: number | null) => {
     setCalculatedCosts({
       roksMonthlyCost: calculatedCosts?.roksMonthlyCost ?? null,
+      rovMonthlyCost: calculatedCosts?.rovMonthlyCost ?? null,
       vsiMonthlyCost: totalMonthly,
     });
-  }, [setCalculatedCosts, calculatedCosts?.roksMonthlyCost]);
+  }, [setCalculatedCosts, calculatedCosts?.roksMonthlyCost, calculatedCosts?.rovMonthlyCost]);
 
   // Derive data from rawData - these are used by hooks below
   const snapshots = useMemo(() => rawData?.vSnapshot ?? [], [rawData?.vSnapshot]);
@@ -176,7 +176,6 @@ export function VSIMigrationPage() {
     overriddenVMCount,
     vsiSizing,
     insightsData,
-    waveSuggestionData,
     costOptimizationData,
     remediationAIData,
     vmDetails,
@@ -267,7 +266,6 @@ export function VSIMigrationPage() {
               <Tab>Pre-Flight Checks</Tab>
               <Tab>Sizing</Tab>
               <Tab>Cost Estimation</Tab>
-              <Tab>Wave Planning</Tab>
               <Tab>OS Compatibility</Tab>
               <Tab>Complexity</Tab>
               <Tab>Network Design</Tab>
@@ -322,27 +320,6 @@ export function VSIMigrationPage() {
                     </SectionErrorBoundary>
                   </Column>
                 </Grid>
-              </TabPanel>
-
-              {/* Wave Planning Panel - Using shared component */}
-              <TabPanel>
-                <WavePlanningPanel
-                  mode="vsi"
-                  wavePlanningMode={wavePlanning.wavePlanningMode}
-                  networkGroupBy={wavePlanning.networkGroupBy}
-                  onWavePlanningModeChange={wavePlanning.setWavePlanningMode}
-                  onNetworkGroupByChange={wavePlanning.setNetworkGroupBy}
-                  networkWaves={wavePlanning.networkWaves}
-                  complexityWaves={wavePlanning.complexityWaves}
-                  waveChartData={wavePlanning.waveChartData}
-                  waveResources={wavePlanning.waveResources}
-                  vmDetails={vmDetails}
-                />
-                <div style={{ marginTop: '1rem' }}>
-                  <SectionErrorBoundary sectionName="AI Wave Analysis">
-                    <AIWaveAnalysisPanel data={waveSuggestionData} title="AI Wave Analysis (VSI)" />
-                  </SectionErrorBoundary>
-                </div>
               </TabPanel>
 
               {/* OS Compatibility Panel - Using shared component */}
