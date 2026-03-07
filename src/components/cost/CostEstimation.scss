@@ -77,11 +77,18 @@
       white-space: nowrap;
     }
 
+    .cds--data-table th:nth-child(1) {
+      width: 140px;
+    }
+
+    .cds--data-table th:nth-child(4) {
+      width: 120px;
+    }
+
     .cds--data-table th:nth-child(5),
     .cds--data-table th:nth-child(6),
-    .cds--data-table td:nth-child(5),
-    .cds--data-table td:nth-child(6) {
-      text-align: right;
+    .cds--data-table th:nth-child(7) {
+      width: 120px;
     }
   }
 
