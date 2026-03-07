@@ -45,10 +45,12 @@
     min-width: 300px;
   }
 
-  &__filters {
-    display: flex;
-    align-items: center;
-    gap: spacing.$spacing-04;
+  &__metric-card {
+    cursor: pointer;
+
+    &--selected {
+      border-bottom: 3px solid var(--cds-link-primary, #0f62fe);
+    }
   }
 
   &__actions {

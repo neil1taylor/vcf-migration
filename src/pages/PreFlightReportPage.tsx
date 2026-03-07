@@ -6,7 +6,6 @@ import {
   Tile,
   ContentSwitcher,
   Switch,
-  Toggle,
   Button,
   Tag,
   DataTable,
@@ -75,7 +74,7 @@ export function PreFlightReportPage() {
   const vmOverrides = useVMOverrides();
   const { getAutoExclusionById } = useAutoExclusion();
   const [mode, setMode] = useState<CheckMode>('roks');
-  const [showFailuresOnly, setShowFailuresOnly] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'blockers' | 'warnings' | 'ready'>('all');
   const [searchText, setSearchText] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
@@ -115,13 +114,17 @@ export function PreFlightReportPage() {
   // Get check definitions for current mode
   const checksForMode = useMemo(() => getChecksForMode(mode), [mode]);
 
-  // Filter by failures, search text, and sort
+  // Filter by status tile, search text, and sort
   const processedResults = useMemo(() => {
     let results = checkResults;
 
-    // Filter failures
-    if (showFailuresOnly) {
-      results = results.filter((r) => r.blockerCount > 0 || r.warningCount > 0);
+    // Filter by status tile
+    if (statusFilter === 'blockers') {
+      results = results.filter((r) => r.blockerCount > 0);
+    } else if (statusFilter === 'warnings') {
+      results = results.filter((r) => r.warningCount > 0 && r.blockerCount === 0);
+    } else if (statusFilter === 'ready') {
+      results = results.filter((r) => r.blockerCount === 0);
     }
 
     // Filter by search
@@ -136,7 +139,7 @@ export function PreFlightReportPage() {
     }
 
     return results;
-  }, [checkResults, showFailuresOnly, searchText]);
+  }, [checkResults, statusFilter, searchText]);
 
   // Paginate
   const paginatedResults = useMemo(() => {
@@ -162,8 +165,14 @@ export function PreFlightReportPage() {
   const handleModeChange = (evt: { name?: string | number }) => {
     if (evt.name === 'roks' || evt.name === 'vsi') {
       setMode(evt.name);
+      setStatusFilter('all');
       setPage(1);
     }
+  };
+
+  const handleStatusFilter = (filter: 'all' | 'blockers' | 'warnings' | 'ready') => {
+    setStatusFilter((prev) => (prev === filter ? 'all' : filter));
+    setPage(1);
   };
 
   const handleExport = () => {
@@ -269,18 +278,6 @@ export function PreFlightReportPage() {
                 </ContentSwitcher>
               </div>
 
-              <div className="preflight-report-page__filters">
-                <Toggle
-                  id="show-failures-toggle"
-                  labelText="Show failures only"
-                  labelA="Off"
-                  labelB="On"
-                  toggled={showFailuresOnly}
-                  onToggle={() => { setShowFailuresOnly(!showFailuresOnly); setPage(1); }}
-                  size="sm"
-                />
-              </div>
-
               <div className="preflight-report-page__actions">
                 <Button
                   kind="tertiary"
@@ -297,39 +294,51 @@ export function PreFlightReportPage() {
 
         {/* Summary Cards */}
         <Column lg={4} md={2} sm={2}>
-          <MetricCard
-            label="Total VMs"
-            value={totalVMs}
-            variant="info"
-            tooltip="Total powered-on VMs analyzed for migration readiness."
-          />
+          <div className={`preflight-report-page__metric-card${statusFilter === 'all' ? ' preflight-report-page__metric-card--selected' : ''}`}>
+            <MetricCard
+              label="Total VMs"
+              value={totalVMs}
+              variant="info"
+              tooltip="Total powered-on VMs analyzed for migration readiness. Click to clear filters."
+              onClick={() => { setStatusFilter('all'); setPage(1); }}
+            />
+          </div>
         </Column>
         <Column lg={4} md={2} sm={2}>
-          <MetricCard
-            label="With Blockers"
-            value={vmsWithBlockers}
-            variant="error"
-            detail={`${((vmsWithBlockers / totalVMs) * 100).toFixed(1)}%`}
-            tooltip="VMs with critical issues that must be resolved before migration."
-          />
+          <div className={`preflight-report-page__metric-card${statusFilter === 'blockers' ? ' preflight-report-page__metric-card--selected' : ''}`}>
+            <MetricCard
+              label="With Blockers"
+              value={vmsWithBlockers}
+              variant="error"
+              detail={`${((vmsWithBlockers / totalVMs) * 100).toFixed(1)}%`}
+              tooltip="VMs with critical issues that must be resolved before migration. Click to filter."
+              onClick={() => handleStatusFilter('blockers')}
+            />
+          </div>
         </Column>
         <Column lg={4} md={2} sm={2}>
-          <MetricCard
-            label="Warnings Only"
-            value={vmsWithWarningsOnly}
-            variant="warning"
-            detail={`${((vmsWithWarningsOnly / totalVMs) * 100).toFixed(1)}%`}
-            tooltip="VMs with non-blocking issues that should be reviewed."
-          />
+          <div className={`preflight-report-page__metric-card${statusFilter === 'warnings' ? ' preflight-report-page__metric-card--selected' : ''}`}>
+            <MetricCard
+              label="Warnings Only"
+              value={vmsWithWarningsOnly}
+              variant="warning"
+              detail={`${((vmsWithWarningsOnly / totalVMs) * 100).toFixed(1)}%`}
+              tooltip="VMs with non-blocking issues that should be reviewed. Click to filter."
+              onClick={() => handleStatusFilter('warnings')}
+            />
+          </div>
         </Column>
         <Column lg={4} md={2} sm={2}>
-          <MetricCard
-            label="Ready to Migrate"
-            value={vmsReady}
-            variant="success"
-            detail={`${((vmsReady / totalVMs) * 100).toFixed(1)}%`}
-            tooltip="VMs with no blockers that are ready to migrate (may have warnings)."
-          />
+          <div className={`preflight-report-page__metric-card${statusFilter === 'ready' ? ' preflight-report-page__metric-card--selected' : ''}`}>
+            <MetricCard
+              label="Ready to Migrate"
+              value={vmsReady}
+              variant="success"
+              detail={`${((vmsReady / totalVMs) * 100).toFixed(1)}%`}
+              tooltip="VMs with no blockers that are ready to migrate (may have warnings). Click to filter."
+              onClick={() => handleStatusFilter('ready')}
+            />
+          </div>
         </Column>
 
         {/* Check Legend */}
