@@ -831,6 +831,23 @@ Bundle your RVTools data with all current analysis settings for handing off to a
 
 > **Note:** The handover export requires an uploaded RVTools file. The button is disabled until a file is loaded.
 
+#### Import Settings from Handover File
+
+Restore settings from a previous handover export onto a fresh RVTools file. This enables a two-step workflow: upload new data, then apply old settings.
+
+- **Includes**: All settings categories from the handover file (VM overrides, platform selection, target assignments, risk assessments, timeline config, etc.)
+- **Confirmation**: A modal shows the source filename, export date, and a list of settings that will be restored before you confirm
+- **Access**: Available on the Settings page, Export & Reports page, and via the DocumentImport icon in the top navigation bar
+
+**To import:**
+1. Upload a fresh RVTools file as your data source
+2. Navigate to **Settings** or **Export & Reports** and click **Import from Handover File**, or click the **DocumentImport icon** in the top navigation bar
+3. Select a previous handover export file (`.xlsx`)
+4. Review the confirmation modal and click **Import Settings**
+5. The page reloads with all settings restored
+
+> **Note:** Importing settings overwrites your current settings. This action cannot be undone.
+
 #### RackWare RMM CSV
 
 For automated migration with RackWare:

@@ -1,5 +1,5 @@
 // Main application layout
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import {
   Content,
@@ -8,6 +8,8 @@ import {
   Button,
   InlineLoading,
   InlineNotification,
+  UnorderedList,
+  ListItem,
 } from '@carbon/react';
 import { TopNav } from './TopNav';
 import { SideNav } from './SideNav';
@@ -19,6 +21,9 @@ import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import { fetchAIInsights } from '@/services/ai/aiInsightsApi';
 import { buildInsightsInput } from '@/services/ai/insightsInputBuilder';
 import { downloadHandoverFile } from '@/services/export/handoverExporter';
+import { extractSettingsFromFile, type ExtractedSettings } from '@/services/settingsExtractor';
+import { restoreBundledSettings } from '@/services/settingsRestore';
+import { SETTINGS_LABELS } from '@/services/settingsLabels';
 import { createLogger } from '@/utils/logger';
 import type { PDFExportOptions } from '@/hooks/usePDFExport';
 import type { RVToolsData } from '@/types/rvtools';
@@ -155,6 +160,46 @@ export function AppLayout() {
     await downloadHandoverFile(originalFileBuffer, originalFileName);
   }, [originalFileBuffer, originalFileName]);
 
+  // Import settings from handover file
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [importResult, setImportResult] = useState<ExtractedSettings | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+
+  const handleImportSettingsClick = useCallback(() => {
+    importFileRef.current?.click();
+  }, []);
+
+  const handleImportFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    try {
+      const result = await extractSettingsFromFile(file);
+      if (!result) {
+        logger.warn('No settings found in imported file');
+        return;
+      }
+      setImportResult(result);
+      setImportModalOpen(true);
+    } catch {
+      logger.error('Failed to read import file');
+    }
+  }, []);
+
+  const handleImportConfirm = useCallback(() => {
+    if (!importResult) return;
+    restoreBundledSettings(importResult.settings);
+    setImportModalOpen(false);
+    setImportResult(null);
+    window.location.reload();
+  }, [importResult]);
+
+  const handleImportCancel = useCallback(() => {
+    setImportModalOpen(false);
+    setImportResult(null);
+  }, []);
+
   const handleCloseExportModal = useCallback(() => {
     setIsExportModalOpen(false);
   }, []);
@@ -219,6 +264,7 @@ export function AppLayout() {
         onExportExcelClick={handleExportExcelClick}
         onExportDocxClick={handleExportDocxClick}
         onExportHandoverClick={originalFileBuffer ? handleExportHandoverClick : undefined}
+        onImportSettingsClick={handleImportSettingsClick}
       />
       <SideNav isExpanded={isSideNavExpanded} />
       <Content id="main-content" className="app-layout__content">
@@ -240,6 +286,60 @@ export function AppLayout() {
 
       {/* AI Chat Widget */}
       <ChatWidget />
+
+      {/* Hidden file input for import settings */}
+      <input
+        ref={importFileRef}
+        type="file"
+        accept=".xlsx,.xls"
+        style={{ display: 'none' }}
+        onChange={handleImportFileSelect}
+      />
+
+      {/* Import Settings Modal */}
+      <Modal
+        open={importModalOpen}
+        modalHeading="Import Settings from Handover File"
+        primaryButtonText="Import Settings"
+        secondaryButtonText="Cancel"
+        onRequestSubmit={handleImportConfirm}
+        onRequestClose={handleImportCancel}
+        size="sm"
+      >
+        {importResult && (
+          <div>
+            {importResult.metadata.sourceFileName && (
+              <p style={{ marginBottom: '0.5rem' }}>
+                <strong>Source file:</strong> {importResult.metadata.sourceFileName}
+              </p>
+            )}
+            {importResult.metadata.exportDate && (
+              <p style={{ marginBottom: '1rem' }}>
+                <strong>Exported:</strong>{' '}
+                {new Date(importResult.metadata.exportDate).toLocaleString()}
+              </p>
+            )}
+            <p style={{ marginBottom: '0.5rem' }}>
+              The following {importResult.settingKeys.length} setting{importResult.settingKeys.length !== 1 ? 's' : ''} will be restored:
+            </p>
+            <UnorderedList>
+              {importResult.settingKeys.map((key) => (
+                <ListItem key={key}>
+                  {SETTINGS_LABELS[key] ?? key}
+                </ListItem>
+              ))}
+            </UnorderedList>
+            <InlineNotification
+              kind="warning"
+              title="This will overwrite your current settings"
+              subtitle="The page will reload after importing."
+              lowContrast
+              hideCloseButton
+              style={{ marginTop: '1rem' }}
+            />
+          </div>
+        )}
+      </Modal>
 
       {/* PDF Export Modal */}
       <Modal

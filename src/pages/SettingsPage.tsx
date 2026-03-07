@@ -1,6 +1,6 @@
 // Settings page - AI configuration, proxy status, cache management, and override resets
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Grid,
   Column,
@@ -9,6 +9,9 @@ import {
   Tag,
   Button,
   InlineNotification,
+  Modal,
+  UnorderedList,
+  ListItem,
 } from '@carbon/react';
 import {
   Checkmark,
@@ -20,6 +23,7 @@ import {
   Education,
   Download,
   DataShare,
+  Upload,
 } from '@carbon/icons-react';
 import { useAISettings } from '@/hooks/useAISettings';
 import { useAIStatus } from '@/hooks/useAIStatus';
@@ -37,6 +41,9 @@ import { useAutoExclusion } from '@/hooks/useAutoExclusion';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { buildDiagnosticBundle, downloadDiagnosticBundle } from '@/services/diagnosticBundle';
 import { downloadHandoverFile } from '@/services/export/handoverExporter';
+import { extractSettingsFromFile, type ExtractedSettings } from '@/services/settingsExtractor';
+import { restoreBundledSettings } from '@/services/settingsRestore';
+import { SETTINGS_LABELS } from '@/services/settingsLabels';
 import './SettingsPage.scss';
 
 export function SettingsPage() {
@@ -186,6 +193,45 @@ export function SettingsPage() {
       downloadHandoverFile(originalFileBuffer, originalFileName);
     }
   }, [originalFileBuffer, originalFileName]);
+
+  // Import settings state
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [importResult, setImportResult] = useState<ExtractedSettings | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleImportFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Reset input so the same file can be re-selected
+    e.target.value = '';
+
+    setImportError(null);
+    try {
+      const result = await extractSettingsFromFile(file);
+      if (!result) {
+        setImportError('No settings found in this file. Make sure you select a handover export file.');
+        return;
+      }
+      setImportResult(result);
+      setImportModalOpen(true);
+    } catch {
+      setImportError('Failed to read the file. Please check the file format.');
+    }
+  }, []);
+
+  const handleImportConfirm = useCallback(() => {
+    if (!importResult) return;
+    restoreBundledSettings(importResult.settings);
+    setImportModalOpen(false);
+    setImportResult(null);
+    window.location.reload();
+  }, [importResult]);
+
+  const handleImportCancel = useCallback(() => {
+    setImportModalOpen(false);
+    setImportResult(null);
+  }, []);
 
   return (
     <div className="settings-page">
@@ -572,7 +618,7 @@ export function SettingsPage() {
         </Column>
 
         {/* Export for Handover */}
-        <Column lg={5} md={4} sm={4} style={{ marginBottom: '1rem' }}>
+        <Column lg={4} md={4} sm={4} style={{ marginBottom: '1rem' }}>
           <Tile className="settings-page__tile">
             <h2 className="settings-page__section-title">
               <DataShare size={20} />
@@ -599,6 +645,45 @@ export function SettingsPage() {
           </Tile>
         </Column>
 
+        {/* Import Settings from Handover */}
+        <Column lg={4} md={4} sm={4} style={{ marginBottom: '1rem' }}>
+          <Tile className="settings-page__tile">
+            <h2 className="settings-page__section-title">
+              <Upload size={20} />
+              Import Settings
+            </h2>
+            <p className="settings-page__cache-description">
+              Restore settings from a previous handover export file.
+              Upload a fresh RVTools file first, then import settings separately.
+            </p>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".xlsx,.xls"
+              style={{ display: 'none' }}
+              onChange={handleImportFileSelect}
+            />
+            {importError && (
+              <InlineNotification
+                kind="error"
+                title="Import failed"
+                subtitle={importError}
+                lowContrast
+                onCloseButtonClick={() => setImportError(null)}
+                style={{ marginBottom: '0.5rem' }}
+              />
+            )}
+            <Button
+              kind="tertiary"
+              size="sm"
+              renderIcon={Upload}
+              onClick={() => importFileRef.current?.click()}
+            >
+              Import from Handover File
+            </Button>
+          </Tile>
+        </Column>
+
         {/* Diagnostics */}
         <Column lg={5} md={4} sm={4} style={{ marginBottom: '1rem' }}>
           <Tile className="settings-page__tile">
@@ -621,6 +706,50 @@ export function SettingsPage() {
           </Tile>
         </Column>
       </Grid>
+
+      <Modal
+        open={importModalOpen}
+        modalHeading="Import Settings from Handover File"
+        primaryButtonText="Import Settings"
+        secondaryButtonText="Cancel"
+        onRequestSubmit={handleImportConfirm}
+        onRequestClose={handleImportCancel}
+        size="sm"
+      >
+        {importResult && (
+          <div>
+            {importResult.metadata.sourceFileName && (
+              <p style={{ marginBottom: '0.5rem' }}>
+                <strong>Source file:</strong> {importResult.metadata.sourceFileName}
+              </p>
+            )}
+            {importResult.metadata.exportDate && (
+              <p style={{ marginBottom: '1rem' }}>
+                <strong>Exported:</strong>{' '}
+                {new Date(importResult.metadata.exportDate).toLocaleString()}
+              </p>
+            )}
+            <p style={{ marginBottom: '0.5rem' }}>
+              The following {importResult.settingKeys.length} setting{importResult.settingKeys.length !== 1 ? 's' : ''} will be restored:
+            </p>
+            <UnorderedList>
+              {importResult.settingKeys.map((key) => (
+                <ListItem key={key}>
+                  {SETTINGS_LABELS[key] ?? key}
+                </ListItem>
+              ))}
+            </UnorderedList>
+            <InlineNotification
+              kind="warning"
+              title="This will overwrite your current settings"
+              subtitle="The page will reload after importing."
+              lowContrast
+              hideCloseButton
+              style={{ marginTop: '1rem' }}
+            />
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

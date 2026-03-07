@@ -6,7 +6,7 @@ import {
   HeaderGlobalAction,
   SkipToContent,
 } from '@carbon/react';
-import { Information, Upload, DocumentExport, DataTableReference, Document, DataShare, Light, Asleep } from '@carbon/icons-react';
+import { Information, Upload, DocumentExport, DataTableReference, Document, DataShare, DocumentImport, Light, Asleep } from '@carbon/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useHasData } from '@/hooks';
 import { useTheme } from '@/context';
@@ -18,9 +18,10 @@ interface TopNavProps {
   onExportExcelClick?: () => void;
   onExportDocxClick?: () => void;
   onExportHandoverClick?: () => void;
+  onImportSettingsClick?: () => void;
 }
 
-export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick, onExportDocxClick, onExportHandoverClick }: TopNavProps) {
+export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick, onExportDocxClick, onExportHandoverClick, onImportSettingsClick }: TopNavProps) {
   const hasData = useHasData();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -66,6 +67,15 @@ export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick, on
             tooltipAlignment="end"
           >
             <DataShare size={20} />
+          </HeaderGlobalAction>
+        )}
+        {onImportSettingsClick && (
+          <HeaderGlobalAction
+            aria-label="Import Settings — restore settings from a previous handover export file"
+            onClick={onImportSettingsClick}
+            tooltipAlignment="end"
+          >
+            <DocumentImport size={20} />
           </HeaderGlobalAction>
         )}
         {onUploadClick && (

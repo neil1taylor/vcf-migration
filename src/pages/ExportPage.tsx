@@ -1,5 +1,5 @@
 // Export & Reports page — consolidates all export options into a visible workflow step
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   Grid,
   Column,
@@ -10,6 +10,9 @@ import {
   Checkbox,
   InlineLoading,
   InlineNotification,
+  Modal,
+  UnorderedList,
+  ListItem,
 } from '@carbon/react';
 import {
   DocumentPdf,
@@ -17,10 +20,14 @@ import {
   Document,
   Report,
   DataShare,
+  Upload,
 } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
 import { useData, usePDFExport, useExcelExport, useDocxExport, useAISettings, useVMs, useAutoExclusion } from '@/hooks';
 import { downloadHandoverFile } from '@/services/export/handoverExporter';
+import { extractSettingsFromFile, type ExtractedSettings } from '@/services/settingsExtractor';
+import { restoreBundledSettings } from '@/services/settingsRestore';
+import { SETTINGS_LABELS } from '@/services/settingsLabels';
 import { useWorkflowProgress } from '@/hooks/useWorkflowProgress';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import { fetchAIInsights } from '@/services/ai/aiInsightsApi';
@@ -87,6 +94,44 @@ export function ExportPage() {
   const { settings: aiSettings } = useAISettings();
   const { markExportComplete } = useWorkflowProgress();
   const [aiWarning, setAIWarning] = useState<string | null>(null);
+
+  // Import settings state
+  const importFileRef = useRef<HTMLInputElement>(null);
+  const [importResult, setImportResult] = useState<ExtractedSettings | null>(null);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  const handleImportFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    setImportError(null);
+    try {
+      const result = await extractSettingsFromFile(file);
+      if (!result) {
+        setImportError('No settings found in this file. Make sure you select a handover export file.');
+        return;
+      }
+      setImportResult(result);
+      setImportModalOpen(true);
+    } catch {
+      setImportError('Failed to read the file. Please check the file format.');
+    }
+  }, []);
+
+  const handleImportConfirm = useCallback(() => {
+    if (!importResult) return;
+    restoreBundledSettings(importResult.settings);
+    setImportModalOpen(false);
+    setImportResult(null);
+    window.location.reload();
+  }, [importResult]);
+
+  const handleImportCancel = useCallback(() => {
+    setImportModalOpen(false);
+    setImportResult(null);
+  }, []);
 
   // PDF section selection
   const [pdfOptions, setPdfOptions] = useState<PDFExportOptions>(DEFAULT_PDF_OPTIONS);
@@ -351,6 +396,47 @@ export function ExportPage() {
           </Tile>
         </Column>
 
+        {/* Import Settings from Handover */}
+        <Column lg={8} md={4} sm={4}>
+          <Tile className="export-page__card">
+            <div className="export-page__card-header">
+              <Upload size={24} className="export-page__card-icon" />
+              <div>
+                <h3 className="export-page__card-title">Import Settings</h3>
+                <p className="export-page__card-description">
+                  Restore settings from a previous handover export file. Upload a fresh RVTools file as your data source, then import settings from an older handover file to carry forward your VM overrides, platform selection, target assignments, and other configuration.
+                </p>
+              </div>
+            </div>
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".xlsx,.xls"
+              style={{ display: 'none' }}
+              onChange={handleImportFileSelect}
+            />
+            {importError && (
+              <InlineNotification
+                kind="error"
+                title="Import failed"
+                subtitle={importError}
+                lowContrast
+                onCloseButtonClick={() => setImportError(null)}
+                style={{ marginBottom: '0.5rem' }}
+              />
+            )}
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={Upload}
+              onClick={() => importFileRef.current?.click()}
+              className="export-page__card-action"
+            >
+              Import from Handover File
+            </Button>
+          </Tile>
+        </Column>
+
         {/* Status */}
         {isAnyExporting && (
           <Column lg={16} md={8} sm={4}>
@@ -382,6 +468,50 @@ export function ExportPage() {
           </Column>
         )}
       </Grid>
+
+      <Modal
+        open={importModalOpen}
+        modalHeading="Import Settings from Handover File"
+        primaryButtonText="Import Settings"
+        secondaryButtonText="Cancel"
+        onRequestSubmit={handleImportConfirm}
+        onRequestClose={handleImportCancel}
+        size="sm"
+      >
+        {importResult && (
+          <div>
+            {importResult.metadata.sourceFileName && (
+              <p style={{ marginBottom: '0.5rem' }}>
+                <strong>Source file:</strong> {importResult.metadata.sourceFileName}
+              </p>
+            )}
+            {importResult.metadata.exportDate && (
+              <p style={{ marginBottom: '1rem' }}>
+                <strong>Exported:</strong>{' '}
+                {new Date(importResult.metadata.exportDate).toLocaleString()}
+              </p>
+            )}
+            <p style={{ marginBottom: '0.5rem' }}>
+              The following {importResult.settingKeys.length} setting{importResult.settingKeys.length !== 1 ? 's' : ''} will be restored:
+            </p>
+            <UnorderedList>
+              {importResult.settingKeys.map((key) => (
+                <ListItem key={key}>
+                  {SETTINGS_LABELS[key] ?? key}
+                </ListItem>
+              ))}
+            </UnorderedList>
+            <InlineNotification
+              kind="warning"
+              title="This will overwrite your current settings"
+              subtitle="The page will reload after importing."
+              lowContrast
+              hideCloseButton
+              style={{ marginTop: '1rem' }}
+            />
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

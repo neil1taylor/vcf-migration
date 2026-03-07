@@ -62,6 +62,7 @@ This section covers how to use the VCF Migration application for migration plann
 - **Word Documents** — Formatted migration planning documents
 - **YAML Templates** — MTV operator configuration files for migration execution
 - **Handover File** — Bundle your RVTools data with all current analysis settings (VM overrides, platform selection, target assignments, risk assessments, timeline config) for colleague handoff; recipient uploads the file and is prompted to restore settings automatically
+- **Import Settings** — Restore settings from a previous handover export onto a fresh RVTools file; available on the Settings page, Export & Reports page, and top navigation bar
 
 ### Assessment & Planning
 - **Risk Assessment** — Flat risk table with auto-detected risks (from data), curated migration defaults, and user-added rows. Traffic light status (red/amber/green), all cells editable inline (category, description, impact area, evidence, mitigation), delete on any row, and category filtering
