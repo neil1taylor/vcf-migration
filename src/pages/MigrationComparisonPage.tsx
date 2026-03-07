@@ -34,11 +34,11 @@ export function MigrationComparisonPage() {
     });
   }, [allVmsRaw, vmOverrides, getAutoExclusionById]);
 
-  // Target assignments
+  // Target assignments (use platform leaning as default)
   const {
-    assignments, overrideTarget, resetOverride, resetAll,
-    roksCount, vsiCount, overrideCount,
-  } = useTargetAssignments();
+    assignments, overrideTarget, overrideReason, resetOverride, resetAll,
+    roksCount, vsiCount, powervsCount, overrideCount, overriddenVmIds,
+  } = useTargetAssignments(platformScore.leaning);
 
   // Derive data
   const disks = useMemo(() => rawData?.vDisk ?? [], [rawData?.vDisk]);
@@ -81,7 +81,7 @@ export function MigrationComparisonPage() {
         <Column lg={16} md={8} sm={4}>
           <h2>Migration Comparison</h2>
           <p style={{ marginBottom: '1rem', color: '#525252' }}>
-            Compare ROKS (OpenShift Virtualization) and VSI (Virtual Server) migration targets side by side.
+            Compare ROKS (OpenShift Virtualization), VSI (Virtual Server), and PowerVS (Power Virtual Server) migration targets.
             Assign VMs to targets and evaluate costs, readiness, and migration effort.
           </p>
         </Column>
@@ -91,13 +91,16 @@ export function MigrationComparisonPage() {
         </Column>
 
         {/* Summary tiles */}
-        <Column lg={4} md={2} sm={2} style={{ marginBottom: '1rem' }}>
+        <Column lg={3} md={2} sm={2} style={{ marginBottom: '1rem' }}>
           <MetricCard label="ROKS VMs" value={roksCount} variant="teal" tooltip="VMs assigned to ROKS target" />
         </Column>
-        <Column lg={4} md={2} sm={2} style={{ marginBottom: '1rem' }}>
+        <Column lg={3} md={2} sm={2} style={{ marginBottom: '1rem' }}>
           <MetricCard label="VSI VMs" value={vsiCount} variant="primary" tooltip="VMs assigned to VSI target" />
         </Column>
-        <Column lg={4} md={2} sm={2} style={{ marginBottom: '1rem' }}>
+        <Column lg={3} md={2} sm={2} style={{ marginBottom: '1rem' }}>
+          <MetricCard label="PowerVS VMs" value={powervsCount} variant="purple" tooltip="VMs assigned to PowerVS target" />
+        </Column>
+        <Column lg={3} md={2} sm={2} style={{ marginBottom: '1rem' }}>
           <MetricCard label="Overrides" value={overrideCount} variant={overrideCount > 0 ? 'info' : 'default'} tooltip="User-overridden VM assignments" />
         </Column>
         <Column lg={4} md={2} sm={2} style={{ marginBottom: '1rem' }}>
@@ -127,7 +130,10 @@ export function MigrationComparisonPage() {
               <TabPanel>
                 <VMAssignmentTable
                   assignments={assignments}
+                  workloadTypes={workloadTypes}
+                  overriddenVmIds={overriddenVmIds}
                   onOverride={overrideTarget}
+                  onOverrideReason={overrideReason}
                   onReset={resetOverride}
                   onResetAll={resetAll}
                   overrideCount={overrideCount}

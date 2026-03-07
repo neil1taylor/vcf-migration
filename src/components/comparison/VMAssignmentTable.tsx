@@ -2,15 +2,19 @@ import { useState, useMemo } from 'react';
 import {
   DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
   TableContainer, TableToolbar, TableToolbarContent, TableToolbarSearch,
-  Tag, Button, Pagination,
+  Tag, Button, Pagination, Dropdown, TextInput,
 } from '@carbon/react';
 import { Reset } from '@carbon/icons-react';
 import type { VMClassification, MigrationTarget } from '@/services/migration/targetClassification';
+import { getCategoryDisplayName } from '@/utils/workloadClassification';
 import { DEFAULT_PAGE_SIZE, PAGE_SIZE_OPTIONS } from '@/utils/constants';
 
 interface VMAssignmentTableProps {
   assignments: VMClassification[];
+  workloadTypes: Map<string, string>;
+  overriddenVmIds: Set<string>;
   onOverride: (vmId: string, target: MigrationTarget) => void;
+  onOverrideReason: (vmId: string, reason: string) => void;
   onReset: (vmId: string) => void;
   onResetAll: () => void;
   overrideCount: number;
@@ -18,13 +22,20 @@ interface VMAssignmentTableProps {
 
 const headers = [
   { key: 'vmName', header: 'VM Name' },
-  { key: 'guestOS', header: 'Guest OS' },
+  { key: 'workloadType', header: 'Workload Type' },
   { key: 'target', header: 'Target' },
-  { key: 'confidence', header: 'Confidence' },
-  { key: 'reasons', header: 'Reasons' },
+  { key: 'reasons', header: 'Reason' },
 ];
 
-export function VMAssignmentTable({ assignments, onOverride, onReset, onResetAll, overrideCount }: VMAssignmentTableProps) {
+const targetOptions = [
+  { id: 'roks', text: 'ROKS' },
+  { id: 'vsi', text: 'VSI' },
+  { id: 'powervs', text: 'PowerVS' },
+];
+
+export function VMAssignmentTable({
+  assignments, workloadTypes, overriddenVmIds, onOverride, onOverrideReason, onReset, onResetAll, overrideCount,
+}: VMAssignmentTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
@@ -46,13 +57,11 @@ export function VMAssignmentTable({ assignments, onOverride, onReset, onResetAll
   const rows = paged.map(a => ({
     id: a.vmId,
     vmName: a.vmName,
-    guestOS: '',
+    workloadType: getCategoryDisplayName(workloadTypes.get(a.vmId) ?? null) ?? 'Unclassified',
     target: a.target,
-    confidence: a.confidence,
     reasons: a.reasons.join('; '),
   }));
 
-  const isOverridden = (a: VMClassification) => a.reasons[0] === 'User override';
 
   return (
     <>
@@ -86,41 +95,60 @@ export function VMAssignmentTable({ assignments, onOverride, onReset, onResetAll
               <TableBody>
                 {tableRows.map(row => {
                   const a = paged.find(p => p.vmId === row.id)!;
+                  const selectedTarget = targetOptions.find(o => o.id === a.target) || targetOptions[0];
                   return (
                     <TableRow {...getRowProps({ row })} key={row.id}>
                       <TableCell>
                         {a.vmName}
-                        {isOverridden(a) && (
+                        {overriddenVmIds.has(a.vmId) && (
                           <Tag type="cyan" size="sm" style={{ marginLeft: '0.5rem' }}>Override</Tag>
                         )}
                       </TableCell>
-                      <TableCell>{''}</TableCell>
                       <TableCell>
-                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          <Tag
-                            type={a.target === 'roks' ? 'teal' : 'outline'}
+                        {getCategoryDisplayName(workloadTypes.get(a.vmId) ?? null) ?? 'Unclassified'}
+                      </TableCell>
+                      <TableCell>
+                        <div style={{ minWidth: '140px' }}>
+                          <Dropdown
+                            id={`target-${a.vmId}`}
+                            items={targetOptions}
+                            selectedItem={selectedTarget}
+                            itemToString={(item: { id: string; text: string } | null) => item?.text ?? ''}
+                            onChange={({ selectedItem }: { selectedItem: { id: string; text: string } | null }) => {
+                              if (selectedItem && selectedItem.id !== a.target) {
+                                onOverride(a.vmId, selectedItem.id as MigrationTarget);
+                              }
+                            }}
                             size="sm"
-                            onClick={() => a.target !== 'roks' ? onOverride(a.vmId, 'roks') : isOverridden(a) ? onReset(a.vmId) : undefined}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            ROKS
-                          </Tag>
-                          <Tag
-                            type={a.target === 'vsi' ? 'blue' : 'outline'}
-                            size="sm"
-                            onClick={() => a.target !== 'vsi' ? onOverride(a.vmId, 'vsi') : isOverridden(a) ? onReset(a.vmId) : undefined}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            VSI
-                          </Tag>
+                            label="Select target"
+                            hideLabel
+                          />
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Tag type={a.confidence === 'high' ? 'green' : a.confidence === 'medium' ? 'blue' : 'gray'} size="sm">
-                          {a.confidence}
-                        </Tag>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <TextInput
+                            id={`reason-${a.vmId}`}
+                            size="sm"
+                            value={a.reasons.join('; ')}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              onOverrideReason(a.vmId, e.target.value);
+                            }}
+                            labelText=""
+                            hideLabel
+                          />
+                          {overriddenVmIds.has(a.vmId) && (
+                            <Button
+                              kind="ghost"
+                              size="sm"
+                              hasIconOnly
+                              renderIcon={Reset}
+                              iconDescription="Reset"
+                              onClick={() => onReset(a.vmId)}
+                            />
+                          )}
+                        </div>
                       </TableCell>
-                      <TableCell>{a.reasons.join('; ')}</TableCell>
                     </TableRow>
                   );
                 })}

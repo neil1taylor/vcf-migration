@@ -1,9 +1,10 @@
 /**
  * Target Assignments Hook
  *
- * Manages VM-to-target (ROKS/VSI) assignments with localStorage persistence
- * and environment fingerprinting. Auto-classifies VMs via targetClassification
- * service, with user overrides merged on top.
+ * Manages VM-to-target (ROKS/VSI/PowerVS) assignments with localStorage persistence
+ * and environment fingerprinting. Default platform comes from the Platform Selection
+ * questionnaire's leaning, with SAP/Oracle VMs defaulting to PowerVS.
+ * Falls back to auto-classification rules when leaning is neutral.
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -22,6 +23,7 @@ import {
 
 interface TargetOverride {
   target: MigrationTarget;
+  reason?: string;
   modifiedAt: string;
 }
 
@@ -36,17 +38,23 @@ interface TargetAssignmentsData {
 export interface UseTargetAssignmentsReturn {
   assignments: VMClassification[];
   overrideTarget: (vmId: string, target: MigrationTarget) => void;
+  overrideReason: (vmId: string, reason: string) => void;
   resetOverride: (vmId: string) => void;
   resetAll: () => void;
   roksCount: number;
   vsiCount: number;
+  powervsCount: number;
   overrideCount: number;
+  overriddenVmIds: Set<string>;
 }
 
 // ===== CONSTANTS =====
 
 const STORAGE_KEY = 'vcf-target-assignments';
 const CURRENT_VERSION = 1;
+
+const SAP_NAME_PATTERNS = ['sap', 'hana', 's4hana'];
+const ORACLE_NAME_PATTERNS = ['oracle'];
 
 // ===== HELPER FUNCTIONS =====
 
@@ -84,9 +92,27 @@ function createEmptyData(fingerprint: string): TargetAssignmentsData {
   };
 }
 
+function isSAPOrOracleVM(vmName: string, workloadType: string | undefined): boolean {
+  const vmNameLower = vmName.toLowerCase();
+
+  // SAP: enterprise workload + SAP/HANA name patterns
+  if (workloadType?.toLowerCase().includes('enterprise')) {
+    if (SAP_NAME_PATTERNS.some(p => vmNameLower.includes(p))) return true;
+  }
+
+  // Oracle: database workload + Oracle name pattern
+  if (workloadType?.toLowerCase().includes('database')) {
+    if (ORACLE_NAME_PATTERNS.some(p => vmNameLower.includes(p))) return true;
+  }
+
+  return false;
+}
+
 // ===== HOOK =====
 
-export function useTargetAssignments(): UseTargetAssignmentsReturn {
+export function useTargetAssignments(
+  platformLeaning: 'roks' | 'vsi' | 'neutral' = 'neutral',
+): UseTargetAssignmentsReturn {
   const { rawData } = useData();
   const allVMs = useAllVMs();
   const vmOverrides = useVMOverrides();
@@ -165,27 +191,51 @@ export function useTargetAssignments(): UseTargetAssignmentsReturn {
     return map;
   }, [includedVMs]);
 
-  // Auto-classify all included VMs
+  // Auto-classify all included VMs (used as fallback when leaning is neutral)
   const autoClassifications = useMemo(() => {
     if (includedVMs.length === 0) return [];
     return classifyAllVMs(includedVMs, workloadTypes);
   }, [includedVMs, workloadTypes]);
 
-  // Merge user overrides on top of auto-classifications
+  // Build assignments: platform leaning → SAP/Oracle override → fallback to auto-classification
   const assignments = useMemo(() => {
     return autoClassifications.map(classification => {
+      // 1. User override takes highest priority
       const override = data.overrides[classification.vmId];
       if (override) {
         return {
           ...classification,
           target: override.target,
-          reasons: ['User override'],
+          reasons: [override.reason || 'User override'],
           confidence: 'high' as const,
         };
       }
+
+      // 2. SAP/Oracle VMs → PowerVS
+      const wt = workloadTypes.get(classification.vmId);
+      if (isSAPOrOracleVM(classification.vmName, wt)) {
+        return {
+          ...classification,
+          target: 'powervs' as MigrationTarget,
+          reasons: ['For SAP/Oracle, PowerVS is the preferred platform'],
+          confidence: 'high' as const,
+        };
+      }
+
+      // 3. Platform leaning from questionnaire
+      if (platformLeaning !== 'neutral') {
+        return {
+          ...classification,
+          target: platformLeaning as MigrationTarget,
+          reasons: ['Assigned based on platform selection questionnaire'],
+          confidence: 'medium' as const,
+        };
+      }
+
+      // 4. Fallback to auto-classification rules
       return classification;
     });
-  }, [autoClassifications, data.overrides]);
+  }, [autoClassifications, data.overrides, workloadTypes, platformLeaning]);
 
   // Compute counts from final merged assignments
   const roksCount = useMemo(() => {
@@ -196,8 +246,16 @@ export function useTargetAssignments(): UseTargetAssignmentsReturn {
     return assignments.filter(a => a.target === 'vsi').length;
   }, [assignments]);
 
+  const powervsCount = useMemo(() => {
+    return assignments.filter(a => a.target === 'powervs').length;
+  }, [assignments]);
+
   const overrideCount = useMemo(() => {
     return Object.keys(data.overrides).length;
+  }, [data.overrides]);
+
+  const overriddenVmIds = useMemo(() => {
+    return new Set(Object.keys(data.overrides));
   }, [data.overrides]);
 
   // ===== OPERATIONS =====
@@ -205,16 +263,45 @@ export function useTargetAssignments(): UseTargetAssignmentsReturn {
   const overrideTarget = useCallback((vmId: string, target: MigrationTarget) => {
     setData(prev => {
       const now = new Date().toISOString();
+      const existing = prev.overrides[vmId];
       return {
         ...prev,
         overrides: {
           ...prev.overrides,
-          [vmId]: { target, modifiedAt: now },
+          [vmId]: { target, reason: existing?.reason, modifiedAt: now },
         },
         modifiedAt: now,
       };
     });
   }, []);
+
+  const overrideReason = useCallback((vmId: string, reason: string) => {
+    setData(prev => {
+      const now = new Date().toISOString();
+      const existing = prev.overrides[vmId];
+      if (existing) {
+        return {
+          ...prev,
+          overrides: {
+            ...prev.overrides,
+            [vmId]: { ...existing, reason, modifiedAt: now },
+          },
+          modifiedAt: now,
+        };
+      }
+      // Create override preserving the current assignment's target
+      const currentAssignment = assignments.find(a => a.vmId === vmId);
+      const target = currentAssignment?.target ?? 'vsi';
+      return {
+        ...prev,
+        overrides: {
+          ...prev.overrides,
+          [vmId]: { target, reason, modifiedAt: now },
+        },
+        modifiedAt: now,
+      };
+    });
+  }, [assignments]);
 
   const resetOverride = useCallback((vmId: string) => {
     setData(prev => {
@@ -239,11 +326,14 @@ export function useTargetAssignments(): UseTargetAssignmentsReturn {
   return {
     assignments,
     overrideTarget,
+    overrideReason,
     resetOverride,
     resetAll,
     roksCount,
     vsiCount,
+    powervsCount,
     overrideCount,
+    overriddenVmIds,
   };
 }
 
