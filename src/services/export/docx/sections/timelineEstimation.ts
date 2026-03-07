@@ -32,6 +32,9 @@ export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date):
   sections.push(
     ...createTableCaption('Migration Timeline Phases', 'Detailed breakdown of migration phases and durations'),
     createStyledTable(headers, rows),
+    createParagraph(
+      'This timeline is indicative and based on typical migration patterns. Once a migration partner is engaged, they will produce a detailed, dependency-aware schedule with specific dates, maintenance windows, and resource assignments tailored to your environment.'
+    ),
   );
 
   // Typical timeline ranges

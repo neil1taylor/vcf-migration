@@ -26,7 +26,8 @@
           "Wave Planning tabs removed from ROKS and VSI migration pages — wave planning is now consolidated in the Migration Planning tab of Migration Review"
         ],
         "changed": [
-          "Migration Timeline wave count now derived from wave planning active waves instead of port group estimation"
+          "Migration Timeline wave count now derived from wave planning active waves instead of port group estimation",
+          "DOCX report: added migration partner refinement caveats across all major sections (assumptions, timeline, risk, wave planning, cost, platform selection, readiness, day 2 operations, next steps)"
         ],
         "fixed": [
           "Cost Estimation region now defaults to the MZR selected in Discovery's Infrastructure tab instead of always defaulting to us-south"

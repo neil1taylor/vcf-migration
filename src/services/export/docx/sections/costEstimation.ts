@@ -185,6 +185,10 @@ export function buildCostEstimation(
       'Hybrid cloud entitlements - Existing Red Hat subscriptions may offset ROKS licensing costs',
       'Promotional pricing - IBM frequently offers migration incentives for VMware customers',
     ]),
+    createParagraph(
+      'The migration partner will work with IBM to produce a detailed cost model reflecting negotiated pricing, committed use discounts, and the specific infrastructure design for your environment.',
+      { spacing: { before: 120 } }
+    ),
 
     new Paragraph({ spacing: { before: 240 } }),
     createHeading('8.3 ' + costTemplates.notes.title, HeadingLevel.HEADING_2),

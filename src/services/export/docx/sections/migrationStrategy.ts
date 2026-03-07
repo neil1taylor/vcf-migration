@@ -162,6 +162,9 @@ export function buildMigrationStrategy(
       'This section outlines the migration wave planning approach. Three strategies are available for organizing VM migration waves, each with different trade-offs.',
       { spacing: { after: 200 } }
     ),
+    createParagraph(
+      'The wave groupings presented here are preliminary suggestions based on environment data. The migration partner will refine wave composition based on application dependency mapping, business criticality, maintenance window constraints, and stakeholder availability.'
+    ),
 
     // 5.1 Wave Planning Strategies
     createHeading('5.1 Wave Planning Strategies', HeadingLevel.HEADING_2),

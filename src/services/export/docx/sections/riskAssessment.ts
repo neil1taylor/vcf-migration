@@ -25,6 +25,9 @@ export function buildRiskAssessmentSection(riskTable: RiskTableData): DocumentCo
     createParagraph(
       `Risk Summary: ${redCount} Red, ${amberCount} Amber, ${greenCount} Green across ${riskTable.rows.length} identified risks.`
     ),
+    createParagraph(
+      'This is an initial risk identification based on environment data. The migration partner will develop a comprehensive risk register with severity scoring, likelihood assessment, and detailed mitigation plans informed by application dependency mapping and stakeholder interviews.'
+    ),
   );
 
   // Risk table

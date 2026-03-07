@@ -48,6 +48,9 @@ export function buildDay2OperationsSection(): DocumentContent[] {
   const sections: DocumentContent[] = [
     createHeading('9. ' + day2.title, HeadingLevel.HEADING_1),
     createParagraph(day2.introduction),
+    createParagraph(
+      'The operational considerations outlined here are based on common VMware-to-cloud migration patterns. The migration partner will design a detailed operational model tailored to your existing processes, tooling, and team structure.'
+    ),
   ];
 
   day2.domains.forEach((domain, index) => {

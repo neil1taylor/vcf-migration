@@ -11,6 +11,11 @@ const LEANING_LABELS: Record<string, string> = {
   neutral: 'Neutral',
 };
 
+const VARIANT_LABELS: Record<string, string> = {
+  full: 'ROKS (Full OpenShift)',
+  rov: 'ROV (Red Hat OpenShift Virtualization)',
+};
+
 const TARGET_LABELS: Record<string, string> = {
   vsi: 'VSI',
   roks: 'ROKS',
@@ -44,6 +49,7 @@ export function buildPlatformSelectionSection(data: PlatformSelectionExport): Do
     ['ROKS factors (Yes)', `${score.roksCount} of ${roksFactorCount}`],
     ['Total answered', `${score.answeredCount} of ${totalFactors}`],
     ['Leaning', LEANING_LABELS[score.leaning] ?? score.leaning],
+    ['ROKS Variant', VARIANT_LABELS[score.roksVariant] ?? 'Full'],
   ];
   sections.push(
     ...createTableCaption('Platform Selection Score Summary', 'Aggregated platform selection questionnaire results'),
@@ -89,9 +95,17 @@ export function buildPlatformSelectionSection(data: PlatformSelectionExport): Do
     );
   }
 
+  if (score.roksVariant === 'rov') {
+    sections.push(
+      createParagraph(
+        'Based on questionnaire responses, no containerisation requirements were identified. ROV (Red Hat OpenShift Virtualization) is recommended over full ROKS, providing the same bare metal infrastructure and MTV migration tooling at a reduced OCP licence cost.'
+      ),
+    );
+  }
+
   sections.push(
     createParagraph(
-      'Platform selection scores are indicative and should be considered alongside workload-specific requirements, organizational constraints, and the detailed migration assessment findings in this report.'
+      'Platform selection scores are indicative and should be considered alongside workload-specific requirements, organizational constraints, and the detailed migration assessment findings in this report. The migration partner will validate platform selection against detailed workload analysis and may recommend a split-platform approach where different workload groups target different IBM Cloud platforms.'
     ),
   );
 

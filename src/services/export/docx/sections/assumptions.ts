@@ -42,6 +42,9 @@ export function buildAssumptionsAndScope(): DocumentContent[] {
     createParagraph(
       'For a comprehensive migration plan, consider conducting application discovery, dependency mapping, and performance analysis to refine the sizing recommendations and identify optimal migration waves.'
     ),
+    createParagraph(
+      'This assessment is designed as input to the migration partner engagement. All findings, sizing recommendations, and cost estimates will be validated, refined, and enhanced by the migration partner based on detailed discovery, application dependency mapping, and your specific business requirements.'
+    ),
 
     new Paragraph({ spacing: { before: 200 } }),
   ];

@@ -20,6 +20,9 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
   const sections: DocumentContent[] = [
     createHeading('3. ' + readinessTemplates.title, HeadingLevel.HEADING_1),
     createParagraph(readinessTemplates.introduction),
+    createParagraph(
+      'This readiness assessment is based on RVTools metadata. The migration partner will conduct detailed discovery including application dependency mapping, performance baselining, and stakeholder interviews to produce a comprehensive readiness assessment.'
+    ),
     createHeading('3.1 ' + readinessTemplates.checksPerformed.title, HeadingLevel.HEADING_2),
     ...createBulletList(
       readinessTemplates.checksPerformed.checks.map((c) => `${c.name}: ${c.description}`)
