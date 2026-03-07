@@ -26,7 +26,6 @@ import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import type { WaveSuggestionInput } from '@/services/ai/types';
 import { RiskTable } from '@/components/risk/RiskTable';
 import { PHASE_COLORS } from '@/types/timeline';
-import type { TimelinePhaseType } from '@/types/timeline';
 import './MigrationPage.scss';
 
 

@@ -7,7 +7,7 @@
  * - Import Settings modal (JSON paste)
  */
 
-import { useState, useRef, memo } from 'react';
+import { useState, useRef, useEffect, memo } from 'react';
 import {
   Modal,
   TextArea,
@@ -81,27 +81,33 @@ export const DiscoveryVMModals = memo(function DiscoveryVMModals({
   // Local state for bulk workload selection
   const [pendingBulkWorkload, setPendingBulkWorkload] = useState<{ id: string; text: string } | null>(null);
 
-  // Ref-based initialization: only reset state when modal opens for a different VM
+  // Reset workload state when modal opens for a different VM
   const prevWorkloadVmId = useRef<string | null>(null);
-  if (editingWorkload && editingWorkload.vmId !== prevWorkloadVmId.current) {
-    prevWorkloadVmId.current = editingWorkload.vmId;
-    setPendingWorkload(
-      editingWorkload.current
-        ? workloadCategories.find(c => c.text === editingWorkload.current) || { id: 'custom', text: editingWorkload.current }
-        : null
-    );
-  } else if (!editingWorkload) {
-    prevWorkloadVmId.current = null;
-  }
+  useEffect(() => {
+    if (editingWorkload && editingWorkload.vmId !== prevWorkloadVmId.current) {
+      prevWorkloadVmId.current = editingWorkload.vmId;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync pending state when modal opens for different VM
+      setPendingWorkload(
+        editingWorkload.current
+          ? workloadCategories.find(c => c.text === editingWorkload.current) || { id: 'custom', text: editingWorkload.current }
+          : null
+      );
+    } else if (!editingWorkload) {
+      prevWorkloadVmId.current = null;
+    }
+  }, [editingWorkload, workloadCategories]);
 
+  // Reset bulk workload state when modal opens
   const prevBulkWorkloadRef = useRef<boolean>(false);
-  const bulkOpen = !!bulkWorkloadVMs;
-  if (bulkOpen && !prevBulkWorkloadRef.current) {
-    prevBulkWorkloadRef.current = true;
-    setPendingBulkWorkload(null);
-  } else if (!bulkOpen) {
-    prevBulkWorkloadRef.current = false;
-  }
+  useEffect(() => {
+    const bulkOpen = !!bulkWorkloadVMs;
+    if (bulkOpen && !prevBulkWorkloadRef.current) {
+      prevBulkWorkloadRef.current = true;
+      setPendingBulkWorkload(null); // eslint-disable-line react-hooks/set-state-in-effect -- reset on modal open
+    } else if (!bulkOpen) {
+      prevBulkWorkloadRef.current = false;
+    }
+  }, [bulkWorkloadVMs]);
 
   return (
     <>

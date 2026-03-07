@@ -72,7 +72,6 @@ interface PricingDeploymentResponse {
   resources: PricingDeploymentEntry[];
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 interface CatalogEntry {
   id: string;
   name: string;

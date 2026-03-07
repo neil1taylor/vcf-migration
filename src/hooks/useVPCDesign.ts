@@ -117,7 +117,7 @@ export function useVPCDesign(workloadMap: Record<string, string>): UseVPCDesignR
   useEffect(() => {
     if (!currentFingerprint) return;
     const resolved = resolveData(currentFingerprint);
-    setData(resolved); // eslint-disable-line react-hooks/set-state-in-effect -- sync localStorage on env change
+    setData(resolved);
   }, [currentFingerprint]);
 
   // Persist to localStorage when data changes

@@ -33,6 +33,7 @@ vi.mock('docx', () => ({
   },
 }));
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- test helper inspecting opaque docx objects */
 function extractText(sections: unknown[]): string[] {
   return sections
     .filter((s: any) => s?.options?.children || s?.options?.text)
@@ -45,6 +46,7 @@ function extractText(sections: unknown[]): string[] {
     })
     .filter(Boolean);
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 function makeData(answers: Record<string, string>, overrides?: Partial<PlatformSelectionExport['score']>): PlatformSelectionExport {
   return {

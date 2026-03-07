@@ -153,7 +153,7 @@ export function AppLayout() {
     } finally {
       setIsDocxExporting(false);
     }
-  }, [rawData, exportDocx, aiSettings.enabled, platformScore, platformAnswers]);
+  }, [rawData, exportDocx, aiSettings.enabled, platformScore, platformAnswers, calculatedCosts?.roksMonthlyCost, calculatedCosts?.rovMonthlyCost, calculatedCosts?.vsiMonthlyCost]);
 
   const handleExportHandoverClick = useCallback(async () => {
     if (!originalFileBuffer || !originalFileName) return;

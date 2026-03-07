@@ -16,7 +16,7 @@ import {
   TextArea,
 } from '@carbon/react';
 import { Add, TrashCan, Reset } from '@carbon/icons-react';
-import type { RiskTableData, RiskStatus, RiskRow, RiskCategory } from '@/types/riskAssessment';
+import type { RiskTableData, RiskStatus, RiskRow } from '@/types/riskAssessment';
 import { RISK_CATEGORIES, RISK_STATUS_COLORS } from '@/types/riskAssessment';
 import { AddRiskModal } from './AddRiskModal';
 

@@ -7,7 +7,6 @@ import { getEnvironmentFingerprint, fingerprintsMatch } from '@/utils/vmIdentifi
 import { buildRiskTable } from '@/services/riskAssessment';
 import type {
   RiskStatus,
-  RiskCategory,
   RiskRow,
   RiskTableData,
   RiskTableOverrides,

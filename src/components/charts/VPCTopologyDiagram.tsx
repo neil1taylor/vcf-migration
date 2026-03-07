@@ -75,6 +75,7 @@ export function VPCTopologyDiagram({
   title = 'VPC Topology',
   subtitle,
   design,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   height = 500,
   onSubnetClick,
 }: VPCTopologyDiagramProps) {

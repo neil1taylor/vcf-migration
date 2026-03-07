@@ -139,7 +139,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
   // Sync region when Discovery MZR changes
   useEffect(() => {
     if (targetMzr && validRegionCodes.includes(targetMzr as RegionCode)) {
-      setRegion(targetMzr as RegionCode);
+      setRegion(targetMzr as RegionCode); // eslint-disable-line react-hooks/set-state-in-effect -- sync region from external prop
     }
   }, [targetMzr]); // eslint-disable-line react-hooks/exhaustive-deps -- validRegionCodes is stable
 

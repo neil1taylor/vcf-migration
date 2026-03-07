@@ -157,6 +157,15 @@ export function PreFlightReportPage() {
     (r) => r.blockerCount === 0
   ).length;
 
+  // Create a lookup map for fast access to VMCheckResults by id
+  const resultMap = useMemo(() => {
+    const map = new Map<string, VMCheckResults>();
+    for (const r of paginatedResults) {
+      map.set(r.id, r);
+    }
+    return map;
+  }, [paginatedResults]);
+
   // Redirect to landing if no data
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
@@ -241,15 +250,6 @@ export function PreFlightReportPage() {
       </div>
     );
   };
-
-  // Create a lookup map for fast access to VMCheckResults by id
-  const resultMap = useMemo(() => {
-    const map = new Map<string, VMCheckResults>();
-    for (const r of paginatedResults) {
-      map.set(r.id, r);
-    }
-    return map;
-  }, [paginatedResults]);
 
   return (
     <div className="preflight-report-page">

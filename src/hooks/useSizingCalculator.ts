@@ -558,7 +558,7 @@ export function useSizingCalculator({
       vmCount,
       cpuCapacityExceeded: nodeCapacity.vcpuCapacity === 0 && totalVCPUs > 0,
     };
-  }, [hasData, rawData, nodeCapacity, nodeRedundancy, evictionThreshold, storageMetric, annualGrowthRate, planningHorizonYears, virtOverhead, cpuFixedPerVM, cpuProportionalPercent, memoryFixedPerVMMiB, memoryProportionalPercent, vmOverrides]);
+  }, [hasData, rawData, nodeCapacity, nodeRedundancy, evictionThreshold, storageMetric, annualGrowthRate, planningHorizonYears, virtOverhead, cpuFixedPerVM, cpuProportionalPercent, memoryFixedPerVMMiB, memoryProportionalPercent, vmOverrides, cpuOvercommit, htMultiplier, selectedProfile.physicalCores, useHyperthreading]);
 
   // Best-value profile: lowest total cost (nodeCount × monthlyRate) once workload data is available
   const bestValueProfileName = useMemo(() => {
