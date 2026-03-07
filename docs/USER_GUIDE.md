@@ -711,7 +711,7 @@ The application includes optional AI-powered features using IBM watsonx.ai (Gran
 | **Wave Suggestions** | AI-powered wave strategy with risk narratives | Wave Planning |
 | **Cost Optimization** | Prioritized cost reduction recommendations | Cost panels |
 | **Remediation Guidance** | Step-by-step remediation for migration blockers | Pre-flight pages |
-| **Target Selection** | AI-powered ROKS vs VSI classification per VM | Migration Comparison |
+| **Target Selection** | AI-powered ROKS vs VSI vs PowerVS classification per VM | Migration Comparison |
 | **Anomaly Detection** | Statistical outlier detection with AI narrative | Discovery page |
 | **Risk Analysis** | AI-enhanced risk severity suggestions | Risk Assessment |
 | **Report Narrative** | AI-generated executive summaries for exports | Export functions |

@@ -375,18 +375,20 @@ Maps VMware port groups to IBM Cloud VPC subnets. Distributes across 3 zones. Ge
 
 ### Migration Comparison (under Migration Assessment)
 
-Side-by-side ROKS vs VSI comparison with auto-classification, user overrides, and 5-tab analysis. Route: `/migration-comparison`.
+Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 6-tab analysis. Route: `/migration-comparison`.
 
-**Target Classification** — Data-driven rule engine (`src/data/targetClassificationRules.json`) evaluated in priority order: OS compatibility crosscheck (consults ROKS/VSI compat JSON), memory >512GB→ROKS, workload type heuristics, Linux default→ROKS, fallback→VSI. No hardcoded OS checks — Windows VMs are routed by actual compatibility data (e.g., Windows Server 2022 is supported on both targets). Recommendation: >70% one target → recommend that target; else split.
+**Target Assignment** — Default platform comes from the Platform Selection questionnaire's `leaning` (`roks`/`vsi`/`neutral`). SAP/Oracle VMs (enterprise workload + SAP/HANA name patterns, or database workload + Oracle name patterns) default to PowerVS. When leaning is `neutral`, falls back to data-driven auto-classification rules (`targetClassificationRules.json`). Users can override any VM's target via dropdown and edit the reason text inline. The VM Assignment table shows: VM Name, Workload Type, Target (dropdown), and Reason (editable text). Recommendation: >70% one target → recommend that target; else split.
+
+**Auto-Classification Fallback** — Rule engine (`src/data/targetClassificationRules.json`) evaluated in priority order: OS compatibility crosscheck (consults ROKS/VSI compat JSON), memory >512GB→ROKS, workload type heuristics, Linux default→ROKS, fallback→VSI. No hardcoded OS checks — Windows VMs are routed by actual compatibility data.
 
 | File | Purpose |
 |------|---------|
 | `src/data/targetClassificationRules.json` | Data-driven classification rules (priority, type, target, confidence, reason templates) |
 | `src/services/migration/targetClassification.ts` | Rule engine: `classifyVMTarget()`, `classifyAllVMs()`, `getRecommendation()` |
-| `src/hooks/useTargetAssignments.ts` | localStorage `vcf-target-assignments`, env fingerprinting, user overrides |
+| `src/hooks/useTargetAssignments.ts` | Accepts `platformLeaning`, SAP/Oracle→PowerVS, localStorage `vcf-target-assignments`, env fingerprinting, user overrides with editable reasons |
 | `src/hooks/useComparisonData.ts` | Split VMs by target, compute per-target metrics |
-| `src/pages/MigrationComparisonPage.tsx` | Main page with 5 tabs |
-| `src/components/comparison/` | RecommendationBanner, VMAssignmentTable, CostComparisonPanel, ReadinessComparisonPanel, ArchitectureFitPanel, MigrationEffortPanel |
+| `src/pages/MigrationComparisonPage.tsx` | Main page with 6 tabs |
+| `src/components/comparison/` | RecommendationBanner, VMAssignmentTable, CostComparisonPanel, ReadinessComparisonPanel, ArchitectureFitPanel, MigrationEffortPanel, PlatformSelectionPanel |
 
 ### DOCX Export Sections
 
