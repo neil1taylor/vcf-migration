@@ -23,7 +23,7 @@ import { Download, Calculator } from '@carbon/icons-react';
 import { MetricCard } from '@/components/common';
 import { PricingRefresh } from '@/components/pricing';
 import { ProfilesRefresh } from '@/components/profiles';
-import { useDynamicPricing, useDynamicProfiles } from '@/hooks';
+import { useDynamicPricing, useDynamicProfiles, useTargetLocation } from '@/hooks';
 import type { CostEstimate, RegionCode, DiscountType, ROKSSizingInput, VSISizingInput, NetworkingOptions, DataQuality } from '@/services/costEstimation';
 import {
   calculateROKSCost,
@@ -56,7 +56,14 @@ interface CostEstimationProps {
 }
 
 export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true, onProfileSelect, onEstimateChange, onOdfTierChange, onIncludeAcmChange }: CostEstimationProps) {
-  const [region, setRegion] = useState<RegionCode>('us-south');
+  const { targetMzr } = useTargetLocation();
+
+  // Initialize region from Discovery's MZR selection, validated against available regions
+  const validRegionCodes = getRegions().data.map(r => r.code);
+  const initialRegion = targetMzr && validRegionCodes.includes(targetMzr as RegionCode)
+    ? (targetMzr as RegionCode)
+    : 'us-south';
+  const [region, setRegion] = useState<RegionCode>(initialRegion);
   const [discountType, setDiscountType] = useState<DiscountType>('onDemand');
   const showDetails = true; // Always show details
 
@@ -120,6 +127,13 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
     }
     return null;
   }, [type, roksSizing, vsiSizing, region, discountType, pricing, networkingOptions]);
+
+  // Sync region when Discovery MZR changes
+  useEffect(() => {
+    if (targetMzr && validRegionCodes.includes(targetMzr as RegionCode)) {
+      setRegion(targetMzr as RegionCode);
+    }
+  }, [targetMzr]); // eslint-disable-line react-hooks/exhaustive-deps -- validRegionCodes is stable
 
   // Notify parent of estimate changes
   useEffect(() => {

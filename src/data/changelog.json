@@ -18,7 +18,8 @@
           "DOCX report: callout in Platform Selection section when questions are answered 'Not Sure' or left unanswered",
           "DOCX report: Coexistence Network Considerations subsection in Migration Strategy warning about WAN latency during migration, plus coexistence bullets in ROKS and VSI sections",
           "Platform Selection questionnaire: 'No Preference' answer option for deliberately neutral responses — 'Not Sure' now means unanswered and is excluded from the answered count",
-          "Migration Planning tab in Migration Review — replaces Migration Timeline with integrated wave planning, AI wave analysis, and Gantt timeline driven by actual wave count"
+          "Migration Planning tab in Migration Review — replaces Migration Timeline with integrated wave planning, AI wave analysis, and Gantt timeline driven by actual wave count",
+          "ROV (Red Hat OpenShift Virtualization) auto-derived from platform selection — when ROKS leaning with no container needs, suggests ROV at reduced OCP licence cost with All ROV cost tile and recommendation callout"
         ],
         "removed": [
           "Cost Comparison tab removed from Migration Comparison — cost tiles now live in the Platform Selection tab",
@@ -26,6 +27,9 @@
         ],
         "changed": [
           "Migration Timeline wave count now derived from wave planning active waves instead of port group estimation"
+        ],
+        "fixed": [
+          "Cost Estimation region now defaults to the MZR selected in Discovery's Infrastructure tab instead of always defaulting to us-south"
         ]
       }
     },
