@@ -307,11 +307,11 @@ export function PreFlightReportPage() {
         <Column lg={4} md={2} sm={2}>
           <div className={`preflight-report-page__metric-card${statusFilter === 'blockers' ? ' preflight-report-page__metric-card--selected' : ''}`}>
             <MetricCard
-              label="With Blockers"
+              label="VMs with Blockers"
               value={vmsWithBlockers}
               variant="error"
               detail={`${((vmsWithBlockers / totalVMs) * 100).toFixed(1)}%`}
-              tooltip="VMs with critical issues that must be resolved before migration. Click to filter."
+              tooltip="Number of VMs with at least one critical blocking issue. Click to filter."
               onClick={() => handleStatusFilter('blockers')}
             />
           </div>
@@ -319,11 +319,11 @@ export function PreFlightReportPage() {
         <Column lg={4} md={2} sm={2}>
           <div className={`preflight-report-page__metric-card${statusFilter === 'warnings' ? ' preflight-report-page__metric-card--selected' : ''}`}>
             <MetricCard
-              label="Warnings Only"
+              label="VMs with Warnings"
               value={vmsWithWarningsOnly}
               variant="warning"
               detail={`${((vmsWithWarningsOnly / totalVMs) * 100).toFixed(1)}%`}
-              tooltip="VMs with non-blocking issues that should be reviewed. Click to filter."
+              tooltip="Number of VMs with at least one non-blocking warning issue. Click to filter."
               onClick={() => handleStatusFilter('warnings')}
             />
           </div>
@@ -331,11 +331,11 @@ export function PreFlightReportPage() {
         <Column lg={4} md={2} sm={2}>
           <div className={`preflight-report-page__metric-card${statusFilter === 'ready' ? ' preflight-report-page__metric-card--selected' : ''}`}>
             <MetricCard
-              label="Ready to Migrate"
+              label="VMs Ready to Migrate"
               value={vmsReady}
               variant="success"
               detail={`${((vmsReady / totalVMs) * 100).toFixed(1)}%`}
-              tooltip="VMs with no blockers that are ready to migrate (may have warnings). Click to filter."
+              tooltip="Number of VMs with no blocking issues. These VMs may still have warnings. Click to filter."
               onClick={() => handleStatusFilter('ready')}
             />
           </div>

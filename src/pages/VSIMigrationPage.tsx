@@ -254,10 +254,10 @@ export function VSIMigrationPage() {
           <MetricCard label="VMs to Migrate" value={formatNumber(poweredOnVMs.length)} variant="primary" tooltip="Total powered-on VMs eligible for migration." />
         </Column>
         <Column lg={4} md={4} sm={2}>
-          <MetricCard label="Blockers" value={formatNumber(blockerCount)} variant={blockerCount > 0 ? 'error' : 'success'} tooltip="Critical issues that prevent migration." />
+          <MetricCard label="Blocker Issues" value={formatNumber(blockerCount)} variant={blockerCount > 0 ? 'error' : 'success'} tooltip="Total blocking issues across all VMs. A VM with multiple blockers is counted for each issue." />
         </Column>
         <Column lg={4} md={4} sm={2}>
-          <MetricCard label="Warnings" value={formatNumber(warningCount)} variant={warningCount > 0 ? 'warning' : 'success'} tooltip="Non-blocking issues to review." />
+          <MetricCard label="Warning Issues" value={formatNumber(warningCount)} variant={warningCount > 0 ? 'warning' : 'success'} tooltip="Total warning issues across all VMs. A VM with multiple warnings is counted for each issue." />
         </Column>
 
         {/* Tabs */}
