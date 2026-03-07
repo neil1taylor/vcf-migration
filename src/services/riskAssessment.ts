@@ -170,6 +170,7 @@ interface CuratedRiskEntry {
   impactArea: string;
   defaultStatus: string;
   mitigationPlan: string;
+  evidenceDetail?: string;
 }
 
 export function loadCuratedRisks(): RiskRow[] {
@@ -181,7 +182,7 @@ export function loadCuratedRisks(): RiskRow[] {
     impactArea: entry.impactArea,
     status: entry.defaultStatus as RiskStatus,
     mitigationPlan: entry.mitigationPlan,
-    evidenceDetail: '',
+    evidenceDetail: entry.evidenceDetail ?? '',
   }));
 }
 

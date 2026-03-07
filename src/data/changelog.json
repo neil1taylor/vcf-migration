@@ -5,6 +5,7 @@
       "date": "2026-03-07",
       "sections": {
         "added": [
+          "Import Settings from Handover File — upload a previous handover export to restore VM overrides, platform selection, target assignments, and other settings onto a fresh RVTools file; available on both the Settings page and Export & Reports page with a confirmation modal showing what will be imported",
           "Risk Assessment replaced with flat risk table — auto-detected risks from data, curated migration defaults, and user-added rows with traffic light status, inline-editable mitigation plans, and category filtering",
           "DOCX report: hypervisor-dependent tooling incompatibility warnings in Migration Readiness risks and new Section 4.1.6 with VMware-to-IBM Cloud tool replacement mapping table",
           "Dynamic cost factor in Platform Selection questionnaire — 'Is cost an important factor?' automatically favours whichever platform has lower estimated monthly cost",
@@ -21,7 +22,8 @@
           "Migration Planning tab in Migration Review — replaces Migration Timeline with integrated wave planning, AI wave analysis, and Gantt timeline driven by actual wave count",
           "ROV (Red Hat OpenShift Virtualization) auto-derived from platform selection — when ROKS leaning with no container needs, suggests ROV at reduced OCP licence cost with All ROV cost tile and recommendation callout",
           "Export for Handover — download a copy of your RVTools file bundled with all current settings (VM overrides, platform selection, target assignments, etc.) for handing off to a colleague; recipient uploads the file and is prompted to restore bundled settings",
-          "Handover export promoted to Export & Reports page (5th card) and top navigation bar (DataShare icon) for easy access alongside PDF, Excel, and DOCX exports"
+          "Handover export promoted to Export & Reports page (5th card) and top navigation bar (DataShare icon) for easy access alongside PDF, Excel, and DOCX exports",
+          "Curated risk: IBM funding evidence on Double Spend risk and new Proof of Value/Concept funding risk entry with green default status"
         ],
         "removed": [
           "Cost Comparison tab removed from Migration Comparison — cost tiles now live in the Platform Selection tab",

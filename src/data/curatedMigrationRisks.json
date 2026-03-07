@@ -5,7 +5,17 @@
     "description": "Double Spend / Overlap Run-Costs: Paying for existing VMware hosts and new cloud instances simultaneously if the migration stretches out.",
     "impactArea": "Budget",
     "defaultStatus": "amber",
-    "mitigationPlan": "Plan tightly coupled Move Groups to quickly evacuate and cancel entire bare-metal servers."
+    "mitigationPlan": "Plan tightly coupled Move Groups to quickly evacuate and cancel entire bare-metal servers.",
+    "evidenceDetail": "IBM has funding available to assist clients."
+  },
+  {
+    "id": "curated-financial-pov",
+    "category": "Financial",
+    "description": "Proof of Value / Proof of Concept Funding: Uncertainty about cloud migration success without hands-on validation in the target environment.",
+    "impactArea": "Budget",
+    "defaultStatus": "green",
+    "mitigationPlan": "Engage IBM to fund a Proof of Value or Proof of Concept exercise, validating workload compatibility and performance before committing to full migration.",
+    "evidenceDetail": "IBM has funding available for proof of value/proof of concept."
   },
   {
     "id": "curated-financial-licensing",
