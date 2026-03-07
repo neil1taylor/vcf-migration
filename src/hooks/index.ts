@@ -72,6 +72,10 @@ export type { FactorAnswer, PlatformSelectionScore, UsePlatformSelectionReturn }
 // Data quality
 export { useDataInconsistencies } from './useDataInconsistencies';
 
+// Target location
+export { useTargetLocation, DATA_CENTERS, MZR_OPTIONS, getTargetMZR, guessLocationFromData } from './useTargetLocation';
+export type { UseTargetLocationReturn, DataCenter, MZROption } from './useTargetLocation';
+
 // Sheet availability
 export { useAvailableSheets } from './useAvailableSheets';
 export type { AvailableSheets } from './useAvailableSheets';

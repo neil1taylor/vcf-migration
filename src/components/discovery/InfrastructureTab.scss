@@ -1,0 +1,83 @@
+@use '@carbon/styles/scss/spacing';
+@use '@carbon/styles/scss/type';
+
+.infrastructure-tab {
+  padding-top: spacing.$spacing-05;
+
+  // Add margin to all columns for vertical spacing between rows
+  :global {
+    .cds--css-grid-column,
+    [class*='cds--col'] {
+      margin-bottom: spacing.$spacing-05;
+    }
+  }
+
+  &__location-tile {
+    display: flex;
+    align-items: flex-end;
+    gap: spacing.$spacing-05;
+    flex-wrap: wrap;
+
+    .cds--dropdown__wrapper {
+      min-width: 280px;
+    }
+  }
+
+  &__mzr-dropdown {
+    display: flex;
+    align-items: flex-end;
+    gap: spacing.$spacing-05;
+
+    .cds--dropdown__wrapper {
+      min-width: 280px;
+    }
+  }
+
+  &__location-tag {
+    margin-bottom: spacing.$spacing-03;
+  }
+
+  &__section-title {
+    @include type.type-style('heading-02');
+    margin-bottom: spacing.$spacing-04;
+  }
+
+  &__table-tile {
+    h4 {
+      @include type.type-style('heading-02');
+      margin-bottom: spacing.$spacing-04;
+    }
+
+    p {
+      @include type.type-style('body-01');
+      color: var(--cds-text-secondary, #525252);
+    }
+  }
+
+  &__empty-state {
+    @include type.type-style('body-01');
+    color: var(--cds-text-secondary, #525252);
+    padding: spacing.$spacing-05;
+  }
+
+  &__row-note {
+    @include type.type-style('helper-text-01');
+    color: var(--cds-text-secondary, #525252);
+    margin-top: spacing.$spacing-03;
+  }
+
+  &__vcenter-list {
+    margin-top: spacing.$spacing-04;
+
+    dt {
+      @include type.type-style('label-01');
+      color: var(--cds-text-secondary, #525252);
+      margin-top: spacing.$spacing-03;
+    }
+
+    dd {
+      @include type.type-style('body-01');
+      margin-left: 0;
+    }
+  }
+}
