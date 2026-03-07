@@ -60,7 +60,7 @@
   {
     "id": "curated-ops-automation",
     "category": "Ops & Tooling",
-    "description": "Loss of Legacy Automation: Custom vRealize, PowerCLI, or vCenter templates are not usable in the new cloud environment.",
+    "description": "Loss of Legacy Automation: Custom vRealize, PowerCLI, vCenter templates, vMotion-dependent workflows, SRM DR runbooks, proprietary virtual appliances, and 3rd-party VMware-integrated tooling are not usable in the new cloud environment.",
     "impactArea": "Provisioning Time",
     "defaultStatus": "amber",
     "mitigationPlan": "Treat Tooling Migration as Phase 0. Rewrite deployment pipelines using IBM Cloud Schematics and Ansible."
@@ -100,7 +100,7 @@
   {
     "id": "curated-technical-image",
     "category": "Technical",
-    "description": "Image Conversion / Boot Failure: Exporting VMDK and importing as VPC Custom Image fails because cloud-init or virtio drivers are missing.",
+    "description": "Image Conversion / Boot Failure: Exporting VMDK and importing as VPC Custom Image fails because cloud-init or virtio drivers are missing. Legacy OS versions (Windows Server 2003/2008, RHEL 5/6) lack cloud-init/virtio support entirely and are high-risk for boot failure.",
     "impactArea": "Schedule",
     "defaultStatus": "amber",
     "mitigationPlan": "Standardize a pre-migration script to inject necessary drivers into the OS before export."
@@ -112,5 +112,53 @@
     "impactArea": "Application Uptime",
     "defaultStatus": "amber",
     "mitigationPlan": "Map all IP subnets rigorously. Test Transit Gateway connectivity with dummy workloads first."
+  },
+  {
+    "id": "curated-technical-large-vmdk",
+    "category": "Technical",
+    "description": "Large VMDK replication (multi-TB) extends migration windows and increases downtime risk during cutover.",
+    "impactArea": "Schedule / Downtime",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Identify multi-TB VMs early. Use incremental replication (RackWare/MTV) with pre-seeding to minimize cutover window."
+  },
+  {
+    "id": "curated-business-data-residency",
+    "category": "Business / Org",
+    "description": "Data residency or sovereignty laws may prevent geographic transfer of workloads to available IBM Cloud VPC regions.",
+    "impactArea": "Compliance / Legal",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Map each workload's data residency requirements to available IBM Cloud MZR locations. Escalate any gaps early."
+  },
+  {
+    "id": "curated-business-regulatory",
+    "category": "Business / Org",
+    "description": "Regulated workloads may require certified hardware, specific encryption standards, or network segregation not yet validated in the target environment.",
+    "impactArea": "Compliance / Legal",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Catalogue compliance requirements (PCI-DSS, HIPAA, SOC2, etc.) per workload and validate IBM Cloud controls before migration."
+  },
+  {
+    "id": "curated-business-no-owner",
+    "category": "Business / Org",
+    "description": "VMs with no identified application owner cannot be functionally validated after migration, risking undetected failures.",
+    "impactArea": "Migration Readiness",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Run an ownership discovery exercise before migration. Quarantine orphan VMs in the final wave with extended monitoring."
+  },
+  {
+    "id": "curated-business-staff-availability",
+    "category": "Business / Org",
+    "description": "Client infrastructure and application staff may not be available to perform post-migration testing and fix-forward remediation, delaying wave completion and blocking subsequent waves.",
+    "impactArea": "Schedule / Migration Readiness",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Secure named testers and remediation contacts per application before each wave. Build UAT windows into the migration schedule and confirm staff availability in advance."
+  },
+  {
+    "id": "curated-technical-cold-migration",
+    "category": "Technical",
+    "description": "Cloud migration uses cold or warm approaches only — there is no equivalent to Cross vCenter vMotion or live migration. Every workload requires planned application downtime during cutover.",
+    "impactArea": "Downtime / Availability",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Classify workloads by downtime tolerance. Use warm migration with incremental replication to minimize cutover windows. Schedule Tier-1 apps in dedicated maintenance windows with rollback plans."
   }
 ]

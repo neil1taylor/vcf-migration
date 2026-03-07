@@ -23,7 +23,9 @@
           "ROV (Red Hat OpenShift Virtualization) auto-derived from platform selection — when ROKS leaning with no container needs, suggests ROV at reduced OCP licence cost with All ROV cost tile and recommendation callout",
           "Export for Handover — download a copy of your RVTools file bundled with all current settings (VM overrides, platform selection, target assignments, etc.) for handing off to a colleague; recipient uploads the file and is prompted to restore bundled settings",
           "Handover export promoted to Export & Reports page (5th card) and top navigation bar (DataShare icon) for easy access alongside PDF, Excel, and DOCX exports",
-          "Curated risk: IBM funding evidence on Double Spend risk and new Proof of Value/Concept funding risk entry with green default status"
+          "Curated risk: IBM funding evidence on Double Spend risk and new Proof of Value/Concept funding risk entry with green default status",
+          "Curated risk: Staff Availability for Testing & Remediation — flags risk that app/infra staff may be unavailable for post-migration UAT and fix-forward",
+          "Curated risk: No Hot Migration Path — highlights that all workloads require planned downtime (no live migration equivalent)"
         ],
         "removed": [
           "Cost Comparison tab removed from Migration Comparison — cost tiles now live in the Platform Selection tab",

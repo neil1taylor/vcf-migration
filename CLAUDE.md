@@ -371,7 +371,7 @@ Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 4-tab ana
 | `src/hooks/useTimelineConfig.ts` | localStorage `vcf-timeline-config`, env fingerprinting |
 | `src/components/charts/GanttTimeline.tsx` | Chart.js Bar with `indexAxis: 'y'` |
 | `src/types/riskAssessment.ts` | RiskRow, RiskTableData, RiskTableOverrides (v3), RiskStatus (red/amber/green), RiskCategory |
-| `src/data/curatedMigrationRisks.json` | 13 curated migration risks across 6 categories |
+| `src/data/curatedMigrationRisks.json` | 15 curated migration risks across 6 categories |
 | `src/services/riskAssessment.ts` | `generateAutoRisks()`, `loadCuratedRisks()`, `buildRiskTable()` |
 | `src/hooks/useRiskAssessment.ts` | localStorage `vcf-risk-overrides` (v3), env fingerprinting |
 | `src/components/risk/RiskTable.tsx` | Carbon DataTable with status dropdowns, inline-editable mitigation, category filter |
