@@ -22,6 +22,7 @@ import { createLogger } from '@/utils/logger';
 import type { PDFExportOptions } from '@/hooks/usePDFExport';
 import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
+import { getWavePlanningPreference } from '@/services/export/docx/types';
 import './AppLayout.scss';
 
 const logger = createLogger('AppLayout');
@@ -135,7 +136,7 @@ export function AppLayout() {
         if (warning) setAIWarning(warning);
       }
 
-      await exportDocx(rawData, { aiInsights });
+      await exportDocx(rawData, { aiInsights, wavePlanningPreference: getWavePlanningPreference() });
     } catch {
       // Error is handled by the hook
     } finally {

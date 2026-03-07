@@ -9,6 +9,11 @@ import type { VPCDesign } from '@/types/vpcDesign';
 // Type alias for document content elements
 export type DocumentContent = Paragraph | Table;
 
+export interface WavePlanningPreference {
+  wavePlanningMode: 'complexity' | 'network';
+  networkGroupBy: 'cluster' | 'portGroup';
+}
+
 export interface DocxExportOptions {
   clientName?: string;
   preparedBy?: string;
@@ -22,6 +27,7 @@ export interface DocxExportOptions {
   timelinePhases?: TimelinePhase[] | null;
   timelineStartDate?: Date;
   vpcDesign?: VPCDesign | null;
+  wavePlanningPreference?: WavePlanningPreference | null;
 }
 
 export interface VMReadiness {
@@ -131,6 +137,28 @@ export const DATA_STORAGE_COST_PER_GB =
   (DATA_STORAGE_TIER_DISTRIBUTION.generalPurpose * 0.08) +
   (DATA_STORAGE_TIER_DISTRIBUTION.tier5iops * 0.10) +
   (DATA_STORAGE_TIER_DISTRIBUTION.tier10iops * 0.13);
+
+/**
+ * Read wave planning preference from localStorage.
+ * Returns null if not set or invalid.
+ */
+export function getWavePlanningPreference(): WavePlanningPreference | null {
+  try {
+    const stored = localStorage.getItem('vcf-wave-planning-mode');
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    if (
+      (parsed.wavePlanningMode === 'complexity' || parsed.wavePlanningMode === 'network') &&
+      (parsed.networkGroupBy === 'cluster' || parsed.networkGroupBy === 'portGroup')
+    ) {
+      return {
+        wavePlanningMode: parsed.wavePlanningMode,
+        networkGroupBy: parsed.networkGroupBy,
+      };
+    }
+  } catch { /* ignore */ }
+  return null;
+}
 
 // Re-export needed docx types for convenience
 export { AlignmentType, HeadingLevel };

@@ -1,6 +1,6 @@
 // Wave planning hook - manages migration wave organization
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   type MigrationMode,
   type VMWaveData,
@@ -17,6 +17,8 @@ import {
 import type { VirtualMachine, VDiskInfo, VSnapshotInfo, VToolsInfo, VNetworkInfo } from '@/types/rvtools';
 
 export type WavePlanningMode = 'complexity' | 'network';
+
+const WAVE_PLANNING_MODE_KEY = 'vcf-wave-planning-mode';
 
 export interface UseWavePlanningConfig {
   mode: MigrationMode;
@@ -60,9 +62,41 @@ export interface UseWavePlanningReturn {
 export function useWavePlanning(config: UseWavePlanningConfig): UseWavePlanningReturn {
   const { mode, vms, complexityScores, disks, snapshots, tools, networks } = config;
 
-  // Wave planning state
-  const [wavePlanningMode, setWavePlanningMode] = useState<WavePlanningMode>('network');
-  const [networkGroupBy, setNetworkGroupBy] = useState<NetworkGroupBy>('cluster');
+  // Wave planning state — read initial values from localStorage
+  const [wavePlanningMode, setWavePlanningMode] = useState<WavePlanningMode>(() => {
+    try {
+      const stored = localStorage.getItem(WAVE_PLANNING_MODE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.wavePlanningMode === 'complexity' || parsed.wavePlanningMode === 'network') {
+          return parsed.wavePlanningMode;
+        }
+      }
+    } catch { /* use default */ }
+    return 'network';
+  });
+  const [networkGroupBy, setNetworkGroupBy] = useState<NetworkGroupBy>(() => {
+    try {
+      const stored = localStorage.getItem(WAVE_PLANNING_MODE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.networkGroupBy === 'cluster' || parsed.networkGroupBy === 'portGroup') {
+          return parsed.networkGroupBy;
+        }
+      }
+    } catch { /* use default */ }
+    return 'cluster';
+  });
+
+  // Persist wave planning mode to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(WAVE_PLANNING_MODE_KEY, JSON.stringify({
+        wavePlanningMode,
+        networkGroupBy,
+      }));
+    } catch { /* localStorage may be unavailable */ }
+  }, [wavePlanningMode, networkGroupBy]);
 
   // Build VM wave data with all necessary info
   const vmWaveData = useMemo(

@@ -65,6 +65,7 @@ export async function generateDocxReport(
     timelinePhases: options.timelinePhases ?? null,
     timelineStartDate: options.timelineStartDate ?? new Date(),
     vpcDesign: options.vpcDesign ?? null,
+    wavePlanningPreference: options.wavePlanningPreference ?? null,
   };
 
   // Reset caption counters for fresh document
@@ -125,7 +126,7 @@ export async function generateDocxReport(
     ...environmentAnalysis,
     ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights),
     ...buildMigrationOptions(),
-    ...buildMigrationStrategy(rawData, aiInsights),
+    ...buildMigrationStrategy(rawData, aiInsights, finalOptions.wavePlanningPreference, finalOptions.includeROKS, finalOptions.includeVSI),
   ];
 
   // Assess step sections

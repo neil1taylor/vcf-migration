@@ -4,14 +4,16 @@ import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle, Align
 import type { RVToolsData, VirtualMachine, VNetworkInfo } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
 import { mibToGiB } from '@/utils/formatters';
-import { STYLES, type DocumentContent, type NetworkWave } from '../types';
+import { calculateComplexityScores } from '@/services/migration/migrationAssessment';
+import { buildVMWaveData, createComplexityWaves, createNetworkWaves } from '@/services/migration/wavePlanning';
+import type { WaveGroup, NetworkWaveGroup } from '@/services/migration/wavePlanning';
+import { STYLES, type DocumentContent, type NetworkWave, type WavePlanningPreference } from '../types';
 import { createHeading, createParagraph, createBulletList, createTableCell, createAISection } from '../utils/helpers';
 
-export function buildMigrationStrategy(rawData: RVToolsData, aiInsights?: MigrationInsights | null): DocumentContent[] {
+function buildLegacyNetworkWaves(rawData: RVToolsData): NetworkWave[] {
   const networks = rawData.vNetwork;
   const vms = rawData.vInfo.filter((vm: VirtualMachine) => vm.powerState === 'poweredOn' && !vm.template);
 
-  // Build network summary by port group
   const portGroupMap = new Map<string, {
     vSwitch: string;
     vmNames: Set<string>;
@@ -34,7 +36,6 @@ export function buildMigrationStrategy(rawData: RVToolsData, aiInsights?: Migrat
     }
   });
 
-  // Convert to waves with resource totals
   const networkWaves: NetworkWave[] = [];
   portGroupMap.forEach((data, portGroup) => {
     const vmNames = Array.from(data.vmNames);
@@ -75,29 +76,243 @@ export function buildMigrationStrategy(rawData: RVToolsData, aiInsights?: Migrat
   });
 
   networkWaves.sort((a, b) => a.vmCount - b.vmCount);
-  const topWaves = networkWaves.slice(0, 20);
+  return networkWaves;
+}
 
+function computeWavesForMode(
+  rawData: RVToolsData,
+  migrationMode: 'roks' | 'vsi',
+  preference: WavePlanningPreference
+): WaveGroup[] | NetworkWaveGroup[] {
+  const vms = rawData.vInfo.filter(vm => vm.powerState === 'poweredOn' && !vm.template);
+  const complexityScores = calculateComplexityScores(vms, rawData.vDisk, rawData.vNetwork, migrationMode);
+  const vmWaveData = buildVMWaveData(
+    vms, complexityScores, rawData.vDisk, rawData.vSnapshot, rawData.vTools, rawData.vNetwork, migrationMode
+  );
+
+  if (preference.wavePlanningMode === 'complexity') {
+    return createComplexityWaves(vmWaveData, migrationMode);
+  }
+  return createNetworkWaves(vmWaveData, preference.networkGroupBy);
+}
+
+function buildWaveTable(waves: (WaveGroup | NetworkWaveGroup)[], isComplexity: boolean): Table {
+  const headerCells = [
+    createTableCell('Wave', { header: true }),
+    createTableCell('Description', { header: true }),
+    createTableCell('VMs', { header: true, align: AlignmentType.RIGHT }),
+    createTableCell('vCPUs', { header: true, align: AlignmentType.RIGHT }),
+    createTableCell('Memory (GiB)', { header: true, align: AlignmentType.RIGHT }),
+    createTableCell('Storage (GiB)', { header: true, align: AlignmentType.RIGHT }),
+    createTableCell('Blockers', { header: true, align: AlignmentType.CENTER }),
+  ];
+  if (isComplexity) {
+    headerCells.push(createTableCell('Avg Complexity', { header: true, align: AlignmentType.RIGHT }));
+  }
+
+  const rows = waves.map((wave, idx) => {
+    const cells = [
+      createTableCell(isComplexity ? wave.name : `Wave ${idx + 1}: ${wave.name.length > 20 ? wave.name.substring(0, 17) + '...' : wave.name}`),
+      createTableCell(wave.description.length > 35 ? wave.description.substring(0, 32) + '...' : wave.description),
+      createTableCell(`${wave.vmCount}`, { align: AlignmentType.RIGHT }),
+      createTableCell(`${wave.vcpus}`, { align: AlignmentType.RIGHT }),
+      createTableCell(`${wave.memoryGiB}`, { align: AlignmentType.RIGHT }),
+      createTableCell(`${wave.storageGiB}`, { align: AlignmentType.RIGHT }),
+      createTableCell(wave.hasBlockers ? 'Yes' : 'No', { align: AlignmentType.CENTER }),
+    ];
+    if (isComplexity) {
+      const avg = wave.avgComplexity ?? (wave.vms.length > 0
+        ? Math.round(wave.vms.reduce((s, v) => s + v.complexity, 0) / wave.vms.length)
+        : 0);
+      cells.push(createTableCell(`${avg}`, { align: AlignmentType.RIGHT }));
+    }
+    return new TableRow({ children: cells });
+  });
+
+  return new Table({
+    width: { size: 100, type: 'pct' as const },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+      left: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+      right: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+      insideVertical: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+    },
+    rows: [new TableRow({ children: headerCells }), ...rows],
+  });
+}
+
+function getStrategyLabel(pref: WavePlanningPreference): string {
+  if (pref.wavePlanningMode === 'complexity') return 'Complexity-Based';
+  if (pref.networkGroupBy === 'cluster') return 'Network-Based (Cluster)';
+  return 'Network-Based (Port Group)';
+}
+
+export function buildMigrationStrategy(
+  rawData: RVToolsData,
+  aiInsights?: MigrationInsights | null,
+  wavePlanningPreference?: WavePlanningPreference | null,
+  includeROKS: boolean = true,
+  includeVSI: boolean = true,
+): DocumentContent[] {
   const sections: DocumentContent[] = [
     createHeading('5. Migration Strategy', HeadingLevel.HEADING_1),
     createParagraph(
-      'This section outlines the recommended migration approach based on network topology analysis. Migrating workloads by subnet or port group minimizes network reconfiguration and reduces risk during cutover.',
+      'This section outlines the migration wave planning approach. Three strategies are available for organizing VM migration waves, each with different trade-offs.',
       { spacing: { after: 200 } }
     ),
 
-    createHeading('5.1 Subnet-Based Migration Approach', HeadingLevel.HEADING_2),
+    // 5.1 Wave Planning Strategies
+    createHeading('5.1 Wave Planning Strategies', HeadingLevel.HEADING_2),
     createParagraph(
-      'The recommended migration strategy groups virtual machines by their network port group (subnet). This approach is preferred for both ROKS and VSI migrations because:',
+      'The application supports three wave planning strategies for organizing the migration:',
       { spacing: { after: 120 } }
     ),
+
+    createHeading('Complexity-Based', HeadingLevel.HEADING_3),
+    createParagraph(
+      'Organizes VMs into 5 progressive waves based on migration complexity scores: Pilot, Quick Wins, Standard, Complex, and Remediation. VMs with blockers are automatically placed in the Remediation wave.',
+      { spacing: { after: 80 } }
+    ),
     ...createBulletList([
-      'Network Continuity: VMs within the same subnet typically communicate with each other. Migrating them together maintains application functionality during cutover.',
-      'Simplified Cutover: Entire subnets can be switched over at once, reducing the complexity of managing split-brain scenarios during migration.',
-      'Consistent IP Addressing: Preserving IP addresses within a migrated subnet reduces the need for DNS updates and application reconfiguration.',
-      'Predictable Waves: Port groups provide natural migration wave boundaries with known VM counts and resource requirements.',
-      'Reduced Testing Scope: Each wave can be validated as a unit before proceeding to the next, with clear rollback boundaries.',
+      'Best when: Heterogeneous environment with widely varying complexity, or when a risk-graduated rollout is desired.',
+      'Pros: Natural pilot identification with lowest-complexity VMs, risk-ordered progression, blocker isolation.',
+      'Cons: May split network-adjacent VMs across waves, requiring more network reconfiguration per wave.',
     ]),
 
-    createHeading('5.2 ROKS Migration Considerations', HeadingLevel.HEADING_2),
+    createHeading('Network-Based (Cluster)', HeadingLevel.HEADING_3),
+    createParagraph(
+      'Groups VMs by their VMware cluster. Each cluster becomes a migration wave, keeping co-located workloads together.',
+      { spacing: { after: 80 } }
+    ),
+    ...createBulletList([
+      'Best when: Clusters map to business units or application groups, or when big-bang per-cluster cutover is preferred.',
+      'Pros: Preserves cluster affinity, simpler planning with fewer waves, aligns with existing operational boundaries.',
+      'Cons: Large clusters produce large waves, uneven wave sizes.',
+    ]),
+
+    createHeading('Network-Based (Port Group)', HeadingLevel.HEADING_3),
+    createParagraph(
+      'Groups VMs by network port group (subnet). VMs sharing the same network segment migrate together.',
+      { spacing: { after: 80 } }
+    ),
+    ...createBulletList([
+      'Best when: Minimal network reconfiguration is desired, or subnet-aligned cutover is required.',
+      'Pros: Network continuity during migration, predictable wave boundaries, reduced split-brain scenarios.',
+      'Cons: May split application tiers across waves if they span multiple subnets.',
+    ]),
+  ];
+
+  // 5.2 Selected Strategy
+  sections.push(createHeading('5.2 Selected Strategy', HeadingLevel.HEADING_2));
+  if (wavePlanningPreference) {
+    const label = getStrategyLabel(wavePlanningPreference);
+    sections.push(
+      createParagraph(
+        `The selected wave planning strategy is: ${label}. The wave summaries below reflect this strategy applied to the environment data.`,
+        { spacing: { after: 120 } }
+      )
+    );
+  } else {
+    sections.push(
+      createParagraph(
+        'No wave planning strategy was explicitly selected in the application. The default Network-Based (Port Group) wave summary from raw network data is shown below.',
+        { spacing: { after: 120 } }
+      )
+    );
+  }
+
+  // Wave summary tables
+  if (wavePlanningPreference) {
+    const isComplexity = wavePlanningPreference.wavePlanningMode === 'complexity';
+
+    if (includeROKS) {
+      const roksWaves = computeWavesForMode(rawData, 'roks', wavePlanningPreference);
+      sections.push(
+        createHeading('5.3 ROKS Wave Summary', HeadingLevel.HEADING_2),
+        createParagraph(
+          `${roksWaves.length} wave${roksWaves.length !== 1 ? 's' : ''} generated for ROKS (OpenShift Virtualization) migration using the ${getStrategyLabel(wavePlanningPreference)} strategy:`,
+          { spacing: { after: 120 } }
+        ),
+        buildWaveTable(roksWaves, isComplexity),
+      );
+    }
+
+    if (includeVSI) {
+      const vsiWaves = computeWavesForMode(rawData, 'vsi', wavePlanningPreference);
+      const sectionNum = includeROKS ? '5.4' : '5.3';
+      sections.push(
+        createHeading(`${sectionNum} VSI Wave Summary`, HeadingLevel.HEADING_2),
+        createParagraph(
+          `${vsiWaves.length} wave${vsiWaves.length !== 1 ? 's' : ''} generated for VPC Virtual Server migration using the ${getStrategyLabel(wavePlanningPreference)} strategy:`,
+          { spacing: { after: 120 } }
+        ),
+        buildWaveTable(vsiWaves, isComplexity),
+      );
+    }
+  } else {
+    // Legacy fallback: port-group based waves from raw network data
+    const networkWaves = buildLegacyNetworkWaves(rawData);
+    const topWaves = networkWaves.slice(0, 20);
+    const sectionNum = '5.3';
+
+    sections.push(
+      createHeading(`${sectionNum} Network Wave Summary`, HeadingLevel.HEADING_2),
+      createParagraph(
+        `The environment contains ${networkWaves.length} unique port groups. The following table shows the proposed migration waves based on network topology:`,
+        { spacing: { after: 120 } }
+      ),
+      new Table({
+        width: { size: 100, type: 'pct' as const },
+        borders: {
+          top: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+          bottom: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+          left: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+          right: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+          insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+          insideVertical: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
+        },
+        rows: [
+          new TableRow({
+            children: [
+              createTableCell('Wave', { header: true }),
+              createTableCell('Port Group', { header: true }),
+              createTableCell('Subnet', { header: true }),
+              createTableCell('VMs', { header: true, align: AlignmentType.RIGHT }),
+              createTableCell('vCPUs', { header: true, align: AlignmentType.RIGHT }),
+              createTableCell('Memory', { header: true, align: AlignmentType.RIGHT }),
+            ],
+          }),
+          ...topWaves.map((wave, idx) =>
+            new TableRow({
+              children: [
+                createTableCell(`Wave ${idx + 1}`),
+                createTableCell(wave.portGroup.length > 25 ? wave.portGroup.substring(0, 22) + '...' : wave.portGroup),
+                createTableCell(wave.subnet),
+                createTableCell(`${wave.vmCount}`, { align: AlignmentType.RIGHT }),
+                createTableCell(`${wave.vcpus}`, { align: AlignmentType.RIGHT }),
+                createTableCell(`${wave.memoryGiB} GiB`, { align: AlignmentType.RIGHT }),
+              ],
+            })
+          ),
+        ],
+      }),
+    );
+    if (networkWaves.length > 20) {
+      sections.push(createParagraph(
+        `Note: Showing 20 of ${networkWaves.length} port groups. Smaller waves are listed first to identify pilot migration candidates.`,
+        { spacing: { before: 120 } }
+      ));
+    }
+  }
+
+  // ROKS Migration Considerations
+  const roksNum = wavePlanningPreference
+    ? (includeROKS && includeVSI ? '5.5' : includeROKS || includeVSI ? '5.4' : '5.3')
+    : '5.4';
+  sections.push(
+    createHeading(`${roksNum} ROKS Migration Considerations`, HeadingLevel.HEADING_2),
     createParagraph(
       'For ROKS with OpenShift Virtualization, subnet-based migration aligns with the Migration Toolkit for Virtualization (MTV) workflow:',
       { spacing: { after: 120 } }
@@ -108,8 +323,12 @@ export function buildMigrationStrategy(rawData: RVToolsData, aiInsights?: Migrat
       'VMs can retain their original IP addresses when migrated to appropriately configured secondary networks',
       'Migration plans in MTV naturally map to port group waves, enabling orchestrated cutover',
     ]),
+  );
 
-    createHeading('5.3 VSI Migration Considerations', HeadingLevel.HEADING_2),
+  // VSI Migration Considerations
+  const vsiNum = String(Number(roksNum.split('.')[1]) + 1);
+  sections.push(
+    createHeading(`5.${vsiNum} VSI Migration Considerations`, HeadingLevel.HEADING_2),
     createParagraph(
       'For VPC Virtual Server migration, subnet-based waves simplify VPC network design:',
       { spacing: { after: 120 } }
@@ -120,58 +339,14 @@ export function buildMigrationStrategy(rawData: RVToolsData, aiInsights?: Migrat
       'VPN or Direct Link connectivity can route traffic to migrated subnets during transition',
       'Phased cutover allows gradual DNS updates as each subnet completes migration',
     ]),
+  );
 
-    createHeading('5.4 Network Wave Summary', HeadingLevel.HEADING_2),
-    createParagraph(
-      `The environment contains ${networkWaves.length} unique port groups. The following table shows the proposed migration waves based on network topology:`,
-      { spacing: { after: 120 } }
-    ),
-    new Table({
-      width: { size: 100, type: 'pct' as const },
-      borders: {
-        top: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-        bottom: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-        left: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-        right: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-        insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-        insideVertical: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-      },
-      rows: [
-        new TableRow({
-          children: [
-            createTableCell('Wave', { header: true }),
-            createTableCell('Port Group', { header: true }),
-            createTableCell('Subnet', { header: true }),
-            createTableCell('VMs', { header: true, align: AlignmentType.RIGHT }),
-            createTableCell('vCPUs', { header: true, align: AlignmentType.RIGHT }),
-            createTableCell('Memory', { header: true, align: AlignmentType.RIGHT }),
-          ],
-        }),
-        ...topWaves.map((wave, idx) =>
-          new TableRow({
-            children: [
-              createTableCell(`Wave ${idx + 1}`),
-              createTableCell(wave.portGroup.length > 25 ? wave.portGroup.substring(0, 22) + '...' : wave.portGroup),
-              createTableCell(wave.subnet),
-              createTableCell(`${wave.vmCount}`, { align: AlignmentType.RIGHT }),
-              createTableCell(`${wave.vcpus}`, { align: AlignmentType.RIGHT }),
-              createTableCell(`${wave.memoryGiB} GiB`, { align: AlignmentType.RIGHT }),
-            ],
-          })
-        ),
-      ],
-    }),
-    networkWaves.length > 20 ? createParagraph(
-      `Note: Showing 20 of ${networkWaves.length} port groups. Smaller waves are listed first to identify pilot migration candidates.`,
-      { spacing: { before: 120 } }
-    ) : new Paragraph({}),
-  ];
-
-  // Add AI migration strategy if available
+  // AI Migration Strategy
   if (aiInsights?.migrationStrategy) {
+    const aiNum = String(Number(vsiNum) + 1);
     sections.push(
       ...createAISection(
-        '5.5 AI Migration Strategy',
+        `5.${aiNum} AI Migration Strategy`,
         aiInsights.migrationStrategy,
         HeadingLevel.HEADING_2
       )

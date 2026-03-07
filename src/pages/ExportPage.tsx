@@ -29,6 +29,7 @@ import { createLogger } from '@/utils/logger';
 import type { PDFExportOptions } from '@/hooks/usePDFExport';
 import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
+import { getWavePlanningPreference } from '@/services/export/docx/types';
 import './ExportPage.scss';
 
 const logger = createLogger('ExportPage');
@@ -130,7 +131,7 @@ export function ExportPage() {
       aiInsights = insights;
       if (warning) setAIWarning(warning);
     }
-    await exportDocx(rawData, { aiInsights });
+    await exportDocx(rawData, { aiInsights, wavePlanningPreference: getWavePlanningPreference() });
     markExportComplete();
   }, [rawData, exportDocx, aiAvailable, markExportComplete]);
 
