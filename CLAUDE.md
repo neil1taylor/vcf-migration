@@ -385,6 +385,7 @@ Side-by-side ROKS vs VSI comparison with auto-classification, user overrides, an
 | `src/services/export/docx/sections/riskAssessment.ts` | 5-domain table, go/no-go, evidence |
 | `src/services/export/docx/sections/timelineEstimation.ts` | Phase table, total duration |
 | `src/services/export/docx/sections/networkDesign.ts` | Subnet mapping, SG summary |
+| `src/services/export/docx/sections/platformSelection.ts` | Score summary, per-factor responses |
 
 ## Subnet Management
 
