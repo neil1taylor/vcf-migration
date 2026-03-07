@@ -307,10 +307,28 @@ export function buildMigrationStrategy(
     }
   }
 
+  // Coexistence Network Considerations
+  const coexNum = wavePlanningPreference
+    ? (includeROKS && includeVSI ? '5.4' : includeROKS || includeVSI ? '5.3' : '5.2')
+    : '5.3';
+  sections.push(
+    createHeading(`${coexNum} Coexistence Network Considerations`, HeadingLevel.HEADING_2),
+    createParagraph(
+      'During migration, VMs will be split between on-premises infrastructure and IBM Cloud. This coexistence period introduces network considerations that must be planned for:',
+      { spacing: { after: 120 } }
+    ),
+    ...createBulletList([
+      'Traffic between migrated (IBM Cloud) and non-migrated (on-prem) VMs traverses the VPN or Direct Link connection rather than the local LAN',
+      'This introduces additional latency and reduced bandwidth compared to LAN communication — latency-sensitive applications (databases, real-time services) should be migrated together in the same wave',
+      'Identify tightly-coupled VM pairs (e.g., app server + database) and ensure they are in the same migration wave to avoid cross-network latency',
+      'Bandwidth planning for the WAN link should account for inter-VM traffic that was previously LAN-local',
+    ]),
+  );
+
   // ROKS Migration Considerations
   const roksNum = wavePlanningPreference
-    ? (includeROKS && includeVSI ? '5.5' : includeROKS || includeVSI ? '5.4' : '5.3')
-    : '5.4';
+    ? (includeROKS && includeVSI ? '5.6' : includeROKS || includeVSI ? '5.5' : '5.4')
+    : '5.5';
   sections.push(
     createHeading(`${roksNum} ROKS Migration Considerations`, HeadingLevel.HEADING_2),
     createParagraph(
@@ -322,6 +340,7 @@ export function buildMigrationStrategy(
       'OVN-Kubernetes secondary networks can mirror the original VLAN structure for seamless connectivity',
       'VMs can retain their original IP addresses when migrated to appropriately configured secondary networks',
       'Migration plans in MTV naturally map to port group waves, enabling orchestrated cutover',
+      'During coexistence, traffic between migrated VMs in OpenShift and non-migrated on-prem VMs will traverse the Direct Link or VPN, introducing latency for cross-environment communication',
     ]),
   );
 
@@ -338,6 +357,7 @@ export function buildMigrationStrategy(
       'Security groups can be pre-configured to match existing firewall rules before migration',
       'VPN or Direct Link connectivity can route traffic to migrated subnets during transition',
       'Phased cutover allows gradual DNS updates as each subnet completes migration',
+      'During coexistence, traffic between migrated VSIs and non-migrated on-prem VMs traverses the VPN or Direct Link — plan waves to keep latency-sensitive VM pairs together',
     ]),
   );
 
