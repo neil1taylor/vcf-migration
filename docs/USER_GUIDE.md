@@ -814,6 +814,19 @@ Migration Toolkit for Virtualization configuration:
 1. On ROKS Migration page, click **Export YAML**
 2. Use with MTV operator on OpenShift
 
+#### Handover File
+
+Bundle your RVTools data with all current analysis settings for handing off to a colleague:
+- **Includes**: VM overrides, platform selection, target assignments, risk assessments, timeline config, subnet overrides, and more
+- **Workflow**: The recipient uploads the single handover file and is prompted to restore all bundled settings automatically
+- **Access**: Available on the Export & Reports page and via the DataShare icon in the top navigation bar
+
+**To export:**
+1. Navigate to **Export & Reports** page and click **Export Handover File**, or
+2. Click the **DataShare icon** (↗) in the top navigation bar (visible when data is loaded)
+
+> **Note:** The handover export requires an uploaded RVTools file. The button is disabled until a file is loaded.
+
 #### RackWare RMM CSV
 
 For automated migration with RackWare:

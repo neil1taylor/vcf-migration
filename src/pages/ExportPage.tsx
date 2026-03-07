@@ -16,9 +16,11 @@ import {
   DataTable,
   Document,
   Report,
+  DataShare,
 } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
 import { useData, usePDFExport, useExcelExport, useDocxExport, useAISettings, useVMs, useAutoExclusion } from '@/hooks';
+import { downloadHandoverFile } from '@/services/export/handoverExporter';
 import { useWorkflowProgress } from '@/hooks/useWorkflowProgress';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import { fetchAIInsights } from '@/services/ai/aiInsightsApi';
@@ -76,7 +78,7 @@ const DEFAULT_PDF_OPTIONS: PDFExportOptions = {
 };
 
 export function ExportPage() {
-  const { rawData } = useData();
+  const { rawData, originalFileBuffer, originalFileName } = useData();
   const vms = useVMs();
   const { autoExcludedCount } = useAutoExclusion();
   const { isExporting: isPDFExporting, error: pdfError, exportPDF } = usePDFExport();
@@ -134,6 +136,12 @@ export function ExportPage() {
     await exportDocx(rawData, { aiInsights, wavePlanningPreference: getWavePlanningPreference() });
     markExportComplete();
   }, [rawData, exportDocx, aiAvailable, markExportComplete]);
+
+  const handleExportHandover = useCallback(async () => {
+    if (!originalFileBuffer || !originalFileName) return;
+    await downloadHandoverFile(originalFileBuffer, originalFileName);
+    markExportComplete();
+  }, [originalFileBuffer, originalFileName, markExportComplete]);
 
   if (!rawData) return <Navigate to={ROUTES.home} replace />;
 
@@ -313,6 +321,34 @@ export function ExportPage() {
               </div>
             </div>
           </ClickableTile>
+        </Column>
+
+        {/* Handover File */}
+        <Column lg={8} md={4} sm={4}>
+          <Tile className="export-page__card">
+            <div className="export-page__card-header">
+              <DataShare size={24} className="export-page__card-icon" />
+              <div>
+                <h3 className="export-page__card-title">Handover File</h3>
+                <p className="export-page__card-description">
+                  Download a copy of your uploaded RVTools file bundled with all your current analysis settings — VM overrides, platform selection, target assignments, risk assessments, timeline config, and more. The recipient uploads this single file and is prompted to restore all bundled settings automatically.
+                </p>
+              </div>
+            </div>
+            {!originalFileBuffer && (
+              <p className="export-page__card-helper">Upload an RVTools file first to enable handover export.</p>
+            )}
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={DataShare}
+              onClick={handleExportHandover}
+              disabled={!originalFileBuffer}
+              className="export-page__card-action"
+            >
+              Export Handover File
+            </Button>
+          </Tile>
         </Column>
 
         {/* Status */}

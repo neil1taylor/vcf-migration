@@ -88,7 +88,7 @@ React 19 + TypeScript + Vite application for VMware Cloud Foundation migration p
 - **State Management**: `src/context/DataContext.tsx` (global state), `src/context/dataReducer.ts` (reducer), hooks in `src/hooks/` (complex logic).
 - **VM Management**: `src/hooks/useVMOverrides.ts` (exclusions/overrides with localStorage), `src/utils/vmIdentifier.ts` (VM ID and environment fingerprinting).
 - **IBM Cloud Integration**: `src/services/pricing/globalCatalogApi.ts` and `src/services/ibmCloudProfilesApi.ts` fetch via Code Engine proxies. Fallback to `src/data/ibmCloudConfig.json`.
-- **Export Pipeline**: `src/services/export/` — `bomXlsxGenerator.ts` (ExcelJS), `pdfGenerator.ts` (jsPDF), `excelGenerator.ts`, `docxGenerator.ts`, `yamlGenerator.ts`.
+- **Export Pipeline**: `src/services/export/` — `bomXlsxGenerator.ts` (ExcelJS), `pdfGenerator.ts` (jsPDF), `excelGenerator.ts`, `docxGenerator.ts`, `yamlGenerator.ts`, `handoverExporter.ts` (bundles RVTools file + localStorage settings into a single download for colleague handoff).
 
 ### Key Directories
 

@@ -706,6 +706,15 @@ export function UserGuidePage() {
                   <h4>RackWare RMM CSV</h4>
                   <p>VM inventory in RackWare Manager format for automated VSI migration.</p>
                 </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>Handover File</h4>
+                  <p>
+                    Bundle your uploaded RVTools file with all current analysis settings — VM overrides, platform selection, target assignments, risk assessments, timeline config, and more.
+                    The recipient uploads this single file and is prompted to restore all bundled settings automatically.
+                    Available on the Export &amp; Reports page and via the handover icon in the top navigation bar.
+                  </p>
+                </Tile>
               </div>
             </AccordionItem>
 

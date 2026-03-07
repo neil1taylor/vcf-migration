@@ -18,6 +18,7 @@ import { useData, usePDFExport, useExcelExport, useDocxExport, useAISettings, us
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import { fetchAIInsights } from '@/services/ai/aiInsightsApi';
 import { buildInsightsInput } from '@/services/ai/insightsInputBuilder';
+import { downloadHandoverFile } from '@/services/export/handoverExporter';
 import { createLogger } from '@/utils/logger';
 import type { PDFExportOptions } from '@/hooks/usePDFExport';
 import type { RVToolsData } from '@/types/rvtools';
@@ -90,7 +91,7 @@ const DEFAULT_OPTIONS: PDFExportOptions = {
 
 export function AppLayout() {
   const navigate = useNavigate();
-  const { rawData, calculatedCosts } = useData();
+  const { rawData, calculatedCosts, originalFileBuffer, originalFileName } = useData();
   const { isExporting, error, exportPDF } = usePDFExport();
   const { exportExcel } = useExcelExport();
   const { exportDocx } = useDocxExport();
@@ -140,7 +141,7 @@ export function AppLayout() {
       await exportDocx(rawData, {
         aiInsights,
         wavePlanningPreference: getWavePlanningPreference(),
-        platformSelection: platformScore.answeredCount > 0 ? { score: platformScore, answers: platformAnswers, roksMonthlyCost: calculatedCosts?.roksMonthlyCost, vsiMonthlyCost: calculatedCosts?.vsiMonthlyCost } : null,
+        platformSelection: platformScore.answeredCount > 0 ? { score: platformScore, answers: platformAnswers, roksMonthlyCost: calculatedCosts?.roksMonthlyCost, rovMonthlyCost: calculatedCosts?.rovMonthlyCost, vsiMonthlyCost: calculatedCosts?.vsiMonthlyCost } : null,
       });
     } catch {
       // Error is handled by the hook
@@ -148,6 +149,11 @@ export function AppLayout() {
       setIsDocxExporting(false);
     }
   }, [rawData, exportDocx, aiSettings.enabled, platformScore, platformAnswers]);
+
+  const handleExportHandoverClick = useCallback(async () => {
+    if (!originalFileBuffer || !originalFileName) return;
+    await downloadHandoverFile(originalFileBuffer, originalFileName);
+  }, [originalFileBuffer, originalFileName]);
 
   const handleCloseExportModal = useCallback(() => {
     setIsExportModalOpen(false);
@@ -212,6 +218,7 @@ export function AppLayout() {
         onExportPDFClick={handleExportPDFClick}
         onExportExcelClick={handleExportExcelClick}
         onExportDocxClick={handleExportDocxClick}
+        onExportHandoverClick={originalFileBuffer ? handleExportHandoverClick : undefined}
       />
       <SideNav isExpanded={isSideNavExpanded} />
       <Content id="main-content" className="app-layout__content">

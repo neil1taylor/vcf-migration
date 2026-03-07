@@ -6,7 +6,7 @@ import {
   HeaderGlobalAction,
   SkipToContent,
 } from '@carbon/react';
-import { Information, Upload, DocumentExport, DataTableReference, Document, Light, Asleep } from '@carbon/icons-react';
+import { Information, Upload, DocumentExport, DataTableReference, Document, DataShare, Light, Asleep } from '@carbon/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { useHasData } from '@/hooks';
 import { useTheme } from '@/context';
@@ -17,9 +17,10 @@ interface TopNavProps {
   onExportPDFClick?: () => void;
   onExportExcelClick?: () => void;
   onExportDocxClick?: () => void;
+  onExportHandoverClick?: () => void;
 }
 
-export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick, onExportDocxClick }: TopNavProps) {
+export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick, onExportDocxClick, onExportHandoverClick }: TopNavProps) {
   const hasData = useHasData();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -56,6 +57,15 @@ export function TopNav({ onUploadClick, onExportPDFClick, onExportExcelClick, on
             tooltipAlignment="end"
           >
             <Document size={20} />
+          </HeaderGlobalAction>
+        )}
+        {hasData && onExportHandoverClick && (
+          <HeaderGlobalAction
+            aria-label="Export Handover File — bundle RVTools data with all analysis settings for colleague handoff"
+            onClick={onExportHandoverClick}
+            tooltipAlignment="end"
+          >
+            <DataShare size={20} />
           </HeaderGlobalAction>
         )}
         {onUploadClick && (
