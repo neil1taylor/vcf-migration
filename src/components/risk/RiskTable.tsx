@@ -83,7 +83,6 @@ export function RiskTable({
   ];
 
   const tableRows = filteredRows.map(row => ({
-    id: row.id,
     ...row,
   }));
 

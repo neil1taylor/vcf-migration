@@ -445,7 +445,7 @@ export function DiscoveryVMTable({
                     itemToString={(item) => item?.text || ''}
                     selectedItems={FILTER_OPTIONS.filter(o => statusFilters.includes(o.id))}
                     onChange={({ selectedItems }) => {
-                      setStatusFilters(selectedItems.map(i => i.id));
+                      setStatusFilters((selectedItems ?? []).map(i => i.id));
                       setPage(1);
                     }}
                     size="sm"

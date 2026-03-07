@@ -70,7 +70,7 @@ export function downloadHandoverFile(
   originalFileName: string
 ): void {
   const data = generateHandoverFile(originalBuffer, originalFileName);
-  const blob = new Blob([data], {
+  const blob = new Blob([data as BlobPart], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
   const url = URL.createObjectURL(blob);

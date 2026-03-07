@@ -34,6 +34,7 @@ import {
   runPreFlightChecks,
   getChecksForMode,
   type CheckMode,
+  type CheckResult,
   type VMCheckResults,
   type CheckDefinition,
 } from '@/services/preflightChecks';
@@ -55,8 +56,8 @@ const HEADERS = [
   { key: 'status', header: 'Status' },
 ];
 
-function groupChecksByCategory(checks: Record<string, { status: string; value?: string | number; threshold?: string | number; message?: string }>, checksForMode: CheckDefinition[]) {
-  const grouped: Record<string, { checkDef: CheckDefinition; result: { status: string; value?: string | number; threshold?: string | number; message?: string } }[]> = {};
+function groupChecksByCategory(checks: Record<string, CheckResult>, checksForMode: CheckDefinition[]) {
+  const grouped: Record<string, { checkDef: CheckDefinition; result: CheckResult }[]> = {};
   for (const checkDef of checksForMode) {
     const result = checks[checkDef.id];
     if (!result) continue;
@@ -188,8 +189,8 @@ export function PreFlightReportPage() {
     exportPreFlightExcel(checkResults, mode);
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchText(e.target.value);
+  const handleSearchChange = (e: '' | React.ChangeEvent<HTMLInputElement>, value?: string) => {
+    setSearchText(value ?? (typeof e === 'string' ? '' : e.target.value));
     setPage(1);
   };
 
@@ -208,7 +209,7 @@ export function PreFlightReportPage() {
     status: r.blockerCount > 0 ? 'blockers' : r.warningCount > 0 ? 'warnings' : 'ready',
   }));
 
-  const renderStatusCell = (status: string, row: VMCheckResults) => {
+  const renderStatusCell = (_status: string, row: VMCheckResults) => {
     if (row.blockerCount > 0) {
       return <Tag type="red" size="sm">{row.blockerCount} Blockers</Tag>;
     }
@@ -419,7 +420,7 @@ export function PreFlightReportPage() {
                       <TableRow>
                         <TableExpandHeader />
                         {headers.map((header) => (
-                          <TableHeader key={header.key} {...getHeaderProps({ header })}>
+                          <TableHeader {...getHeaderProps({ header })}>
                             {header.header}
                           </TableHeader>
                         ))}

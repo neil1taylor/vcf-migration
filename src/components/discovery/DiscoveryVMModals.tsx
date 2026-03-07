@@ -157,7 +157,7 @@ export const DiscoveryVMModals = memo(function DiscoveryVMModals({
             itemToString={(item: { id: string; text: string } | string | null) => (typeof item === 'string' ? item : item?.text) || ''}
             selectedItem={pendingWorkload}
             allowCustomValue
-            onChange={({ selectedItem, inputValue }: { selectedItem: { id: string; text: string } | null; inputValue?: string }) => {
+            onChange={({ selectedItem, inputValue }: { selectedItem: { id: string; text: string } | null | undefined; inputValue?: string | null }) => {
               if (inputValue && !selectedItem) {
                 setPendingWorkload({ id: 'custom', text: inputValue });
               } else if (selectedItem) {
@@ -196,7 +196,7 @@ export const DiscoveryVMModals = memo(function DiscoveryVMModals({
             itemToString={(item: { id: string; text: string } | string | null) => (typeof item === 'string' ? item : item?.text) || ''}
             selectedItem={pendingBulkWorkload}
             allowCustomValue
-            onChange={({ selectedItem, inputValue }: { selectedItem: { id: string; text: string } | null; inputValue?: string }) => {
+            onChange={({ selectedItem, inputValue }: { selectedItem: { id: string; text: string } | null | undefined; inputValue?: string | null }) => {
               if (inputValue && !selectedItem) {
                 setPendingBulkWorkload({ id: 'custom', text: inputValue });
               } else if (selectedItem) {

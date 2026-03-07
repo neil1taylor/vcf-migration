@@ -65,7 +65,7 @@ function migrateStoredData(stored: VPCDesignData & { transitGateway?: { enabled:
           }]
         : [],
     };
-    delete (migrated as Record<string, unknown>).transitGateway;
+    delete (migrated as unknown as Record<string, unknown>).transitGateway;
     return migrated;
   }
   return stored;

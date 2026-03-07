@@ -121,6 +121,7 @@ export function VMAssignmentTable({
                             }}
                             size="sm"
                             label="Select target"
+                            titleText="Select target"
                             hideLabel
                           />
                         </div>
