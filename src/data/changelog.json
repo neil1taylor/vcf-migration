@@ -13,7 +13,8 @@
           "Target IBM Cloud MZR dropdown on Infrastructure tab — auto-selects nearest MZR from source data center, user-overridable",
           "Bulk Add Notes batch action in Discovery VM table — set the same note on multiple selected VMs at once",
           "Multi-select status filter in Discovery VM table — combine filters like Unclassified + Included to find VMs needing classification",
-          "Unclassified option in Discovery status filter — quickly filter to VMs without a workload classification"
+          "Unclassified option in Discovery status filter — quickly filter to VMs without a workload classification",
+          "DOCX report: callout in Platform Selection section when questions are answered 'Not Sure' or left unanswered"
         ],
         "removed": [
           "Cost Comparison tab removed from Migration Comparison — cost tiles now live in the Platform Selection tab"
