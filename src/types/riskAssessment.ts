@@ -40,7 +40,12 @@ export interface RiskTableOverrides {
   rowOverrides: Record<string, {
     status?: RiskStatus;
     mitigationPlan?: string;
+    category?: RiskCategory;
+    description?: string;
+    impactArea?: string;
+    evidenceDetail?: string;
   }>;
+  deletedRows: string[];
   userRows: RiskRow[];
   createdAt: string;
   modifiedAt: string;

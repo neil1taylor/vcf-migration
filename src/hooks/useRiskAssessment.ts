@@ -48,6 +48,7 @@ function createEmpty(fingerprint: string): RiskTableOverrides {
     version: CURRENT_VERSION,
     environmentFingerprint: fingerprint,
     rowOverrides: {},
+    deletedRows: [],
     userRows: [],
     createdAt: now,
     modifiedAt: now,
@@ -60,8 +61,9 @@ export interface UseRiskAssessmentReturn {
   riskTable: RiskTableData;
   updateRowStatus: (rowId: string, status: RiskStatus) => void;
   updateRowMitigation: (rowId: string, mitigation: string) => void;
+  updateRowField: (rowId: string, field: string, value: string) => void;
   addUserRow: (row: Omit<RiskRow, 'id' | 'source'>) => void;
-  removeUserRow: (rowId: string) => void;
+  removeRow: (rowId: string) => void;
   clearAll: () => void;
   exportData: () => string;
 }
@@ -137,6 +139,17 @@ export function useRiskAssessment(calculatedCosts?: CalculatedCosts | null): Use
     }));
   }, []);
 
+  const updateRowField = useCallback((rowId: string, field: string, value: string) => {
+    setOverrides(prev => ({
+      ...prev,
+      rowOverrides: {
+        ...prev.rowOverrides,
+        [rowId]: { ...prev.rowOverrides[rowId], [field]: value },
+      },
+      modifiedAt: new Date().toISOString(),
+    }));
+  }, []);
+
   const addUserRow = useCallback((row: Omit<RiskRow, 'id' | 'source'>) => {
     const id = `user-${Date.now()}-${nextUserRowId++}`;
     const newRow: RiskRow = { ...row, id, source: 'user' };
@@ -147,13 +160,15 @@ export function useRiskAssessment(calculatedCosts?: CalculatedCosts | null): Use
     }));
   }, []);
 
-  const removeUserRow = useCallback((rowId: string) => {
+  const removeRow = useCallback((rowId: string) => {
     setOverrides(prev => {
       const { [rowId]: _, ...restOverrides } = prev.rowOverrides;
       void _;
+      const isUserRow = prev.userRows.some(r => r.id === rowId);
       return {
         ...prev,
-        userRows: prev.userRows.filter(r => r.id !== rowId),
+        userRows: isUserRow ? prev.userRows.filter(r => r.id !== rowId) : prev.userRows,
+        deletedRows: isUserRow ? prev.deletedRows : [...(prev.deletedRows ?? []), rowId],
         rowOverrides: restOverrides,
         modifiedAt: new Date().toISOString(),
       };
@@ -164,6 +179,7 @@ export function useRiskAssessment(calculatedCosts?: CalculatedCosts | null): Use
     setOverrides(prev => ({
       ...prev,
       rowOverrides: {},
+      deletedRows: [],
       userRows: [],
       modifiedAt: new Date().toISOString(),
     }));
@@ -173,5 +189,5 @@ export function useRiskAssessment(calculatedCosts?: CalculatedCosts | null): Use
     return JSON.stringify({ riskTable, overrides }, null, 2);
   }, [riskTable, overrides]);
 
-  return { riskTable, updateRowStatus, updateRowMitigation, addUserRow, removeUserRow, clearAll, exportData };
+  return { riskTable, updateRowStatus, updateRowMitigation, updateRowField, addUserRow, removeRow, clearAll, exportData };
 }

@@ -64,7 +64,7 @@ This section covers how to use the VCF Migration application for migration plann
 - **Handover File** — Bundle your RVTools data with all current analysis settings (VM overrides, platform selection, target assignments, risk assessments, timeline config) for colleague handoff; recipient uploads the file and is prompted to restore settings automatically
 
 ### Assessment & Planning
-- **Risk Assessment** — Flat risk table with auto-detected risks (from data), curated migration defaults, and user-added rows. Traffic light status (red/amber/green), inline-editable mitigation plans, and category filtering
+- **Risk Assessment** — Flat risk table with auto-detected risks (from data), curated migration defaults, and user-added rows. Traffic light status (red/amber/green), all cells editable inline (category, description, impact area, evidence, mitigation), delete on any row, and category filtering
 - **Migration Timeline** — Interactive Gantt chart with editable phase durations, start date selection, and total duration calculation
 - **VPC Network Design** — VMware port group to IBM Cloud VPC subnet mapping with zone distribution, security group generation, and ACL suggestions
 - **VPC Topology Visualization** — D3-based hierarchical diagram showing region, VPC, zones, and subnets color-coded by workload type
@@ -93,7 +93,7 @@ This section covers how to use the VCF Migration application for migration plann
 ### 2. Assess Your Environment
 
 Navigate to **Assess** in the sidebar:
-- **Risk Assessment** — Review auto-detected, curated, and custom risks in a flat table with traffic light status
+- **Risk Assessment** — Review and edit auto-detected, curated, and custom risks in a fully editable table with traffic light status
 - **Migration Timeline** — View and customize the migration schedule with a Gantt chart
 - **Network Design** — Map VMware port groups to VPC subnets with security groups
 

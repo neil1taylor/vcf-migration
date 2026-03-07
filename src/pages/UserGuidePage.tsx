@@ -357,51 +357,41 @@ export function UserGuidePage() {
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>Overview</h4>
-                  <p>Assess migration risk across 5 domains with automatic calculations and manual overrides. Navigate to <strong>Assess</strong> &gt; <strong>Risk Assessment</strong>.</p>
+                  <p>Review and manage migration risks in a flat table with traffic light status. Navigate to <strong>Migration Review</strong> &gt; <strong>Risk Assessment</strong> tab.</p>
                   <table className="user-guide-page__table">
                     <thead>
                       <tr>
-                        <th>Domain</th>
-                        <th>Mode</th>
                         <th>Source</th>
+                        <th>Description</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr><td>Cost</td><td>Auto</td><td>VM count and resource analysis</td></tr>
-                      <tr><td>Infrastructure/NFRs</td><td>Auto</td><td>Pre-flight check blocker percentages</td></tr>
-                      <tr><td>Complexity</td><td>Auto</td><td>Complexity scores and OS compatibility</td></tr>
-                      <tr><td>Security/Compliance</td><td>Manual</td><td>User-defined severity</td></tr>
-                      <tr><td>Other</td><td>Manual</td><td>User-defined severity</td></tr>
+                      <tr><td>Auto-detected</td><td>Generated from your data (blockers, complexity, cost, OS compatibility, scale, licenses)</td></tr>
+                      <tr><td>Curated defaults</td><td>13 common migration risks across 6 categories</td></tr>
+                      <tr><td>User-added</td><td>Custom risks you add via &quot;Add Risk&quot;</td></tr>
                     </tbody>
                   </table>
                 </Tile>
 
                 <Tile className="user-guide-page__card">
-                  <h4>Go/No-Go Logic</h4>
-                  <div className="user-guide-page__status-list">
-                    <div className="user-guide-page__status-item">
-                      <Tag type="red">No-Go</Tag>
-                      <span>Any domain is Critical</span>
-                    </div>
-                    <div className="user-guide-page__status-item">
-                      <Tag type="high-contrast">Conditional</Tag>
-                      <span>Any domain is High (no critical)</span>
-                    </div>
-                    <div className="user-guide-page__status-item">
-                      <Tag type="green">Go</Tag>
-                      <span>All domains Low or Medium</span>
-                    </div>
-                  </div>
+                  <h4>Editing Risks</h4>
+                  <p>All cells in the risk table are editable — click any cell to modify it inline:</p>
+                  <UnorderedList>
+                    <ListItem><strong>Category</strong> — Click to select from 6 risk categories via dropdown</ListItem>
+                    <ListItem><strong>Description, Impact Area, Evidence</strong> — Click to open an inline text editor</ListItem>
+                    <ListItem><strong>Status</strong> — Use the dropdown to set Red, Amber, or Green</ListItem>
+                    <ListItem><strong>Mitigation Plan</strong> — Click to edit inline</ListItem>
+                  </UnorderedList>
+                  <p>All edits persist in localStorage across sessions.</p>
                 </Tile>
 
                 <Tile className="user-guide-page__card">
-                  <h4>Pre-Assessment Summary</h4>
-                  <p>The second tab provides an executive overview:</p>
+                  <h4>Managing Risks</h4>
                   <UnorderedList>
-                    <ListItem><strong>Environment Snapshot</strong> - VM count, vCPUs, RAM, storage, clusters, hosts</ListItem>
-                    <ListItem><strong>Risk Heat Map</strong> - Color-coded table of all 5 domains</ListItem>
-                    <ListItem><strong>Go/No-Go Recommendation</strong> - Overall assessment banner</ListItem>
-                    <ListItem><strong>Key Blockers</strong> - Critical and high-severity items</ListItem>
+                    <ListItem><strong>Add Risk</strong> — Click the button in the toolbar to add a custom risk row</ListItem>
+                    <ListItem><strong>Delete</strong> — Click the trash icon on any row to remove it</ListItem>
+                    <ListItem><strong>Filter</strong> — Use the category dropdown to filter by risk category</ListItem>
+                    <ListItem><strong>Reset All</strong> — Clear all overrides and restore deleted rows to defaults</ListItem>
                   </UnorderedList>
                 </Tile>
               </div>

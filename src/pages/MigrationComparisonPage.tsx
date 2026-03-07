@@ -113,9 +113,10 @@ export function MigrationComparisonPage() {
     return getRecommendation(assignments, roksCost, vsiCost, splitCost);
   }, [assignments, calculatedCosts, roksCount, vsiCount]);
 
-  // Wave count derived from active waves
+  // Wave count derived from active waves; VM counts per wave for scaled timeline durations
   const waveCount = wavePlanning.activeWaves.length;
-  const { phases, totals, startDate, updatePhaseDuration, resetToDefaults } = useTimelineConfig(waveCount);
+  const waveVmCounts = useMemo(() => wavePlanning.waveResources.map(w => w.vmCount), [wavePlanning.waveResources]);
+  const { phases, totals, startDate, updatePhaseDuration, resetToDefaults } = useTimelineConfig(waveCount, waveVmCounts);
 
   // AI wave suggestion data
   const waveSuggestionData = useMemo<WaveSuggestionInput | null>(() => {
@@ -140,7 +141,7 @@ export function MigrationComparisonPage() {
   }, [wavePlanning, poweredOnVMs.length, platformScore.leaning]);
 
   // Risk assessment hooks
-  const { riskTable, updateRowStatus, updateRowMitigation, addUserRow, removeUserRow, clearAll } = useRiskAssessment(calculatedCosts);
+  const { riskTable, updateRowStatus, updateRowMitigation, updateRowField, addUserRow, removeRow, clearAll } = useRiskAssessment(calculatedCosts);
 
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
@@ -335,8 +336,9 @@ export function MigrationComparisonPage() {
                       riskTable={riskTable}
                       onUpdateStatus={updateRowStatus}
                       onUpdateMitigation={updateRowMitigation}
+                      onUpdateField={updateRowField}
                       onAddRow={addUserRow}
-                      onRemoveRow={removeUserRow}
+                      onRemoveRow={removeRow}
                       onClearAll={clearAll}
                     />
                   </Column>

@@ -368,46 +368,50 @@ The tool tracks which vCenter environment the settings belong to:
 
 ## 7. Risk Assessment
 
-Assess migration risk across 5 domains before proceeding with migration planning.
+Review and manage migration risks with a flat risk table that combines auto-detected, curated, and user-added risks.
 
 ### Accessing Risk Assessment
 
-Navigate to **Assess** > **Risk Assessment** in the sidebar.
+Navigate to **Migration Assessment** > **Migration Review** > **Risk Assessment** tab.
 
-### Risk Assessment Tab
+### Risk Table
 
-The Risk Assessment tab provides a Go/No-Go recommendation based on 5 risk domains:
+The Risk Assessment tab shows a flat table of all migration risks with traffic light status (Red / Amber / Green). Risks come from three sources:
 
-| Domain | Mode | Source |
-|--------|------|--------|
-| Cost | Auto | VM count and resource analysis |
-| Infrastructure/NFRs | Auto | Pre-flight check blocker percentages |
-| Complexity | Auto | Complexity scores and OS compatibility |
-| Security/Compliance | Manual | User-defined severity |
-| Other | Manual | User-defined severity |
+| Source | Description |
+|--------|-------------|
+| **Auto-detected** | Generated from your RVTools data (pre-flight blockers, complexity, cost comparison, OS compatibility, scale, VMware licenses) |
+| **Curated defaults** | 13 common migration risks covering Financial, Technical, Business, Skills, Ops, and Backup/DR categories |
+| **User-added** | Custom risks you add via the "Add Risk" button |
 
-#### Go/No-Go Logic
+### Editing Risks
 
-| Condition | Decision |
-|-----------|----------|
-| Any domain is **Critical** | No-Go (red) |
-| Any domain is **High** (no critical) | Conditional (yellow) |
-| All domains Low/Medium | Go (green) |
+All cells in the risk table are editable:
 
-#### Overriding Risk Severity
+1. **Category** — Click to open a dropdown with the 6 risk categories (Financial, Business / Org, Skills / Knowledge, Ops & Tooling, Backup & DR, Technical)
+2. **Risk Description** — Click to open an inline text editor
+3. **Impact Area** — Click to edit inline
+4. **Status** — Use the dropdown to set Red, Amber, or Green
+5. **Mitigation Plan** — Click to edit inline
+6. **Evidence / Detail** — Click to edit inline
 
-1. Find the domain card on the Risk Assessment tab
-2. Use the **Override Severity** dropdown to set a manual severity level
-3. Add notes in the **Notes** text area to document reasoning
-4. Overrides persist in localStorage across sessions
+All edits are saved to localStorage and persist across sessions.
 
-### Pre-Assessment Summary Tab
+### Deleting Risks
 
-The Pre-Assessment Summary tab provides:
-- **Environment Snapshot** — VM count, vCPUs, RAM, storage, clusters, hosts
-- **Risk Heat Map** — Color-coded table of all 5 domains with auto/override/effective severity
-- **Go/No-Go Recommendation** — Overall assessment banner
-- **Key Blockers** — List of critical and high-severity items requiring attention
+Click the trash icon on any row to delete it. For auto-detected and curated rows, deleted rows are hidden and will reappear when you click **Reset All**.
+
+### Filtering
+
+Use the **category filter dropdown** in the toolbar to show only risks from a specific category (e.g., Technical, Financial).
+
+### Summary Badges
+
+Summary tags at the top show the count of Red, Amber, and Green risks at a glance.
+
+### Reset All
+
+Click **Reset All** to clear all overrides, restore deleted rows, and remove user-added rows — returning the table to its default state.
 
 ---
 

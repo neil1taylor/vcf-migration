@@ -24,6 +24,7 @@ interface RiskTableProps {
   riskTable: RiskTableData;
   onUpdateStatus: (rowId: string, status: RiskStatus) => void;
   onUpdateMitigation: (rowId: string, mitigation: string) => void;
+  onUpdateField: (rowId: string, field: string, value: string) => void;
   onAddRow: (row: Omit<RiskRow, 'id' | 'source'>) => void;
   onRemoveRow: (rowId: string) => void;
   onClearAll: () => void;
@@ -41,28 +42,25 @@ const STATUS_INDICATORS: Record<RiskStatus, string> = {
   green: '\u{1F7E2}',
 };
 
-const SOURCE_TAG_TYPE: Record<string, 'blue' | 'teal' | 'cyan'> = {
-  auto: 'blue',
-  curated: 'teal',
-  user: 'cyan',
-};
+const CATEGORY_OPTIONS = RISK_CATEGORIES.map(c => ({ id: c, text: c }));
 
 const CATEGORY_FILTER_OPTIONS = [
   { id: 'all', text: 'All Categories' },
-  ...RISK_CATEGORIES.map(c => ({ id: c, text: c })),
+  ...CATEGORY_OPTIONS,
 ];
 
 export function RiskTable({
   riskTable,
   onUpdateStatus,
   onUpdateMitigation,
+  onUpdateField,
   onAddRow,
   onRemoveRow,
   onClearAll,
 }: RiskTableProps) {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [editingMitigation, setEditingMitigation] = useState<string | null>(null);
+  const [editingCell, setEditingCell] = useState<{ rowId: string; field: string } | null>(null);
 
   const filteredRows = useMemo(() => {
     if (categoryFilter === 'all') return riskTable.rows;
@@ -88,6 +86,41 @@ export function RiskTable({
     id: row.id,
     ...row,
   }));
+
+  const isEditing = (rowId: string, field: string) =>
+    editingCell?.rowId === rowId && editingCell?.field === field;
+
+  const renderEditableText = (rowId: string, field: string, value: string, maxWidth?: string) => {
+    if (isEditing(rowId, field)) {
+      return (
+        <TextArea
+          id={`${field}-${rowId}`}
+          labelText=""
+          hideLabel
+          value={value}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => {
+            if (field === 'mitigationPlan') {
+              onUpdateMitigation(rowId, e.target.value);
+            } else {
+              onUpdateField(rowId, field, e.target.value);
+            }
+          }}
+          onBlur={() => setEditingCell(null)}
+          rows={3}
+          autoFocus
+        />
+      );
+    }
+    return (
+      <span
+        onClick={() => setEditingCell({ rowId, field })}
+        style={{ cursor: 'pointer', display: 'block', minHeight: '1.5rem', maxWidth }}
+        title="Click to edit"
+      >
+        {value || <em style={{ color: '#a8a8a8' }}>Click to edit...</em>}
+      </span>
+    );
+  };
 
   return (
     <>
@@ -116,6 +149,7 @@ export function RiskTable({
                     size="sm"
                     items={CATEGORY_FILTER_OPTIONS}
                     selectedItem={CATEGORY_FILTER_OPTIONS.find(o => o.id === categoryFilter)}
+                    itemToString={(item: { id: string; text: string } | null) => item ? item.text : ''}
                     onChange={({ selectedItem }: { selectedItem: { id: string } | null }) => {
                       setCategoryFilter(selectedItem?.id ?? 'all');
                     }}
@@ -146,17 +180,39 @@ export function RiskTable({
                   return (
                     <TableRow {...getRowProps({ row })} key={row.id}>
                       <TableCell>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                          <strong>{riskRow.category}</strong>
-                          <Tag type={SOURCE_TAG_TYPE[riskRow.source]} size="sm">
-                            {riskRow.source === 'auto' ? 'Auto' : riskRow.source === 'curated' ? 'Default' : 'User'}
-                          </Tag>
-                        </div>
+                        {isEditing(row.id, 'category') ? (
+                          <Dropdown
+                            id={`category-${row.id}`}
+                            label=""
+                            titleText=""
+                            size="sm"
+                            items={CATEGORY_OPTIONS}
+                            selectedItem={CATEGORY_OPTIONS.find(o => o.id === riskRow.category)}
+                            itemToString={(item: { id: string; text: string } | null) => item ? item.text : ''}
+                            onChange={({ selectedItem }: { selectedItem: { id: string; text: string } | null }) => {
+                              if (selectedItem) {
+                                onUpdateField(row.id, 'category', selectedItem.id);
+                              }
+                              setEditingCell(null);
+                            }}
+                            style={{ minWidth: '150px' }}
+                          />
+                        ) : (
+                          <strong
+                            onClick={() => setEditingCell({ rowId: row.id, field: 'category' })}
+                            style={{ cursor: 'pointer' }}
+                            title="Click to edit"
+                          >
+                            {riskRow.category}
+                          </strong>
+                        )}
                       </TableCell>
                       <TableCell style={{ maxWidth: '300px' }}>
-                        {riskRow.description}
+                        {renderEditableText(row.id, 'description', riskRow.description)}
                       </TableCell>
-                      <TableCell>{riskRow.impactArea}</TableCell>
+                      <TableCell>
+                        {renderEditableText(row.id, 'impactArea', riskRow.impactArea)}
+                      </TableCell>
                       <TableCell>
                         <Dropdown
                           id={`status-${row.id}`}
@@ -165,6 +221,7 @@ export function RiskTable({
                           size="sm"
                           items={STATUS_OPTIONS}
                           selectedItem={STATUS_OPTIONS.find(o => o.id === riskRow.status)}
+                          itemToString={(item: { id: RiskStatus; text: string } | null) => item ? item.text : ''}
                           onChange={({ selectedItem }: { selectedItem: { id: RiskStatus } | null }) => {
                             if (selectedItem) onUpdateStatus(row.id, selectedItem.id);
                           }}
@@ -187,41 +244,20 @@ export function RiskTable({
                         />
                       </TableCell>
                       <TableCell style={{ maxWidth: '300px' }}>
-                        {editingMitigation === row.id ? (
-                          <TextArea
-                            id={`mitigation-${row.id}`}
-                            labelText=""
-                            hideLabel
-                            value={riskRow.mitigationPlan}
-                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onUpdateMitigation(row.id, e.target.value)}
-                            onBlur={() => setEditingMitigation(null)}
-                            rows={3}
-                            autoFocus
-                          />
-                        ) : (
-                          <span
-                            onClick={() => setEditingMitigation(row.id)}
-                            style={{ cursor: 'pointer', display: 'block', minHeight: '1.5rem' }}
-                            title="Click to edit"
-                          >
-                            {riskRow.mitigationPlan || <em style={{ color: '#a8a8a8' }}>Click to add...</em>}
-                          </span>
-                        )}
+                        {renderEditableText(row.id, 'mitigationPlan', riskRow.mitigationPlan)}
                       </TableCell>
-                      <TableCell style={{ maxWidth: '200px', color: '#525252', fontSize: '0.875rem' }}>
-                        {riskRow.evidenceDetail}
+                      <TableCell style={{ maxWidth: '200px', fontSize: '0.875rem' }}>
+                        {renderEditableText(row.id, 'evidenceDetail', riskRow.evidenceDetail)}
                       </TableCell>
                       <TableCell>
-                        {riskRow.source === 'user' && (
-                          <Button
-                            kind="ghost"
-                            size="sm"
-                            renderIcon={TrashCan}
-                            iconDescription="Delete risk"
-                            hasIconOnly
-                            onClick={() => onRemoveRow(row.id)}
-                          />
-                        )}
+                        <Button
+                          kind="ghost"
+                          size="sm"
+                          renderIcon={TrashCan}
+                          iconDescription="Delete risk"
+                          hasIconOnly
+                          onClick={() => onRemoveRow(row.id)}
+                        />
                       </TableCell>
                     </TableRow>
                   );

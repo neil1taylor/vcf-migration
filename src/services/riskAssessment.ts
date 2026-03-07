@@ -196,8 +196,9 @@ export function buildRiskTable(
   const curatedRisks = loadCuratedRisks();
   const userRows = overrides?.userRows ?? [];
 
-  // Merge all rows
-  const allRows = [...autoRisks, ...curatedRisks, ...userRows];
+  // Merge all rows, filtering out deleted ones
+  const deletedSet = new Set(overrides?.deletedRows ?? []);
+  const allRows = [...autoRisks, ...curatedRisks, ...userRows].filter(r => !deletedSet.has(r.id));
 
   // Apply overrides (status and mitigation changes)
   const rowOverrides = overrides?.rowOverrides ?? {};
@@ -208,6 +209,10 @@ export function buildRiskTable(
       ...row,
       ...(override.status !== undefined ? { status: override.status } : {}),
       ...(override.mitigationPlan !== undefined ? { mitigationPlan: override.mitigationPlan } : {}),
+      ...(override.category !== undefined ? { category: override.category } : {}),
+      ...(override.description !== undefined ? { description: override.description } : {}),
+      ...(override.impactArea !== undefined ? { impactArea: override.impactArea } : {}),
+      ...(override.evidenceDetail !== undefined ? { evidenceDetail: override.evidenceDetail } : {}),
     };
   });
 
