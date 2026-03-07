@@ -16,6 +16,7 @@ vi.mock('./sections', () => ({
   buildDay2OperationsSection: vi.fn(() => []),
   buildNextSteps: vi.fn(() => []),
   buildAppendices: vi.fn(() => []),
+  buildPlatformSelectionSection: vi.fn(() => []),
 }));
 
 // Mock utility functions
@@ -115,6 +116,7 @@ vi.mock('@/data/reportTemplates.json', () => ({
 }));
 
 import { generateDocxReport } from './index';
+import { buildPlatformSelectionSection } from './sections';
 import type { RVToolsData } from '@/types/rvtools';
 
 const mockRVToolsData = {
@@ -245,5 +247,22 @@ describe('generateDocxReport', () => {
   it('uses default values when options not provided', async () => {
     const blob = await generateDocxReport(mockRVToolsData);
     expect(blob).toBeInstanceOf(Blob);
+  });
+
+  it('calls buildPlatformSelectionSection when platformSelection is provided', async () => {
+    const platformSelection = {
+      score: { vsiCount: 5, roksCount: 3, answeredCount: 12, leaning: 'vsi' as const },
+      answers: { 'vsi-change-risk': 'yes' as const, 'roks-containerize': 'no' as const },
+    };
+
+    await generateDocxReport(mockRVToolsData, { platformSelection });
+
+    expect(buildPlatformSelectionSection).toHaveBeenCalledWith(platformSelection);
+  });
+
+  it('does not call buildPlatformSelectionSection when platformSelection is null', async () => {
+    await generateDocxReport(mockRVToolsData, { platformSelection: null });
+
+    expect(buildPlatformSelectionSection).not.toHaveBeenCalled();
   });
 });

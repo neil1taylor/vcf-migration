@@ -16,3 +16,4 @@ export { buildAppendices } from './appendices';
 export { buildRiskAssessmentSection } from './riskAssessment';
 export { buildTimelineSection } from './timelineEstimation';
 export { buildNetworkDesignSection } from './networkDesign';
+export { buildPlatformSelectionSection } from './platformSelection';

@@ -38,6 +38,7 @@ import {
   buildRiskAssessmentSection,
   buildTimelineSection,
   buildNetworkDesignSection,
+  buildPlatformSelectionSection,
 } from './sections';
 
 // Re-export types for consumers
@@ -66,6 +67,7 @@ export async function generateDocxReport(
     timelineStartDate: options.timelineStartDate ?? new Date(),
     vpcDesign: options.vpcDesign ?? null,
     wavePlanningPreference: options.wavePlanningPreference ?? null,
+    platformSelection: options.platformSelection ?? null,
   };
 
   // Reset caption counters for fresh document
@@ -140,6 +142,10 @@ export async function generateDocxReport(
 
   if (finalOptions.vpcDesign) {
     sections.push(...buildNetworkDesignSection(finalOptions.vpcDesign));
+  }
+
+  if (finalOptions.platformSelection) {
+    sections.push(...buildPlatformSelectionSection(finalOptions.platformSelection));
   }
 
   if (finalOptions.includeROKS) {

@@ -14,7 +14,7 @@ import { SideNav } from './SideNav';
 import { ChatWidget } from '@/components/ai/ChatWidget';
 import { WorkflowStepper } from '@/components/common';
 import { ROUTES } from '@/utils/constants';
-import { useData, usePDFExport, useExcelExport, useDocxExport, useAISettings } from '@/hooks';
+import { useData, usePDFExport, useExcelExport, useDocxExport, useAISettings, usePlatformSelection } from '@/hooks';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import { fetchAIInsights } from '@/services/ai/aiInsightsApi';
 import { buildInsightsInput } from '@/services/ai/insightsInputBuilder';
@@ -95,6 +95,7 @@ export function AppLayout() {
   const { exportExcel } = useExcelExport();
   const { exportDocx } = useDocxExport();
   const { settings: aiSettings } = useAISettings();
+  const { score: platformScore, answers: platformAnswers } = usePlatformSelection();
   const [isSideNavExpanded] = useState(true);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [exportOptions, setExportOptions] = useState<PDFExportOptions>(DEFAULT_OPTIONS);
@@ -136,13 +137,17 @@ export function AppLayout() {
         if (warning) setAIWarning(warning);
       }
 
-      await exportDocx(rawData, { aiInsights, wavePlanningPreference: getWavePlanningPreference() });
+      await exportDocx(rawData, {
+        aiInsights,
+        wavePlanningPreference: getWavePlanningPreference(),
+        platformSelection: platformScore.answeredCount > 0 ? { score: platformScore, answers: platformAnswers } : null,
+      });
     } catch {
       // Error is handled by the hook
     } finally {
       setIsDocxExporting(false);
     }
-  }, [rawData, exportDocx, aiSettings.enabled]);
+  }, [rawData, exportDocx, aiSettings.enabled, platformScore, platformAnswers]);
 
   const handleCloseExportModal = useCallback(() => {
     setIsExportModalOpen(false);

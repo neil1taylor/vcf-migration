@@ -5,9 +5,15 @@ import type { MigrationInsights } from '@/services/ai/types';
 import type { RiskAssessment } from '@/types/riskAssessment';
 import type { TimelinePhase } from '@/types/timeline';
 import type { VPCDesign } from '@/types/vpcDesign';
+import type { PlatformSelectionScore, FactorAnswer } from '@/hooks/usePlatformSelection';
 
 // Type alias for document content elements
 export type DocumentContent = Paragraph | Table;
+
+export interface PlatformSelectionExport {
+  score: PlatformSelectionScore;
+  answers: Record<string, FactorAnswer>;
+}
 
 export interface WavePlanningPreference {
   wavePlanningMode: 'complexity' | 'network';
@@ -28,6 +34,7 @@ export interface DocxExportOptions {
   timelineStartDate?: Date;
   vpcDesign?: VPCDesign | null;
   wavePlanningPreference?: WavePlanningPreference | null;
+  platformSelection?: PlatformSelectionExport | null;
 }
 
 export interface VMReadiness {
