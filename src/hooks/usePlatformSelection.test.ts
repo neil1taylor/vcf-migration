@@ -65,10 +65,10 @@ describe('usePlatformSelection', () => {
     const { result } = renderHook(() => usePlatformSelection());
 
     act(() => {
-      result.current.setAnswer('vsi-lift-shift', 'yes');
+      result.current.setAnswer('vsi-change-risk', 'yes');
     });
 
-    expect(result.current.answers['vsi-lift-shift']).toBe('yes');
+    expect(result.current.answers['vsi-change-risk']).toBe('yes');
     expect(result.current.score.vsiCount).toBe(1);
     expect(result.current.score.roksCount).toBe(0);
     expect(result.current.score.leaning).toBe('vsi');
@@ -78,7 +78,7 @@ describe('usePlatformSelection', () => {
     const { result } = renderHook(() => usePlatformSelection());
 
     act(() => {
-      result.current.setAnswer('vsi-lift-shift', 'no');
+      result.current.setAnswer('vsi-change-risk', 'no');
       result.current.setAnswer('roks-containerize', 'not-sure');
     });
 
@@ -94,7 +94,7 @@ describe('usePlatformSelection', () => {
     act(() => {
       result.current.setAnswer('roks-containerize', 'yes');
       result.current.setAnswer('roks-kubernetes', 'yes');
-      result.current.setAnswer('vsi-lift-shift', 'no');
+      result.current.setAnswer('vsi-change-risk', 'no');
     });
 
     expect(result.current.score.roksCount).toBe(2);
@@ -106,14 +106,14 @@ describe('usePlatformSelection', () => {
     const { result } = renderHook(() => usePlatformSelection());
 
     act(() => {
-      result.current.setAnswer('vsi-lift-shift', 'yes');
+      result.current.setAnswer('vsi-change-risk', 'yes');
     });
-    expect(result.current.answers['vsi-lift-shift']).toBe('yes');
+    expect(result.current.answers['vsi-change-risk']).toBe('yes');
 
     act(() => {
-      result.current.setAnswer('vsi-lift-shift', null);
+      result.current.setAnswer('vsi-change-risk', null);
     });
-    expect(result.current.answers['vsi-lift-shift']).toBeUndefined();
+    expect(result.current.answers['vsi-change-risk']).toBeUndefined();
     expect(result.current.score.vsiCount).toBe(0);
   });
 
@@ -121,7 +121,7 @@ describe('usePlatformSelection', () => {
     const { result } = renderHook(() => usePlatformSelection());
 
     act(() => {
-      result.current.setAnswer('vsi-lift-shift', 'yes');
+      result.current.setAnswer('vsi-change-risk', 'yes');
       result.current.setAnswer('roks-containerize', 'yes');
     });
     expect(result.current.score.answeredCount).toBe(2);
@@ -137,12 +137,12 @@ describe('usePlatformSelection', () => {
     const { result } = renderHook(() => usePlatformSelection());
 
     act(() => {
-      result.current.setAnswer('vsi-lift-shift', 'yes');
+      result.current.setAnswer('vsi-change-risk', 'yes');
     });
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
       'vcf-platform-selection',
-      expect.stringContaining('"vsi-lift-shift":"yes"')
+      expect.stringContaining('"vsi-change-risk":"yes"')
     );
   });
 
@@ -152,7 +152,7 @@ describe('usePlatformSelection', () => {
     const stored = {
       version: 1,
       environmentFingerprint: fingerprint,
-      answers: { 'vsi-windows': 'yes' },
+      answers: { 'vsi-team-skills': 'yes' },
       createdAt: new Date().toISOString(),
       modifiedAt: new Date().toISOString(),
     };
@@ -160,7 +160,7 @@ describe('usePlatformSelection', () => {
     localStorageMock.setItem.mockClear();
 
     const { result } = renderHook(() => usePlatformSelection());
-    expect(result.current.answers['vsi-windows']).toBe('yes');
+    expect(result.current.answers['vsi-team-skills']).toBe('yes');
   });
 
   it('resets when environment fingerprint does not match', () => {
@@ -168,7 +168,7 @@ describe('usePlatformSelection', () => {
     const stored = {
       version: 1,
       environmentFingerprint: 'different-server::different-uuid::DifferentCluster',
-      answers: { 'vsi-windows': 'yes' },
+      answers: { 'vsi-team-skills': 'yes' },
       createdAt: new Date().toISOString(),
       modifiedAt: new Date().toISOString(),
     };

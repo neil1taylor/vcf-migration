@@ -1,34 +1,58 @@
 {
   "factors": [
     {
-      "id": "vsi-lift-shift",
-      "label": "Lift-and-shift of existing VMs with minimal changes",
+      "id": "vsi-change-risk",
+      "label": "Is minimising operational change risk a priority?",
       "target": "vsi",
-      "description": "VPC VSI preserves the traditional VM model, requiring minimal application refactoring."
+      "description": "VSI preserves the familiar VM operating model — no new orchestration layer, no new failure modes to learn."
     },
     {
-      "id": "vsi-windows",
-      "label": "Windows workloads or mixed OS environments",
+      "id": "vsi-team-skills",
+      "label": "Is your team sysadmin-oriented rather than Kubernetes-native?",
       "target": "vsi",
-      "description": "VPC VSI natively supports Windows Server licensing and mixed Linux/Windows estates."
+      "description": "VSI management uses traditional VM skills. ROKS requires OpenShift/Kubernetes expertise for day-2 operations."
     },
     {
-      "id": "vsi-independent-vms",
-      "label": "Independent VMs that don't need shared orchestration",
+      "id": "vsi-estate-size",
+      "label": "Is your VM estate small enough that fixed cluster overhead is a concern?",
       "target": "vsi",
-      "description": "Standalone VMs without inter-service dependencies are simpler to manage on VSI."
+      "description": "ROKS requires a minimum 3-node cluster regardless of VM count. VSI costs scale linearly with each VM deployed."
     },
     {
-      "id": "vsi-simple-networking",
-      "label": "Simple networking with VPC security groups and ACLs",
+      "id": "vsi-runbooks",
+      "label": "Do you have existing Ansible, Terraform, or VM-oriented runbooks you want to reuse?",
       "target": "vsi",
-      "description": "VPC provides straightforward networking primitives without overlay network complexity."
+      "description": "VM-oriented automation works directly with VSI. ROKS VMs require adapting runbooks to Kubernetes APIs and operators."
     },
     {
-      "id": "vsi-team-familiarity",
-      "label": "Team is more familiar with traditional VM administration",
+      "id": "vsi-lift-convert-shift",
+      "label": "Is this a pure lift-convert-shift with no modernization mandate?",
       "target": "vsi",
-      "description": "Existing sysadmin skills transfer directly to VSI management."
+      "description": "If containerization isn't required, VSI avoids the complexity of an OpenShift platform you won't fully utilise."
+    },
+    {
+      "id": "vsi-blast-radius",
+      "label": "Are you concerned about cluster-level blast radius affecting all VMs simultaneously?",
+      "target": "vsi",
+      "description": "A VSI failure is isolated to one VM. An ROKS cluster issue (API server, ODF storage) can affect all VMs at once."
+    },
+    {
+      "id": "vsi-compliance",
+      "label": "Does your compliance framework assume traditional VM isolation boundaries?",
+      "target": "vsi",
+      "description": "VSI provides familiar hypervisor-level isolation. ROKS uses namespace and pod security boundaries that audit teams may need to re-evaluate."
+    },
+    {
+      "id": "vsi-storage-ops",
+      "label": "Does your team lack experience with distributed storage (e.g. Ceph/ODF)?",
+      "target": "vsi",
+      "description": "ROKS uses ODF (Ceph-based) for VM storage, requiring specialist knowledge for capacity planning and incident response."
+    },
+    {
+      "id": "vsi-migration-tooling",
+      "label": "Are 3rd party tools and scripting acceptable for migration?",
+      "target": "vsi",
+      "description": "VSI migration uses established tools (Wanclouds VPC+, Rackware RMM, custom scripts). ROKS provides integrated migration via MTV/Forklift but requires cluster readiness first."
     },
     {
       "id": "roks-containerize",
