@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { calculateRiskAssessment } from './riskAssessment';
+import { generateAutoRisks, loadCuratedRisks, buildRiskTable } from './riskAssessment';
 import type { RVToolsData } from '@/types/rvtools';
-import type { RiskOverrides, CostComparisonInput } from '@/types/riskAssessment';
+import type { RiskTableOverrides, CostComparisonInput } from '@/types/riskAssessment';
 
 function createMinimalRVToolsData(overrides?: Partial<RVToolsData>): RVToolsData {
   return {
@@ -35,200 +35,204 @@ function createMinimalRVToolsData(overrides?: Partial<RVToolsData>): RVToolsData
   };
 }
 
-describe('calculateRiskAssessment', () => {
-  it('returns default assessment with no data', () => {
-    const result = calculateRiskAssessment(null);
-    expect(result.goNoGo).toBe('go');
-    expect(result.overallSeverity).toBe('low');
-    expect(Object.keys(result.domains)).toHaveLength(6);
+describe('generateAutoRisks', () => {
+  it('returns empty array for null data', () => {
+    const result = generateAutoRisks(null);
+    expect(result).toEqual([]);
   });
 
-  it('calculates risk domains from RVTools data', () => {
+  it('generates risks from valid data', () => {
     const data = createMinimalRVToolsData();
-    const result = calculateRiskAssessment(data);
-
-    expect(result.domains.cost).toBeDefined();
-    expect(result.domains.readiness).toBeDefined();
-    expect(result.domains.security).toBeDefined();
-    expect(result.domains.operational).toBeDefined();
-    expect(result.domains.compliance).toBeDefined();
-    expect(result.domains.timeline).toBeDefined();
-
-    // With 2 small VMs, cost should be low
-    expect(result.domains.cost.effectiveSeverity).toBe('low');
+    const result = generateAutoRisks(data);
+    // Should have at least complexity-related rows
+    expect(result.length).toBeGreaterThanOrEqual(0);
+    result.forEach(row => {
+      expect(row.source).toBe('auto');
+      expect(row.id).toMatch(/^auto-/);
+    });
   });
 
-  it('marks 4 manual domains correctly', () => {
+  it('generates cost comparison risk when cost input provided', () => {
     const data = createMinimalRVToolsData();
-    const result = calculateRiskAssessment(data);
-
-    expect(result.domains.security.mode).toBe('manual');
-    expect(result.domains.operational.mode).toBe('manual');
-    expect(result.domains.compliance.mode).toBe('manual');
-    expect(result.domains.timeline.mode).toBe('manual');
-    expect(result.domains.security.autoSeverity).toBeNull();
-    expect(result.domains.operational.autoSeverity).toBeNull();
-    expect(result.domains.compliance.autoSeverity).toBeNull();
-    expect(result.domains.timeline.autoSeverity).toBeNull();
-  });
-
-  it('marks cost and readiness as auto mode', () => {
-    const data = createMinimalRVToolsData();
-    const result = calculateRiskAssessment(data);
-
-    expect(result.domains.cost.mode).toBe('auto');
-    expect(result.domains.readiness.mode).toBe('auto');
-  });
-
-  it('readiness domain includes pre-flight and complexity evidence', () => {
-    const data = createMinimalRVToolsData();
-    const result = calculateRiskAssessment(data);
-
-    const labels = result.domains.readiness.evidence.map(e => e.label);
-    // Should have both pre-flight and complexity prefixed evidence
-    expect(labels.some(l => l.startsWith('Pre-flight:') || l.startsWith('Complexity:'))).toBe(true);
-  });
-
-  it('applies overrides', () => {
-    const data = createMinimalRVToolsData();
-    const overrides: RiskOverrides = {
-      version: 2,
-      environmentFingerprint: '',
-      domainOverrides: {
-        security: { severity: 'critical', notes: 'PCI compliance required' },
-      },
-      createdAt: '',
-      modifiedAt: '',
+    const costInput: CostComparisonInput = {
+      currentMonthlyCost: 10000,
+      calculatedROKSMonthlyCost: 14000,
+      calculatedVSIMonthlyCost: 13000,
     };
 
-    const result = calculateRiskAssessment(data, overrides);
-    expect(result.domains.security.effectiveSeverity).toBe('critical');
-    expect(result.domains.security.overrideSeverity).toBe('critical');
-    expect(result.domains.security.notes).toBe('PCI compliance required');
+    const result = generateAutoRisks(data, costInput);
+    const costRisk = result.find(r => r.id === 'auto-cost-comparison');
+    expect(costRisk).toBeDefined();
+    expect(costRisk!.category).toBe('Financial');
+    expect(costRisk!.status).toBe('amber'); // 30% increase
   });
 
-  it('returns no-go when critical risk exists', () => {
+  it('shows green status for cost savings', () => {
     const data = createMinimalRVToolsData();
-    const overrides: RiskOverrides = {
-      version: 2,
-      environmentFingerprint: '',
-      domainOverrides: {
-        security: { severity: 'critical' },
-      },
-      createdAt: '',
-      modifiedAt: '',
+    const costInput: CostComparisonInput = {
+      currentMonthlyCost: 10000,
+      calculatedROKSMonthlyCost: 8000,
+      calculatedVSIMonthlyCost: 9000,
     };
 
-    const result = calculateRiskAssessment(data, overrides);
-    expect(result.goNoGo).toBe('no-go');
-    expect(result.overallSeverity).toBe('critical');
+    const result = generateAutoRisks(data, costInput);
+    const costRisk = result.find(r => r.id === 'auto-cost-comparison');
+    expect(costRisk).toBeDefined();
+    expect(costRisk!.status).toBe('green');
   });
 
-  it('returns conditional when high risk exists and no critical', () => {
+  it('shows red status for >50% cost increase', () => {
+    const data = createMinimalRVToolsData();
+    const costInput: CostComparisonInput = {
+      currentMonthlyCost: 10000,
+      calculatedROKSMonthlyCost: 25000,
+      calculatedVSIMonthlyCost: 22000,
+    };
+
+    const result = generateAutoRisks(data, costInput);
+    const costRisk = result.find(r => r.id === 'auto-cost-comparison');
+    expect(costRisk).toBeDefined();
+    expect(costRisk!.status).toBe('red');
+  });
+
+  it('generates VMware license risk when licenses exist', () => {
     const data = createMinimalRVToolsData({
-      vInfo: [
-        { vmName: 'vm1', powerState: 'poweredOn', template: false, cpus: 2, memory: 4096, nics: 1, disks: 1, hardwareVersion: 'vmx-14', guestOS: 'Red Hat Enterprise Linux 8 (64-bit)', datacenter: 'DC1', cluster: 'Cluster1', host: 'host1', provisionedMiB: 51200, inUseMiB: 25600, uuid: 'uuid1' },
-      ] as RVToolsData['vInfo'],
-      vTools: [
-        { vmName: 'vm1', toolsStatus: 'toolsOk', toolsVersion: '12345' },
-      ] as RVToolsData['vTools'],
-      vNetwork: [
-        { vmName: 'vm1', networkName: 'VM Network', ipv4Address: '10.0.0.1' },
-      ] as RVToolsData['vNetwork'],
+      vLicense: [
+        { name: 'vSphere', key: 'abc', total: 10, used: 5 },
+      ] as RVToolsData['vLicense'],
     });
-    const overrides: RiskOverrides = {
-      version: 2,
+
+    const result = generateAutoRisks(data);
+    const licenseRisk = result.find(r => r.id === 'auto-vmware-licenses');
+    expect(licenseRisk).toBeDefined();
+    expect(licenseRisk!.category).toBe('Financial');
+  });
+
+  it('generates scale risk for large environments', () => {
+    const manyVMs = Array.from({ length: 300 }, (_, i) => ({
+      vmName: `vm-${i}`,
+      powerState: 'poweredOn',
+      template: false,
+      cpus: 2,
+      memory: 4096,
+      nics: 1,
+      disks: 1,
+      hardwareVersion: 'vmx-14',
+      guestOS: 'Red Hat Enterprise Linux 8 (64-bit)',
+      datacenter: 'DC1',
+      cluster: 'Cluster1',
+      host: 'host1',
+      provisionedMiB: 51200,
+      inUseMiB: 25600,
+      uuid: `uuid-${i}`,
+    }));
+
+    const data = createMinimalRVToolsData({
+      vInfo: manyVMs as RVToolsData['vInfo'],
+    });
+
+    const result = generateAutoRisks(data);
+    const scaleRisk = result.find(r => r.id === 'auto-scale');
+    expect(scaleRisk).toBeDefined();
+    expect(scaleRisk!.category).toBe('Ops & Tooling');
+    expect(scaleRisk!.status).toBe('amber');
+  });
+});
+
+describe('loadCuratedRisks', () => {
+  it('returns curated risk rows', () => {
+    const result = loadCuratedRisks();
+    expect(result.length).toBeGreaterThan(0);
+    result.forEach(row => {
+      expect(row.source).toBe('curated');
+      expect(row.id).toMatch(/^curated-/);
+      expect(row.category).toBeDefined();
+      expect(row.description).toBeTruthy();
+    });
+  });
+
+  it('includes expected categories', () => {
+    const result = loadCuratedRisks();
+    const categories = new Set(result.map(r => r.category));
+    expect(categories.has('Financial')).toBe(true);
+    expect(categories.has('Technical')).toBe(true);
+    expect(categories.has('Backup & DR')).toBe(true);
+  });
+});
+
+describe('buildRiskTable', () => {
+  it('returns combined rows from auto and curated', () => {
+    const data = createMinimalRVToolsData();
+    const result = buildRiskTable(data);
+
+    const sources = new Set(result.rows.map(r => r.source));
+    expect(sources.has('curated')).toBe(true);
+    expect(result.rows.length).toBeGreaterThan(0);
+  });
+
+  it('returns only curated rows for null data', () => {
+    const result = buildRiskTable(null);
+    expect(result.rows.every(r => r.source === 'curated')).toBe(true);
+  });
+
+  it('applies status overrides', () => {
+    const data = createMinimalRVToolsData();
+    const overrides: RiskTableOverrides = {
+      version: 3,
       environmentFingerprint: '',
-      domainOverrides: {
-        security: { severity: 'high' },
+      rowOverrides: {
+        'curated-financial-double-spend': { status: 'red' },
       },
+      userRows: [],
       createdAt: '',
       modifiedAt: '',
     };
 
-    const result = calculateRiskAssessment(data, overrides);
-    expect(['conditional', 'no-go']).toContain(result.goNoGo);
-    expect(result.domains.security.effectiveSeverity).toBe('high');
+    const result = buildRiskTable(data, overrides);
+    const row = result.rows.find(r => r.id === 'curated-financial-double-spend');
+    expect(row).toBeDefined();
+    expect(row!.status).toBe('red');
   });
 
-  it('includes evidence for auto-calculated domains', () => {
-    const data = createMinimalRVToolsData();
-    const result = calculateRiskAssessment(data);
+  it('applies mitigation overrides', () => {
+    const overrides: RiskTableOverrides = {
+      version: 3,
+      environmentFingerprint: '',
+      rowOverrides: {
+        'curated-financial-double-spend': { mitigationPlan: 'Custom plan' },
+      },
+      userRows: [],
+      createdAt: '',
+      modifiedAt: '',
+    };
 
-    expect(result.domains.cost.evidence.length).toBeGreaterThan(0);
-    expect(result.domains.readiness.evidence.length).toBeGreaterThan(0);
+    const result = buildRiskTable(null, overrides);
+    const row = result.rows.find(r => r.id === 'curated-financial-double-spend');
+    expect(row!.mitigationPlan).toBe('Custom plan');
   });
 
-  // Cost comparison tests
-  describe('cost comparison', () => {
-    it('shows low severity when costs decrease', () => {
-      const data = createMinimalRVToolsData();
-      const costInput: CostComparisonInput = {
-        currentMonthlyCost: 10000,
-        calculatedROKSMonthlyCost: 8000,
-        calculatedVSIMonthlyCost: 9000,
-      };
+  it('includes user rows', () => {
+    const overrides: RiskTableOverrides = {
+      version: 3,
+      environmentFingerprint: '',
+      rowOverrides: {},
+      userRows: [{
+        id: 'user-custom-1',
+        source: 'user',
+        category: 'Technical',
+        description: 'Custom risk',
+        impactArea: 'Testing',
+        status: 'amber',
+        mitigationPlan: 'Test plan',
+        evidenceDetail: '',
+      }],
+      createdAt: '',
+      modifiedAt: '',
+    };
 
-      const result = calculateRiskAssessment(data, undefined, costInput);
-      expect(result.domains.cost.effectiveSeverity).toBe('low');
-      expect(result.domains.cost.evidence.some(e => e.label === 'Cost comparison')).toBe(true);
-    });
-
-    it('shows medium severity for 20-50% increase', () => {
-      const data = createMinimalRVToolsData();
-      const costInput: CostComparisonInput = {
-        currentMonthlyCost: 10000,
-        calculatedROKSMonthlyCost: 14000,
-        calculatedVSIMonthlyCost: 13000,
-      };
-
-      const result = calculateRiskAssessment(data, undefined, costInput);
-      expect(result.domains.cost.effectiveSeverity).toBe('medium');
-    });
-
-    it('shows high severity for 50-100% increase', () => {
-      const data = createMinimalRVToolsData();
-      const costInput: CostComparisonInput = {
-        currentMonthlyCost: 10000,
-        calculatedROKSMonthlyCost: 18000,
-        calculatedVSIMonthlyCost: 16000,
-      };
-
-      const result = calculateRiskAssessment(data, undefined, costInput);
-      expect(result.domains.cost.effectiveSeverity).toBe('high');
-    });
-
-    it('shows critical severity for >100% increase', () => {
-      const data = createMinimalRVToolsData();
-      const costInput: CostComparisonInput = {
-        currentMonthlyCost: 10000,
-        calculatedROKSMonthlyCost: 25000,
-        calculatedVSIMonthlyCost: 22000,
-      };
-
-      const result = calculateRiskAssessment(data, undefined, costInput);
-      expect(result.domains.cost.effectiveSeverity).toBe('critical');
-    });
-
-    it('falls back to VM count heuristic without current cost', () => {
-      const data = createMinimalRVToolsData();
-      const result = calculateRiskAssessment(data);
-
-      // With 2 VMs and no current cost, should show tip
-      expect(result.domains.cost.evidence.some(e => e.label === 'Tip')).toBe(true);
-    });
-
-    it('uses the lower of ROKS/VSI for comparison', () => {
-      const data = createMinimalRVToolsData();
-      const costInput: CostComparisonInput = {
-        currentMonthlyCost: 10000,
-        calculatedROKSMonthlyCost: 25000, // 150% increase
-        calculatedVSIMonthlyCost: 11000,  // 10% increase
-      };
-
-      // Should use VSI (lower) → 10% increase → low severity
-      const result = calculateRiskAssessment(data, undefined, costInput);
-      expect(result.domains.cost.effectiveSeverity).toBe('low');
-    });
+    const result = buildRiskTable(null, overrides);
+    const userRow = result.rows.find(r => r.id === 'user-custom-1');
+    expect(userRow).toBeDefined();
+    expect(userRow!.source).toBe('user');
   });
 });

@@ -2,39 +2,32 @@ import { useMemo } from 'react';
 import {
   Grid, Column, Tabs, TabList, Tab, TabPanels, TabPanel,
   Button, NumberInput, Table, TableHead, TableRow, TableHeader,
-  TableBody, TableCell, Tag, UnorderedList, ListItem,
+  TableBody, TableCell, Tag,
 } from '@carbon/react';
 import { Reset } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
-import { useData, useAllVMs, useVMOverrides, useAutoExclusion, useTargetAssignments, usePlatformSelection } from '@/hooks';
+import { useData, useAllVMs, useVMOverrides, useAutoExclusion, useTargetAssignments, usePlatformSelection, useMigrationAssessment, useWavePlanning } from '@/hooks';
 import { useTimelineConfig } from '@/hooks/useTimelineConfig';
 import { useRiskAssessment } from '@/hooks/useRiskAssessment';
 import { ROUTES } from '@/utils/constants';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { getVMWorkloadCategory } from '@/utils/workloadClassification';
 import { getRecommendation } from '@/services/migration/targetClassification';
-import { MetricCard } from '@/components/common';
+import { MetricCard, SectionErrorBoundary } from '@/components/common';
 import {
   RecommendationBanner,
   VMAssignmentTable,
   PlatformSelectionPanel,
 } from '@/components/comparison';
+import { WavePlanningPanel } from '@/components/migration';
 import { GanttTimeline } from '@/components/charts/GanttTimeline';
-import { GoNoGoBanner } from '@/components/risk/GoNoGoBanner';
-import { RiskDomainCard } from '@/components/risk/RiskDomainCard';
-import { RiskHeatMap } from '@/components/risk/RiskHeatMap';
-import { EnvironmentSnapshotTile } from '@/components/risk/EnvironmentSnapshotTile';
+import { AIWaveAnalysisPanel } from '@/components/ai/AIWaveAnalysisPanel';
+import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
+import type { WaveSuggestionInput } from '@/services/ai/types';
+import { RiskTable } from '@/components/risk/RiskTable';
 import { PHASE_COLORS } from '@/types/timeline';
 import type { TimelinePhaseType } from '@/types/timeline';
-import type { RiskDomainId } from '@/types/riskAssessment';
 import './MigrationPage.scss';
-
-// Estimate wave count from network data or default
-function estimateWaveCount(rawData: import('@/types/rvtools').RVToolsData | null): number {
-  if (!rawData) return 3;
-  const portGroups = new Set(rawData.vNetwork.map(n => n.networkName).filter(Boolean));
-  return Math.max(1, Math.min(portGroups.size, 10));
-}
 
 const PHASE_TAG_TYPE: Record<TimelinePhaseType, 'blue' | 'purple' | 'teal' | 'magenta' | 'gray'> = {
   preparation: 'blue',
@@ -43,8 +36,6 @@ const PHASE_TAG_TYPE: Record<TimelinePhaseType, 'blue' | 'purple' | 'teal' | 'ma
   validation: 'magenta',
   buffer: 'gray',
 };
-
-const DOMAIN_ORDER: RiskDomainId[] = ['cost', 'readiness', 'security', 'operational', 'compliance', 'timeline'];
 
 export function MigrationComparisonPage() {
   const { rawData, calculatedCosts } = useData();
@@ -83,6 +74,34 @@ export function MigrationComparisonPage() {
     return map;
   }, [vms]);
 
+  // Derive data from rawData for wave planning
+  const snapshots = useMemo(() => rawData?.vSnapshot ?? [], [rawData?.vSnapshot]);
+  const tools = useMemo(() => rawData?.vTools ?? [], [rawData?.vTools]);
+  const disks = useMemo(() => rawData?.vDisk ?? [], [rawData?.vDisk]);
+  const networks = useMemo(() => rawData?.vNetwork ?? [], [rawData?.vNetwork]);
+  const poweredOnVMs = useMemo(() => vms.filter(vm => vm.powerState === 'poweredOn'), [vms]);
+
+  // Migration assessment (needed for complexity scores)
+  const { complexityScores } = useMigrationAssessment({
+    mode: platformScore.leaning === 'vsi' ? 'vsi' : 'roks',
+    vms: poweredOnVMs,
+    disks,
+    networks,
+    blockerCount: 0,
+    warningCount: 0,
+  });
+
+  // Wave planning
+  const wavePlanning = useWavePlanning({
+    mode: platformScore.leaning === 'vsi' ? 'vsi' : 'roks',
+    vms: poweredOnVMs,
+    complexityScores,
+    disks,
+    snapshots,
+    tools,
+    networks,
+  });
+
   // Recommendation
   const recommendation = useMemo(() => {
     const roksCost = calculatedCosts?.roksMonthlyCost ?? 0;
@@ -94,18 +113,34 @@ export function MigrationComparisonPage() {
     return getRecommendation(assignments, roksCost, vsiCost, splitCost);
   }, [assignments, calculatedCosts, roksCount, vsiCount]);
 
-  // Timeline hooks
-  const waveCount = useMemo(() => estimateWaveCount(rawData), [rawData]);
+  // Wave count derived from active waves
+  const waveCount = wavePlanning.activeWaves.length;
   const { phases, totals, startDate, updatePhaseDuration, resetToDefaults } = useTimelineConfig(waveCount);
 
-  // Risk assessment hooks
-  const { assessment, setDomainOverride, setDomainNotes, currentMonthlyCost, setCurrentMonthlyCost, clearAll } = useRiskAssessment(calculatedCosts);
+  // AI wave suggestion data
+  const waveSuggestionData = useMemo<WaveSuggestionInput | null>(() => {
+    if (!isAIProxyConfigured()) return null;
+    const activeWaves = wavePlanning.wavePlanningMode === 'network'
+      ? wavePlanning.networkWaves : wavePlanning.complexityWaves;
+    if (!activeWaves || activeWaves.length === 0) return null;
+    return {
+      waves: wavePlanning.waveResources.map(w => ({
+        name: w.name,
+        vmCount: w.vmCount,
+        totalVCPUs: w.vcpus,
+        totalMemoryGiB: w.memoryGiB,
+        totalStorageGiB: w.storageGiB,
+        avgComplexity: 0,
+        hasBlockers: w.hasBlockers,
+        workloadTypes: [],
+      })),
+      totalVMs: poweredOnVMs.length,
+      migrationTarget: platformScore.leaning === 'vsi' ? 'vsi' : 'roks',
+    };
+  }, [wavePlanning, poweredOnVMs.length, platformScore.leaning]);
 
-  const keyBlockers = useMemo(() => {
-    return Object.values(assessment.domains)
-      .flatMap(d => d.evidence.filter(e => e.severity === 'critical' || e.severity === 'high'))
-      .slice(0, 10);
-  }, [assessment]);
+  // Risk assessment hooks
+  const { riskTable, updateRowStatus, updateRowMitigation, addUserRow, removeUserRow, clearAll } = useRiskAssessment(calculatedCosts);
 
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
@@ -155,7 +190,7 @@ export function MigrationComparisonPage() {
             <TabList aria-label="Migration Review tabs">
               <Tab>Platform Selection</Tab>
               <Tab>VM Assignments</Tab>
-              <Tab>Migration Timeline</Tab>
+              <Tab>Migration Planning</Tab>
               <Tab>Risk Assessment</Tab>
             </TabList>
             <TabPanels>
@@ -183,7 +218,29 @@ export function MigrationComparisonPage() {
                 />
               </TabPanel>
               <TabPanel>
-                <Grid condensed>
+                {/* Section 1: Wave Planning */}
+                <WavePlanningPanel
+                  mode={platformScore.leaning === 'vsi' ? 'vsi' : 'roks'}
+                  wavePlanningMode={wavePlanning.wavePlanningMode}
+                  networkGroupBy={wavePlanning.networkGroupBy}
+                  onWavePlanningModeChange={wavePlanning.setWavePlanningMode}
+                  onNetworkGroupByChange={wavePlanning.setNetworkGroupBy}
+                  networkWaves={wavePlanning.networkWaves}
+                  complexityWaves={wavePlanning.complexityWaves}
+                  waveChartData={wavePlanning.waveChartData}
+                  waveResources={wavePlanning.waveResources}
+                  platformLeaning={platformScore.leaning}
+                />
+
+                {/* Section 2: AI Wave Analysis */}
+                <div style={{ marginTop: '1rem' }}>
+                  <SectionErrorBoundary sectionName="AI Wave Analysis">
+                    <AIWaveAnalysisPanel data={waveSuggestionData} title="AI Wave Analysis" />
+                  </SectionErrorBoundary>
+                </div>
+
+                {/* Section 3: Migration Timeline */}
+                <Grid condensed style={{ marginTop: '1.5rem' }}>
                   <Column sm={4} md={8} lg={16}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
                       <h3>Migration Timeline</h3>
@@ -272,55 +329,16 @@ export function MigrationComparisonPage() {
               <TabPanel>
                 <Grid condensed>
                   <Column sm={4} md={8} lg={16}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <h3>Risk Assessment</h3>
-                      <Button kind="ghost" size="sm" renderIcon={Reset} onClick={clearAll}>
-                        Reset Overrides
-                      </Button>
-                    </div>
+                    <h3 style={{ marginBottom: '1rem' }}>Risk Assessment</h3>
+                    <RiskTable
+                      riskTable={riskTable}
+                      onUpdateStatus={updateRowStatus}
+                      onUpdateMitigation={updateRowMitigation}
+                      onAddRow={addUserRow}
+                      onRemoveRow={removeUserRow}
+                      onClearAll={clearAll}
+                    />
                   </Column>
-
-                  <Column sm={4} md={8} lg={16} style={{ marginBottom: '1rem' }}>
-                    <GoNoGoBanner decision={assessment.goNoGo} overallSeverity={assessment.overallSeverity} />
-                  </Column>
-
-                  <Column sm={4} md={8} lg={16} style={{ marginBottom: '1rem' }}>
-                    <EnvironmentSnapshotTile rawData={rawData} />
-                  </Column>
-
-                  <Column sm={4} md={8} lg={16} style={{ marginBottom: '1rem' }}>
-                    <h3 style={{ marginBottom: '0.5rem' }}>Risk Heat Map</h3>
-                    <RiskHeatMap assessment={assessment} />
-                  </Column>
-
-                  <Column sm={4} md={8} lg={16}>
-                    <Grid condensed>
-                      {DOMAIN_ORDER.map(domainId => (
-                        <Column key={domainId} sm={4} md={4} lg={8} style={{ marginBottom: '1rem' }}>
-                          <RiskDomainCard
-                            domain={assessment.domains[domainId]}
-                            onOverrideSeverity={setDomainOverride}
-                            onNotesChange={setDomainNotes}
-                            currentMonthlyCost={domainId === 'cost' ? currentMonthlyCost : undefined}
-                            onCurrentMonthlyCostChange={domainId === 'cost' ? setCurrentMonthlyCost : undefined}
-                          />
-                        </Column>
-                      ))}
-                    </Grid>
-                  </Column>
-
-                  {keyBlockers.length > 0 && (
-                    <Column sm={4} md={8} lg={16} style={{ marginTop: '1rem' }}>
-                      <h3 style={{ marginBottom: '0.5rem' }}>Key Blockers</h3>
-                      <UnorderedList>
-                        {keyBlockers.map((b, i) => (
-                          <ListItem key={i}>
-                            <strong>{b.label}:</strong> {b.detail}
-                          </ListItem>
-                        ))}
-                      </UnorderedList>
-                    </Column>
-                  )}
                 </Grid>
               </TabPanel>
             </TabPanels>

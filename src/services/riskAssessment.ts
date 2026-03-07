@@ -1,272 +1,215 @@
-// Risk Assessment Service
-// Pure functions to auto-calculate risk severity across 6 domains
+// Risk Assessment Service — v3 (flat risk table)
+// Generates auto-detected risks, loads curated defaults, and merges with user overrides
 
 import type { RVToolsData } from '@/types/rvtools';
 import type {
-  RiskAssessment,
-  RiskDomainAssessment,
-  RiskDomainId,
-  RiskSeverity,
-  RiskEvidence,
-  RiskOverrides,
+  RiskRow,
+  RiskStatus,
+  RiskTableData,
+  RiskTableOverrides,
   CostComparisonInput,
 } from '@/types/riskAssessment';
-import { RISK_DOMAIN_LABELS, RISK_SEVERITY_ORDER } from '@/types/riskAssessment';
+import curatedRisksData from '@/data/curatedMigrationRisks.json';
 import { runPreFlightChecks } from '@/services/preflightChecks';
 import {
   calculateComplexityScores,
   getAssessmentSummary,
 } from '@/services/migration/migrationAssessment';
 
-// ===== DOMAIN AUTO-CALCULATORS =====
+// ===== AUTO-DETECTED RISKS =====
 
-function assessCostRisk(
+export function generateAutoRisks(
   rawData: RVToolsData | null,
   costInput?: CostComparisonInput
-): { severity: RiskSeverity | null; evidence: RiskEvidence[] } {
-  if (!rawData) return { severity: null, evidence: [] };
+): RiskRow[] {
+  if (!rawData) return [];
 
-  const evidence: RiskEvidence[] = [];
-  const currentCost = costInput?.currentMonthlyCost;
-  const roksCost = costInput?.calculatedROKSMonthlyCost;
-  const vsiCost = costInput?.calculatedVSIMonthlyCost;
+  const rows: RiskRow[] = [];
+  const activeVMs = rawData.vInfo.filter(vm => vm.powerState === 'poweredOn' && !vm.template);
+  const vmCount = activeVMs.length;
 
-  // If user has entered current cost and we have calculated costs, do real comparison
-  if (currentCost != null && currentCost > 0 && (roksCost != null || vsiCost != null)) {
-    const targetCost = Math.min(
-      ...[roksCost, vsiCost].filter((c): c is number => c != null && c > 0)
-    );
-    const pctChange = ((targetCost - currentCost) / currentCost) * 100;
-    const cheaper = roksCost != null && vsiCost != null
-      ? (roksCost <= vsiCost ? 'ROKS' : 'VPC VSI')
-      : (roksCost != null ? 'ROKS' : 'VPC VSI');
-
-    evidence.push({
-      label: 'Current monthly cost',
-      detail: `$${currentCost.toLocaleString()}/month`,
-      severity: 'low',
-    });
-
-    if (roksCost != null) {
-      evidence.push({
-        label: 'Calculated ROKS cost',
-        detail: `$${roksCost.toLocaleString()}/month`,
-        severity: 'low',
-      });
-    }
-    if (vsiCost != null) {
-      evidence.push({
-        label: 'Calculated VSI cost',
-        detail: `$${vsiCost.toLocaleString()}/month`,
-        severity: 'low',
-      });
-    }
-
-    let changeSeverity: RiskSeverity;
-    if (pctChange <= 20) changeSeverity = 'low';
-    else if (pctChange <= 50) changeSeverity = 'medium';
-    else if (pctChange <= 100) changeSeverity = 'high';
-    else changeSeverity = 'critical';
-
-    const direction = pctChange <= 0 ? 'savings' : 'increase';
-    evidence.push({
-      label: 'Cost comparison',
-      detail: `${Math.abs(pctChange).toFixed(1)}% ${direction} vs current (best target: ${cheaper})`,
-      severity: changeSeverity,
-    });
-
-    return { severity: changeSeverity, evidence };
-  }
-
-  // Fallback: VM count heuristic when no current cost entered
-  const vmCount = rawData.vInfo.filter(vm => vm.powerState === 'poweredOn' && !vm.template).length;
-
-  if (vmCount > 500) {
-    evidence.push({ label: 'Large environment', detail: `${vmCount} active VMs — expect significant cloud costs`, severity: 'high' });
-  } else if (vmCount > 100) {
-    evidence.push({ label: 'Medium environment', detail: `${vmCount} active VMs`, severity: 'medium' });
-  } else {
-    evidence.push({ label: 'Small environment', detail: `${vmCount} active VMs`, severity: 'low' });
-  }
-
-  const licenses = rawData.vLicense?.length ?? 0;
-  if (licenses > 0) {
-    evidence.push({ label: 'VMware licenses detected', detail: `${licenses} license entries to review for portability`, severity: 'medium' });
-  }
-
-  evidence.push({
-    label: 'Tip',
-    detail: 'Enter your current monthly cost for precise comparison',
-    severity: 'low',
-  });
-
-  const maxSeverity = evidence.length > 0
-    ? evidence.reduce((max, e) => RISK_SEVERITY_ORDER[e.severity] > RISK_SEVERITY_ORDER[max] ? e.severity : max, 'low' as RiskSeverity)
-    : 'medium';
-
-  return { severity: maxSeverity, evidence };
-}
-
-function assessReadinessRisk(rawData: RVToolsData | null): { severity: RiskSeverity | null; evidence: RiskEvidence[] } {
-  if (!rawData) return { severity: null, evidence: [] };
-
-  const evidence: RiskEvidence[] = [];
-
-  // --- Pre-flight sub-assessment ---
+  // --- Pre-flight blockers ---
   const roksChecks = runPreFlightChecks(rawData, 'roks');
   const vsiChecks = runPreFlightChecks(rawData, 'vsi');
   const totalVMs = roksChecks.length || vsiChecks.length || 1;
 
   const roksBlockers = roksChecks.filter(r => r.blockerCount > 0).length;
-  const roksBlockerPct = (roksBlockers / totalVMs) * 100;
-  if (roksBlockers > 0) {
-    evidence.push({
-      label: 'Pre-flight: ROKS blockers',
-      detail: `${roksBlockers} VMs (${roksBlockerPct.toFixed(1)}%) have blockers for ROKS migration`,
-      severity: roksBlockerPct > 15 ? 'critical' : roksBlockerPct > 5 ? 'high' : 'medium',
-    });
-  }
-
   const vsiBlockers = vsiChecks.filter(r => r.blockerCount > 0).length;
-  const vsiBlockerPct = (vsiBlockers / totalVMs) * 100;
-  if (vsiBlockers > 0) {
-    evidence.push({
-      label: 'Pre-flight: VSI blockers',
-      detail: `${vsiBlockers} VMs (${vsiBlockerPct.toFixed(1)}%) have blockers for VSI migration`,
-      severity: vsiBlockerPct > 15 ? 'critical' : vsiBlockerPct > 5 ? 'high' : 'medium',
+
+  if (roksBlockers > 0 || vsiBlockers > 0) {
+    const maxPct = Math.max(
+      (roksBlockers / totalVMs) * 100,
+      (vsiBlockers / totalVMs) * 100
+    );
+    const status: RiskStatus = maxPct > 15 ? 'red' : maxPct > 5 ? 'red' : 'amber';
+    const details: string[] = [];
+    if (roksBlockers > 0) details.push(`ROKS: ${roksBlockers} VMs (${((roksBlockers / totalVMs) * 100).toFixed(1)}%)`);
+    if (vsiBlockers > 0) details.push(`VSI: ${vsiBlockers} VMs (${((vsiBlockers / totalVMs) * 100).toFixed(1)}%)`);
+
+    rows.push({
+      id: 'auto-preflight-blockers',
+      source: 'auto',
+      category: 'Technical',
+      description: 'Pre-flight check blockers detected that prevent migration of some VMs without remediation.',
+      impactArea: 'Migration Readiness',
+      status,
+      mitigationPlan: 'Review pre-flight check results and remediate blockers before migration.',
+      evidenceDetail: details.join('; '),
     });
   }
 
-  const roksWarnings = roksChecks.filter(r => r.warningCount > 0).length;
-  const vsiWarnings = vsiChecks.filter(r => r.warningCount > 0).length;
-  const totalWarnings = Math.max(roksWarnings, vsiWarnings);
-  if (totalWarnings > 0) {
-    evidence.push({
-      label: 'Pre-flight: Warnings',
-      detail: `${totalWarnings} VMs have warnings that may need remediation`,
-      severity: 'low',
-    });
-  }
-
-  if (roksBlockers === 0 && vsiBlockers === 0) {
-    evidence.push({ label: 'Pre-flight: No blockers detected', detail: 'All VMs pass pre-flight checks', severity: 'low' });
-  }
-
-  // Pre-flight severity
-  const maxBlockerPct = Math.max(roksBlockerPct, vsiBlockerPct);
-  let preflightSeverity: RiskSeverity;
-  if (maxBlockerPct > 15) preflightSeverity = 'critical';
-  else if (maxBlockerPct > 5) preflightSeverity = 'high';
-  else if (maxBlockerPct > 0) preflightSeverity = 'medium';
-  else preflightSeverity = 'low';
-
-  // --- Complexity sub-assessment ---
-  const activeVMs = rawData.vInfo.filter(vm => vm.powerState === 'poweredOn' && !vm.template);
+  // --- Complexity ---
   const scores = calculateComplexityScores(activeVMs, rawData.vDisk, rawData.vNetwork, 'vsi');
   const summary = getAssessmentSummary(scores);
 
-  const complexTotalVMs = summary.totalVMs || 1;
-  const blockerPct = (summary.blockerCount / complexTotalVMs) * 100;
-  const complexPct = ((summary.complexCount + summary.blockerCount) / complexTotalVMs) * 100;
+  if (summary.blockerCount > 0 || summary.complexCount > 0) {
+    const blockerPct = (summary.blockerCount / (summary.totalVMs || 1)) * 100;
+    const complexPct = ((summary.complexCount + summary.blockerCount) / (summary.totalVMs || 1)) * 100;
+    const status: RiskStatus = blockerPct > 10 ? 'red' : complexPct > 30 ? 'red' : 'amber';
 
-  if (summary.blockerCount > 0) {
-    evidence.push({
-      label: 'Complexity: Blockers',
-      detail: `${summary.blockerCount} VMs (${blockerPct.toFixed(1)}%) scored as blockers`,
-      severity: blockerPct > 10 ? 'critical' : 'high',
+    rows.push({
+      id: 'auto-complexity',
+      source: 'auto',
+      category: 'Technical',
+      description: 'Complex or blocker-level VMs detected that require significant migration effort.',
+      impactArea: 'Schedule / Effort',
+      status,
+      mitigationPlan: 'Prioritize simple VMs in early waves; plan dedicated effort for complex workloads.',
+      evidenceDetail: `${summary.blockerCount} blockers, ${summary.complexCount} complex out of ${summary.totalVMs} VMs (avg score: ${summary.averageScore}/100)`,
     });
   }
 
-  if (summary.complexCount > 0) {
-    evidence.push({
-      label: 'Complexity: Complex VMs',
-      detail: `${summary.complexCount} VMs require significant migration effort`,
-      severity: complexPct > 30 ? 'high' : 'medium',
+  // --- Cost comparison ---
+  const currentCost = costInput?.currentMonthlyCost;
+  const roksCost = costInput?.calculatedROKSMonthlyCost;
+  const vsiCost = costInput?.calculatedVSIMonthlyCost;
+
+  if (currentCost != null && currentCost > 0 && (roksCost != null || vsiCost != null)) {
+    const targetCost = Math.min(
+      ...[roksCost, vsiCost].filter((c): c is number => c != null && c > 0)
+    );
+    const pctChange = ((targetCost - currentCost) / currentCost) * 100;
+
+    let status: RiskStatus;
+    if (pctChange <= 20) status = 'green';
+    else if (pctChange <= 50) status = 'amber';
+    else status = 'red';
+
+    const direction = pctChange <= 0 ? 'savings' : 'increase';
+
+    rows.push({
+      id: 'auto-cost-comparison',
+      source: 'auto',
+      category: 'Financial',
+      description: `Cloud cost ${direction} compared to current VMware spend.`,
+      impactArea: 'Budget',
+      status,
+      mitigationPlan: pctChange > 20
+        ? 'Review right-sizing opportunities and reserved capacity pricing to reduce costs.'
+        : 'Monitor costs during migration to maintain projected savings.',
+      evidenceDetail: `${Math.abs(pctChange).toFixed(1)}% ${direction} ($${currentCost.toLocaleString()}/mo current vs $${targetCost.toLocaleString()}/mo target)`,
     });
   }
 
-  evidence.push({
-    label: 'Complexity: Average score',
-    detail: `${summary.averageScore}/100 across ${complexTotalVMs} VMs`,
-    severity: summary.averageScore > 50 ? 'medium' : 'low',
-  });
+  // --- OS compatibility ---
+  const roksWarnings = roksChecks.filter(r => r.warningCount > 0).length;
+  const vsiWarnings = vsiChecks.filter(r => r.warningCount > 0).length;
+  const totalWarnings = Math.max(roksWarnings, vsiWarnings);
 
-  evidence.push({
-    label: 'Complexity: Distribution',
-    detail: `Simple: ${summary.simpleCount}, Moderate: ${summary.moderateCount}, Complex: ${summary.complexCount}, Blocker: ${summary.blockerCount}`,
-    severity: 'low',
-  });
+  if (totalWarnings > 0) {
+    rows.push({
+      id: 'auto-os-compatibility',
+      source: 'auto',
+      category: 'Technical',
+      description: 'Some VMs have OS compatibility warnings that may require attention during migration.',
+      impactArea: 'Migration Readiness',
+      status: 'amber',
+      mitigationPlan: 'Review OS compatibility report and plan OS upgrades or alternative migration paths.',
+      evidenceDetail: `${totalWarnings} VMs with compatibility warnings`,
+    });
+  }
 
-  // Complexity severity
-  let complexitySeverity: RiskSeverity;
-  if (blockerPct > 10) complexitySeverity = 'critical';
-  else if (complexPct > 30) complexitySeverity = 'high';
-  else if (summary.averageScore > 50) complexitySeverity = 'medium';
-  else complexitySeverity = 'low';
+  // --- Large environment scale ---
+  if (vmCount > 200) {
+    rows.push({
+      id: 'auto-scale',
+      source: 'auto',
+      category: 'Ops & Tooling',
+      description: 'Large environment scale increases migration complexity and requires robust tooling and coordination.',
+      impactArea: 'Schedule / Operations',
+      status: vmCount > 500 ? 'red' : 'amber',
+      mitigationPlan: 'Use automated migration tooling (RackWare, MTV). Plan multiple migration waves with dedicated resources.',
+      evidenceDetail: `${vmCount} active VMs across ${new Set(activeVMs.map(vm => vm.cluster).filter(Boolean)).size} clusters`,
+    });
+  }
 
-  // Readiness = worst of pre-flight and complexity
-  const severity = RISK_SEVERITY_ORDER[preflightSeverity] >= RISK_SEVERITY_ORDER[complexitySeverity]
-    ? preflightSeverity
-    : complexitySeverity;
+  // --- VMware license count ---
+  const licenses = rawData.vLicense?.length ?? 0;
+  if (licenses > 0) {
+    rows.push({
+      id: 'auto-vmware-licenses',
+      source: 'auto',
+      category: 'Financial',
+      description: 'VMware licenses detected that need to be reviewed for portability and contract implications.',
+      impactArea: 'Compliance / Cost',
+      status: 'amber',
+      mitigationPlan: 'Review VMware license contracts for termination terms and portability restrictions.',
+      evidenceDetail: `${licenses} VMware license entries detected`,
+    });
+  }
 
-  return { severity, evidence };
+  return rows;
 }
 
-// ===== MAIN CALCULATOR =====
+// ===== CURATED RISKS =====
 
-function createDomainAssessment(
-  domainId: RiskDomainId,
-  autoResult: { severity: RiskSeverity | null; evidence: RiskEvidence[] },
-  overrides?: RiskOverrides
-): RiskDomainAssessment {
-  const overrideSeverity = overrides?.domainOverrides[domainId]?.severity ?? null;
-  const notes = overrides?.domainOverrides[domainId]?.notes ?? '';
-
-  return {
-    domainId,
-    label: RISK_DOMAIN_LABELS[domainId],
-    mode: autoResult.severity !== null ? 'auto' : 'manual',
-    autoSeverity: autoResult.severity,
-    overrideSeverity,
-    effectiveSeverity: overrideSeverity ?? autoResult.severity ?? 'low',
-    evidence: autoResult.evidence,
-    notes,
-  };
+interface CuratedRiskEntry {
+  id: string;
+  category: string;
+  description: string;
+  impactArea: string;
+  defaultStatus: string;
+  mitigationPlan: string;
 }
 
-function calculateGoNoGo(domains: Record<RiskDomainId, RiskDomainAssessment>): {
-  overallSeverity: RiskSeverity;
-  goNoGo: 'go' | 'no-go' | 'conditional';
-} {
-  const severities = Object.values(domains).map(d => d.effectiveSeverity);
-  const hasCritical = severities.includes('critical');
-  const hasHigh = severities.includes('high');
-
-  const overallSeverity = hasCritical ? 'critical' : hasHigh ? 'high' : severities.includes('medium') ? 'medium' : 'low';
-  const goNoGo = hasCritical ? 'no-go' : hasHigh ? 'conditional' : 'go';
-
-  return { overallSeverity, goNoGo };
+export function loadCuratedRisks(): RiskRow[] {
+  return (curatedRisksData as CuratedRiskEntry[]).map(entry => ({
+    id: entry.id,
+    source: 'curated' as const,
+    category: entry.category as RiskRow['category'],
+    description: entry.description,
+    impactArea: entry.impactArea,
+    status: entry.defaultStatus as RiskStatus,
+    mitigationPlan: entry.mitigationPlan,
+    evidenceDetail: '',
+  }));
 }
 
-export function calculateRiskAssessment(
+// ===== MAIN BUILDER =====
+
+export function buildRiskTable(
   rawData: RVToolsData | null,
-  overrides?: RiskOverrides,
+  overrides?: RiskTableOverrides | null,
   costInput?: CostComparisonInput
-): RiskAssessment {
-  const costResult = assessCostRisk(rawData, costInput);
-  const readinessResult = assessReadinessRisk(rawData);
-  const manualResult: { severity: RiskSeverity | null; evidence: RiskEvidence[] } = { severity: null, evidence: [] };
+): RiskTableData {
+  const autoRisks = generateAutoRisks(rawData, costInput);
+  const curatedRisks = loadCuratedRisks();
+  const userRows = overrides?.userRows ?? [];
 
-  const domains: Record<RiskDomainId, RiskDomainAssessment> = {
-    cost: createDomainAssessment('cost', costResult, overrides),
-    readiness: createDomainAssessment('readiness', readinessResult, overrides),
-    security: createDomainAssessment('security', manualResult, overrides),
-    operational: createDomainAssessment('operational', manualResult, overrides),
-    compliance: createDomainAssessment('compliance', manualResult, overrides),
-    timeline: createDomainAssessment('timeline', manualResult, overrides),
-  };
+  // Merge all rows
+  const allRows = [...autoRisks, ...curatedRisks, ...userRows];
 
-  const { overallSeverity, goNoGo } = calculateGoNoGo(domains);
+  // Apply overrides (status and mitigation changes)
+  const rowOverrides = overrides?.rowOverrides ?? {};
+  const rows = allRows.map(row => {
+    const override = rowOverrides[row.id];
+    if (!override) return row;
+    return {
+      ...row,
+      ...(override.status !== undefined ? { status: override.status } : {}),
+      ...(override.mitigationPlan !== undefined ? { mitigationPlan: override.mitigationPlan } : {}),
+    };
+  });
 
-  return { domains, overallSeverity, goNoGo };
+  return { rows };
 }

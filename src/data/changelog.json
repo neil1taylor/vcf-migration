@@ -5,6 +5,7 @@
       "date": "2026-03-07",
       "sections": {
         "added": [
+          "Risk Assessment replaced with flat risk table — auto-detected risks from data, curated migration defaults, and user-added rows with traffic light status, inline-editable mitigation plans, and category filtering",
           "DOCX report: hypervisor-dependent tooling incompatibility warnings in Migration Readiness risks and new Section 4.1.6 with VMware-to-IBM Cloud tool replacement mapping table",
           "Dynamic cost factor in Platform Selection questionnaire — 'Is cost an important factor?' automatically favours whichever platform has lower estimated monthly cost",
           "All ROKS and All VSI cost tiles moved into Platform Selection tab for at-a-glance cost context",
@@ -16,10 +17,14 @@
           "Unclassified option in Discovery status filter — quickly filter to VMs without a workload classification",
           "DOCX report: callout in Platform Selection section when questions are answered 'Not Sure' or left unanswered",
           "DOCX report: Coexistence Network Considerations subsection in Migration Strategy warning about WAN latency during migration, plus coexistence bullets in ROKS and VSI sections",
-          "Platform Selection questionnaire: 'No Preference' answer option for deliberately neutral responses — 'Not Sure' now means unanswered and is excluded from the answered count"
+          "Platform Selection questionnaire: 'No Preference' answer option for deliberately neutral responses — 'Not Sure' now means unanswered and is excluded from the answered count",
+          "Migration Planning tab in Migration Review — replaces Migration Timeline with integrated wave planning, AI wave analysis, and Gantt timeline driven by actual wave count"
         ],
         "removed": [
           "Cost Comparison tab removed from Migration Comparison — cost tiles now live in the Platform Selection tab"
+        ],
+        "changed": [
+          "Migration Timeline wave count now derived from wave planning active waves instead of port group estimation"
         ]
       }
     },

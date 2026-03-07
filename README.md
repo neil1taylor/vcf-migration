@@ -63,8 +63,7 @@ This section covers how to use the VCF Migration application for migration plann
 - **YAML Templates** — MTV operator configuration files for migration execution
 
 ### Assessment & Planning
-- **Risk Assessment** — 5-domain risk analysis (cost, infrastructure, complexity, security, other) with Go/No-Go recommendation and manual override capability
-- **Pre-Assessment Summary** — Environment snapshot with risk heat map, key blockers, and Go/No-Go banner
+- **Risk Assessment** — Flat risk table with auto-detected risks (from data), curated migration defaults, and user-added rows. Traffic light status (red/amber/green), inline-editable mitigation plans, and category filtering
 - **Migration Timeline** — Interactive Gantt chart with editable phase durations, start date selection, and total duration calculation
 - **VPC Network Design** — VMware port group to IBM Cloud VPC subnet mapping with zone distribution, security group generation, and ACL suggestions
 - **VPC Topology Visualization** — D3-based hierarchical diagram showing region, VPC, zones, and subnets color-coded by workload type
@@ -93,7 +92,7 @@ This section covers how to use the VCF Migration application for migration plann
 ### 2. Assess Your Environment
 
 Navigate to **Assess** in the sidebar:
-- **Risk Assessment** — Review auto-calculated and manual risk domains, set Go/No-Go
+- **Risk Assessment** — Review auto-detected, curated, and custom risks in a flat table with traffic light status
 - **Migration Timeline** — View and customize the migration schedule with a Gantt chart
 - **Network Design** — Map VMware port groups to VPC subnets with security groups
 
@@ -135,7 +134,7 @@ The guide covers:
 - Understanding the Dashboard
 - Infrastructure analysis (Compute, Storage, Network, Clusters, Hosts)
 - Workload discovery and VM management (with maintainer-configurable classification and auto-exclusion)
-- Risk assessment with Go/No-Go recommendation
+- Risk assessment with traffic light status table
 - Migration timeline planning
 - VPC network design
 - Migration assessment (ROKS and VSI)

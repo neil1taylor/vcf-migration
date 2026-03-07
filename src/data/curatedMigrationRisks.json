@@ -1,0 +1,106 @@
+[
+  {
+    "id": "curated-financial-double-spend",
+    "category": "Financial",
+    "description": "Double Spend / Overlap Run-Costs: Paying for existing VMware hosts and new cloud instances simultaneously if the migration stretches out.",
+    "impactArea": "Budget",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Plan tightly coupled Move Groups to quickly evacuate and cancel entire bare-metal servers."
+  },
+  {
+    "id": "curated-financial-licensing",
+    "category": "Financial",
+    "description": "OS & App Licensing Invalidation: Moving from BYOL on vSphere to cloud. 3rd-party apps may not be licensed for non-VMware cloud environments.",
+    "impactArea": "Compliance / Legal",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Audit all Windows/RHEL and ISV application licenses for cloud portability before migrating."
+  },
+  {
+    "id": "curated-business-disruption",
+    "category": "Business / Org",
+    "description": "Business Operations Disruption: Cutover takes longer than the approved maintenance window, impacting business operations.",
+    "impactArea": "Revenue / Uptime",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Establish strict Point of No Return timelines for rollback during migration weekends. Mandate dry-runs for Tier-1 apps."
+  },
+  {
+    "id": "curated-business-fatigue",
+    "category": "Business / Org",
+    "description": "Migration Fatigue: The core IT team is expected to handle day jobs while also executing a high-stress cloud migration project.",
+    "impactArea": "Schedule / HR",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Backfill operational roles with contractors, or pause non-critical internal IT roadmap projects to free up capacity."
+  },
+  {
+    "id": "curated-skills-security",
+    "category": "Skills / Knowledge",
+    "description": "Security Paradigm Shift: Team is used to edge firewalls and NSX, but VPC uses Security Groups and NACLs.",
+    "impactArea": "Security",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Conduct mandatory hands-on enablement for the network/security teams on IBM Cloud VPC networking architecture."
+  },
+  {
+    "id": "curated-skills-iac",
+    "category": "Skills / Knowledge",
+    "description": "Cloud Operating Model Gap: Team lacks Infrastructure-as-Code (Terraform/Ansible) skills needed to manage VPC efficiently at scale.",
+    "impactArea": "Operations",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Pair internal staff with cloud consultants for the first 3 migration waves. Mandate Terraform training."
+  },
+  {
+    "id": "curated-ops-automation",
+    "category": "Ops & Tooling",
+    "description": "Loss of Legacy Automation: Custom vRealize, PowerCLI, or vCenter templates are not usable in the new cloud environment.",
+    "impactArea": "Provisioning Time",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Treat Tooling Migration as Phase 0. Rewrite deployment pipelines using IBM Cloud Schematics and Ansible."
+  },
+  {
+    "id": "curated-ops-monitoring",
+    "category": "Ops & Tooling",
+    "description": "Monitoring Blindspots: vROps and VMware-specific dashboards will no longer work, leading to visibility gaps into application health.",
+    "impactArea": "MTTR (Recovery)",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Deploy and map IBM Cloud Monitoring (Sysdig) agents to all workloads prior to final cutover."
+  },
+  {
+    "id": "curated-ops-itsm",
+    "category": "Ops & Tooling",
+    "description": "Change Management / ITSM Breakage: ServiceNow/Jira workflows designed around VMware provisioning no longer align with cloud approvals.",
+    "impactArea": "Governance",
+    "defaultStatus": "green",
+    "mitigationPlan": "Map the new VPC provisioning workflow and update the ITSM tool configurations."
+  },
+  {
+    "id": "curated-dr-backup",
+    "category": "Backup & DR",
+    "description": "Incompatible Backup Architecture: Tools like Veeam or Zerto may not natively back up VPC instances the same way.",
+    "impactArea": "Data Protection",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Design and implement IBM Cloud Backup for VPC policies; test block-level restores before moving production data."
+  },
+  {
+    "id": "curated-dr-rpo-rto",
+    "category": "Backup & DR",
+    "description": "Failure to meet RPO/RTO: Previous cross-site VMware replication is gone. New architecture may require multi-zone/multi-region design.",
+    "impactArea": "Business Continuity",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Redesign the DR strategy using IBM Cloud cross-region replication and load balancers."
+  },
+  {
+    "id": "curated-technical-image",
+    "category": "Technical",
+    "description": "Image Conversion / Boot Failure: Exporting VMDK and importing as VPC Custom Image fails because cloud-init or virtio drivers are missing.",
+    "impactArea": "Schedule",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Standardize a pre-migration script to inject necessary drivers into the OS before export."
+  },
+  {
+    "id": "curated-technical-routing",
+    "category": "Technical",
+    "description": "Classic-to-VPC Routing Drops: Overlapping IP spaces or misconfigured Transit Gateway drops traffic between migrated and un-migrated VMs.",
+    "impactArea": "Application Uptime",
+    "defaultStatus": "amber",
+    "mitigationPlan": "Map all IP subnets rigorously. Test Transit Gateway connectivity with dummy workloads first."
+  }
+]

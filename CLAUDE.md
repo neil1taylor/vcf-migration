@@ -351,7 +351,7 @@ Maps VMware port groups to IBM Cloud VPC subnets. Distributes across 3 zones. Ge
 
 ### Migration Review (under Migration Assessment)
 
-Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 4-tab analysis (Platform Selection, VM Assignments, Migration Timeline, Risk Assessment). Route: `/migration-comparison`. Timeline and Risk Assessment content (previously standalone pages) are now embedded as tabs.
+Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 4-tab analysis (Platform Selection, VM Assignments, Migration Planning, Risk Assessment). Route: `/migration-comparison`. The Migration Planning tab integrates wave planning (from `useWavePlanning` hook) with the timeline — wave count from active waves drives timeline phases. Platform-specific sections (VSI workflow, RackWare export) appear conditionally based on platform selection leaning.
 
 **Target Assignment** — Default platform comes from the Platform Selection questionnaire's `leaning` (`roks`/`vsi`/`neutral`). SAP/Oracle VMs (enterprise workload + SAP/HANA name patterns, or database workload + Oracle name patterns) default to PowerVS. When leaning is `neutral`, falls back to data-driven auto-classification rules (`targetClassificationRules.json`). Users can override any VM's target via dropdown and edit the reason text inline. The VM Assignment table shows: VM Name, Workload Type, Target (dropdown), and Reason (editable text). Recommendation: >70% one target → recommend that target; else split.
 
@@ -370,16 +370,18 @@ Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 4-tab ana
 | `src/services/migration/timelineEstimation.ts` | `buildDefaultTimeline()`, `calculateTimelineTotals()`, `formatTimelineForExport()` |
 | `src/hooks/useTimelineConfig.ts` | localStorage `vcf-timeline-config`, env fingerprinting |
 | `src/components/charts/GanttTimeline.tsx` | Chart.js Bar with `indexAxis: 'y'` |
-| `src/types/riskAssessment.ts` | Risk severity, domain, evidence, assessment types |
-| `src/services/riskAssessment.ts` | `calculateRiskAssessment(rawData, overrides)` pure function |
-| `src/hooks/useRiskAssessment.ts` | localStorage `vcf-risk-overrides`, env fingerprinting |
-| `src/components/risk/` | GoNoGoBanner, RiskDomainCard, RiskHeatMap, EnvironmentSnapshotTile |
+| `src/types/riskAssessment.ts` | RiskRow, RiskTableData, RiskTableOverrides (v3), RiskStatus (red/amber/green), RiskCategory |
+| `src/data/curatedMigrationRisks.json` | 13 curated migration risks across 6 categories |
+| `src/services/riskAssessment.ts` | `generateAutoRisks()`, `loadCuratedRisks()`, `buildRiskTable()` |
+| `src/hooks/useRiskAssessment.ts` | localStorage `vcf-risk-overrides` (v3), env fingerprinting |
+| `src/components/risk/RiskTable.tsx` | Carbon DataTable with status dropdowns, inline-editable mitigation, category filter |
+| `src/components/risk/AddRiskModal.tsx` | Modal for adding custom user risk rows |
 
 ### DOCX Export Sections
 
 | File | Content |
 |------|---------|
-| `src/services/export/docx/sections/riskAssessment.ts` | 5-domain table, go/no-go, evidence |
+| `src/services/export/docx/sections/riskAssessment.ts` | Flat risk table with status summary |
 | `src/services/export/docx/sections/timelineEstimation.ts` | Phase table, total duration |
 | `src/services/export/docx/sections/networkDesign.ts` | Subnet mapping, SG summary |
 | `src/services/export/docx/sections/platformSelection.ts` | Score summary, per-factor responses |

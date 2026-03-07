@@ -1,30 +1,49 @@
-// Risk Assessment Types — v2
+// Risk Assessment Types — v3 (flat risk table)
 
-export type RiskSeverity = 'low' | 'medium' | 'high' | 'critical';
-export type RiskDomainId = 'cost' | 'readiness' | 'security' | 'operational' | 'compliance' | 'timeline';
-export type GoNoGoDecision = 'go' | 'no-go' | 'conditional';
+export type RiskStatus = 'red' | 'amber' | 'green';
+export type RiskSource = 'auto' | 'curated' | 'user';
+export type RiskCategory =
+  | 'Financial'
+  | 'Business / Org'
+  | 'Skills / Knowledge'
+  | 'Ops & Tooling'
+  | 'Backup & DR'
+  | 'Technical';
 
-export interface RiskEvidence {
-  label: string;
-  detail: string;
-  severity: RiskSeverity;
+export const RISK_CATEGORIES: RiskCategory[] = [
+  'Financial',
+  'Business / Org',
+  'Skills / Knowledge',
+  'Ops & Tooling',
+  'Backup & DR',
+  'Technical',
+];
+
+export interface RiskRow {
+  id: string;
+  source: RiskSource;
+  category: RiskCategory;
+  description: string;
+  impactArea: string;
+  status: RiskStatus;
+  mitigationPlan: string;
+  evidenceDetail: string;
 }
 
-export interface RiskDomainAssessment {
-  domainId: RiskDomainId;
-  label: string;
-  mode: 'auto' | 'manual';
-  autoSeverity: RiskSeverity | null;
-  overrideSeverity: RiskSeverity | null;
-  effectiveSeverity: RiskSeverity; // override ?? auto ?? 'low'
-  evidence: RiskEvidence[];
-  notes: string;
+export interface RiskTableData {
+  rows: RiskRow[];
 }
 
-export interface RiskAssessment {
-  domains: Record<RiskDomainId, RiskDomainAssessment>;
-  overallSeverity: RiskSeverity;
-  goNoGo: GoNoGoDecision;
+export interface RiskTableOverrides {
+  version: 3;
+  environmentFingerprint: string;
+  rowOverrides: Record<string, {
+    status?: RiskStatus;
+    mitigationPlan?: string;
+  }>;
+  userRows: RiskRow[];
+  createdAt: string;
+  modifiedAt: string;
 }
 
 export interface CostComparisonInput {
@@ -33,39 +52,14 @@ export interface CostComparisonInput {
   calculatedVSIMonthlyCost: number | null;
 }
 
-export interface RiskOverrides {
-  version: number;
-  environmentFingerprint: string;
-  domainOverrides: Record<string, {
-    severity?: RiskSeverity;
-    notes?: string;
-  }>;
-  costInput?: {
-    currentMonthlyCost: number | null;
-  };
-  createdAt: string;
-  modifiedAt: string;
-}
-
-export const RISK_DOMAIN_LABELS: Record<RiskDomainId, string> = {
-  cost: 'Cost Comparison',
-  readiness: 'Migration Readiness',
-  security: 'Security & Compliance',
-  operational: 'Operational Risk',
-  compliance: 'Data & Compliance Risk',
-  timeline: 'Timeline & Resource Risk',
+export const RISK_STATUS_LABELS: Record<RiskStatus, string> = {
+  red: 'Red',
+  amber: 'Amber',
+  green: 'Green',
 };
 
-export const RISK_SEVERITY_ORDER: Record<RiskSeverity, number> = {
-  low: 0,
-  medium: 1,
-  high: 2,
-  critical: 3,
-};
-
-export const RISK_SEVERITY_COLORS: Record<RiskSeverity, string> = {
-  low: '#24a148',
-  medium: '#f1c21b',
-  high: '#ff832b',
-  critical: '#da1e28',
+export const RISK_STATUS_COLORS: Record<RiskStatus, string> = {
+  red: '#da1e28',
+  amber: '#f1c21b',
+  green: '#24a148',
 };
