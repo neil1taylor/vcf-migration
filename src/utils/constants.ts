@@ -142,8 +142,6 @@ export const ROUTES = {
   migrationComparison: '/migration-comparison',
   preflightReport: '/preflight-report',
   discovery: '/discovery',
-  riskAssessment: '/risk-assessment',
-  migrationTimeline: '/migration-timeline',
   networkDesign: '/network-design',
   tables: '/tables',
   info: '/info',

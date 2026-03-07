@@ -328,37 +328,13 @@ Classification and auto-exclusion are independent. Each VM has exactly one workl
 
 ## Assess Step
 
-The Assess step sits between Discovery and Migration Assessment in the navigation. It contains 1 page:
+Legacy routes (`/migration-timeline`, `/risk-assessment`, `/network-design`) redirect to their new locations.
 
-### Routes
-
-| Route | Page | Description |
-|-------|------|-------------|
-| `/migration-timeline` | `MigrationTimelinePage.tsx` | Gantt timeline with editable phase durations |
-| `/network-design` | Redirect → `/vsi-migration` | Moved to VSI Migration "Network Design" tab |
-| `/risk-assessment` | `RiskAssessmentPage.tsx` | Moved to Migration Assessment (after Pre-Flight Report) |
-
-### Risk Assessment (under Migration Assessment)
-
-Single-page view: Go/No-Go banner → environment snapshot → risk heat map → 5 domain cards → key blockers. Auto-calculates risk across 5 domains (cost, infrastructure, complexity, security, other). Security and Other are manual-only (`autoSeverity: null`). Go/No-Go logic: critical → no-go, high → conditional, else → go.
-
-| File | Purpose |
-|------|---------|
-| `src/types/riskAssessment.ts` | Risk severity, domain, evidence, assessment types |
-| `src/services/riskAssessment.ts` | `calculateRiskAssessment(rawData, overrides)` pure function |
-| `src/hooks/useRiskAssessment.ts` | localStorage `vcf-risk-overrides`, env fingerprinting |
-| `src/components/risk/` | GoNoGoBanner, RiskDomainCard, RiskHeatMap, EnvironmentSnapshotTile |
-
-### Migration Timeline
-
-Gantt chart (Chart.js horizontal stacked bar) with editable phase durations. Auto-generates production waves from wave count.
-
-| File | Purpose |
-|------|---------|
-| `src/types/timeline.ts` | Phase types, config, totals, colors/defaults |
-| `src/services/migration/timelineEstimation.ts` | `buildDefaultTimeline()`, `calculateTimelineTotals()`, `formatTimelineForExport()` |
-| `src/hooks/useTimelineConfig.ts` | localStorage `vcf-timeline-config`, env fingerprinting |
-| `src/components/charts/GanttTimeline.tsx` | Chart.js Bar with `indexAxis: 'y'` |
+| Route | Redirect |
+|-------|----------|
+| `/network-design` | `/vsi-migration` (Network Design tab) |
+| `/migration-timeline` | `/migration-comparison` (Migration Timeline tab) |
+| `/risk-assessment` | `/migration-comparison` (Risk Assessment tab) |
 
 ### VPC Network Design (VSI Migration tab)
 
@@ -375,7 +351,7 @@ Maps VMware port groups to IBM Cloud VPC subnets. Distributes across 3 zones. Ge
 
 ### Migration Review (under Migration Assessment)
 
-Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 3-tab analysis. Route: `/migration-comparison`.
+Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 4-tab analysis (Platform Selection, VM Assignments, Migration Timeline, Risk Assessment). Route: `/migration-comparison`. Timeline and Risk Assessment content (previously standalone pages) are now embedded as tabs.
 
 **Target Assignment** — Default platform comes from the Platform Selection questionnaire's `leaning` (`roks`/`vsi`/`neutral`). SAP/Oracle VMs (enterprise workload + SAP/HANA name patterns, or database workload + Oracle name patterns) default to PowerVS. When leaning is `neutral`, falls back to data-driven auto-classification rules (`targetClassificationRules.json`). Users can override any VM's target via dropdown and edit the reason text inline. The VM Assignment table shows: VM Name, Workload Type, Target (dropdown), and Reason (editable text). Recommendation: >70% one target → recommend that target; else split.
 
@@ -386,8 +362,18 @@ Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 3-tab ana
 | `src/data/targetClassificationRules.json` | Data-driven classification rules (priority, type, target, confidence, reason templates) |
 | `src/services/migration/targetClassification.ts` | Rule engine: `classifyVMTarget()`, `classifyAllVMs()`, `getRecommendation()` |
 | `src/hooks/useTargetAssignments.ts` | Accepts `platformLeaning`, SAP/Oracle→PowerVS, localStorage `vcf-target-assignments`, env fingerprinting, user overrides with editable reasons |
-| `src/pages/MigrationComparisonPage.tsx` | Main page with 3 tabs |
-| `src/components/comparison/` | RecommendationBanner, VMAssignmentTable, CostComparisonPanel, PlatformSelectionPanel |
+| `src/data/platformSelectionFactors.json` | Platform selection factors including dynamic cost factor (`target: "dynamic"`, `dynamicResolver: "cost"`) |
+| `src/hooks/usePlatformSelection.ts` | Platform selection with optional `costData` param — resolves dynamic cost factor at runtime |
+| `src/pages/MigrationComparisonPage.tsx` | Main page with 4 tabs (Platform Selection, VM Assignments, Migration Timeline, Risk Assessment) |
+| `src/components/comparison/` | RecommendationBanner, VMAssignmentTable, PlatformSelectionPanel (includes cost tiles) |
+| `src/types/timeline.ts` | Phase types, config, totals, colors/defaults |
+| `src/services/migration/timelineEstimation.ts` | `buildDefaultTimeline()`, `calculateTimelineTotals()`, `formatTimelineForExport()` |
+| `src/hooks/useTimelineConfig.ts` | localStorage `vcf-timeline-config`, env fingerprinting |
+| `src/components/charts/GanttTimeline.tsx` | Chart.js Bar with `indexAxis: 'y'` |
+| `src/types/riskAssessment.ts` | Risk severity, domain, evidence, assessment types |
+| `src/services/riskAssessment.ts` | `calculateRiskAssessment(rawData, overrides)` pure function |
+| `src/hooks/useRiskAssessment.ts` | localStorage `vcf-risk-overrides`, env fingerprinting |
+| `src/components/risk/` | GoNoGoBanner, RiskDomainCard, RiskHeatMap, EnvironmentSnapshotTile |
 
 ### DOCX Export Sections
 

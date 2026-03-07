@@ -51,8 +51,6 @@ const VSIMigrationPage = lazyWithRetry(() => import('@/pages/VSIMigrationPage').
 const MigrationComparisonPage = lazyWithRetry(() => import('@/pages/MigrationComparisonPage').then(m => ({ default: m.MigrationComparisonPage as ComponentType<unknown> })));
 const PreFlightReportPage = lazyWithRetry(() => import('@/pages/PreFlightReportPage').then(m => ({ default: m.PreFlightReportPage as ComponentType<unknown> })));
 const DiscoveryPage = lazyWithRetry(() => import('@/pages/DiscoveryPage').then(m => ({ default: m.DiscoveryPage as ComponentType<unknown> })));
-const RiskAssessmentPage = lazyWithRetry(() => import('@/pages/RiskAssessmentPage').then(m => ({ default: m.RiskAssessmentPage as ComponentType<unknown> })));
-const MigrationTimelinePage = lazyWithRetry(() => import('@/pages/MigrationTimelinePage').then(m => ({ default: m.MigrationTimelinePage as ComponentType<unknown> })));
 const TablesPage = lazyWithRetry(() => import('@/pages/TablesPage').then(m => ({ default: m.TablesPage as ComponentType<unknown> })));
 const InfoPage = lazyWithRetry(() => import('@/pages/InfoPage').then(m => ({ default: m.InfoPage as ComponentType<unknown> })));
 const DocumentationPage = lazyWithRetry(() => import('@/pages/DocumentationPage').then(m => ({ default: m.DocumentationPage as ComponentType<unknown> })));
@@ -132,12 +130,12 @@ export const router = createBrowserRouter([
         element: <PageLoader><DiscoveryPage /></PageLoader>,
       },
       {
-        path: ROUTES.riskAssessment.slice(1),
-        element: <PageLoader><RiskAssessmentPage /></PageLoader>,
+        path: 'risk-assessment',
+        element: <Navigate to={ROUTES.migrationComparison} replace />,
       },
       {
-        path: ROUTES.migrationTimeline.slice(1),
-        element: <PageLoader><MigrationTimelinePage /></PageLoader>,
+        path: 'migration-timeline',
+        element: <Navigate to={ROUTES.migrationComparison} replace />,
       },
       {
         path: ROUTES.networkDesign.slice(1),

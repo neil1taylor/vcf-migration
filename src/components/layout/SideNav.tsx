@@ -29,7 +29,7 @@ const infrastructureRoutes = [
 ];
 
 const migrationRoutes = [
-  ROUTES.preflightReport, ROUTES.roksMigration, ROUTES.vsiMigration, ROUTES.migrationComparison, ROUTES.migrationTimeline, ROUTES.riskAssessment,
+  ROUTES.preflightReport, ROUTES.roksMigration, ROUTES.vsiMigration, ROUTES.migrationComparison,
 ];
 
 const referenceRoutes = [
@@ -203,20 +203,6 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
             isActive={isActive(ROUTES.migrationComparison)}
           >
             Migration Review
-          </SideNavMenuItem>
-          <SideNavMenuItem
-            href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.migrationTimeline, true)}
-            isActive={isActive(ROUTES.migrationTimeline)}
-          >
-            Migration Timeline
-          </SideNavMenuItem>
-          <SideNavMenuItem
-            href="#"
-            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.riskAssessment, true)}
-            isActive={isActive(ROUTES.riskAssessment)}
-          >
-            Risk Assessment
           </SideNavMenuItem>
         </SideNavMenu>
 

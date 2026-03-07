@@ -11,8 +11,6 @@ export { ROKSMigrationPage } from './ROKSMigrationPage';
 export { VSIMigrationPage } from './VSIMigrationPage';
 export { PreFlightReportPage } from './PreFlightReportPage';
 export { DiscoveryPage } from './DiscoveryPage';
-export { RiskAssessmentPage } from './RiskAssessmentPage';
-export { MigrationTimelinePage } from './MigrationTimelinePage';
 export { NetworkDesignPage } from './NetworkDesignPage';
 export { TablesPage } from './TablesPage';
 export { InfoPage } from './InfoPage';
