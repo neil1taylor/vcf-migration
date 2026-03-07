@@ -36,6 +36,8 @@
           "Risk Assessment table: fixed status dropdown rendering empty — now shows Red/Amber/Green options correctly",
           "Export page descriptions now differentiate PDF (infrastructure discovery snapshot) from DOCX (full migration assessment report) and clarify Excel content",
           "Migration Timeline wave count now derived from wave planning active waves instead of port group estimation",
+          "Phase Configuration table: helper text explains pilot wave purpose and 0.5 day/VM duration formula",
+          "DOCX timeline table: added Source and VMs columns; added pilot wave description and duration formula paragraph",
           "DOCX report: added migration partner refinement caveats across all major sections (assumptions, timeline, risk, wave planning, cost, platform selection, readiness, day 2 operations, next steps)"
         ],
         "fixed": [

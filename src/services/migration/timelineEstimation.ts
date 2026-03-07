@@ -15,7 +15,8 @@ export function calculateWaveDurationWeeks(vmCount: number): number {
 export function buildDefaultTimeline(
   waveCount: number,
   phaseDurations?: Record<string, number>,
-  waveVmCounts?: number[]
+  waveVmCounts?: number[],
+  waveNames?: string[]
 ): TimelinePhase[] {
   idCounter = 0;
   const phases: TimelinePhase[] = [];
@@ -44,6 +45,8 @@ export function buildDefaultTimeline(
     type: 'pilot',
     durationWeeks: phaseDurations?.[pilotId] ?? pilotDefault,
     defaultDurationWeeks: pilotDefault,
+    waveSourceName: waveNames?.[0],
+    waveVmCount: waveVmCounts?.[0],
     startWeek: 0,
     endWeek: 0,
     color: PHASE_COLORS.pilot,
@@ -64,6 +67,8 @@ export function buildDefaultTimeline(
       durationWeeks: phaseDurations?.[waveId] ?? prodDefault,
       defaultDurationWeeks: prodDefault,
       waveIndex: i,
+      waveSourceName: waveNames?.[i + 1],
+      waveVmCount: waveVmCounts?.[i + 1],
       startWeek: 0,
       endWeek: 0,
       color: PHASE_COLORS.production,

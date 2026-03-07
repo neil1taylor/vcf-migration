@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import {
   Grid, Column, Tabs, TabList, Tab, TabPanels, TabPanel,
   Button, NumberInput, Table, TableHead, TableRow, TableHeader,
-  TableBody, TableCell, Tag,
+  TableBody, TableCell,
 } from '@carbon/react';
 import { Reset } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
@@ -29,13 +29,6 @@ import { PHASE_COLORS } from '@/types/timeline';
 import type { TimelinePhaseType } from '@/types/timeline';
 import './MigrationPage.scss';
 
-const PHASE_TAG_TYPE: Record<TimelinePhaseType, 'blue' | 'purple' | 'teal' | 'magenta' | 'gray'> = {
-  preparation: 'blue',
-  pilot: 'purple',
-  production: 'teal',
-  validation: 'magenta',
-  buffer: 'gray',
-};
 
 export function MigrationComparisonPage() {
   const { rawData, calculatedCosts } = useData();
@@ -116,7 +109,8 @@ export function MigrationComparisonPage() {
   // Wave count derived from active waves; VM counts per wave for scaled timeline durations
   const waveCount = wavePlanning.activeWaves.length;
   const waveVmCounts = useMemo(() => wavePlanning.waveResources.map(w => w.vmCount), [wavePlanning.waveResources]);
-  const { phases, totals, startDate, updatePhaseDuration, resetToDefaults } = useTimelineConfig(waveCount, waveVmCounts);
+  const waveNames = useMemo(() => wavePlanning.waveResources.map(w => w.name), [wavePlanning.waveResources]);
+  const { phases, totals, startDate, updatePhaseDuration, resetToDefaults } = useTimelineConfig(waveCount, waveVmCounts, waveNames);
 
   // AI wave suggestion data
   const waveSuggestionData = useMemo<WaveSuggestionInput | null>(() => {
@@ -274,12 +268,18 @@ export function MigrationComparisonPage() {
                   </Column>
 
                   <Column sm={4} md={8} lg={16}>
-                    <h3 style={{ marginBottom: '0.5rem' }}>Phase Configuration</h3>
+                    <h3 style={{ marginBottom: '0.25rem' }}>Phase Configuration</h3>
+                    <p className="cds--label" style={{ marginBottom: '0.75rem' }}>
+                      The pilot wave migrates a small set of test VMs to prove the migration process before production waves begin.
+                      For this initial timeline, wave durations are auto-populated at 0.5 day per VM (rounded up to the nearest week) and can be adjusted.
+                      The migration partner will revise and enhance the timeline after discovery and further planning.
+                    </p>
                     <Table size="md">
                       <TableHead>
                         <TableRow>
                           <TableHeader>Phase</TableHeader>
-                          <TableHeader>Type</TableHeader>
+                          <TableHeader>Source</TableHeader>
+                          <TableHeader>VMs</TableHeader>
                           <TableHeader>Duration (weeks)</TableHeader>
                           <TableHeader>Start Week</TableHeader>
                           <TableHeader>End Week</TableHeader>
@@ -299,9 +299,10 @@ export function MigrationComparisonPage() {
                               </span>
                             </TableCell>
                             <TableCell>
-                              <Tag type={PHASE_TAG_TYPE[phase.type]} size="sm">
-                                {phase.type}
-                              </Tag>
+                              {phase.waveSourceName || phase.type}
+                            </TableCell>
+                            <TableCell>
+                              {phase.waveVmCount ?? '—'}
                             </TableCell>
                             <TableCell>
                               <NumberInput

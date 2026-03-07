@@ -430,10 +430,14 @@ The timeline automatically generates phases based on your wave planning:
 | Phase Type | Default Duration | Description |
 |------------|-----------------|-------------|
 | Preparation | 2 weeks | Environment setup and planning |
-| Pilot | 2 weeks | Pilot wave migration and validation |
-| Production Wave N | 2 weeks each | One phase per migration wave |
+| Pilot | Auto (0.5 day/VM) | Small set of test VMs to prove the migration process |
+| Production Wave N | Auto (0.5 day/VM) | One phase per migration wave |
 | Validation | 1 week | Post-migration verification |
 | Buffer | 1 week | Contingency time |
+
+### Duration Formula
+
+Wave durations (pilot and production) are auto-populated at **0.5 day per VM**, rounded up to the nearest week. For example, 10 VMs = 5 days = 1 week; 11 VMs = 5.5 days = 2 weeks. The migration partner will revise and enhance the timeline after discovery and further planning.
 
 ### Customizing the Timeline
 

@@ -382,7 +382,7 @@ Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 4-tab ana
 | File | Content |
 |------|---------|
 | `src/services/export/docx/sections/riskAssessment.ts` | Flat risk table with status summary |
-| `src/services/export/docx/sections/timelineEstimation.ts` | Phase table, total duration |
+| `src/services/export/docx/sections/timelineEstimation.ts` | Phase table (with Source/VMs columns), pilot description, duration formula, total duration |
 | `src/services/export/docx/sections/networkDesign.ts` | Subnet mapping, SG summary |
 | `src/services/export/docx/sections/platformSelection.ts` | Score summary, per-factor responses |
 

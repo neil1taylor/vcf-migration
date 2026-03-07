@@ -125,6 +125,68 @@ describe('buildDefaultTimeline with waveVmCounts', () => {
   });
 });
 
+describe('buildDefaultTimeline with waveNames', () => {
+  it('assigns waveSourceName to pilot and production phases', () => {
+    const names = ['Pilot: VLAN-100', 'Wave 2: DMZ-Network', 'Wave 3: Prod-VLAN'];
+    const phases = buildDefaultTimeline(2, undefined, undefined, names);
+    const pilot = phases.find(p => p.type === 'pilot')!;
+    const prods = phases.filter(p => p.type === 'production');
+
+    expect(pilot.waveSourceName).toBe('Pilot: VLAN-100');
+    expect(prods[0].waveSourceName).toBe('Wave 2: DMZ-Network');
+    expect(prods[1].waveSourceName).toBe('Wave 3: Prod-VLAN');
+  });
+
+  it('non-wave phases have no waveSourceName', () => {
+    const names = ['Pilot', 'Prod1'];
+    const phases = buildDefaultTimeline(1, undefined, undefined, names);
+    const prep = phases.find(p => p.type === 'preparation')!;
+    const val = phases.find(p => p.type === 'validation')!;
+    const buf = phases.find(p => p.type === 'buffer')!;
+
+    expect(prep.waveSourceName).toBeUndefined();
+    expect(val.waveSourceName).toBeUndefined();
+    expect(buf.waveSourceName).toBeUndefined();
+  });
+
+  it('waveSourceName is undefined when waveNames not provided', () => {
+    const phases = buildDefaultTimeline(2);
+    phases.forEach(p => {
+      expect(p.waveSourceName).toBeUndefined();
+    });
+  });
+});
+
+describe('buildDefaultTimeline with waveVmCount', () => {
+  it('assigns waveVmCount to pilot and production phases from waveVmCounts', () => {
+    const phases = buildDefaultTimeline(2, undefined, [5, 20, 35]);
+    const pilot = phases.find(p => p.type === 'pilot')!;
+    const prods = phases.filter(p => p.type === 'production');
+
+    expect(pilot.waveVmCount).toBe(5);
+    expect(prods[0].waveVmCount).toBe(20);
+    expect(prods[1].waveVmCount).toBe(35);
+  });
+
+  it('non-wave phases have no waveVmCount', () => {
+    const phases = buildDefaultTimeline(1, undefined, [10, 50]);
+    const prep = phases.find(p => p.type === 'preparation')!;
+    const val = phases.find(p => p.type === 'validation')!;
+    const buf = phases.find(p => p.type === 'buffer')!;
+
+    expect(prep.waveVmCount).toBeUndefined();
+    expect(val.waveVmCount).toBeUndefined();
+    expect(buf.waveVmCount).toBeUndefined();
+  });
+
+  it('waveVmCount is undefined when waveVmCounts not provided', () => {
+    const phases = buildDefaultTimeline(2);
+    phases.forEach(p => {
+      expect(p.waveVmCount).toBeUndefined();
+    });
+  });
+});
+
 describe('calculateTimelineTotals', () => {
   it('calculates totals correctly', () => {
     const phases = buildDefaultTimeline(3);

@@ -66,7 +66,7 @@ This section covers how to use the VCF Migration application for migration plann
 
 ### Assessment & Planning
 - **Risk Assessment** — Flat risk table with auto-detected risks (from data), curated migration defaults, and user-added rows. Traffic light status (red/amber/green), all cells editable inline (category, description, impact area, evidence, mitigation), delete on any row, and category filtering
-- **Migration Timeline** — Interactive Gantt chart with editable phase durations, start date selection, and total duration calculation
+- **Migration Timeline** — Interactive Gantt chart with editable phase durations (auto-populated at 0.5 day/VM, rounded up to the nearest week), start date selection, and total duration calculation. The pilot wave migrates a small set of test VMs to prove the process before production waves begin
 - **VPC Network Design** — VMware port group to IBM Cloud VPC subnet mapping with zone distribution, security group generation, and ACL suggestions
 - **VPC Topology Visualization** — D3-based hierarchical diagram showing region, VPC, zones, and subnets color-coded by workload type
 

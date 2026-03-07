@@ -64,7 +64,7 @@ export interface UseTimelineConfigReturn {
   resetToDefaults: (waveCount: number) => void;
 }
 
-export function useTimelineConfig(waveCount: number, waveVmCounts?: number[]): UseTimelineConfigReturn {
+export function useTimelineConfig(waveCount: number, waveVmCounts?: number[], waveNames?: string[]): UseTimelineConfigReturn {
   const { rawData } = useData();
 
   const currentFingerprint = useMemo(() => {
@@ -93,8 +93,8 @@ export function useTimelineConfig(waveCount: number, waveVmCounts?: number[]): U
   }, [config.startDate]);
 
   const phases = useMemo(() => {
-    return buildDefaultTimeline(waveCount, config.phaseDurations, waveVmCounts);
-  }, [waveCount, config.phaseDurations, waveVmCounts]);
+    return buildDefaultTimeline(waveCount, config.phaseDurations, waveVmCounts, waveNames);
+  }, [waveCount, config.phaseDurations, waveVmCounts, waveNames]);
 
   const totals = useMemo(() => {
     return calculateTimelineTotals(phases, startDate);

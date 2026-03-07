@@ -20,10 +20,11 @@ export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date):
   }
 
   // Phase table
-  const headers = ['Phase', 'Type', 'Duration (weeks)', 'Start Week', 'End Week'];
+  const headers = ['Phase', 'Source', 'VMs', 'Duration (weeks)', 'Start Week', 'End Week'];
   const rows = phases.map(p => [
     p.name,
-    p.type,
+    p.waveSourceName || p.type,
+    p.waveVmCount?.toString() ?? '—',
     p.durationWeeks.toString(),
     p.startWeek.toString(),
     p.endWeek.toString(),
@@ -32,6 +33,9 @@ export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date):
   sections.push(
     ...createTableCaption('Migration Timeline Phases', 'Detailed breakdown of migration phases and durations'),
     createStyledTable(headers, rows),
+    createParagraph(
+      'The pilot wave is intended to migrate a small number of test VMs to prove the migration process before production waves begin. Wave durations are estimated at 0.5 day per VM, rounded up to the nearest week.'
+    ),
     createParagraph(
       'This timeline is indicative and based on typical migration patterns. Once a migration partner is engaged, they will produce a detailed, dependency-aware schedule with specific dates, maintenance windows, and resource assignments tailored to your environment.'
     ),
