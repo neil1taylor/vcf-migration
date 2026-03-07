@@ -183,8 +183,9 @@ export function ExportPage() {
           <Tile className="export-page__summary-tile">
             <h3 className="export-page__summary-title">About Reports</h3>
             <p className="export-page__summary-description">
-              All reports include infrastructure analysis based on your uploaded RVTools data.
-              {aiAvailable && ' AI-powered insights from watsonx.ai will be included automatically.'}
+              The <strong>PDF</strong> covers infrastructure discovery — a snapshot of your current VMware environment.
+              The <strong>Word document</strong> is the full migration assessment report with sizing, costs, risks, and recommendations.
+              {aiAvailable && ' AI-powered insights from watsonx.ai are included automatically in both.'}
             </p>
             <p className="export-page__summary-description">
               For BOM (Bill of Materials) exports and MTV YAML, visit the ROKS or VSI Migration pages
@@ -206,7 +207,7 @@ export function ExportPage() {
               <div>
                 <h3 className="export-page__card-title">PDF Report</h3>
                 <p className="export-page__card-description">
-                  Comprehensive visual report with charts and analysis. Best for executive presentations.
+                  Infrastructure discovery report with charts covering compute, storage, network, clusters, hosts, and resource pools. Best for summarizing the current VMware environment.
                 </p>
               </div>
             </div>
@@ -253,7 +254,7 @@ export function ExportPage() {
               <div>
                 <h3 className="export-page__card-title">Excel Workbook</h3>
                 <p className="export-page__card-description">
-                  Full data export with multiple sheets for detailed analysis and filtering.
+                  Raw VM data export with multiple sheets for detailed analysis and filtering. Includes all RVTools data plus AI insights when available.
                 </p>
               </div>
             </div>
@@ -278,7 +279,7 @@ export function ExportPage() {
               <div>
                 <h3 className="export-page__card-title">Word Document</h3>
                 <p className="export-page__card-description">
-                  Editable document report suitable for client deliverables and proposals.
+                  Full migration assessment report including executive summary, readiness analysis, platform selection, risk assessment, migration timeline, ROKS/VSI sizing, cost estimation, VPC network design, and next steps. Best for client deliverables and proposals.
                 </p>
               </div>
             </div>

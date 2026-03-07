@@ -26,6 +26,7 @@
           "Wave Planning tabs removed from ROKS and VSI migration pages — wave planning is now consolidated in the Migration Planning tab of Migration Review"
         ],
         "changed": [
+          "Export page descriptions now differentiate PDF (infrastructure discovery snapshot) from DOCX (full migration assessment report) and clarify Excel content",
           "Migration Timeline wave count now derived from wave planning active waves instead of port group estimation",
           "DOCX report: added migration partner refinement caveats across all major sections (assumptions, timeline, risk, wave planning, cost, platform selection, readiness, day 2 operations, next steps)"
         ],
