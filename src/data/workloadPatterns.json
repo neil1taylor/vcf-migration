@@ -39,6 +39,13 @@
         "description": "VMware Aria Operations — always classify as VMware Infrastructure"
       },
       {
+        "id": "vmware-vcvc",
+        "match": "contains",
+        "patterns": ["vc-vc"],
+        "category": "virtualization",
+        "description": "vCenter VMs (vc-vc naming) — always classify as VMware Infrastructure"
+      },
+      {
         "id": "adns-servers",
         "match": "startsWith",
         "patterns": ["ADNS"],
@@ -298,6 +305,13 @@
         "match": "contains",
         "patterns": ["vcenter", "vcsa"],
         "description": "vCenter Server Appliance (VCSA)"
+      },
+      {
+        "id": "vmware-vcvc",
+        "label": "VMware Infrastructure",
+        "match": "contains",
+        "patterns": ["vc-vc"],
+        "description": "vCenter VMs using vc-vc naming convention"
       },
       {
         "id": "vmware-aria-operations",
