@@ -113,14 +113,6 @@ export function PlatformSelectionPanel({ answers, onAnswer, onReset, score }: Pl
           </Column>
         )}
 
-        {/* PowerVS note */}
-        <Column lg={16} md={8} sm={4} style={{ marginTop: '0.5rem' }}>
-          <Tile style={{ backgroundColor: '#f4f4f4' }}>
-            <p style={{ margin: 0, fontSize: '0.875rem', color: '#525252' }}>
-              {factorsData.notes[0]}
-            </p>
-          </Tile>
-        </Column>
       </Grid>
     </div>
   );
