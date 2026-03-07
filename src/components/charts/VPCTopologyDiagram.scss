@@ -1,14 +1,180 @@
+@use '@carbon/styles/scss/spacing';
+@use '@carbon/styles/scss/type';
+
 .vpc-topology {
-  &__tooltip {
-    position: absolute;
-    background: var(--cds-layer);
+  &__header {
+    margin-bottom: spacing.$spacing-04;
+  }
+
+  &__title {
+    @include type.type-style('heading-compact-02');
+    color: var(--cds-text-primary);
+    margin-bottom: spacing.$spacing-02;
+  }
+
+  &__subtitle {
+    @include type.type-style('helper-text-01');
+    color: var(--cds-text-secondary);
+  }
+
+  &__vpc-container {
     border: 1px solid var(--cds-border-subtle);
+    border-radius: 6px;
+    padding: spacing.$spacing-04;
+  }
+
+  &__vpc-header {
+    @include type.type-style('heading-compact-02');
+    text-align: center;
+    margin-bottom: spacing.$spacing-05;
+    color: var(--cds-text-primary);
+  }
+
+  &__zones {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: spacing.$spacing-05;
+
+    @media (max-width: 672px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__zone {
+    border: 1px dashed var(--cds-border-subtle);
+    border-radius: 6px;
+    padding: spacing.$spacing-04;
+    background: transparent;
+
+    &--0 {
+      border-color: var(--cds-link-primary);
+    }
+
+    &--1 {
+      border-color: var(--cds-support-info);
+    }
+
+    &--2 {
+      border-color: var(--cds-support-success);
+    }
+  }
+
+  &__zone-label {
+    @include type.type-style('label-02');
+    display: block;
+    font-weight: 600;
+    margin-bottom: spacing.$spacing-03;
+
+    .vpc-topology__zone--0 & {
+      color: var(--cds-link-primary);
+    }
+
+    .vpc-topology__zone--1 & {
+      color: var(--cds-support-info);
+    }
+
+    .vpc-topology__zone--2 & {
+      color: var(--cds-support-success);
+    }
+  }
+
+  &__zone-subnets {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$spacing-02;
+  }
+
+  &__zone-empty {
+    @include type.type-style('body-compact-01');
+    color: var(--cds-text-placeholder);
+    text-align: center;
+    padding: spacing.$spacing-05 0;
+  }
+
+  &__subnet {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$spacing-02;
+    width: 100%;
+    padding: spacing.$spacing-02 spacing.$spacing-03;
+    background: var(--cds-layer-02);
+    border: none;
+    border-left: 3px solid var(--cds-border-subtle);
     border-radius: 4px;
-    padding: 8px 12px;
-    font-size: 12px;
-    line-height: 1.4;
-    pointer-events: none;
-    z-index: 10;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.15s;
+
+    &:hover {
+      background: var(--cds-layer-hover-02);
+    }
+
+    &--blue {
+      border-left-color: var(--cds-link-primary);
+    }
+
+    &--purple {
+      border-left-color: var(--cds-support-info);
+    }
+
+    &--red {
+      border-left-color: var(--cds-support-error);
+    }
+
+    &--teal {
+      border-left-color: var(--cds-support-success);
+    }
+
+    &--magenta {
+      border-left-color: var(--cds-support-warning);
+    }
+
+    &--cool-gray {
+      border-left-color: var(--cds-border-subtle);
+    }
+  }
+
+  &__subnet-tooltip-wrapper {
+    width: 100%;
+  }
+
+  &__subnet-name {
+    @include type.type-style('body-compact-01');
+    font-weight: 600;
+    color: var(--cds-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__transit-gateway {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: spacing.$spacing-03;
+    margin-top: spacing.$spacing-05;
+    padding: spacing.$spacing-03 spacing.$spacing-05;
+    border-top: 2px dashed var(--cds-border-subtle);
+    background: var(--cds-layer-02);
+    border-radius: 0 0 4px 4px;
+    color: var(--cds-link-primary);
+
+    @include type.type-style('label-02');
+    font-weight: 600;
+  }
+
+  &__legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: spacing.$spacing-03;
+    margin-top: spacing.$spacing-04;
+    padding-top: spacing.$spacing-04;
+    border-top: 1px solid var(--cds-border-subtle);
+  }
+
+  &__legend-label {
+    @include type.type-style('label-01');
+    color: var(--cds-text-secondary);
   }
 }

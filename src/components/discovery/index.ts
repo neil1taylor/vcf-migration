@@ -1,4 +1,5 @@
 // Discovery components
+export { InfrastructureTab } from './InfrastructureTab';
 export { VMManagementTab } from './VMManagementTab';
 export { WorkloadVMTable } from './WorkloadVMTable';
 export { ApplianceVMTable } from './ApplianceVMTable';

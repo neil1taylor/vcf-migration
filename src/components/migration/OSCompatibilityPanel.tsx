@@ -186,7 +186,7 @@ export function OSCompatibilityPanel({ mode, osStatusCounts, vms }: OSCompatibil
               </div>
               <div className="migration-page__recommendation-item">
                 <span className="migration-page__recommendation-key">Unsupported / EOL</span>
-                <span className="migration-page__recommendation-value">OS upgrade required before migration to OpenShift Virtualization</span>
+                <span className="migration-page__recommendation-value">OS upgrade recommended before migration to OpenShift Virtualization</span>
               </div>
             </div>
           </Tile>

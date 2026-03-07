@@ -22,6 +22,7 @@ export function DashboardPage() {
     clearFilter,
     autoExcludedCount,
     autoExcludedBreakdown,
+    inventoryTotal,
     totalVMs,
     poweredOnVMs,
     totalVCPUs,
@@ -131,6 +132,7 @@ export function DashboardPage() {
 
         {/* Key Metrics, Storage, Average per VM, Secondary Metrics */}
         <DashboardMetricsSection
+          inventoryTotal={inventoryTotal}
           totalVMs={totalVMs}
           poweredOnVMs={poweredOnVMs}
           totalVCPUs={totalVCPUs}

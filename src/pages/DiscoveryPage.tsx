@@ -8,7 +8,7 @@ import { ROUTES } from '@/utils/constants';
 import { formatNumber } from '@/utils/formatters';
 import { HorizontalBarChart } from '@/components/charts';
 import { MetricCard, NextStepBanner } from '@/components/common';
-import { DiscoveryVMTable } from '@/components/discovery';
+import { DiscoveryVMTable, InfrastructureTab } from '@/components/discovery';
 import { NetworkSummaryTable } from '@/components/network';
 import type { WorkloadMatch } from '@/components/discovery';
 import { getVMIdentifier, getEnvironmentFingerprint } from '@/utils/vmIdentifier';
@@ -336,10 +336,14 @@ export function DiscoveryPage() {
         <Column lg={16} md={8} sm={4}>
           <Tabs>
             <TabList aria-label="Discovery tabs" contained>
+              <Tab>Infrastructure</Tab>
               <Tab>Workload</Tab>
               <Tab>Networks</Tab>
             </TabList>
             <TabPanels>
+              <TabPanel>
+                <InfrastructureTab rawData={rawData} />
+              </TabPanel>
               <TabPanel>
                 <Grid className="discovery-page__tab-content">
 

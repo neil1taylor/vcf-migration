@@ -38,11 +38,19 @@ export function buildNetworkDesignSection(design: VPCDesign): DocumentContent[] 
     );
   }
 
-  // Transit Gateway
-  if (design.transitGateway.enabled) {
+  // Transit Gateways
+  const enabledGateways = design.transitGateways.filter(gw => gw.enabled);
+  if (enabledGateways.length > 0) {
+    sections.push(createHeading('Transit Gateways', HeadingLevel.HEADING_2));
+    const tgwHeaders = ['Gateway', 'Connection', 'Type'];
+    const tgwRows = enabledGateways.flatMap(gw =>
+      gw.connections.length > 0
+        ? gw.connections.map(conn => [gw.name, conn.name, conn.connectionType])
+        : [[gw.name, '(no connections)', '']]
+    );
     sections.push(
-      createHeading('Transit Gateway', HeadingLevel.HEADING_2),
-      createParagraph(`Transit Gateway: ${design.transitGateway.name} (Connection type: ${design.transitGateway.connectionType})`),
+      ...createTableCaption('Transit Gateway Configuration', 'Transit gateways connecting the VPC to other networks'),
+      createStyledTable(tgwHeaders, tgwRows),
     );
   }
 

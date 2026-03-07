@@ -178,4 +178,88 @@ describe('usePlatformSelection', () => {
     const { result } = renderHook(() => usePlatformSelection());
     expect(result.current.answers).toEqual({});
   });
+
+  describe('dynamic cost factor', () => {
+    it('increments vsiCount when cost-preference=yes and VSI is cheaper', () => {
+      const { result } = renderHook(() =>
+        usePlatformSelection({ roksMonthlyCost: 5000, vsiMonthlyCost: 3000 })
+      );
+
+      act(() => {
+        result.current.setAnswer('cost-preference', 'yes');
+      });
+
+      expect(result.current.score.vsiCount).toBe(1);
+      expect(result.current.score.roksCount).toBe(0);
+      expect(result.current.score.costLeaning).toBe('vsi');
+    });
+
+    it('increments roksCount when cost-preference=yes and ROKS is cheaper', () => {
+      const { result } = renderHook(() =>
+        usePlatformSelection({ roksMonthlyCost: 2000, vsiMonthlyCost: 4000 })
+      );
+
+      act(() => {
+        result.current.setAnswer('cost-preference', 'yes');
+      });
+
+      expect(result.current.score.roksCount).toBe(1);
+      expect(result.current.score.vsiCount).toBe(0);
+      expect(result.current.score.costLeaning).toBe('roks');
+    });
+
+    it('does not count cost factor when costs are equal', () => {
+      const { result } = renderHook(() =>
+        usePlatformSelection({ roksMonthlyCost: 3000, vsiMonthlyCost: 3000 })
+      );
+
+      act(() => {
+        result.current.setAnswer('cost-preference', 'yes');
+      });
+
+      expect(result.current.score.vsiCount).toBe(0);
+      expect(result.current.score.roksCount).toBe(0);
+      expect(result.current.score.costLeaning).toBeNull();
+    });
+
+    it('does not count cost factor when cost data is unavailable', () => {
+      const { result } = renderHook(() =>
+        usePlatformSelection({ roksMonthlyCost: null, vsiMonthlyCost: null })
+      );
+
+      act(() => {
+        result.current.setAnswer('cost-preference', 'yes');
+      });
+
+      expect(result.current.score.vsiCount).toBe(0);
+      expect(result.current.score.roksCount).toBe(0);
+      expect(result.current.score.costLeaning).toBeNull();
+    });
+
+    it('does not count cost factor when answer is no', () => {
+      const { result } = renderHook(() =>
+        usePlatformSelection({ roksMonthlyCost: 5000, vsiMonthlyCost: 3000 })
+      );
+
+      act(() => {
+        result.current.setAnswer('cost-preference', 'no');
+      });
+
+      expect(result.current.score.vsiCount).toBe(0);
+      expect(result.current.score.roksCount).toBe(0);
+      expect(result.current.score.costLeaning).toBe('vsi');
+    });
+
+    it('does not count cost factor when no costData provided', () => {
+      const { result } = renderHook(() => usePlatformSelection());
+
+      act(() => {
+        result.current.setAnswer('cost-preference', 'yes');
+      });
+
+      expect(result.current.score.vsiCount).toBe(0);
+      expect(result.current.score.roksCount).toBe(0);
+      expect(result.current.score.costLeaning).toBeNull();
+    });
+  });
 });

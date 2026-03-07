@@ -373,9 +373,9 @@ Maps VMware port groups to IBM Cloud VPC subnets. Distributes across 3 zones. Ge
 | `src/components/charts/VPCTopologyDiagram.tsx` | D3 hierarchical SVG (region → VPC → zones → subnets) |
 | `src/components/migration/NetworkDesignPanel.tsx` | Panel component for VSI Migration tab |
 
-### Migration Comparison (under Migration Assessment)
+### Migration Review (under Migration Assessment)
 
-Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 6-tab analysis. Route: `/migration-comparison`.
+Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 3-tab analysis. Route: `/migration-comparison`.
 
 **Target Assignment** — Default platform comes from the Platform Selection questionnaire's `leaning` (`roks`/`vsi`/`neutral`). SAP/Oracle VMs (enterprise workload + SAP/HANA name patterns, or database workload + Oracle name patterns) default to PowerVS. When leaning is `neutral`, falls back to data-driven auto-classification rules (`targetClassificationRules.json`). Users can override any VM's target via dropdown and edit the reason text inline. The VM Assignment table shows: VM Name, Workload Type, Target (dropdown), and Reason (editable text). Recommendation: >70% one target → recommend that target; else split.
 
@@ -386,9 +386,8 @@ Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 6-tab ana
 | `src/data/targetClassificationRules.json` | Data-driven classification rules (priority, type, target, confidence, reason templates) |
 | `src/services/migration/targetClassification.ts` | Rule engine: `classifyVMTarget()`, `classifyAllVMs()`, `getRecommendation()` |
 | `src/hooks/useTargetAssignments.ts` | Accepts `platformLeaning`, SAP/Oracle→PowerVS, localStorage `vcf-target-assignments`, env fingerprinting, user overrides with editable reasons |
-| `src/hooks/useComparisonData.ts` | Split VMs by target, compute per-target metrics |
-| `src/pages/MigrationComparisonPage.tsx` | Main page with 6 tabs |
-| `src/components/comparison/` | RecommendationBanner, VMAssignmentTable, CostComparisonPanel, ReadinessComparisonPanel, ArchitectureFitPanel, MigrationEffortPanel, PlatformSelectionPanel |
+| `src/pages/MigrationComparisonPage.tsx` | Main page with 3 tabs |
+| `src/components/comparison/` | RecommendationBanner, VMAssignmentTable, CostComparisonPanel, PlatformSelectionPanel |
 
 ### DOCX Export Sections
 

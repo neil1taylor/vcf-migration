@@ -311,7 +311,7 @@ export interface StreamCallbacks {
 
 // ===== TARGET SELECTION TYPES =====
 
-export type MigrationTarget = 'roks' | 'vsi';
+export type MigrationTarget = 'roks' | 'vsi' | 'powervs';
 
 export interface TargetSelectionInput {
   vmName: string;

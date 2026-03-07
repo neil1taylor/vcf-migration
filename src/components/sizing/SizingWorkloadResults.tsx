@@ -108,6 +108,7 @@ export function SizingWorkloadResults({
               <span className={`sizing-calculator__workload-nodes ${nodeRequirements.limitingFactor === 'cpu' ? 'sizing-calculator__workload-nodes--limiting' : ''}`}>
                 {nodeRequirements.nodesForCPU} nodes (min fit)
                 {nodeRequirements.limitingFactor === 'cpu' && <Tag type="red" size="sm">Limiting</Tag>}
+                {nodeRequirements.cpuCapacityExceeded && <Tag type="magenta" size="sm">ODF exceeds node CPU</Tag>}
               </span>
               <span className="sizing-calculator__workload-detail">
                 Workload: {formatNumber(nodeRequirements.totalVCPUs)} + Infra: {formatNumber((odfReservedCpu + systemReservedCpu) * nodeRequirements.totalNodes)}
@@ -241,7 +242,7 @@ export function SizingWorkloadResults({
             <span>Total: <strong>{formatNumber(Math.round(totalClusterCpuRaw))} vCPUs</strong></span>
             <span>Workload: <strong>{formatNumber(Math.round(cpuUsed))} vCPUs</strong></span>
             <span>Available: <strong>{formatNumber(Math.round(cpuAvailableCapacity))} vCPUs</strong></span>
-            <span>Utilization: <strong>{cpuUtilization.toFixed(1)}%</strong></span>
+            <span>Utilization: <strong>{cpuAvailableCapacity === 0 && cpuUsed > 0 ? 'Oversubscribed' : `${cpuUtilization.toFixed(1)}%`}</strong></span>
           </div>
 
           {/* Memory Cluster Capacity Breakdown */}

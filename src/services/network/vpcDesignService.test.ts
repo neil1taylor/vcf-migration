@@ -102,11 +102,28 @@ describe('buildVPCDesign', () => {
     expect(webSubnet?.cidr).toBe('10.100.0.0/24');
   });
 
-  it('configures transit gateway', () => {
-    const data = createMinimalData();
-    const design = buildVPCDesign(data, 'us-south', {}, {});
+  it('defaults to empty transit gateways', () => {
+    const design = buildVPCDesign(null, 'us-south', {}, {});
+    expect(design.transitGateways).toEqual([]);
+  });
 
-    expect(design.transitGateway).toBeDefined();
-    expect(design.transitGateway.enabled).toBe(false);
+  it('uses transit gateways from design overrides', () => {
+    const data = createMinimalData();
+    const overrides = {
+      version: 2,
+      environmentFingerprint: '',
+      region: 'us-south',
+      subnetOverrides: {},
+      transitGateways: [
+        { id: 'tgw-1', name: 'tgw-us-south-1', enabled: true, connections: [
+          { id: 'conn-1', connectionType: 'vpc' as const, name: 'conn-vpc' },
+        ]},
+      ],
+      createdAt: '',
+      modifiedAt: '',
+    };
+    const design = buildVPCDesign(data, 'us-south', {}, {}, overrides);
+    expect(design.transitGateways).toHaveLength(1);
+    expect(design.transitGateways[0].connections).toHaveLength(1);
   });
 });

@@ -224,7 +224,61 @@ describe('classifyVMTarget', () => {
     });
   });
 
-  // --- Linux default → ROKS (Rule 6) ---
+  // --- PowerVS rules (Rules 4-5) ---
+
+  describe('PowerVS classification (Oracle/SAP)', () => {
+    it('classifies Oracle database VM as PowerVS', () => {
+      const vm = makeVM({ vmName: 'oracle-db-prod', guestOS: 'Red Hat Enterprise Linux 9 (64-bit)' });
+      const result = classifyVMTarget(vm, 'Database Server');
+      expect(result.target).toBe('powervs');
+      expect(result.confidence).toBe('high');
+      expect(result.reasons[0]).toContain('Oracle');
+    });
+
+    it('classifies SAP enterprise VM as PowerVS', () => {
+      const vm = makeVM({ vmName: 'sap-erp-prod', guestOS: 'Red Hat Enterprise Linux 9 (64-bit)' });
+      const result = classifyVMTarget(vm, 'Enterprise Application');
+      expect(result.target).toBe('powervs');
+      expect(result.confidence).toBe('high');
+      expect(result.reasons[0]).toContain('SAP');
+    });
+
+    it('classifies HANA VM as PowerVS', () => {
+      const vm = makeVM({ vmName: 'hana-db-01', guestOS: 'SUSE Linux Enterprise Server 15 (64-bit)' });
+      const result = classifyVMTarget(vm, 'Enterprise Application');
+      expect(result.target).toBe('powervs');
+      expect(result.confidence).toBe('high');
+    });
+
+    it('classifies S4HANA VM as PowerVS', () => {
+      const vm = makeVM({ vmName: 's4hana-prod', guestOS: 'Red Hat Enterprise Linux 9 (64-bit)' });
+      const result = classifyVMTarget(vm, 'Enterprise Application');
+      expect(result.target).toBe('powervs');
+      expect(result.confidence).toBe('high');
+    });
+
+    it('does NOT classify non-Oracle database as PowerVS', () => {
+      const vm = makeVM({ vmName: 'mysql-db-prod', guestOS: 'Red Hat Enterprise Linux 9 (64-bit)' });
+      const result = classifyVMTarget(vm, 'Database Server');
+      expect(result.target).toBe('vsi');
+      expect(result.confidence).toBe('medium');
+    });
+
+    it('does NOT classify non-SAP enterprise app as PowerVS', () => {
+      const vm = makeVM({ vmName: 'jira-app-01', guestOS: 'Red Hat Enterprise Linux 9 (64-bit)' });
+      const result = classifyVMTarget(vm, 'Enterprise Application');
+      expect(result.target).toBe('vsi');
+      expect(result.confidence).toBe('medium');
+    });
+
+    it('Oracle name match is case-insensitive', () => {
+      const vm = makeVM({ vmName: 'ORACLE-ERP-01', guestOS: 'Red Hat Enterprise Linux 9 (64-bit)' });
+      const result = classifyVMTarget(vm, 'Database Server');
+      expect(result.target).toBe('powervs');
+    });
+  });
+
+  // --- Linux default → ROKS (Rule 8) ---
 
   describe('Linux default → ROKS', () => {
     it('classifies generic Linux as ROKS with low confidence', () => {
@@ -371,7 +425,7 @@ describe('classifyAllVMs', () => {
 // --- getRecommendation ---
 
 describe('getRecommendation', () => {
-  function makeClassification(target: 'roks' | 'vsi', vmName = 'vm'): VMClassification {
+  function makeClassification(target: 'roks' | 'vsi' | 'powervs', vmName = 'vm'): VMClassification {
     return {
       vmId: `${vmName}::uuid`,
       vmName,
@@ -440,6 +494,31 @@ describe('getRecommendation', () => {
 
     const result = getRecommendation(classifications, 1000, 1000, 800);
     expect(result.reasoning.some(r => r.includes('Split migration is the most cost-effective'))).toBe(true);
+  });
+
+  it('recommends all-powervs when >70% are PowerVS', () => {
+    const classifications = [
+      ...Array(8).fill(null).map((_, i) => makeClassification('powervs', `pvs-${i}`)),
+      ...Array(2).fill(null).map((_, i) => makeClassification('vsi', `vsi-${i}`)),
+    ];
+
+    const result = getRecommendation(classifications, 1000, 1200, 1100);
+    expect(result.type).toBe('all-powervs');
+    expect(result.title).toBe('All PowerVS Migration');
+    expect(result.powervsPercentage).toBe(80);
+  });
+
+  it('includes powervsPercentage in split recommendation', () => {
+    const classifications = [
+      ...Array(4).fill(null).map((_, i) => makeClassification('roks', `roks-${i}`)),
+      ...Array(4).fill(null).map((_, i) => makeClassification('vsi', `vsi-${i}`)),
+      ...Array(2).fill(null).map((_, i) => makeClassification('powervs', `pvs-${i}`)),
+    ];
+
+    const result = getRecommendation(classifications, 1000, 1000, 900);
+    expect(result.type).toBe('split');
+    expect(result.powervsPercentage).toBe(20);
+    expect(result.reasoning[0]).toContain('PowerVS');
   });
 
   it('handles empty classifications', () => {

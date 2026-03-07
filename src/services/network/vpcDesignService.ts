@@ -206,11 +206,7 @@ export function buildVPCDesign(
     subnets: [],
     securityGroups: [],
     aclSuggestions: [],
-    transitGateway: designOverrides?.transitGateway ?? {
-      enabled: false,
-      connectionType: 'vpc',
-      name: `tgw-${region}`,
-    },
+    transitGateways: designOverrides?.transitGateways ?? [],
   };
 
   if (!rawData) return defaultDesign;
@@ -230,6 +226,6 @@ export function buildVPCDesign(
     subnets,
     securityGroups,
     aclSuggestions,
-    transitGateway: designOverrides?.transitGateway ?? defaultDesign.transitGateway,
+    transitGateways: designOverrides?.transitGateways ?? [],
   };
 }

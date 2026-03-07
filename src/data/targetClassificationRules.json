@@ -33,8 +33,28 @@
       "reasonTemplate": "High memory ({{memoryGB}} GB) requires bare metal, best suited for ROKS"
     },
     {
-      "id": "vsi-workload",
+      "id": "powervs-oracle",
       "priority": 4,
+      "type": "workload-type",
+      "workloadTypes": ["database"],
+      "namePatterns": ["oracle"],
+      "target": "powervs",
+      "confidence": "high",
+      "reasonTemplate": "Oracle workload \"{{workloadType}}\" is best suited for PowerVS"
+    },
+    {
+      "id": "powervs-sap",
+      "priority": 5,
+      "type": "workload-type",
+      "workloadTypes": ["enterprise"],
+      "namePatterns": ["sap", "hana", "s4hana"],
+      "target": "powervs",
+      "confidence": "high",
+      "reasonTemplate": "SAP workload \"{{workloadType}}\" is best suited for PowerVS"
+    },
+    {
+      "id": "vsi-workload",
+      "priority": 6,
       "type": "workload-type",
       "workloadTypes": ["database", "enterprise", "backup", "monitoring"],
       "target": "vsi",
@@ -43,7 +63,7 @@
     },
     {
       "id": "roks-workload",
-      "priority": 5,
+      "priority": 7,
       "type": "workload-type",
       "workloadTypes": ["middleware", "dev"],
       "requireOS": ["linux", "ubuntu", "centos", "rhel", "red hat", "debian", "suse", "fedora", "oracle linux", "alma", "rocky"],
@@ -53,7 +73,7 @@
     },
     {
       "id": "linux-default",
-      "priority": 6,
+      "priority": 8,
       "type": "os-pattern",
       "patterns": ["linux", "ubuntu", "centos", "rhel", "red hat", "debian", "suse", "fedora", "oracle linux", "alma", "rocky"],
       "target": "roks",
@@ -62,7 +82,7 @@
     },
     {
       "id": "fallback",
-      "priority": 7,
+      "priority": 9,
       "type": "fallback",
       "target": "vsi",
       "confidence": "low",

@@ -31,6 +31,37 @@ export interface ROKSSizingInput {
   odfProfile?: string;
   odfTier?: OdfTier;
   includeAcm?: boolean;
+  /** ODF/capacity settings for per-profile viability checks in cost comparison */
+  odfSettings?: {
+    odfTuningProfile: string;
+    odfCpuUnitMode: string;
+    htMultiplier: number;
+    useHyperthreading: boolean;
+    includeRgw: boolean;
+    systemReservedCpu: number;
+    cpuOvercommit: number;
+  };
+  /** Parameters for calculating per-profile node counts in cost comparison */
+  nodeCalcParams?: {
+    totalVCPUs: number;
+    totalMemoryGiB: number;
+    totalStorageGiB: number;
+    evictionThreshold: number;
+    nodeRedundancy: number;
+    memoryOvercommit: number;
+    cpuOvercommit: number;
+    replicaFactor: number;
+    cephOverhead: number;
+    operationalCapacity: number;
+    odfTuningProfile: string;
+    odfCpuUnitMode: string;
+    htMultiplier: number;
+    useHyperthreading: boolean;
+    includeRgw: boolean;
+    systemReservedCpu: number;
+    systemReservedMemory: number;
+    odfReservedMemory: number;
+  };
 }
 
 export interface NetworkingOptions {

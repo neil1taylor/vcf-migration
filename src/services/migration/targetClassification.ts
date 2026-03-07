@@ -14,7 +14,7 @@ import rulesData from '@/data/targetClassificationRules.json';
 
 // --- Types ---
 
-export type MigrationTarget = 'roks' | 'vsi';
+export type MigrationTarget = 'roks' | 'vsi' | 'powervs';
 export type ConfidenceLevel = 'high' | 'medium' | 'low';
 
 export interface VMClassification {
@@ -25,7 +25,7 @@ export interface VMClassification {
   confidence: ConfidenceLevel;
 }
 
-export type RecommendationType = 'all-roks' | 'all-vsi' | 'split';
+export type RecommendationType = 'all-roks' | 'all-vsi' | 'all-powervs' | 'split';
 
 export interface ComparisonRecommendation {
   type: RecommendationType;
@@ -33,6 +33,7 @@ export interface ComparisonRecommendation {
   reasoning: string[];
   roksPercentage: number;
   vsiPercentage: number;
+  powervsPercentage: number;
 }
 
 interface ClassificationRule {
@@ -52,6 +53,7 @@ interface ClassificationRule {
   unit?: string;
   // workload-type
   workloadTypes?: string[];
+  namePatterns?: string[];
   requireOS?: string[];
   // os-pattern
   patterns?: string[];
@@ -118,6 +120,12 @@ function evaluateRule(
       const lower = workloadType.toLowerCase();
       const typeMatches = rule.workloadTypes.some(t => lower.includes(t));
       if (!typeMatches) return null;
+
+      if (rule.namePatterns) {
+        const vmNameLower = vm.vmName.toLowerCase();
+        const nameMatches = rule.namePatterns.some(p => vmNameLower.includes(p));
+        if (!nameMatches) return null;
+      }
 
       if (rule.requireOS && !matchesOSPatterns(vm.guestOS, rule.requireOS)) {
         return null;
@@ -218,14 +226,17 @@ export function getRecommendation(
       reasoning: ['No VMs to classify'],
       roksPercentage: 0,
       vsiPercentage: 0,
+      powervsPercentage: 0,
     };
   }
 
   const roksCount = classifications.filter(c => c.target === 'roks').length;
   const vsiCount = classifications.filter(c => c.target === 'vsi').length;
+  const powervsCount = classifications.filter(c => c.target === 'powervs').length;
   const total = classifications.length;
   const roksPercentage = Math.round((roksCount / total) * 100);
   const vsiPercentage = Math.round((vsiCount / total) * 100);
+  const powervsPercentage = Math.round((powervsCount / total) * 100);
 
   const reasoning: string[] = [];
 
@@ -237,7 +248,7 @@ export function getRecommendation(
     } else {
       reasoning.push(`VSI would be cheaper ($${vsiCost.toLocaleString()} vs $${roksCost.toLocaleString()}), but the workload mix strongly favors ROKS`);
     }
-    return { type: 'all-roks', title: 'All ROKS Migration', reasoning, roksPercentage, vsiPercentage };
+    return { type: 'all-roks', title: 'All ROKS Migration', reasoning, roksPercentage, vsiPercentage, powervsPercentage };
   }
 
   if (vsiPercentage > 70) {
@@ -247,11 +258,17 @@ export function getRecommendation(
     } else {
       reasoning.push(`ROKS would be cheaper ($${roksCost.toLocaleString()} vs $${vsiCost.toLocaleString()}), but the workload mix strongly favors VSI`);
     }
-    return { type: 'all-vsi', title: 'All VSI Migration', reasoning, roksPercentage, vsiPercentage };
+    return { type: 'all-vsi', title: 'All VSI Migration', reasoning, roksPercentage, vsiPercentage, powervsPercentage };
+  }
+
+  if (powervsPercentage > 70) {
+    reasoning.push(`${powervsPercentage}% of VMs are classified for PowerVS`);
+    reasoning.push('Workload mix strongly favors IBM Power Virtual Server');
+    return { type: 'all-powervs', title: 'All PowerVS Migration', reasoning, roksPercentage, vsiPercentage, powervsPercentage };
   }
 
   // Split migration
-  reasoning.push(`Mixed workload: ${roksPercentage}% ROKS, ${vsiPercentage}% VSI`);
+  reasoning.push(`Mixed workload: ${roksPercentage}% ROKS, ${vsiPercentage}% VSI, ${powervsPercentage}% PowerVS`);
 
   const minCost = Math.min(roksCost, vsiCost, splitCost);
   if (splitCost === minCost) {
@@ -262,5 +279,5 @@ export function getRecommendation(
     reasoning.push(`All-VSI would be cheapest ($${vsiCost.toLocaleString()}), but workload mix requires a split approach`);
   }
 
-  return { type: 'split', title: 'Split Migration', reasoning, roksPercentage, vsiPercentage };
+  return { type: 'split', title: 'Split Migration', reasoning, roksPercentage, vsiPercentage, powervsPercentage };
 }

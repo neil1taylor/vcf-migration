@@ -130,21 +130,20 @@ describe('getAutoExclusion', () => {
     expect(result.labels).toContain('Network Edge Appliance');
   });
 
-  it('excludes Windows AD/DNS servers (ADNSvcs*)', () => {
+  it('does not exclude ADNS VMs (classified as DNS, not excluded)', () => {
     const vm = createVM({ vmName: 'ADNSvcs-prod-01' });
     const result = getAutoExclusion(vm);
 
-    expect(result.isAutoExcluded).toBe(true);
-    expect(result.reasons).toContain('windows-adns');
-    expect(result.labels).toContain('Windows AD/DNS');
+    expect(result.isAutoExcluded).toBe(false);
   });
 
-  it('excludes ADNSvcs VMs case-insensitively', () => {
-    const vm = createVM({ vmName: 'adnsvcs-test-02' });
+  it('excludes VMware Aria Operations appliances', () => {
+    const vm = createVM({ vmName: 'VMware-Aria-Operations-abc123' });
     const result = getAutoExclusion(vm);
 
     expect(result.isAutoExcluded).toBe(true);
-    expect(result.reasons).toContain('windows-adns');
+    expect(result.reasons).toContain('vmware-aria-operations');
+    expect(result.labels).toContain('VMware Infrastructure');
   });
 
   it('can have multiple exclusion reasons', () => {

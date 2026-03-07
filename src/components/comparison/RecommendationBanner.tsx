@@ -13,12 +13,13 @@ export function RecommendationBanner({ recommendation, platformScore }: Recommen
   const colorMap: Record<string, string> = {
     'all-roks': '#009d9a',
     'all-vsi': '#0f62fe',
-    'split': '#8a3ffc',
+    'all-powervs': '#8a3ffc',
+    'split': '#a56eff',
   };
   const borderColor = colorMap[recommendation.type] || '#0f62fe';
 
   // Determine if questionnaire agrees/disagrees with auto-recommendation
-  const autoLeaning = recommendation.type === 'all-roks' ? 'roks' : recommendation.type === 'all-vsi' ? 'vsi' : null;
+  const autoLeaning = recommendation.type === 'all-roks' ? 'roks' : recommendation.type === 'all-vsi' ? 'vsi' : recommendation.type === 'all-powervs' ? 'powervs' : null;
   const hasQuestionnaireAnswers = platformScore && platformScore.answeredCount > 0;
   const questionnaireDisagrees = hasQuestionnaireAnswers && autoLeaning && platformScore.leaning !== 'neutral' && platformScore.leaning !== autoLeaning;
 
@@ -34,7 +35,7 @@ export function RecommendationBanner({ recommendation, platformScore }: Recommen
         ))}
       </UnorderedList>
       <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#525252' }}>
-        {recommendation.roksPercentage}% ROKS / {recommendation.vsiPercentage}% VSI
+        {recommendation.roksPercentage}% ROKS / {recommendation.vsiPercentage}% VSI / {recommendation.powervsPercentage}% PowerVS
       </div>
       {hasQuestionnaireAnswers && (
         <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px solid #e0e0e0', fontSize: '0.875rem' }}>

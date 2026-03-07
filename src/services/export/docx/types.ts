@@ -13,6 +13,8 @@ export type DocumentContent = Paragraph | Table;
 export interface PlatformSelectionExport {
   score: PlatformSelectionScore;
   answers: Record<string, FactorAnswer>;
+  roksMonthlyCost?: number | null;
+  vsiMonthlyCost?: number | null;
 }
 
 export interface WavePlanningPreference {

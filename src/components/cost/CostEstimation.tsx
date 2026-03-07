@@ -236,6 +236,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
   const tableHeaders = [
     { key: 'category', header: 'Category' },
     { key: 'description', header: 'Description' },
+    { key: 'details', header: 'Details' },
     { key: 'quantity', header: 'Qty' },
     { key: 'unitCost', header: 'Unit Cost' },
     { key: 'monthlyCost', header: 'Monthly' },
@@ -248,6 +249,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
       id: `item-${idx}`,
       category: item.category,
       description: item.description,
+      details: item.notes || '',
       quantity: `${item.quantity.toLocaleString()} ${item.unit}`,
       unitCost: isUnpriceable ? 'N/A' : (item.unitCost < 1 ? formatCurrencyPrecise(item.unitCost) : formatCurrency(item.unitCost)),
       monthlyCost: isUnpriceable ? 'Unable to Price' : formatCurrency(item.monthlyCost),
@@ -613,14 +615,14 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
                   ))}
                   {/* Subtotal row */}
                   <TableRow className="cost-estimation__subtotal-row">
-                    <TableCell colSpan={4}><strong>Subtotal</strong></TableCell>
+                    <TableCell colSpan={5}><strong>Subtotal</strong></TableCell>
                     <TableCell><strong>{hasUnpriceableCompute ? 'Unable to Price' : formatCurrency(estimate.subtotalMonthly)}</strong></TableCell>
                     <TableCell><strong>{hasUnpriceableCompute ? 'Unable to Price' : formatCurrency(estimate.subtotalAnnual)}</strong></TableCell>
                   </TableRow>
                   {/* Discount row */}
                   {!hasUnpriceableCompute && estimate.discountPct > 0 && (
                     <TableRow className="cost-estimation__discount-row">
-                      <TableCell colSpan={4}>
+                      <TableCell colSpan={5}>
                         <em>Discount ({estimate.discountPct}%)</em>
                       </TableCell>
                       <TableCell><em>-{formatCurrency(estimate.discountAmountMonthly)}</em></TableCell>
@@ -629,7 +631,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
                   )}
                   {/* Total row */}
                   <TableRow className="cost-estimation__total-row">
-                    <TableCell colSpan={4}><strong>Total</strong></TableCell>
+                    <TableCell colSpan={5}><strong>Total</strong></TableCell>
                     <TableCell><strong>{hasUnpriceableCompute ? 'Unable to Price' : formatCurrency(estimate.totalMonthly)}</strong></TableCell>
                     <TableCell><strong>{hasUnpriceableCompute ? 'Unable to Price' : formatCurrency(estimate.totalAnnual)}</strong></TableCell>
                   </TableRow>

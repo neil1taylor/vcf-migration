@@ -334,8 +334,10 @@ Key capabilities used:
 - Column sorting and filtering
 - Pagination for large datasets
 - Flexible column definitions with custom cell renderers
+- Virtualized scrolling via **TanStack Virtual** (`@tanstack/react-virtual`) for performant rendering of large VM lists
 
 🔗 https://tanstack.com/table
+🔗 https://tanstack.com/virtual
 
 ---
 

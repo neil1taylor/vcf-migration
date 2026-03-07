@@ -10,6 +10,12 @@ export interface PlatformSelectionScore {
   roksCount: number;
   answeredCount: number;
   leaning: 'roks' | 'vsi' | 'neutral';
+  costLeaning?: 'vsi' | 'roks' | null;
+}
+
+export interface PlatformSelectionCostData {
+  roksMonthlyCost?: number | null;
+  vsiMonthlyCost?: number | null;
 }
 
 interface PlatformSelectionData {
@@ -64,7 +70,7 @@ export interface UsePlatformSelectionReturn {
   score: PlatformSelectionScore;
 }
 
-export function usePlatformSelection(): UsePlatformSelectionReturn {
+export function usePlatformSelection(costData?: PlatformSelectionCostData): UsePlatformSelectionReturn {
   const { rawData } = useData();
 
   const currentFingerprint = useMemo(() => {
@@ -124,13 +130,28 @@ export function usePlatformSelection(): UsePlatformSelectionReturn {
     let vsiCount = 0;
     let roksCount = 0;
     let answeredCount = 0;
+    let costLeaning: 'vsi' | 'roks' | null = null;
+
+    // Resolve dynamic cost factor target
+    const roksCost = costData?.roksMonthlyCost;
+    const vsiCost = costData?.vsiMonthlyCost;
+    if (roksCost != null && vsiCost != null) {
+      if (vsiCost < roksCost) costLeaning = 'vsi';
+      else if (roksCost < vsiCost) costLeaning = 'roks';
+    }
 
     for (const factor of factorsData.factors) {
       const answer = data.answers[factor.id];
       if (answer === 'yes') {
         answeredCount++;
-        if (factor.target === 'vsi') vsiCount++;
-        else if (factor.target === 'roks') roksCount++;
+        if (factor.target === 'vsi') {
+          vsiCount++;
+        } else if (factor.target === 'roks') {
+          roksCount++;
+        } else if (factor.target === 'dynamic' && (factor as { dynamicResolver?: string }).dynamicResolver === 'cost') {
+          if (costLeaning === 'vsi') vsiCount++;
+          else if (costLeaning === 'roks') roksCount++;
+        }
       } else if (answer === 'no' || answer === 'not-sure') {
         answeredCount++;
       }
@@ -141,8 +162,8 @@ export function usePlatformSelection(): UsePlatformSelectionReturn {
       roksCount > vsiCount ? 'roks' :
       'neutral';
 
-    return { vsiCount, roksCount, answeredCount, leaning };
-  }, [data.answers]);
+    return { vsiCount, roksCount, answeredCount, leaning, costLeaning };
+  }, [data.answers, costData?.roksMonthlyCost, costData?.vsiMonthlyCost]);
 
   return { answers: data.answers, setAnswer, resetAll, score };
 }

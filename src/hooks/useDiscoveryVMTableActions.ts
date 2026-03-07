@@ -32,6 +32,12 @@ export interface UseDiscoveryVMTableActionsReturn {
   setEditingNotes: React.Dispatch<React.SetStateAction<EditingNotes | null>>;
   editingWorkload: EditingWorkload | null;
   setEditingWorkload: React.Dispatch<React.SetStateAction<EditingWorkload | null>>;
+  bulkWorkloadVMs: Array<{ vmId: string; vmName: string }> | null;
+  setBulkWorkloadVMs: React.Dispatch<React.SetStateAction<Array<{ vmId: string; vmName: string }> | null>>;
+  bulkNotesVMs: Array<{ vmId: string; vmName: string }> | null;
+  setBulkNotesVMs: React.Dispatch<React.SetStateAction<Array<{ vmId: string; vmName: string }> | null>>;
+  bulkNotesText: string;
+  setBulkNotesText: React.Dispatch<React.SetStateAction<string>>;
   showImportModal: boolean;
   setShowImportModal: React.Dispatch<React.SetStateAction<boolean>>;
   importJson: string;
@@ -42,6 +48,10 @@ export interface UseDiscoveryVMTableActionsReturn {
   // Action handlers
   handleBulkExclude: (selectedRows: Array<{ id: string }>) => void;
   handleBulkInclude: (selectedRows: Array<{ id: string }>) => void;
+  handleBulkEditWorkload: (selectedRows: Array<{ id: string }>) => void;
+  handleBulkSaveWorkload: (item: { id: string; text: string } | string | null | undefined) => void;
+  handleBulkEditNotes: (selectedRows: Array<{ id: string }>) => void;
+  handleBulkSaveNotes: () => void;
   handleToggleExclusion: (row: VMRow) => void;
   handleEditNotes: (row: VMRow) => void;
   handleSaveNotes: () => void;
@@ -58,8 +68,18 @@ export function useDiscoveryVMTableActions(
   vmRows: VMRow[],
   vmOverrides: UseVMOverridesReturn,
 ): UseDiscoveryVMTableActionsReturn {
+  // Destructure for stable deps — each handler only depends on the methods it uses
+  const {
+    bulkSetExcluded, bulkSetForceIncluded, bulkSetWorkloadType, bulkSetNotes,
+    setForceIncluded, setExcluded, setNotes, setWorkloadType,
+    getWorkloadType, exportSettings: doExportSettings, importSettings: doImportSettings,
+  } = vmOverrides;
+
   const [editingNotes, setEditingNotes] = useState<EditingNotes | null>(null);
   const [editingWorkload, setEditingWorkload] = useState<EditingWorkload | null>(null);
+  const [bulkWorkloadVMs, setBulkWorkloadVMs] = useState<Array<{ vmId: string; vmName: string }> | null>(null);
+  const [bulkNotesVMs, setBulkNotesVMs] = useState<Array<{ vmId: string; vmName: string }> | null>(null);
+  const [bulkNotesText, setBulkNotesText] = useState('');
   const [showImportModal, setShowImportModal] = useState(false);
   const [importJson, setImportJson] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
@@ -69,8 +89,8 @@ export function useDiscoveryVMTableActions(
       const vmRow = vmRows.find(r => r.id === row.id);
       return { vmId: row.id, vmName: vmRow?.vmName || '' };
     });
-    vmOverrides.bulkSetExcluded(toExclude, true);
-  }, [vmRows, vmOverrides]);
+    bulkSetExcluded(toExclude, true);
+  }, [vmRows, bulkSetExcluded]);
 
   const handleBulkInclude = useCallback((selectedRows: Array<{ id: string }>) => {
     const toInclude = selectedRows.map(row => {
@@ -86,24 +106,62 @@ export function useDiscoveryVMTableActions(
       return !vmRow?.isAutoExcluded;
     });
     if (autoExcludedVMs.length > 0) {
-      vmOverrides.bulkSetForceIncluded(autoExcludedVMs, true);
+      bulkSetForceIncluded(autoExcludedVMs, true);
     }
     if (manuallyExcludedVMs.length > 0) {
-      vmOverrides.bulkSetExcluded(manuallyExcludedVMs, false);
+      bulkSetExcluded(manuallyExcludedVMs, false);
     }
-  }, [vmRows, vmOverrides]);
+  }, [vmRows, bulkSetForceIncluded, bulkSetExcluded]);
+
+  const handleBulkEditWorkload = useCallback((selectedRows: Array<{ id: string }>) => {
+    const vms = selectedRows.map(row => {
+      const vmRow = vmRows.find(r => r.id === row.id);
+      return { vmId: row.id, vmName: vmRow?.vmName || '' };
+    });
+    setBulkWorkloadVMs(vms);
+  }, [vmRows]);
+
+  const handleBulkSaveWorkload = useCallback((item: { id: string; text: string } | string | null | undefined) => {
+    if (bulkWorkloadVMs) {
+      const text = typeof item === 'string' ? item : item?.text;
+      const id = typeof item === 'string' ? 'custom' : item?.id;
+
+      if (text && id !== 'unclassified') {
+        bulkSetWorkloadType(bulkWorkloadVMs, text);
+      } else {
+        bulkSetWorkloadType(bulkWorkloadVMs, undefined);
+      }
+      setBulkWorkloadVMs(null);
+    }
+  }, [bulkWorkloadVMs, bulkSetWorkloadType]);
+
+  const handleBulkEditNotes = useCallback((selectedRows: Array<{ id: string }>) => {
+    const vms = selectedRows.map(row => {
+      const vmRow = vmRows.find(r => r.id === row.id);
+      return { vmId: row.id, vmName: vmRow?.vmName || '' };
+    });
+    setBulkNotesVMs(vms);
+    setBulkNotesText('');
+  }, [vmRows]);
+
+  const handleBulkSaveNotes = useCallback(() => {
+    if (bulkNotesVMs) {
+      bulkSetNotes(bulkNotesVMs, bulkNotesText || undefined);
+      setBulkNotesVMs(null);
+    }
+  }, [bulkNotesVMs, bulkNotesText, bulkSetNotes]);
 
   const handleToggleExclusion = useCallback((row: VMRow) => {
     if (row.isAutoExcluded && !row.isForceIncluded) {
-      vmOverrides.setForceIncluded(row.id, row.vmName, true);
+      setForceIncluded(row.id, row.vmName, true);
     } else if (row.isForceIncluded) {
-      vmOverrides.setForceIncluded(row.id, row.vmName, false);
+      setForceIncluded(row.id, row.vmName, false);
     } else if (row.isManuallyExcluded) {
-      vmOverrides.setExcluded(row.id, row.vmName, false);
+      setExcluded(row.id, row.vmName, false);
     } else {
-      vmOverrides.setExcluded(row.id, row.vmName, true);
+      setExcluded(row.id, row.vmName, true);
     }
-  }, [vmOverrides]);
+  }, [setForceIncluded, setExcluded]);
 
   const handleEditNotes = useCallback((row: VMRow) => {
     setEditingNotes({ vmId: row.id, vmName: row.vmName, notes: row.notes });
@@ -111,18 +169,18 @@ export function useDiscoveryVMTableActions(
 
   const handleSaveNotes = useCallback(() => {
     if (editingNotes) {
-      vmOverrides.setNotes(editingNotes.vmId, editingNotes.vmName, editingNotes.notes || undefined);
+      setNotes(editingNotes.vmId, editingNotes.vmName, editingNotes.notes || undefined);
       setEditingNotes(null);
     }
-  }, [editingNotes, vmOverrides]);
+  }, [editingNotes, setNotes]);
 
   const handleEditWorkload = useCallback((row: VMRow) => {
     setEditingWorkload({
       vmId: row.id,
       vmName: row.vmName,
-      current: vmOverrides.getWorkloadType(row.id) || (row.categorySource !== 'none' ? row.categoryName : undefined),
+      current: getWorkloadType(row.id) || (row.categorySource !== 'none' ? row.categoryName : undefined),
     });
-  }, [vmOverrides]);
+  }, [getWorkloadType]);
 
   const handleSaveWorkload = useCallback((item: { id: string; text: string } | string | null | undefined) => {
     if (editingWorkload) {
@@ -130,16 +188,16 @@ export function useDiscoveryVMTableActions(
       const id = typeof item === 'string' ? 'custom' : item?.id;
 
       if (text && id !== 'unclassified') {
-        vmOverrides.setWorkloadType(editingWorkload.vmId, editingWorkload.vmName, text);
+        setWorkloadType(editingWorkload.vmId, editingWorkload.vmName, text);
       } else {
-        vmOverrides.setWorkloadType(editingWorkload.vmId, editingWorkload.vmName, undefined);
+        setWorkloadType(editingWorkload.vmId, editingWorkload.vmName, undefined);
       }
       setEditingWorkload(null);
     }
-  }, [editingWorkload, vmOverrides]);
+  }, [editingWorkload, setWorkloadType]);
 
   const handleExportSettings = useCallback(() => {
-    const json = vmOverrides.exportSettings();
+    const json = doExportSettings();
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -147,7 +205,7 @@ export function useDiscoveryVMTableActions(
     a.download = 'vm-overrides.json';
     a.click();
     URL.revokeObjectURL(url);
-  }, [vmOverrides]);
+  }, [doExportSettings]);
 
   const handleImportSettings = useCallback(() => {
     setImportError(null);
@@ -155,14 +213,14 @@ export function useDiscoveryVMTableActions(
       setImportError('Please paste valid JSON');
       return;
     }
-    const success = vmOverrides.importSettings(importJson);
+    const success = doImportSettings(importJson);
     if (success) {
       setShowImportModal(false);
       setImportJson('');
     } else {
       setImportError('Invalid JSON format');
     }
-  }, [importJson, vmOverrides]);
+  }, [importJson, doImportSettings]);
 
   const handleExportCSV = useCallback((filteredRows: VMRow[]) => {
     const headers = ['VM Name', 'Cluster', 'Power State', 'vCPUs', 'Memory (GiB)', 'Storage (GiB)', 'Guest OS', 'Workload Type', 'Source', 'Status', 'Auto-Exclusion Reasons', 'Notes'];
@@ -205,6 +263,12 @@ export function useDiscoveryVMTableActions(
     setEditingNotes,
     editingWorkload,
     setEditingWorkload,
+    bulkWorkloadVMs,
+    setBulkWorkloadVMs,
+    bulkNotesVMs,
+    setBulkNotesVMs,
+    bulkNotesText,
+    setBulkNotesText,
     showImportModal,
     setShowImportModal,
     importJson,
@@ -213,6 +277,10 @@ export function useDiscoveryVMTableActions(
     setImportError,
     handleBulkExclude,
     handleBulkInclude,
+    handleBulkEditWorkload,
+    handleBulkSaveWorkload,
+    handleBulkEditNotes,
+    handleBulkSaveNotes,
     handleToggleExclusion,
     handleEditNotes,
     handleSaveNotes,

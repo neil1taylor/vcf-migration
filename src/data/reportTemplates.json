@@ -51,7 +51,7 @@
     },
     "migrationComparison": {
       "title": "Migration Platform Comparison",
-      "description": "This comparison supports platform selection by highlighting fundamental differences in architecture and operational model. Migration Approach indicates whether VMs run on a container orchestration platform (ROKS) or traditional IaaS (VSI)—this choice affects operational procedures and skill requirements. Infrastructure type affects performance characteristics: bare metal provides consistent performance while shared infrastructure offers cost efficiency. Storage architecture differs significantly: ODF provides software-defined storage with automatic replication versus block storage volumes requiring explicit backup configuration. Modernization Path indicates future options: ROKS positions workloads for eventual containerization while VSI maintains traditional VM operations. Operational Model determines day-to-day management: Kubernetes/GitOps requires new skills but enables automation, while traditional management leverages existing expertise. Consider your organization's strategic direction, team capabilities, and workload characteristics when selecting the target platform."
+      "description": "This comparison supports platform selection by highlighting fundamental differences in architecture and operational model. Both platforms use a lift-convert-shift approach where virtual machines are migrated as-is without application changes — the difference is in the target infrastructure and operational model. Infrastructure type affects performance characteristics: bare metal provides consistent performance while shared infrastructure offers cost efficiency. Storage architecture differs significantly: ODF provides software-defined storage with automatic replication versus block storage volumes requiring explicit backup configuration. Modernization Path indicates future options: ROKS positions workloads for eventual containerization while VSI maintains traditional VM operations. Operational Model determines day-to-day management: Kubernetes/GitOps requires new skills but enables automation, while traditional management leverages existing expertise. Consider your organization's strategic direction, team capabilities, and workload characteristics when selecting the target platform."
     },
     "roksSizing": {
       "title": "Recommended ROKS Cluster Configuration",
@@ -389,6 +389,130 @@
         "VSI costs do not include operating system licensing for non-Linux workloads"
       ]
     }
+  },
+
+  "day2Operations": {
+    "title": "Day 2 Operations Considerations",
+    "introduction": "Migrating from VMware to IBM Cloud changes the underlying platform, which means VMware-native operational tooling will require replacement, reconfiguration, or architectural changes. This section outlines the key operational domains affected and provides guidance on IBM Cloud alternatives and planning recommendations.",
+    "domains": [
+      {
+        "title": "Backup & Disaster Recovery",
+        "description": "VMware backup solutions that rely on vSphere APIs for Data Protection (VADP) will lose their hypervisor-level integration after migration.",
+        "impact": "Tools such as Veeam, Veritas NetBackup, and Commvault that use VADP for agentless, image-level backups will no longer function in their current configuration. VMware Site Recovery Manager (SRM) and Zerto replication policies tied to vSphere will also need to be replaced.",
+        "ibmCloudAlternatives": [
+          "IBM Cloud Backup for agent-based backup of VSI instances",
+          "IBM Cloud Object Storage for scalable, durable backup targets",
+          "Veeam on IBM Cloud (available as a managed service for VPC workloads)",
+          "OpenShift Virtualization snapshots and OADP (OpenShift API for Data Protection) for ROKS",
+          "IBM Cloud Cyber Recovery for isolated recovery environments",
+          "Zerto on IBM Cloud for continuous replication and disaster recovery"
+        ],
+        "recommendations": [
+          "Inventory all current backup policies, schedules, and retention requirements before migration",
+          "Evaluate whether existing backup vendor offers an IBM Cloud-native integration or agent-based approach",
+          "Design and test DR runbooks for the new platform before decommissioning VMware-based DR"
+        ]
+      },
+      {
+        "title": "Monitoring & Observability",
+        "description": "Hypervisor-level monitoring tools will lose visibility into the infrastructure layer after migration to IBM Cloud.",
+        "impact": "VMware vRealize Operations (vROps), Zabbix vSphere plugins, Datadog vSphere integration checks, and similar tools that poll vCenter APIs for host, cluster, and VM metrics will no longer have a data source. Metrics such as CPU ready time, memory ballooning, and storage latency that are specific to the vSphere hypervisor will not be available.",
+        "ibmCloudAlternatives": [
+          "IBM Cloud Monitoring (powered by Sysdig) for infrastructure and application metrics",
+          "IBM Instana for application performance monitoring and distributed tracing",
+          "IBM Cloud platform metrics for VPC resource health and performance",
+          "Prometheus and Grafana (built into OpenShift) for ROKS workload monitoring"
+        ],
+        "recommendations": [
+          "Map current monitoring dashboards and alerts to identify which metrics are hypervisor-specific versus OS/application-level",
+          "Deploy IBM Cloud Monitoring agents or Prometheus exporters as part of the migration wave process",
+          "Establish new baseline performance metrics post-migration before decommissioning legacy monitoring"
+        ]
+      },
+      {
+        "title": "Logging & Log Management",
+        "description": "VMware-integrated log collection and forwarding pipelines will need to be redesigned for the new platform.",
+        "impact": "vRealize Log Insight, syslog forwarders configured at the ESXi host level, and vCenter event log integrations will no longer capture platform events. Any SIEM integrations that rely on vSphere-specific log sources will have gaps until new sources are configured.",
+        "ibmCloudAlternatives": [
+          "IBM Log Analysis for centralized log aggregation and search",
+          "IBM Cloud Activity Tracker for audit and compliance event logging",
+          "OpenShift cluster logging (Elasticsearch, Fluentd, Kibana stack) for ROKS",
+          "IBM QRadar SIEM integration for security event correlation"
+        ],
+        "recommendations": [
+          "Document all current log sources, forwarding rules, and SIEM integrations tied to vSphere",
+          "Plan log agent deployment as part of each migration wave to ensure no gap in log coverage",
+          "Validate SIEM correlation rules work with new log formats and sources before cutover"
+        ]
+      },
+      {
+        "title": "Security & Compliance",
+        "description": "Security controls that integrate with the vSphere platform will require replacement with cloud-native equivalents.",
+        "impact": "vSphere-integrated antivirus (VMware Guest Introspection / NSX Guest Introspection), NSX micro-segmentation policies, vSphere hardening baselines (DISA STIGs, CIS benchmarks for ESXi), and VMware Carbon Black integration will not carry over. Compliance posture assessments tied to vSphere configuration will need new control frameworks.",
+        "ibmCloudAlternatives": [
+          "IBM Cloud Security and Compliance Center for posture management and compliance automation",
+          "VPC security groups and network ACLs for network micro-segmentation",
+          "IBM Cloud Internet Services (CIS) for DDoS protection and WAF",
+          "Red Hat Advanced Cluster Security (ACS) for ROKS workload protection",
+          "IBM QRadar for security event monitoring and threat detection"
+        ],
+        "recommendations": [
+          "Map current security controls to IBM Cloud equivalents and identify any gaps requiring third-party solutions",
+          "Redesign micro-segmentation using VPC security groups and ACLs before migration",
+          "Update compliance control frameworks and audit documentation to reflect the new platform architecture"
+        ]
+      },
+      {
+        "title": "Patch & Lifecycle Management",
+        "description": "VMware Update Manager and integrated patching workflows will be replaced by cloud-native lifecycle management.",
+        "impact": "VMware Update Manager (VUM) baselines and orchestrated patching of ESXi hosts and VM hardware will no longer apply. WSUS integrations coordinated through vSphere, automated VM hardware upgrade workflows, and template-based patching pipelines will need new approaches.",
+        "ibmCloudAlternatives": [
+          "IBM Cloud platform manages underlying infrastructure patching for VPC and ROKS",
+          "Red Hat Satellite or Ansible Automation Platform for OS-level patch management",
+          "OpenShift managed update channels for ROKS cluster and node updates",
+          "IBM Cloud Schematics (Terraform-based) for infrastructure lifecycle automation"
+        ],
+        "recommendations": [
+          "Document current patch cycles, approval workflows, and maintenance windows",
+          "Implement OS-level patch management tooling (e.g., Satellite, Ansible) before migration",
+          "Establish new patching procedures and test them during the pilot migration phase"
+        ]
+      },
+      {
+        "title": "High Availability & Clustering",
+        "description": "vSphere HA, DRS, and vSAN availability features are replaced by platform-native equivalents on IBM Cloud.",
+        "impact": "vSphere HA automatic restart, DRS load balancing, vSAN stretch clusters, and affinity/anti-affinity rules will no longer be managed by VMware. Applications relying on vSphere HA for restart guarantees or DRS for resource optimization will need equivalent configurations on the target platform.",
+        "ibmCloudAlternatives": [
+          "VPC multi-zone regions with placement groups for VSI high availability",
+          "IBM Cloud Auto Scale for VSI automatic scaling based on demand",
+          "OpenShift pod scheduling, anti-affinity rules, and node auto-recovery for ROKS",
+          "ODF (Ceph) data replication across nodes for ROKS storage resilience",
+          "IBM Cloud global and local load balancers for traffic distribution"
+        ],
+        "recommendations": [
+          "Document all vSphere HA, DRS, and affinity rules currently in use",
+          "Design equivalent availability configurations using VPC placement groups or OpenShift scheduling policies",
+          "Test failover and recovery scenarios on the target platform before migrating production workloads"
+        ]
+      },
+      {
+        "title": "Operational Runbooks & Skills",
+        "description": "Operational procedures and team expertise built around vSphere will need to be updated for the new platform.",
+        "impact": "Existing runbooks for common operations (VM provisioning, snapshot management, storage expansion, network changes, troubleshooting) are vSphere-specific and will not apply directly. Teams with deep VMware expertise will need training on IBM Cloud VPC operations, CLI/API tooling, and (for ROKS) Kubernetes and OpenShift concepts.",
+        "ibmCloudAlternatives": [
+          "IBM Cloud documentation and architecture center for reference architectures",
+          "IBM Cloud CLI and Terraform provider for infrastructure automation",
+          "OpenShift documentation and Red Hat training for ROKS operations",
+          "IBM Garage methodology for cloud adoption and skills development",
+          "IBM Cloud Skills Academy and Red Hat Learning Subscription for structured training"
+        ],
+        "recommendations": [
+          "Inventory all operational runbooks and identify which require rewriting versus retirement",
+          "Plan a structured training program for the operations team covering IBM Cloud fundamentals and the selected target platform",
+          "Develop new runbooks incrementally during the pilot migration phase, validated through hands-on testing"
+        ]
+      }
+    ]
   },
 
   "nextSteps": {

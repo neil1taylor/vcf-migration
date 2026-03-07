@@ -7,6 +7,7 @@
  * - Import Settings modal (JSON paste)
  */
 
+import { useState, useRef, memo } from 'react';
 import {
   Modal,
   TextArea,
@@ -33,6 +34,14 @@ interface DiscoveryVMModalsProps {
   setEditingWorkload: React.Dispatch<React.SetStateAction<EditingWorkload | null>>;
   handleSaveWorkload: (item: { id: string; text: string } | string | null | undefined) => void;
   workloadCategories: Array<{ id: string; text: string }>;
+  bulkWorkloadVMs: Array<{ vmId: string; vmName: string }> | null;
+  setBulkWorkloadVMs: React.Dispatch<React.SetStateAction<Array<{ vmId: string; vmName: string }> | null>>;
+  handleBulkSaveWorkload: (item: { id: string; text: string } | string | null | undefined) => void;
+  bulkNotesVMs: Array<{ vmId: string; vmName: string }> | null;
+  setBulkNotesVMs: React.Dispatch<React.SetStateAction<Array<{ vmId: string; vmName: string }> | null>>;
+  bulkNotesText: string;
+  setBulkNotesText: React.Dispatch<React.SetStateAction<string>>;
+  handleBulkSaveNotes: () => void;
   showImportModal: boolean;
   setShowImportModal: React.Dispatch<React.SetStateAction<boolean>>;
   importJson: string;
@@ -42,7 +51,7 @@ interface DiscoveryVMModalsProps {
   handleImportSettings: () => void;
 }
 
-export function DiscoveryVMModals({
+export const DiscoveryVMModals = memo(function DiscoveryVMModals({
   editingNotes,
   setEditingNotes,
   handleSaveNotes,
@@ -50,6 +59,14 @@ export function DiscoveryVMModals({
   setEditingWorkload,
   handleSaveWorkload,
   workloadCategories,
+  bulkWorkloadVMs,
+  setBulkWorkloadVMs,
+  handleBulkSaveWorkload,
+  bulkNotesVMs,
+  setBulkNotesVMs,
+  bulkNotesText,
+  setBulkNotesText,
+  handleBulkSaveNotes,
   showImportModal,
   setShowImportModal,
   importJson,
@@ -58,6 +75,34 @@ export function DiscoveryVMModals({
   setImportError,
   handleImportSettings,
 }: DiscoveryVMModalsProps) {
+  // Local state for workload selection (single VM)
+  const [pendingWorkload, setPendingWorkload] = useState<{ id: string; text: string } | null>(null);
+
+  // Local state for bulk workload selection
+  const [pendingBulkWorkload, setPendingBulkWorkload] = useState<{ id: string; text: string } | null>(null);
+
+  // Ref-based initialization: only reset state when modal opens for a different VM
+  const prevWorkloadVmId = useRef<string | null>(null);
+  if (editingWorkload && editingWorkload.vmId !== prevWorkloadVmId.current) {
+    prevWorkloadVmId.current = editingWorkload.vmId;
+    setPendingWorkload(
+      editingWorkload.current
+        ? workloadCategories.find(c => c.text === editingWorkload.current) || { id: 'custom', text: editingWorkload.current }
+        : null
+    );
+  } else if (!editingWorkload) {
+    prevWorkloadVmId.current = null;
+  }
+
+  const prevBulkWorkloadRef = useRef<boolean>(false);
+  const bulkOpen = !!bulkWorkloadVMs;
+  if (bulkOpen && !prevBulkWorkloadRef.current) {
+    prevBulkWorkloadRef.current = true;
+    setPendingBulkWorkload(null);
+  } else if (!bulkOpen) {
+    prevBulkWorkloadRef.current = false;
+  }
+
   return (
     <>
       {/* Edit Notes Modal */}
@@ -84,33 +129,101 @@ export function DiscoveryVMModals({
       <Modal
         open={!!editingWorkload}
         onRequestClose={() => setEditingWorkload(null)}
+        onRequestSubmit={() => {
+          handleSaveWorkload(pendingWorkload);
+          setEditingWorkload(null);
+        }}
         modalHeading={`Workload Type for ${editingWorkload?.vmName || ''}`}
-        passiveModal
+        primaryButtonText="Save"
+        secondaryButtonText="Cancel"
+        size="md"
+        className="discovery-vm-table__workload-modal"
+      >
+        <div>
+          <p className="discovery-vm-table__modal-description">
+            Select a predefined workload type, type a custom name, or choose &quot;Unclassified&quot; to clear.
+          </p>
+          <ComboBox
+            id="workload-type"
+            titleText="Workload Type"
+            placeholder="Select or type custom workload..."
+            items={workloadCategories}
+            itemToString={(item: { id: string; text: string } | string | null) => (typeof item === 'string' ? item : item?.text) || ''}
+            selectedItem={pendingWorkload}
+            allowCustomValue
+            onChange={({ selectedItem, inputValue }: { selectedItem: { id: string; text: string } | null; inputValue?: string }) => {
+              if (inputValue && !selectedItem) {
+                setPendingWorkload({ id: 'custom', text: inputValue });
+              } else if (selectedItem) {
+                setPendingWorkload(selectedItem);
+              } else {
+                setPendingWorkload(null);
+              }
+            }}
+          />
+        </div>
+      </Modal>
+
+      {/* Bulk Edit Workload Modal */}
+      <Modal
+        open={!!bulkWorkloadVMs}
+        onRequestClose={() => setBulkWorkloadVMs(null)}
+        onRequestSubmit={() => {
+          handleBulkSaveWorkload(pendingBulkWorkload);
+        }}
+        modalHeading={`Change Workload Type for ${bulkWorkloadVMs?.length || 0} VMs`}
+        primaryButtonText="Save"
+        secondaryButtonText="Cancel"
+        size="md"
+        className="discovery-vm-table__workload-modal"
+      >
+        <div>
+          <p className="discovery-vm-table__modal-description">
+            Select a workload type to apply to all {bulkWorkloadVMs?.length || 0} selected VMs,
+            or choose &quot;Unclassified&quot; to clear.
+          </p>
+          <ComboBox
+            id="bulk-workload-type"
+            titleText="Workload Type"
+            placeholder="Select or type custom workload..."
+            items={workloadCategories}
+            itemToString={(item: { id: string; text: string } | string | null) => (typeof item === 'string' ? item : item?.text) || ''}
+            selectedItem={pendingBulkWorkload}
+            allowCustomValue
+            onChange={({ selectedItem, inputValue }: { selectedItem: { id: string; text: string } | null; inputValue?: string }) => {
+              if (inputValue && !selectedItem) {
+                setPendingBulkWorkload({ id: 'custom', text: inputValue });
+              } else if (selectedItem) {
+                setPendingBulkWorkload(selectedItem);
+              } else {
+                setPendingBulkWorkload(null);
+              }
+            }}
+          />
+        </div>
+      </Modal>
+
+      {/* Bulk Edit Notes Modal */}
+      <Modal
+        open={!!bulkNotesVMs}
+        onRequestClose={() => setBulkNotesVMs(null)}
+        onRequestSubmit={handleBulkSaveNotes}
+        modalHeading={`Add Notes for ${bulkNotesVMs?.length || 0} VMs`}
+        primaryButtonText="Save"
+        secondaryButtonText="Cancel"
         size="sm"
       >
         <p className="discovery-vm-table__modal-description">
-          Select a predefined workload type, type a custom name, or choose "Unclassified" to clear.
+          This note will be applied to all {bulkNotesVMs?.length || 0} selected VMs.
+          Leave empty to clear existing notes.
         </p>
-        <ComboBox
-          id="workload-type"
-          key={editingWorkload?.vmId || 'workload-combobox'}
-          titleText="Workload Type"
-          placeholder="Select or type custom workload..."
-          items={workloadCategories}
-          itemToString={(item) => (typeof item === 'string' ? item : item?.text) || ''}
-          initialSelectedItem={
-            editingWorkload?.current
-              ? workloadCategories.find(c => c.text === editingWorkload.current) || { id: 'custom', text: editingWorkload.current }
-              : null
-          }
-          allowCustomValue
-          onChange={({ selectedItem, inputValue }) => {
-            if (inputValue && !selectedItem) {
-              handleSaveWorkload({ id: 'custom', text: inputValue });
-            } else {
-              handleSaveWorkload(selectedItem);
-            }
-          }}
+        <TextArea
+          id="bulk-vm-notes"
+          labelText="Notes"
+          placeholder="Add notes for selected VMs..."
+          value={bulkNotesText}
+          onChange={(e) => setBulkNotesText(e.target.value)}
+          rows={4}
         />
       </Modal>
 
@@ -144,6 +257,6 @@ export function DiscoveryVMModals({
       </Modal>
     </>
   );
-}
+});
 
 export default DiscoveryVMModals;

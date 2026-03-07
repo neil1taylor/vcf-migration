@@ -6,10 +6,10 @@ import { useData } from './useData';
 import { useSubnetOverrides } from './useSubnetOverrides';
 import { getEnvironmentFingerprint, fingerprintsMatch } from '@/utils/vmIdentifier';
 import { buildVPCDesign } from '@/services/network/vpcDesignService';
-import type { VPCDesign, VPCDesignData, TransitGatewayConfig } from '@/types/vpcDesign';
+import type { VPCDesign, VPCDesignData, TransitGatewayConfig, TransitGatewayConnection } from '@/types/vpcDesign';
 
 const STORAGE_KEY = 'vcf-vpc-design';
-const CURRENT_VERSION = 1;
+const CURRENT_VERSION = 2;
 
 function loadFromStorage(): VPCDesignData | null {
   try {
@@ -39,22 +39,51 @@ function createEmpty(fingerprint: string): VPCDesignData {
     environmentFingerprint: fingerprint,
     region: 'us-south',
     subnetOverrides: {},
-    transitGateway: { enabled: false, connectionType: 'vpc', name: 'tgw-us-south' },
+    transitGateways: [],
     createdAt: now,
     modifiedAt: now,
   };
+}
+
+// Migrate old single transitGateway to transitGateways array
+function migrateStoredData(stored: VPCDesignData & { transitGateway?: { enabled: boolean; connectionType: string; name: string } }): VPCDesignData {
+  if (stored.transitGateway && !stored.transitGateways) {
+    const old = stored.transitGateway;
+    const migrated: VPCDesignData = {
+      ...stored,
+      version: CURRENT_VERSION,
+      transitGateways: old.enabled
+        ? [{
+            id: 'tgw-0',
+            name: old.name,
+            enabled: true,
+            connections: [{
+              id: 'conn-0',
+              connectionType: old.connectionType as TransitGatewayConnection['connectionType'],
+              name: `conn-${old.connectionType}`,
+            }],
+          }]
+        : [],
+    };
+    delete (migrated as Record<string, unknown>).transitGateway;
+    return migrated;
+  }
+  return stored;
 }
 
 function resolveData(fingerprint: string): VPCDesignData {
   if (!fingerprint) return createEmpty('');
   const stored = loadFromStorage();
   if (stored && fingerprintsMatch(stored.environmentFingerprint, fingerprint)) {
-    return stored;
+    return migrateStoredData(stored);
   }
   const newData = createEmpty(fingerprint);
   saveToStorage(newData);
   return newData;
 }
+
+let nextGatewayCounter = 0;
+let nextConnectionCounter = 0;
 
 export interface UseVPCDesignReturn {
   design: VPCDesign;
@@ -64,8 +93,12 @@ export interface UseVPCDesignReturn {
   updateSubnetCIDR: (subnetId: string, cidr: string) => void;
   updateSubnetName: (subnetId: string, name: string) => void;
   updateSubnetSG: (subnetId: string, sgId: string) => void;
-  toggleTransitGateway: () => void;
-  setTransitGatewayType: (type: TransitGatewayConfig['connectionType']) => void;
+  addTransitGateway: () => void;
+  removeTransitGateway: (id: string) => void;
+  updateTransitGateway: (id: string, updates: Partial<Pick<TransitGatewayConfig, 'name' | 'enabled'>>) => void;
+  addConnection: (gwId: string) => void;
+  removeConnection: (gwId: string, connId: string) => void;
+  updateConnection: (gwId: string, connId: string, updates: Partial<Pick<TransitGatewayConnection, 'connectionType' | 'name'>>) => void;
   regenerateDesign: () => void;
 }
 
@@ -80,7 +113,7 @@ export function useVPCDesign(workloadMap: Record<string, string>): UseVPCDesignR
 
   const [data, setData] = useState<VPCDesignData>(() => resolveData(currentFingerprint));
 
-  // Re-sync when environment changes — same pattern as useRiskAssessment/useVMOverrides
+  // Re-sync when environment changes
   useEffect(() => {
     if (!currentFingerprint) return;
     const resolved = resolveData(currentFingerprint);
@@ -111,7 +144,6 @@ export function useVPCDesign(workloadMap: Record<string, string>): UseVPCDesignR
     setData(prev => ({
       ...prev,
       region,
-      transitGateway: { ...prev.transitGateway, name: `tgw-${region}` },
       modifiedAt: new Date().toISOString(),
     }));
   }, []);
@@ -132,18 +164,69 @@ export function useVPCDesign(workloadMap: Record<string, string>): UseVPCDesignR
   const updateSubnetName = useCallback((subnetId: string, name: string) => updateSubnet(subnetId, { name }), [updateSubnet]);
   const updateSubnetSG = useCallback((subnetId: string, sgId: string) => updateSubnet(subnetId, { securityGroupId: sgId }), [updateSubnet]);
 
-  const toggleTransitGateway = useCallback(() => {
+  const addTransitGateway = useCallback(() => {
+    const id = `tgw-${Date.now()}-${nextGatewayCounter++}`;
     setData(prev => ({
       ...prev,
-      transitGateway: { ...prev.transitGateway, enabled: !prev.transitGateway.enabled },
+      transitGateways: [
+        ...prev.transitGateways,
+        { id, name: `tgw-${prev.region}-${prev.transitGateways.length + 1}`, enabled: true, connections: [] },
+      ],
       modifiedAt: new Date().toISOString(),
     }));
   }, []);
 
-  const setTransitGatewayType = useCallback((type: TransitGatewayConfig['connectionType']) => {
+  const removeTransitGateway = useCallback((id: string) => {
     setData(prev => ({
       ...prev,
-      transitGateway: { ...prev.transitGateway, connectionType: type },
+      transitGateways: prev.transitGateways.filter(gw => gw.id !== id),
+      modifiedAt: new Date().toISOString(),
+    }));
+  }, []);
+
+  const updateTransitGateway = useCallback((id: string, updates: Partial<Pick<TransitGatewayConfig, 'name' | 'enabled'>>) => {
+    setData(prev => ({
+      ...prev,
+      transitGateways: prev.transitGateways.map(gw =>
+        gw.id === id ? { ...gw, ...updates } : gw
+      ),
+      modifiedAt: new Date().toISOString(),
+    }));
+  }, []);
+
+  const addConnection = useCallback((gwId: string) => {
+    const connId = `conn-${Date.now()}-${nextConnectionCounter++}`;
+    setData(prev => ({
+      ...prev,
+      transitGateways: prev.transitGateways.map(gw =>
+        gw.id === gwId
+          ? { ...gw, connections: [...gw.connections, { id: connId, connectionType: 'vpc' as const, name: `conn-vpc-${gw.connections.length + 1}` }] }
+          : gw
+      ),
+      modifiedAt: new Date().toISOString(),
+    }));
+  }, []);
+
+  const removeConnection = useCallback((gwId: string, connId: string) => {
+    setData(prev => ({
+      ...prev,
+      transitGateways: prev.transitGateways.map(gw =>
+        gw.id === gwId
+          ? { ...gw, connections: gw.connections.filter(c => c.id !== connId) }
+          : gw
+      ),
+      modifiedAt: new Date().toISOString(),
+    }));
+  }, []);
+
+  const updateConnection = useCallback((gwId: string, connId: string, updates: Partial<Pick<TransitGatewayConnection, 'connectionType' | 'name'>>) => {
+    setData(prev => ({
+      ...prev,
+      transitGateways: prev.transitGateways.map(gw =>
+        gw.id === gwId
+          ? { ...gw, connections: gw.connections.map(c => c.id === connId ? { ...c, ...updates } : c) }
+          : gw
+      ),
       modifiedAt: new Date().toISOString(),
     }));
   }, []);
@@ -164,8 +247,12 @@ export function useVPCDesign(workloadMap: Record<string, string>): UseVPCDesignR
     updateSubnetCIDR,
     updateSubnetName,
     updateSubnetSG,
-    toggleTransitGateway,
-    setTransitGatewayType,
+    addTransitGateway,
+    removeTransitGateway,
+    updateTransitGateway,
+    addConnection,
+    removeConnection,
+    updateConnection,
     regenerateDesign,
   };
 }

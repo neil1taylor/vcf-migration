@@ -5,12 +5,17 @@
       "date": "2026-03-06",
       "sections": {
         "added": [
+          "Dynamic cost factor in Platform Selection questionnaire — 'Is cost an important factor?' automatically favours whichever platform has lower estimated monthly cost",
+          "All ROKS and All VSI cost tiles moved into Platform Selection tab for at-a-glance cost context",
           "VM Assignment table defaults to platform selection questionnaire's favoured platform — SAP/Oracle VMs default to PowerVS, neutral falls back to auto-classification rules",
           "VM Assignment table UI overhaul — workload type column, target dropdown, editable reason text, per-row reset button",
           "Target IBM Cloud MZR dropdown on Infrastructure tab — auto-selects nearest MZR from source data center, user-overridable",
           "Bulk Add Notes batch action in Discovery VM table — set the same note on multiple selected VMs at once",
           "Multi-select status filter in Discovery VM table — combine filters like Unclassified + Included to find VMs needing classification",
           "Unclassified option in Discovery status filter — quickly filter to VMs without a workload classification"
+        ],
+        "removed": [
+          "Cost Comparison tab removed from Migration Comparison — cost tiles now live in the Platform Selection tab"
         ]
       }
     },
@@ -34,7 +39,7 @@
         "added": [
           "Data Quality Warnings in Sizing Calculator — rule-based detection of suspicious VM resource allocations (memory/CPU outliers, ratio anomalies, name-resource mismatches) without requiring AI",
           "Per-VM Node Fit Check in Sizing Calculator — validates every individual VM (with virtualization overhead) fits within selected bare metal node capacity, flags oversized VMs with remediation guidance",
-          "Platform Selection Questionnaire on Migration Comparison page — 12-factor decision matrix (5 VSI, 7 ROKS) to capture organizational and strategic platform preferences, with score summary and recommendation banner integration",
+          "Platform Selection Questionnaire on Migration Review page — 12-factor decision matrix (5 VSI, 7 ROKS) to capture organizational and strategic platform preferences, with score summary and recommendation banner integration",
           "AI Infrastructure: Tiered model selection — lightweight model (Granite 3.1 8B) for fast tasks, larger model (Granite 3.1 34B) for complex reasoning",
           "AI Infrastructure: Server-Sent Events (SSE) streaming for chat and insights — text appears progressively instead of waiting for full response",
           "AI Infrastructure: Persistent chat history — conversation preserved across navigation via localStorage with environment fingerprint scoping",
@@ -74,7 +79,7 @@
       "date": "2026-03-05",
       "sections": {
         "added": [
-          "Migration Comparison page — side-by-side ROKS vs VSI analysis with auto-classification, cost comparison, readiness metrics, architecture fit, and migration effort tabs",
+          "Migration Review page — side-by-side ROKS vs VSI analysis with auto-classification, cost comparison, readiness metrics, architecture fit, and migration effort tabs",
           "VM target classification service with 7-rule heuristic engine (OS compatibility, memory, workload type, Linux default)",
           "VM-to-target assignment overrides with localStorage persistence and environment fingerprinting",
           "Recommendation banner with data-driven migration strategy suggestion (All ROKS, All VSI, or Split)",

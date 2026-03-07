@@ -20,7 +20,7 @@ export function buildMigrationOptions(): DocumentContent[] {
     createParagraph(optTemplates.introduction),
     createParagraph(optTemplates.comparisonIntro),
 
-    // Migration comparison table - description above, label below
+    // Migration Review table - description above, label below
     ...createTableDescription(
       templates.tableDescriptions.migrationComparison.title,
       templates.tableDescriptions.migrationComparison.description

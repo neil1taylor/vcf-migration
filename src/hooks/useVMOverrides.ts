@@ -61,6 +61,8 @@ export interface UseVMOverridesReturn {
   // Bulk operations
   bulkSetExcluded: (vmIds: Array<{ vmId: string; vmName: string }>, excluded: boolean) => void;
   bulkSetForceIncluded: (vmIds: Array<{ vmId: string; vmName: string }>, forceIncluded: boolean) => void;
+  bulkSetWorkloadType: (vms: Array<{ vmId: string; vmName: string }>, workloadType: string | undefined) => void;
+  bulkSetNotes: (vms: Array<{ vmId: string; vmName: string }>, notes: string | undefined) => void;
 
   // Stats
   excludedCount: number;
@@ -417,6 +419,62 @@ export function useVMOverrides(): UseVMOverridesReturn {
     });
   }, []);
 
+  const bulkSetWorkloadType = useCallback((
+    vms: Array<{ vmId: string; vmName: string }>,
+    workloadType: string | undefined
+  ) => {
+    setData(prev => {
+      const now = new Date().toISOString();
+      const newOverrides = { ...prev.overrides };
+
+      for (const { vmId, vmName } of vms) {
+        const existing = newOverrides[vmId];
+        const type = workloadType || undefined;
+
+        if (existing) {
+          const updated = { ...existing, workloadType: type, modifiedAt: now };
+          // Remove if no other overrides remain
+          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.notes) {
+            delete newOverrides[vmId];
+          } else {
+            newOverrides[vmId] = updated;
+          }
+        } else if (type) {
+          newOverrides[vmId] = { vmId, vmName, excluded: false, workloadType: type, modifiedAt: now };
+        }
+      }
+
+      return { ...prev, overrides: newOverrides, modifiedAt: now };
+    });
+  }, []);
+
+  const bulkSetNotes = useCallback((
+    vms: Array<{ vmId: string; vmName: string }>,
+    notes: string | undefined
+  ) => {
+    setData(prev => {
+      const now = new Date().toISOString();
+      const newOverrides = { ...prev.overrides };
+
+      for (const { vmId, vmName } of vms) {
+        const existing = newOverrides[vmId];
+
+        if (existing) {
+          const updated = { ...existing, notes: notes || undefined, modifiedAt: now };
+          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.notes) {
+            delete newOverrides[vmId];
+          } else {
+            newOverrides[vmId] = updated;
+          }
+        } else if (notes) {
+          newOverrides[vmId] = { vmId, vmName, excluded: false, notes, modifiedAt: now };
+        }
+      }
+
+      return { ...prev, overrides: newOverrides, modifiedAt: now };
+    });
+  }, []);
+
   // ===== STATS =====
 
   const excludedCount = useMemo(() => {
@@ -492,7 +550,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
     return stored?.environmentFingerprint ?? null;
   }, []);
 
-  return {
+  return useMemo(() => ({
     // Core operations
     overrides: data.overrides,
     setExcluded,
@@ -513,6 +571,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
     // Bulk operations
     bulkSetExcluded,
     bulkSetForceIncluded,
+    bulkSetWorkloadType,
+    bulkSetNotes,
 
     // Stats
     excludedCount,
@@ -528,7 +588,15 @@ export function useVMOverrides(): UseVMOverridesReturn {
     applyMismatchedOverrides,
     clearAndReset,
     storedEnvironmentFingerprint,
-  };
+  }), [
+    data.overrides,
+    setExcluded, setForceIncluded, setWorkloadType, setNotes, removeOverride, clearAllOverrides,
+    isExcluded, isForceIncluded, isEffectivelyExcluded, getWorkloadType, getNotes, hasOverride,
+    bulkSetExcluded, bulkSetForceIncluded, bulkSetWorkloadType, bulkSetNotes,
+    excludedCount, forceIncludedCount, overrideCount,
+    exportSettings, importSettings,
+    environmentMismatch, applyMismatchedOverrides, clearAndReset, storedEnvironmentFingerprint,
+  ]);
 }
 
 export default useVMOverrides;

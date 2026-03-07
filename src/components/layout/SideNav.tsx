@@ -202,7 +202,7 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
             onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.migrationComparison, true)}
             isActive={isActive(ROUTES.migrationComparison)}
           >
-            Migration Comparison
+            Migration Review
           </SideNavMenuItem>
           <SideNavMenuItem
             href="#"

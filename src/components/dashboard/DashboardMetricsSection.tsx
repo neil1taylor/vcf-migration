@@ -5,6 +5,7 @@ import { formatNumber, mibToGiB } from '@/utils/formatters';
 import { ROUTES } from '@/utils/constants';
 
 export interface DashboardMetricsSectionProps {
+  inventoryTotal: number;
   totalVMs: number;
   poweredOnVMs: number;
   totalVCPUs: number;
@@ -30,6 +31,7 @@ export interface DashboardMetricsSectionProps {
 }
 
 export function DashboardMetricsSection({
+  inventoryTotal,
   totalVMs,
   poweredOnVMs,
   totalVCPUs,
@@ -54,10 +56,10 @@ export function DashboardMetricsSection({
       <Column lg={4} md={4} sm={4}>
         <MetricCard
           label="Total VMs"
-          value={formatNumber(totalVMs)}
-          detail={`${formatNumber(poweredOnVMs)} powered on`}
+          value={formatNumber(inventoryTotal)}
+          detail={`${formatNumber(totalVMs)} in migration scope`}
           variant="primary"
-          tooltip="Count of all virtual machines in the environment, excluding templates."
+          tooltip={`Full RVTools inventory count. Includes ${formatNumber(autoExcludedBreakdown.templates)} templates and ${formatNumber(autoExcludedBreakdown.vmwareInfrastructure)} VMware infrastructure VMs excluded from migration scope. ${formatNumber(poweredOnVMs)} powered on.`}
           docSection="dashboard"
           onClick={() => navigate(ROUTES.discovery)}
         />
@@ -211,7 +213,7 @@ export function DashboardMetricsSection({
           label="Templates"
           value={formatNumber(templates)}
           variant="default"
-          tooltip="VM templates (not counted in Total VMs) used for cloning new VMs."
+          tooltip="VM templates included in inventory count but excluded from migration scope."
           onClick={() => navigate(ROUTES.discovery)}
         />
       </Column>

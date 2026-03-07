@@ -14,6 +14,7 @@ const LEANING_LABELS: Record<string, string> = {
 const TARGET_LABELS: Record<string, string> = {
   vsi: 'VSI',
   roks: 'ROKS',
+  dynamic: 'Dynamic',
 };
 
 const ANSWER_LABELS: Record<string, string> = {
@@ -23,7 +24,7 @@ const ANSWER_LABELS: Record<string, string> = {
 };
 
 export function buildPlatformSelectionSection(data: PlatformSelectionExport): DocumentContent[] {
-  const { score, answers } = data;
+  const { score, answers, roksMonthlyCost, vsiMonthlyCost } = data;
   const totalFactors = factorsData.factors.length;
   const vsiFactorCount = factorsData.factors.filter(f => f.target === 'vsi').length;
   const roksFactorCount = factorsData.factors.filter(f => f.target === 'roks').length;
@@ -51,12 +52,27 @@ export function buildPlatformSelectionSection(data: PlatformSelectionExport): Do
   // Per-factor detail table
   sections.push(createHeading('Platform Selection Factors', HeadingLevel.HEADING_2));
 
+  // Resolve dynamic cost factor label
+  const costFavoursLabel = (() => {
+    if (roksMonthlyCost != null && vsiMonthlyCost != null) {
+      if (vsiMonthlyCost < roksMonthlyCost) return 'VSI (cheaper)';
+      if (roksMonthlyCost < vsiMonthlyCost) return 'ROKS (cheaper)';
+      return 'Equal cost';
+    }
+    return 'Dynamic (cost data unavailable)';
+  })();
+
   const factorHeaders = ['Factor', 'Favours', 'Answer'];
-  const factorRows = factorsData.factors.map(factor => [
-    factor.label,
-    TARGET_LABELS[factor.target] ?? factor.target,
-    answers[factor.id] ? (ANSWER_LABELS[answers[factor.id]] ?? answers[factor.id]) : '\u2014',
-  ]);
+  const factorRows = factorsData.factors.map(factor => {
+    const favoursLabel = factor.target === 'dynamic'
+      ? costFavoursLabel
+      : TARGET_LABELS[factor.target] ?? factor.target;
+    return [
+      factor.label,
+      favoursLabel,
+      answers[factor.id] ? (ANSWER_LABELS[answers[factor.id]] ?? answers[factor.id]) : '\u2014',
+    ];
+  });
   sections.push(
     ...createTableCaption('Platform Selection Factor Responses', 'Individual factor responses from the platform selection questionnaire'),
     createStyledTable(factorHeaders, factorRows),

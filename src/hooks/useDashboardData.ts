@@ -44,6 +44,7 @@ export interface DashboardData {
   };
 
   // Basic metrics
+  inventoryTotal: number;
   totalVMs: number;
   poweredOnVMs: number;
   poweredOffVMs: number;
@@ -105,6 +106,7 @@ export function useDashboardData(): DashboardData {
   const { autoExcludedCount, autoExcludedBreakdown } = useAutoExclusion();
 
   // Calculate basic metrics (safe with empty vms array)
+  const inventoryTotal = rawData?.vInfo.length ?? 0;
   const totalVMs = vms.length;
   const poweredOnVMs = vms.filter(vm => vm.powerState === 'poweredOn').length;
   const poweredOffVMs = vms.filter(vm => vm.powerState === 'poweredOff').length;
@@ -417,6 +419,7 @@ export function useDashboardData(): DashboardData {
     clearFilter,
     autoExcludedCount,
     autoExcludedBreakdown,
+    inventoryTotal,
     totalVMs,
     poweredOnVMs,
     poweredOffVMs,

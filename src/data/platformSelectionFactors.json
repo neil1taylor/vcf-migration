@@ -95,6 +95,13 @@
       "label": "Multi-cloud or hybrid cloud strategy with consistent tooling",
       "target": "roks",
       "description": "OpenShift provides a consistent platform across on-prem, IBM Cloud, and other clouds."
+    },
+    {
+      "id": "cost-preference",
+      "label": "Is cost an important factor in your platform decision?",
+      "target": "dynamic",
+      "dynamicResolver": "cost",
+      "description": "When answered Yes, this factor favours whichever platform has lower estimated monthly cost. Configure costs on the ROKS and VSI Migration pages."
     }
   ],
   "notes": [

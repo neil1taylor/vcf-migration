@@ -28,10 +28,10 @@
       "id": "rhel-7",
       "displayName": "Red Hat Enterprise Linux 7.x",
       "patterns": ["red hat enterprise linux 7", "rhel 7", "rhel7", "red hat 7"],
-      "status": "supported",
-      "imageType": "stock",
-      "notes": "Stock image available - consider upgrading to RHEL 8/9 for longer support",
-      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
+      "status": "byol",
+      "imageType": "custom",
+      "notes": "End of standard support June 2024 - BYOL custom image only. Upgrade to RHEL 8/9 recommended. Extended Life Cycle Support (ELS) available from Red Hat",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-byol-vpc-about"
     },
     {
       "id": "ubuntu-24",

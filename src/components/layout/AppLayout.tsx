@@ -90,7 +90,7 @@ const DEFAULT_OPTIONS: PDFExportOptions = {
 
 export function AppLayout() {
   const navigate = useNavigate();
-  const { rawData } = useData();
+  const { rawData, calculatedCosts } = useData();
   const { isExporting, error, exportPDF } = usePDFExport();
   const { exportExcel } = useExcelExport();
   const { exportDocx } = useDocxExport();
@@ -140,7 +140,7 @@ export function AppLayout() {
       await exportDocx(rawData, {
         aiInsights,
         wavePlanningPreference: getWavePlanningPreference(),
-        platformSelection: platformScore.answeredCount > 0 ? { score: platformScore, answers: platformAnswers } : null,
+        platformSelection: platformScore.answeredCount > 0 ? { score: platformScore, answers: platformAnswers, roksMonthlyCost: calculatedCosts?.roksMonthlyCost, vsiMonthlyCost: calculatedCosts?.vsiMonthlyCost } : null,
       });
     } catch {
       // Error is handled by the hook

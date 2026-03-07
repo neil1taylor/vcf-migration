@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { Grid, Column, Tabs, TabList, Tab, TabPanels, TabPanel } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
-import { useData, useAllVMs, useVMOverrides, useAutoExclusion, useTargetAssignments, useComparisonData, usePlatformSelection } from '@/hooks';
+import { useData, useAllVMs, useVMOverrides, useAutoExclusion, useTargetAssignments, usePlatformSelection } from '@/hooks';
 import { ROUTES } from '@/utils/constants';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { getVMWorkloadCategory } from '@/utils/workloadClassification';
@@ -10,10 +10,6 @@ import { MetricCard } from '@/components/common';
 import {
   RecommendationBanner,
   VMAssignmentTable,
-  CostComparisonPanel,
-  ReadinessComparisonPanel,
-  ArchitectureFitPanel,
-  MigrationEffortPanel,
   PlatformSelectionPanel,
 } from '@/components/comparison';
 import './MigrationPage.scss';
@@ -23,7 +19,11 @@ export function MigrationComparisonPage() {
   const allVmsRaw = useAllVMs();
   const vmOverrides = useVMOverrides();
   const { getAutoExclusionById } = useAutoExclusion();
-  const { answers, setAnswer, resetAll: resetPlatformSelection, score: platformScore } = usePlatformSelection();
+  const costData = useMemo(() => ({
+    roksMonthlyCost: calculatedCosts?.roksMonthlyCost,
+    vsiMonthlyCost: calculatedCosts?.vsiMonthlyCost,
+  }), [calculatedCosts?.roksMonthlyCost, calculatedCosts?.vsiMonthlyCost]);
+  const { answers, setAnswer, resetAll: resetPlatformSelection, score: platformScore } = usePlatformSelection(costData);
 
   // Filter excluded VMs (same pattern as VSIMigrationPage)
   const vms = useMemo(() => {
@@ -40,16 +40,7 @@ export function MigrationComparisonPage() {
     roksCount, vsiCount, powervsCount, overrideCount, overriddenVmIds,
   } = useTargetAssignments(platformScore.leaning);
 
-  // Derive data
-  const disks = useMemo(() => rawData?.vDisk ?? [], [rawData?.vDisk]);
-  const networks = useMemo(() => rawData?.vNetwork ?? [], [rawData?.vNetwork]);
-  const snapshots = useMemo(() => rawData?.vSnapshot ?? [], [rawData?.vSnapshot]);
-  const tools = useMemo(() => rawData?.vTools ?? [], [rawData?.vTools]);
-
-  // Comparison metrics
-  const comparison = useComparisonData(assignments, vms, disks, networks, snapshots, tools);
-
-  // Workload types map for Architecture Fit tab
+  // Workload types map for VM Assignment table
   const workloadTypes = useMemo(() => {
     const map = new Map<string, string>();
     for (const vm of vms) {
@@ -79,7 +70,7 @@ export function MigrationComparisonPage() {
     <div className="migration-page">
       <Grid>
         <Column lg={16} md={8} sm={4}>
-          <h2>Migration Comparison</h2>
+          <h2>Migration Review</h2>
           <p style={{ marginBottom: '1rem', color: '#525252' }}>
             Compare ROKS (OpenShift Virtualization), VSI (Virtual Server), and PowerVS (Power Virtual Server) migration targets.
             Assign VMs to targets and evaluate costs, readiness, and migration effort.
@@ -110,13 +101,9 @@ export function MigrationComparisonPage() {
         {/* Tabs */}
         <Column lg={16} md={8} sm={4}>
           <Tabs>
-            <TabList aria-label="Migration comparison tabs">
+            <TabList aria-label="Migration Review tabs">
               <Tab>Platform Selection</Tab>
               <Tab>VM Assignments</Tab>
-              <Tab>Cost Comparison</Tab>
-              <Tab>Readiness</Tab>
-              <Tab>Architecture Fit</Tab>
-              <Tab>Migration Effort</Tab>
             </TabList>
             <TabPanels>
               <TabPanel>
@@ -125,6 +112,9 @@ export function MigrationComparisonPage() {
                   onAnswer={setAnswer}
                   onReset={resetPlatformSelection}
                   score={platformScore}
+                  roksMonthlyCost={calculatedCosts?.roksMonthlyCost}
+                  vsiMonthlyCost={calculatedCosts?.vsiMonthlyCost}
+                  totalVMCount={vms.length}
                 />
               </TabPanel>
               <TabPanel>
@@ -138,25 +128,6 @@ export function MigrationComparisonPage() {
                   onResetAll={resetAll}
                   overrideCount={overrideCount}
                 />
-              </TabPanel>
-              <TabPanel>
-                <CostComparisonPanel
-                  roksVMCount={roksCount}
-                  vsiVMCount={vsiCount}
-                  totalVMCount={vms.length}
-                />
-              </TabPanel>
-              <TabPanel>
-                <ReadinessComparisonPanel comparison={comparison} />
-              </TabPanel>
-              <TabPanel>
-                <ArchitectureFitPanel
-                  assignments={assignments}
-                  workloadTypes={workloadTypes}
-                />
-              </TabPanel>
-              <TabPanel>
-                <MigrationEffortPanel comparison={comparison} />
               </TabPanel>
             </TabPanels>
           </Tabs>
