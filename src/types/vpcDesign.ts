@@ -46,10 +46,17 @@ export interface ACLRule {
   description?: string;
 }
 
-export interface TransitGatewayConfig {
-  enabled: boolean;
-  connectionType: 'vpc' | 'classic' | 'directlink';
+export interface TransitGatewayConnection {
+  id: string;
+  connectionType: 'vpc' | 'classic' | 'directlink' | 'gre';
   name: string;
+}
+
+export interface TransitGatewayConfig {
+  id: string;
+  name: string;
+  enabled: boolean;
+  connections: TransitGatewayConnection[];
 }
 
 export interface VPCZone {
@@ -64,7 +71,7 @@ export interface VPCDesign {
   subnets: VPCSubnet[];
   securityGroups: SecurityGroup[];
   aclSuggestions: ACLSuggestion[];
-  transitGateway: TransitGatewayConfig;
+  transitGateways: TransitGatewayConfig[];
 }
 
 export interface VPCDesignData {
@@ -72,7 +79,7 @@ export interface VPCDesignData {
   environmentFingerprint: string;
   region: string;
   subnetOverrides: Record<string, Partial<Pick<VPCSubnet, 'cidr' | 'zone' | 'name' | 'securityGroupId'>>>;
-  transitGateway: TransitGatewayConfig;
+  transitGateways: TransitGatewayConfig[];
   createdAt: string;
   modifiedAt: string;
 }

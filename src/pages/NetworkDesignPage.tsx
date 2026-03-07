@@ -10,7 +10,6 @@ import {
   TabPanels,
   TabPanel,
   Dropdown,
-  Toggle,
   Button,
   Table,
   TableHead,
@@ -20,9 +19,10 @@ import {
   TableCell,
   TextInput,
   Tag,
+  Tile,
   InlineNotification,
 } from '@carbon/react';
-import { Reset } from '@carbon/icons-react';
+import { Reset, Add, TrashCan } from '@carbon/icons-react';
 import { useData, useHasData } from '@/hooks';
 import { useVPCDesign } from '@/hooks/useVPCDesign';
 import { ROUTES } from '@/utils/constants';
@@ -53,10 +53,16 @@ export function NetworkDesignPage() {
     updateSubnetZone,
     updateSubnetCIDR,
     updateSubnetName,
-    toggleTransitGateway,
-    setTransitGatewayType,
+    addTransitGateway,
+    removeTransitGateway,
+    updateTransitGateway,
+    addConnection,
+    removeConnection,
+    updateConnection,
     regenerateDesign,
   } = useVPCDesign(workloadMap);
+
+  const connectionTypeLabels: Record<string, string> = { vpc: 'VPC', classic: 'Classic Infrastructure', directlink: 'Direct Link', gre: 'GRE Tunnel' };
 
   if (!hasData || !rawData) {
     return <Navigate to={ROUTES.home} replace />;
@@ -278,38 +284,100 @@ export function NetworkDesignPage() {
 
             {/* Transit Gateway Tab */}
             <TabPanel>
-              <div style={{ maxWidth: '400px' }}>
-                <Toggle
-                  id="tgw-toggle"
-                  labelText="Transit Gateway"
-                  labelA="Disabled"
-                  labelB="Enabled"
-                  toggled={design.transitGateway.enabled}
-                  onToggle={toggleTransitGateway}
-                />
-                {design.transitGateway.enabled && (
-                  <div style={{ marginTop: '1rem' }}>
-                    <Dropdown
-                      id="tgw-type"
-                      titleText="Connection Type"
-                      label="Select type"
-                      items={['vpc', 'classic', 'directlink']}
-                      selectedItem={design.transitGateway.connectionType}
-                      itemToString={(item: string | null) => {
-                        const labels: Record<string, string> = { vpc: 'VPC', classic: 'Classic Infrastructure', directlink: 'Direct Link' };
-                        return item ? labels[item] ?? item : '';
-                      }}
-                      onChange={({ selectedItem }: { selectedItem: string | null }) => {
-                        if (selectedItem) setTransitGatewayType(selectedItem as 'vpc' | 'classic' | 'directlink');
-                      }}
-                      size="sm"
-                    />
-                    <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-                      Transit Gateway name: <strong>{design.transitGateway.name}</strong>
-                    </p>
-                  </div>
-                )}
+              <div style={{ marginBottom: '1rem' }}>
+                <Button kind="ghost" size="sm" renderIcon={Add} onClick={addTransitGateway}>
+                  Add Transit Gateway
+                </Button>
               </div>
+              {design.transitGateways.length === 0 && (
+                <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+                  No transit gateways configured. Add one to connect your VPC to other networks.
+                </p>
+              )}
+              {design.transitGateways.map(gw => (
+                <Tile key={gw.id} style={{ marginBottom: '1rem', padding: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1rem', marginBottom: '1rem' }}>
+                    <TextInput
+                      id={`tgw-name-${gw.id}`}
+                      labelText="Gateway Name"
+                      size="sm"
+                      value={gw.name}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateTransitGateway(gw.id, { name: e.target.value })}
+                      style={{ flex: 1 }}
+                    />
+                    <Button
+                      kind="danger--ghost"
+                      size="sm"
+                      renderIcon={TrashCan}
+                      iconDescription="Delete gateway"
+                      hasIconOnly
+                      onClick={() => removeTransitGateway(gw.id)}
+                    />
+                  </div>
+                  <div style={{ marginBottom: '0.5rem' }}>
+                    <Button kind="ghost" size="sm" renderIcon={Add} onClick={() => addConnection(gw.id)}>
+                      Add Connection
+                    </Button>
+                  </div>
+                  {gw.connections.length > 0 && (
+                    <Table size="sm">
+                      <TableHead>
+                        <TableRow>
+                          <TableHeader>Connection Name</TableHeader>
+                          <TableHeader>Type</TableHeader>
+                          <TableHeader style={{ width: '4rem' }} />
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {gw.connections.map(conn => (
+                          <TableRow key={conn.id}>
+                            <TableCell>
+                              <TextInput
+                                id={`conn-name-${conn.id}`}
+                                labelText=""
+                                hideLabel
+                                size="sm"
+                                value={conn.name}
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateConnection(gw.id, conn.id, { name: e.target.value })}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Dropdown
+                                id={`conn-type-${conn.id}`}
+                                label=""
+                                titleText=""
+                                hideLabel
+                                items={['vpc', 'classic', 'directlink', 'gre']}
+                                selectedItem={conn.connectionType}
+                                itemToString={(item: string | null) => item ? connectionTypeLabels[item] ?? item : ''}
+                                onChange={({ selectedItem }: { selectedItem: string | null }) => {
+                                  if (selectedItem) updateConnection(gw.id, conn.id, { connectionType: selectedItem as 'vpc' | 'classic' | 'directlink' | 'gre' });
+                                }}
+                                size="sm"
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                kind="danger--ghost"
+                                size="sm"
+                                renderIcon={TrashCan}
+                                iconDescription="Delete connection"
+                                hasIconOnly
+                                onClick={() => removeConnection(gw.id, conn.id)}
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                  {gw.connections.length === 0 && (
+                    <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)', marginTop: '0.5rem' }}>
+                      No connections. Add a connection to link this gateway.
+                    </p>
+                  )}
+                </Tile>
+              ))}
             </TabPanel>
           </TabPanels>
         </Tabs>
