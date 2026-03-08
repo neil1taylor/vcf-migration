@@ -14,7 +14,7 @@ const templates = reportTemplates as typeof reportTemplates & {
   figureDescriptions: Record<string, { title: string; description: string }>;
 };
 
-export async function buildEnvironmentAnalysis(rawData: RVToolsData): Promise<DocumentContent[]> {
+export async function buildEnvironmentAnalysis(rawData: RVToolsData, sectionNum?: number): Promise<DocumentContent[]> {
   const envTemplates = reportTemplates.environmentAnalysis;
   const vms = rawData.vInfo.filter((vm) => !vm.template);
   const poweredOnVMs = vms.filter((vm) => vm.powerState === 'poweredOn');
@@ -83,10 +83,10 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData): Promise<Do
   const dsTypeChart = await generatePieChart(dsTypeData, 'Storage by Type (GiB)');
 
   return [
-    createHeading('2. ' + envTemplates.title, HeadingLevel.HEADING_1),
+    createHeading((sectionNum != null ? `${sectionNum}. ` : '2. ') + envTemplates.title, HeadingLevel.HEADING_1),
     createParagraph(envTemplates.introduction),
 
-    createHeading('2.1 ' + envTemplates.sections.infrastructure.title, HeadingLevel.HEADING_2),
+    createHeading((sectionNum != null ? `${sectionNum}.1 ` : '2.1 ') + envTemplates.sections.infrastructure.title, HeadingLevel.HEADING_2),
     createParagraph(envTemplates.sections.infrastructure.description),
 
     // Infrastructure table - description above, label below
@@ -108,7 +108,7 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData): Promise<Do
     createTableLabel(templates.tableDescriptions.infrastructureOverview.title),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('2.2 ' + envTemplates.sections.compute.title, HeadingLevel.HEADING_2),
+    createHeading((sectionNum != null ? `${sectionNum}.2 ` : '2.2 ') + envTemplates.sections.compute.title, HeadingLevel.HEADING_2),
     createParagraph(envTemplates.sections.compute.description),
 
     // Compute resources table - description above, label below
@@ -145,7 +145,7 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData): Promise<Do
     createFigureLabel(templates.figureDescriptions.memoryDistribution.title),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('2.3 ' + envTemplates.sections.storage.title, HeadingLevel.HEADING_2),
+    createHeading((sectionNum != null ? `${sectionNum}.3 ` : '2.3 ') + envTemplates.sections.storage.title, HeadingLevel.HEADING_2),
     createParagraph(envTemplates.sections.storage.description),
 
     // Storage metrics table - description above, label below
@@ -175,7 +175,7 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData): Promise<Do
     createFigureLabel(templates.figureDescriptions.storageByType.title),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('2.4 ' + envTemplates.sections.network.title, HeadingLevel.HEADING_2),
+    createHeading((sectionNum != null ? `${sectionNum}.4 ` : '2.4 ') + envTemplates.sections.network.title, HeadingLevel.HEADING_2),
     createParagraph(envTemplates.sections.network.description),
 
     // Network components table - description above, label below

@@ -11,9 +11,10 @@ const STATUS_EMOJI: Record<RiskStatus, string> = {
   green: 'GREEN',
 };
 
-export function buildRiskAssessmentSection(riskTable: RiskTableData): DocumentContent[] {
+export function buildRiskAssessmentSection(riskTable: RiskTableData, sectionNum?: number): DocumentContent[] {
+  const s = sectionNum != null ? sectionNum : null;
   const sections: DocumentContent[] = [
-    createHeading('Risk Assessment', HeadingLevel.HEADING_1),
+    createHeading((s != null ? `${s}. ` : '') + 'Risk Assessment', HeadingLevel.HEADING_1),
   ];
 
   // Summary counts

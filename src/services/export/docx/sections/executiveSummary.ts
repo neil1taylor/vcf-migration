@@ -19,7 +19,8 @@ const templates = reportTemplates as typeof reportTemplates & {
 export async function buildExecutiveSummary(
   rawData: RVToolsData,
   readiness: VMReadiness[],
-  aiInsights?: MigrationInsights | null
+  aiInsights?: MigrationInsights | null,
+  sectionNum?: number
 ): Promise<DocumentContent[]> {
   const execTemplates = reportTemplates.executiveSummary;
   const vms = rawData.vInfo.filter((vm) => !vm.template);
@@ -55,7 +56,7 @@ export async function buildExecutiveSummary(
   const powerStateChart = await generatePieChart(powerStateChartData, 'VM Power State Distribution');
 
   const sections: DocumentContent[] = [
-    createHeading('1. ' + execTemplates.title, HeadingLevel.HEADING_1),
+    createHeading((sectionNum != null ? `${sectionNum}. ` : '1. ') + execTemplates.title, HeadingLevel.HEADING_1),
     createParagraph(execTemplates.introduction),
 
     // At-a-Glance Summary Box

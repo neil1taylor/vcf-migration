@@ -42,11 +42,12 @@ const templates = reportTemplates as typeof reportTemplates & {
   };
 };
 
-export function buildDay2OperationsSection(): DocumentContent[] {
+export function buildDay2OperationsSection(sectionNum?: number): DocumentContent[] {
   const day2 = templates.day2Operations;
+  const s = sectionNum != null ? sectionNum : 9;
 
   const sections: DocumentContent[] = [
-    createHeading('9. ' + day2.title, HeadingLevel.HEADING_1),
+    createHeading(`${s}. ` + day2.title, HeadingLevel.HEADING_1),
     createParagraph(day2.introduction),
     createParagraph(
       'The operational considerations outlined here are based on common VMware-to-cloud migration patterns. The migration partner will design a detailed operational model tailored to your existing processes, tooling, and team structure.'
@@ -55,7 +56,7 @@ export function buildDay2OperationsSection(): DocumentContent[] {
 
   day2.domains.forEach((domain, index) => {
     sections.push(
-      createHeading(`9.${index + 1} ${domain.title}`, HeadingLevel.HEADING_2),
+      createHeading(`${s}.${index + 1} ${domain.title}`, HeadingLevel.HEADING_2),
       createParagraph(domain.description),
       createParagraph(domain.impact),
       createHeading('IBM Cloud Alternatives', HeadingLevel.HEADING_3),

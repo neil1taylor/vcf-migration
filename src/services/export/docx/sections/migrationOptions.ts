@@ -13,11 +13,12 @@ const templates = reportTemplates as typeof reportTemplates & {
   figureDescriptions: Record<string, { title: string; description: string }>;
 };
 
-export function buildMigrationOptions(): DocumentContent[] {
+export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
   const optTemplates = reportTemplates.migrationOptions;
+  const s = sectionNum != null ? sectionNum : 4;
 
   return [
-    createHeading('4. ' + optTemplates.title, HeadingLevel.HEADING_1),
+    createHeading(`${s}. ` + optTemplates.title, HeadingLevel.HEADING_1),
     createParagraph(optTemplates.introduction),
     createParagraph(optTemplates.comparisonIntro),
 
@@ -149,13 +150,13 @@ export function buildMigrationOptions(): DocumentContent[] {
     ...buildDecisionFactorsSection(),
 
     // Migration Process section
-    ...buildMigrationProcess(),
+    ...buildMigrationProcess(s),
 
     // Build-Ahead section
-    ...buildBuildAheadSection(),
+    ...buildBuildAheadSection(s),
 
     // Partner Engagement section
-    ...buildPartnerEngagementSection(),
+    ...buildPartnerEngagementSection(s),
 
     new Paragraph({ children: [new PageBreak()] }),
   ];
@@ -192,9 +193,9 @@ function buildDecisionFactorsSection(): DocumentContent[] {
   ];
 }
 
-function buildMigrationProcess(): DocumentContent[] {
+function buildMigrationProcess(s: number): DocumentContent[] {
   return [
-    createHeading('4.1 How the Migration Works', HeadingLevel.HEADING_2),
+    createHeading(`${s}.1 How the Migration Works`, HeadingLevel.HEADING_2),
     createParagraph(
       'A common concern when planning a cloud migration is whether applications will need to be rewritten or significantly modified. This is not the case. Migrating VMware virtual machines to IBM Cloud VPC VIS or ROKS/ROV is a well-established, repeatable process that has been successfully completed for thousands of enterprise environments worldwide. Your applications, operating systems, and data remain exactly as they are today — the migration simply moves them from one infrastructure platform to another.'
     ),
@@ -208,7 +209,7 @@ function buildMigrationProcess(): DocumentContent[] {
       DOC_LINKS.overview
     ),
 
-    createHeading('4.1.1 The Disk Conversion Step', HeadingLevel.HEADING_3),
+    createHeading(`${s}.1.1 The Disk Conversion Step`, HeadingLevel.HEADING_3),
     createParagraph(
       'Virtual machines on VMware store their data in a proprietary disk format called VMDK (Virtual Machine Disk). Cloud platforms, including IBM Cloud and OpenShift, use open industry-standard formats such as QCOW2 or raw disk images. As part of the migration, each VM\'s disk is converted from VMDK to the appropriate target format. This is a fully automated, mechanical process handled by well-proven tooling — it does not alter the contents of the disk in any way. The operating system, installed applications, configuration files, and data all remain identical. The conversion simply changes the container format, much like saving a document from one file format to another without changing its content.'
     ),
@@ -217,7 +218,7 @@ function buildMigrationProcess(): DocumentContent[] {
       { spacing: { after: 200 } }
     ),
 
-    createHeading('4.1.2 Migration Approaches: Warm and Cold', HeadingLevel.HEADING_3),
+    createHeading(`${s}.1.2 Migration Approaches: Warm and Cold`, HeadingLevel.HEADING_3),
     createParagraph(
       'There are two approaches to transferring a virtual machine, commonly referred to as "warm" and "cold" migration. Both approaches require a maintenance window for the final cutover, but they differ in how long that window needs to be.'
     ),
@@ -234,7 +235,7 @@ function buildMigrationProcess(): DocumentContent[] {
       { spacing: { after: 200 } }
     ),
 
-    createHeading('4.1.3 Migration Tooling', HeadingLevel.HEADING_3),
+    createHeading(`${s}.1.3 Migration Tooling`, HeadingLevel.HEADING_3),
     createParagraph(
       'Both migration targets benefit from purpose-built, industry-proven migration tooling that automates the process end to end. These are not custom scripts or experimental approaches — they are supported products with established track records in enterprise migrations.'
     ),
@@ -278,7 +279,7 @@ function buildMigrationProcess(): DocumentContent[] {
       { spacing: { after: 200 } }
     ),
 
-    createHeading('4.1.4 What Does Not Change', HeadingLevel.HEADING_3),
+    createHeading(`${s}.1.4 What Does Not Change`, HeadingLevel.HEADING_3),
     createParagraph(
       'It is important to emphasise what remains the same after migration. The following elements are preserved exactly as they are today:'
     ),
@@ -294,7 +295,7 @@ function buildMigrationProcess(): DocumentContent[] {
       { spacing: { after: 200 } }
     ),
 
-    createHeading('4.1.5 Level of Effort', HeadingLevel.HEADING_3),
+    createHeading(`${s}.1.5 Level of Effort`, HeadingLevel.HEADING_3),
     createParagraph(
       'Because the migration is a tooling-driven infrastructure operation rather than an application transformation, the level of effort is significantly lower than a traditional re-platforming or modernisation project. The primary activities are:'
     ),
@@ -313,7 +314,7 @@ function buildMigrationProcess(): DocumentContent[] {
       DOC_LINKS.vsiPreMigration
     ),
 
-    createHeading('4.1.6 Replacing Hypervisor-Dependent Tooling', HeadingLevel.HEADING_3),
+    createHeading(`${s}.1.6 Replacing Hypervisor-Dependent Tooling`, HeadingLevel.HEADING_3),
     createParagraph(
       'Tools that depend on the VMware hypervisor layer — including those that use vSphere APIs, VADP (vStorage APIs for Data Protection), or Changed Block Tracking (CBT) — will not function on IBM Cloud VPC VSI or ROKS, because neither platform runs a VMware hypervisor. Replacement solutions must be identified and validated as part of the migration project. The table below maps common VMware-dependent tools to their IBM Cloud equivalents.'
     ),
@@ -337,9 +338,9 @@ function buildMigrationProcess(): DocumentContent[] {
   ];
 }
 
-function buildBuildAheadSection(): DocumentContent[] {
+function buildBuildAheadSection(s: number): DocumentContent[] {
   return [
-    createHeading('4.2 Build-Ahead: Alternative for Infrastructure Services', HeadingLevel.HEADING_2),
+    createHeading(`${s}.2 Build-Ahead: Alternative for Infrastructure Services`, HeadingLevel.HEADING_2),
     createParagraph(
       'Not all workloads benefit from a lift-and-shift approach. Infrastructure services such as Active Directory, DNS, monitoring, and backup are often better served by provisioning fresh cloud-native or managed services on IBM Cloud and migrating only the data and configuration. This reduces complexity, eliminates legacy configuration debt, and takes advantage of cloud-native capabilities such as managed high availability, auto-scaling, and built-in patching.'
     ),
@@ -348,7 +349,7 @@ function buildBuildAheadSection(): DocumentContent[] {
       { spacing: { after: 200 } }
     ),
 
-    createHeading('4.2.1 When to Use Build-Ahead', HeadingLevel.HEADING_3),
+    createHeading(`${s}.2.1 When to Use Build-Ahead`, HeadingLevel.HEADING_3),
     createParagraph(
       'Build-ahead is the preferred approach when:'
     ),
@@ -360,7 +361,7 @@ function buildBuildAheadSection(): DocumentContent[] {
       'The service supports native replication or synchronisation, enabling a low-risk parallel cutover.',
     ]),
 
-    createHeading('4.2.2 Build-Ahead Candidates', HeadingLevel.HEADING_3),
+    createHeading(`${s}.2.2 Build-Ahead Candidates`, HeadingLevel.HEADING_3),
     createParagraph(
       'The following table maps common infrastructure workload types to their recommended IBM Cloud replacements and the typical migration path for each.',
       { spacing: { after: 120 } }
@@ -421,7 +422,7 @@ function buildBuildAheadSection(): DocumentContent[] {
       ]
     ),
 
-    createHeading('4.2.3 The Build-Ahead Process', HeadingLevel.HEADING_3),
+    createHeading(`${s}.2.3 The Build-Ahead Process`, HeadingLevel.HEADING_3),
     createParagraph(
       'The build-ahead process follows a consistent pattern regardless of the specific workload type:'
     ),
@@ -440,14 +441,14 @@ function buildBuildAheadSection(): DocumentContent[] {
   ];
 }
 
-function buildPartnerEngagementSection(): DocumentContent[] {
+function buildPartnerEngagementSection(s: number): DocumentContent[] {
   return [
-    createHeading('4.3 Next Steps: Migration Partner Engagement', HeadingLevel.HEADING_2),
+    createHeading(`${s}.3 Next Steps: Migration Partner Engagement`, HeadingLevel.HEADING_2),
     createParagraph(
       'This assessment provides the analytical foundation for migration planning — identifying workloads, assessing readiness, estimating sizing, and recommending target platforms. The next step is to engage an IBM migration partner who will work with your team to translate these findings into a detailed, executable migration plan tailored to your environment and business requirements.'
     ),
 
-    createHeading('4.3.1 Proof of Value / Proof of Concept', HeadingLevel.HEADING_3),
+    createHeading(`${s}.3.1 Proof of Value / Proof of Concept`, HeadingLevel.HEADING_3),
     createParagraph(
       'Before committing to a full-scale migration, a Proof of Value (PoV) or Proof of Concept (PoC) is typically conducted. This is a structured, time-boxed exercise — usually 2 to 4 weeks — in which a small number of representative workloads are migrated to IBM Cloud to validate the approach end to end.'
     ),
@@ -468,7 +469,7 @@ function buildPartnerEngagementSection(): DocumentContent[] {
       { spacing: { after: 200 } }
     ),
 
-    createHeading('4.3.2 What the Migration Partner Delivers', HeadingLevel.HEADING_3),
+    createHeading(`${s}.3.2 What the Migration Partner Delivers`, HeadingLevel.HEADING_3),
     createParagraph(
       'Once engaged, the IBM migration partner will develop a comprehensive migration plan that builds on this assessment. Key deliverables include:'
     ),
@@ -485,7 +486,7 @@ function buildPartnerEngagementSection(): DocumentContent[] {
       { spacing: { after: 200 } }
     ),
 
-    createHeading('4.3.3 IBM Migration Support Programme', HeadingLevel.HEADING_3),
+    createHeading(`${s}.3.3 IBM Migration Support Programme`, HeadingLevel.HEADING_3),
     createParagraph(
       'IBM provides a structured support programme to help clients migrate from VMware. The programme includes:'
     ),
@@ -497,7 +498,7 @@ function buildPartnerEngagementSection(): DocumentContent[] {
       'Continuous engagement — your assigned IBM resource remains throughout the migration until steady state is achieved.',
     ]),
 
-    createHeading('4.3.4 Roles and Responsibilities', HeadingLevel.HEADING_3),
+    createHeading(`${s}.3.4 Roles and Responsibilities`, HeadingLevel.HEADING_3),
     createParagraph(
       'A successful migration requires coordinated effort from both IBM and the client organisation. The key roles are outlined below.'
     ),

@@ -22,6 +22,7 @@ export function buildVSIOverview(
   rawData?: RVToolsData,
   wavePlanningPreference?: WavePlanningPreference | null,
   vpcDesign?: VPCDesign | null,
+  sectionNum?: number,
 ): DocumentContent[] {
   const vsiTemplates = reportTemplates.vsiOverview;
 
@@ -30,11 +31,13 @@ export function buildVSIOverview(
     return acc;
   }, {} as Record<string, number>);
 
+  const s = sectionNum != null ? sectionNum : 7;
+
   const sections: DocumentContent[] = [
-    createHeading('7. ' + vsiTemplates.title, HeadingLevel.HEADING_1),
+    createHeading(`${s}. ` + vsiTemplates.title, HeadingLevel.HEADING_1),
     createParagraph(vsiTemplates.introduction),
 
-    createHeading('7.1 ' + vsiTemplates.whatIsVsi.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.1 ` + vsiTemplates.whatIsVsi.title, HeadingLevel.HEADING_2),
     createParagraph(vsiTemplates.whatIsVsi.content),
     createDocLink(
       'For the VPC Virtual Servers reference architecture, see',
@@ -42,7 +45,7 @@ export function buildVSIOverview(
       DOC_LINKS.vsiArchitecture
     ),
 
-    createHeading('7.2 ' + vsiTemplates.architecture.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.2 ` + vsiTemplates.architecture.title, HeadingLevel.HEADING_2),
     createParagraph(vsiTemplates.architecture.content),
     ...createBulletList(vsiTemplates.architecture.components),
     createDocLink(
@@ -61,7 +64,7 @@ export function buildVSIOverview(
       DOC_LINKS.vsiNetworking
     ),
 
-    createHeading('7.3 ' + vsiTemplates.profileFamilies.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.3 ` + vsiTemplates.profileFamilies.title, HeadingLevel.HEADING_2),
     createParagraph(vsiTemplates.profileFamilies.description),
 
     // VSI profile families table - description above, label below
@@ -103,19 +106,19 @@ export function buildVSIOverview(
     }),
     createTableLabel(templates.tableDescriptions.vsiProfileFamilies.title),
 
-    createHeading('7.4 ' + vsiTemplates.benefits.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.4 ` + vsiTemplates.benefits.title, HeadingLevel.HEADING_2),
     ...vsiTemplates.benefits.items.flatMap((b) => [
       createParagraph(b.title, { bold: true }),
       createParagraph(b.description),
     ]),
 
-    createHeading('7.5 ' + vsiTemplates.considerations.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.5 ` + vsiTemplates.considerations.title, HeadingLevel.HEADING_2),
     ...createBulletList(vsiTemplates.considerations.items),
 
-    createHeading('7.6 ' + vsiTemplates.sizing.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.6 ` + vsiTemplates.sizing.title, HeadingLevel.HEADING_2),
     createParagraph(vsiTemplates.sizing.description),
 
-    createHeading('7.6.1 Profile Distribution', HeadingLevel.HEADING_3),
+    createHeading(`${s}.6.1 Profile Distribution`, HeadingLevel.HEADING_3),
     new Table({
       width: { size: 100, type: 'pct' as const },
       borders: {
@@ -148,7 +151,7 @@ export function buildVSIOverview(
     }),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('7.6.2 Sample VM to VSI Mappings', HeadingLevel.HEADING_3),
+    createHeading(`${s}.6.2 Sample VM to VSI Mappings`, HeadingLevel.HEADING_3),
     // VSI mappings table - description above, label below
     ...createTableDescription(
       templates.tableDescriptions.vsiMappings.title,
@@ -194,12 +197,12 @@ export function buildVSIOverview(
       : new Paragraph({}),
 
     new Paragraph({ spacing: { before: 360 } }),
-    createHeading('7.7 Block Storage Profiles', HeadingLevel.HEADING_2),
+    createHeading(`${s}.7 Block Storage Profiles`, HeadingLevel.HEADING_2),
     createParagraph(
       'IBM Cloud offers multiple storage profiles for VSI disk volumes, each optimized for different performance requirements.'
     ),
 
-    createHeading('7.7.1 First-Generation Storage Profiles', HeadingLevel.HEADING_3),
+    createHeading(`${s}.7.1 First-Generation Storage Profiles`, HeadingLevel.HEADING_3),
     createParagraph('The first-generation storage profiles provide reliable block storage with predictable IOPS performance:'),
     new Table({
       width: { size: 100, type: 'pct' as const },
@@ -260,37 +263,33 @@ export function buildVSIOverview(
   ];
 
   // VPC Network Design (moved here from standalone section)
+  let subNum = 8;
   if (vpcDesign) {
     sections.push(
-      createHeading('7.8 VPC Network Design', HeadingLevel.HEADING_2),
+      createHeading(`${s}.${subNum} VPC Network Design`, HeadingLevel.HEADING_2),
       ...buildNetworkDesignSection(vpcDesign, true),
     );
+    subNum++;
   }
 
   // VSI Wave Summary (moved from strategy)
   if (rawData && wavePlanningPreference) {
     const vsiWaves = computeWavesForMode(rawData, 'vsi', wavePlanningPreference);
     const isComplexity = wavePlanningPreference.wavePlanningMode === 'complexity';
-    const sectionNum = vpcDesign ? '7.9' : '7.8';
     sections.push(
-      createHeading(`${sectionNum} VSI Wave Summary`, HeadingLevel.HEADING_2),
+      createHeading(`${s}.${subNum} VSI Wave Summary`, HeadingLevel.HEADING_2),
       createParagraph(
         `${vsiWaves.length} wave${vsiWaves.length !== 1 ? 's' : ''} generated for VPC Virtual Server migration using the ${getStrategyLabel(wavePlanningPreference)} strategy:`,
         { spacing: { after: 120 } }
       ),
       buildWaveTable(vsiWaves, isComplexity),
     );
+    subNum++;
   }
 
   // VSI Migration Considerations (moved from strategy)
-  const considNum = (() => {
-    let n = 8;
-    if (vpcDesign) n++;
-    if (rawData && wavePlanningPreference) n++;
-    return `7.${n}`;
-  })();
   sections.push(
-    createHeading(`${considNum} VSI Migration Considerations`, HeadingLevel.HEADING_2),
+    createHeading(`${s}.${subNum} VSI Migration Considerations`, HeadingLevel.HEADING_2),
     createParagraph(
       'For VPC Virtual Server migration, subnet-based waves simplify VPC network design:',
       { spacing: { after: 120 } }

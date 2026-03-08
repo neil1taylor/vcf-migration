@@ -6,10 +6,11 @@ import { calculateTimelineTotals } from '@/services/migration/timelineEstimation
 import type { DocumentContent } from '../types';
 import { createHeading, createParagraph, createStyledTable, createTableDescription, createTableLabel } from '../utils/helpers';
 
-export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date): DocumentContent[] {
+export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date, sectionNum?: number): DocumentContent[] {
   const totals = calculateTimelineTotals(phases, startDate);
+  const s = sectionNum != null ? sectionNum : null;
   const sections: DocumentContent[] = [
-    createHeading('Migration Timeline', HeadingLevel.HEADING_1),
+    createHeading((s != null ? `${s}. ` : '') + 'Migration Timeline', HeadingLevel.HEADING_1),
     createParagraph(`Total estimated duration: ${totals.totalWeeks} weeks across ${totals.phaseCount} phases with ${totals.waveCount} migration waves.`),
   ];
 
@@ -49,7 +50,7 @@ export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date):
 
   // Platform-specific migration notes
   sections.push(
-    createHeading('Platform-Specific Migration Notes', HeadingLevel.HEADING_2),
+    createHeading((s != null ? `${s}.1 ` : '') + 'Platform-Specific Migration Notes', HeadingLevel.HEADING_2),
     createParagraph(
       'ROKS (OpenShift Virtualization): The Migration Toolkit for Virtualization (MTV) handles disk conversion from VMDK to QCOW2 inline during transfer. Warm migration uses VMware Changed Block Tracking (CBT) to minimise cutover windows — only changed blocks are transferred during the final sync.',
       { spacing: { after: 120 } }
@@ -62,7 +63,7 @@ export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date):
 
   // Typical timeline ranges
   sections.push(
-    createHeading('Typical Timeline Ranges', HeadingLevel.HEADING_2),
+    createHeading((s != null ? `${s}.2 ` : '') + 'Typical Timeline Ranges', HeadingLevel.HEADING_2),
     createParagraph(
       'The following table provides indicative timeline ranges based on environment size and complexity. These are drawn from typical IBM Cloud migration engagements and should be used as a planning guide rather than a commitment.'
     ),

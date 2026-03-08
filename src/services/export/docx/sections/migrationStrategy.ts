@@ -155,9 +155,11 @@ export function buildMigrationStrategy(
   wavePlanningPreference?: WavePlanningPreference | null,
   includeROKS: boolean = true,
   includeVSI: boolean = true,
+  sectionNum?: number,
 ): DocumentContent[] {
+  const s = sectionNum != null ? sectionNum : 5;
   const sections: DocumentContent[] = [
-    createHeading('5. Migration Strategy', HeadingLevel.HEADING_1),
+    createHeading(`${s}. Migration Strategy`, HeadingLevel.HEADING_1),
     createParagraph(
       'This section outlines the migration wave planning approach. Three strategies are available for organizing VM migration waves, each with different trade-offs.',
       { spacing: { after: 200 } }
@@ -166,8 +168,7 @@ export function buildMigrationStrategy(
       'The wave groupings presented here are preliminary suggestions based on environment data. The migration partner will refine wave composition based on application dependency mapping, business criticality, maintenance window constraints, and stakeholder availability.'
     ),
 
-    // 5.1 Wave Planning Strategies
-    createHeading('5.1 Wave Planning Strategies', HeadingLevel.HEADING_2),
+    createHeading(`${s}.1 Wave Planning Strategies`, HeadingLevel.HEADING_2),
     createParagraph(
       'The application supports three wave planning strategies for organizing the migration:',
       { spacing: { after: 120 } }
@@ -207,8 +208,7 @@ export function buildMigrationStrategy(
     ]),
   ];
 
-  // 5.2 Selected Strategy
-  sections.push(createHeading('5.2 Selected Strategy', HeadingLevel.HEADING_2));
+  sections.push(createHeading(`${s}.2 Selected Strategy`, HeadingLevel.HEADING_2));
   if (wavePlanningPreference) {
     const label = getStrategyLabel(wavePlanningPreference);
     sections.push(
@@ -228,7 +228,7 @@ export function buildMigrationStrategy(
 
   // Coexistence Network Considerations
   sections.push(
-    createHeading('5.3 Coexistence Network Considerations', HeadingLevel.HEADING_2),
+    createHeading(`${s}.3 Coexistence Network Considerations`, HeadingLevel.HEADING_2),
     createParagraph(
       'During migration, VMs will be split between the source and target environments. This coexistence period introduces network considerations that must be planned for:',
       { spacing: { after: 120 } }
@@ -245,7 +245,7 @@ export function buildMigrationStrategy(
   if (aiInsights?.migrationStrategy) {
     sections.push(
       ...createAISection(
-        '5.4 AI Migration Strategy',
+        `${s}.4 AI Migration Strategy`,
         aiInsights.migrationStrategy,
         HeadingLevel.HEADING_2
       )

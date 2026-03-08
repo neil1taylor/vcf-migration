@@ -29,14 +29,15 @@ const ANSWER_LABELS: Record<string, string> = {
   'no-preference': 'No Preference',
 };
 
-export function buildPlatformSelectionSection(data: PlatformSelectionExport): DocumentContent[] {
+export function buildPlatformSelectionSection(data: PlatformSelectionExport, sectionNum?: number): DocumentContent[] {
   const { score, answers, roksMonthlyCost, vsiMonthlyCost } = data;
   const totalFactors = factorsData.factors.length;
   const vsiFactorCount = factorsData.factors.filter(f => f.target === 'vsi').length;
   const roksFactorCount = factorsData.factors.filter(f => f.target === 'roks').length;
+  const s = sectionNum != null ? sectionNum : null;
 
   const sections: DocumentContent[] = [
-    createHeading('Platform Selection Assessment', HeadingLevel.HEADING_1),
+    createHeading((s != null ? `${s}. ` : '') + 'Platform Selection Assessment', HeadingLevel.HEADING_1),
     createParagraph(
       'This section documents the platform selection questionnaire responses used to determine the recommended target platform for migration.'
     ),
@@ -58,7 +59,7 @@ export function buildPlatformSelectionSection(data: PlatformSelectionExport): Do
   );
 
   // Per-factor detail table
-  sections.push(createHeading('Platform Selection Factors', HeadingLevel.HEADING_2));
+  sections.push(createHeading((s != null ? `${s}.1 ` : '') + 'Platform Selection Factors', HeadingLevel.HEADING_2));
 
   // Resolve dynamic cost factor label
   const costFavoursLabel = (() => {

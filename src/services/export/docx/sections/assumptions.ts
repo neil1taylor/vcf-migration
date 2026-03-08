@@ -5,9 +5,10 @@ import { MIGRATION_THROUGHPUT_GB_PER_DAY, MIN_DAYS_PER_VM, WORKING_DAYS_PER_WEEK
 import { type DocumentContent } from '../types';
 import { createHeading, createParagraph, createBulletList } from '../utils/helpers';
 
-export function buildAssumptionsAndScope(): DocumentContent[] {
+export function buildAssumptionsAndScope(parentSectionNum?: number): DocumentContent[] {
+  const prefix = parentSectionNum != null ? `${parentSectionNum}.1` : '1.1';
   return [
-    createHeading('1.1 Assessment Assumptions & Scope', HeadingLevel.HEADING_2),
+    createHeading(`${prefix} Assessment Assumptions & Scope`, HeadingLevel.HEADING_2),
     createParagraph(
       'This assessment is based on the following assumptions and scope limitations. These should be considered when reviewing the recommendations and cost estimates.',
       { spacing: { after: 200 } }

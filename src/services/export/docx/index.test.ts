@@ -266,7 +266,7 @@ describe('generateDocxReport', () => {
 
     await generateDocxReport(mockRVToolsData, { platformSelection });
 
-    expect(buildPlatformSelectionSection).toHaveBeenCalledWith(platformSelection);
+    expect(buildPlatformSelectionSection).toHaveBeenCalledWith(platformSelection, expect.any(Number));
   });
 
   it('does not call buildPlatformSelectionSection when platformSelection is null', async () => {
@@ -292,6 +292,7 @@ describe('generateDocxReport', () => {
       mockRVToolsData,
       wavePref,
       platformSelection,
+      expect.any(Number), // sectionNum
     );
   });
 
@@ -310,6 +311,7 @@ describe('generateDocxReport', () => {
       mockRVToolsData,
       wavePref,
       vpcDesign,
+      expect.any(Number), // sectionNum
     );
   });
 

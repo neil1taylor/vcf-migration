@@ -4,3 +4,4 @@ export * from './helpers';
 export * from './charts';
 export * from './calculations';
 export * from './docLinks';
+export * from './sectionCounter';

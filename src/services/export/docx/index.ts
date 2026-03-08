@@ -21,6 +21,7 @@ import reportTemplates from '@/data/reportTemplates.json';
 import { type DocxExportOptions, type DocumentContent, FONT_FAMILY, STYLES } from './types';
 import { calculateVMReadiness, calculateROKSSizing, calculateVSIMappings } from './utils/calculations';
 import { resetCaptionCounters } from './utils/helpers';
+import { createSectionCounter } from './utils/sectionCounter';
 import {
   buildCoverPage,
   buildExecutiveSummary,
@@ -77,9 +78,14 @@ export async function generateDocxReport(
   const roksSizing = calculateROKSSizing(rawData);
   const vsiMappings = calculateVSIMappings(rawData);
 
+  // Section numbering counter — incremented for each H1 section
+  const sec = createSectionCounter();
+
   // Build document sections (await async functions)
-  const executiveSummary = await buildExecutiveSummary(rawData, readiness, aiInsights);
-  const environmentAnalysis = await buildEnvironmentAnalysis(rawData);
+  const execNum = sec.next(); // 1
+  const executiveSummary = await buildExecutiveSummary(rawData, readiness, aiInsights, execNum);
+  const envNum = sec.next(); // 2
+  const environmentAnalysis = await buildEnvironmentAnalysis(rawData, envNum);
 
   // Build Table of Contents section
   const tableOfContents: DocumentContent[] = [
@@ -119,20 +125,17 @@ export async function generateDocxReport(
     new Paragraph({ children: [new PageBreak()] }),
   ];
 
-  // Build document sections in new order:
-  // 1. Cover Page, 2. ToC, 3. Executive Summary, 4. Assumptions, 5. Environment,
-  // 6. Readiness, 7. Migration Options, 8. Migration Strategy (generic),
-  // 9. ROKS/ROV, 10. VSI (with network design), 11. Comparison (platform selection + costs),
-  // 12. Timeline, 13. Risk, 14. Day 2, 15. Next Steps, 16. Appendices
+  // Build document sections in order with sequential numbering.
+  // The counter auto-increments, so optional sections don't break numbering.
   const sections: DocumentContent[] = [
     ...buildCoverPage(finalOptions),
     ...tableOfContents,
-    ...executiveSummary,
-    ...buildAssumptionsAndScope(),
-    ...environmentAnalysis,
-    ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }),
-    ...buildMigrationOptions(),
-    ...buildMigrationStrategy(rawData, aiInsights, finalOptions.wavePlanningPreference, finalOptions.includeROKS, finalOptions.includeVSI),
+    ...executiveSummary,                                                    // sec 1 (already assigned above)
+    ...buildAssumptionsAndScope(execNum),                                   // sub-section of exec summary (1.1)
+    ...environmentAnalysis,                                                 // sec 2 (already assigned above)
+    ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()),
+    ...buildMigrationOptions(sec.next()),
+    ...buildMigrationStrategy(rawData, aiInsights, finalOptions.wavePlanningPreference, finalOptions.includeROKS, finalOptions.includeVSI, sec.next()),
   ];
 
   // ROKS/ROV section (with wave summary and migration considerations)
@@ -142,6 +145,7 @@ export async function generateDocxReport(
       rawData,
       finalOptions.wavePlanningPreference,
       finalOptions.platformSelection,
+      sec.next(),
     ));
   }
 
@@ -153,29 +157,30 @@ export async function generateDocxReport(
       rawData,
       finalOptions.wavePlanningPreference,
       finalOptions.vpcDesign,
+      sec.next(),
     ));
   }
 
   // Comparison & Recommendations (platform selection + costs)
   if (finalOptions.platformSelection) {
-    sections.push(...buildPlatformSelectionSection(finalOptions.platformSelection));
+    sections.push(...buildPlatformSelectionSection(finalOptions.platformSelection, sec.next()));
   }
 
   if (finalOptions.includeCosts && (finalOptions.includeROKS || finalOptions.includeVSI)) {
-    sections.push(...buildCostEstimation(roksSizing, vsiMappings, aiInsights));
+    sections.push(...buildCostEstimation(roksSizing, vsiMappings, aiInsights, sec.next()));
   }
 
   // Timeline and Risk (combined, after comparison)
   if (finalOptions.timelinePhases) {
-    sections.push(...buildTimelineSection(finalOptions.timelinePhases, finalOptions.timelineStartDate));
+    sections.push(...buildTimelineSection(finalOptions.timelinePhases, finalOptions.timelineStartDate, sec.next()));
   }
 
   if (finalOptions.riskAssessment) {
-    sections.push(...buildRiskAssessmentSection(finalOptions.riskAssessment));
+    sections.push(...buildRiskAssessmentSection(finalOptions.riskAssessment, sec.next()));
   }
 
-  sections.push(...buildDay2OperationsSection());
-  sections.push(...buildNextSteps(finalOptions, aiInsights));
+  sections.push(...buildDay2OperationsSection(sec.next()));
+  sections.push(...buildNextSteps(finalOptions, aiInsights, sec.next()));
 
   // Add appendices if there are more VMs than shown in main body
   sections.push(...buildAppendices(readiness, finalOptions.maxIssueVMs));

@@ -58,18 +58,19 @@ function buildCheckList(modeFlags: ModeFlags): DocumentContent[] {
   return createBulletList(checks.map(formatCheckBullet));
 }
 
-export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: number, aiInsights?: MigrationInsights | null, modeFlags?: ModeFlags): DocumentContent[] {
+export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: number, aiInsights?: MigrationInsights | null, modeFlags?: ModeFlags, sectionNum?: number): DocumentContent[] {
   const readinessTemplates = reportTemplates.migrationReadiness;
   const blockerVMs = readiness.filter((r) => r.hasBlocker).slice(0, maxIssueVMs);
   const warningVMs = readiness.filter((r) => r.hasWarning && !r.hasBlocker).slice(0, maxIssueVMs);
+  const s = sectionNum != null ? sectionNum : 3;
 
   const sections: DocumentContent[] = [
-    createHeading('3. ' + readinessTemplates.title, HeadingLevel.HEADING_1),
+    createHeading(`${s}. ` + readinessTemplates.title, HeadingLevel.HEADING_1),
     createParagraph(readinessTemplates.introduction),
     createParagraph(
       'This readiness assessment is based on RVTools metadata. The migration partner will conduct detailed discovery including application dependency mapping, performance baselining, and stakeholder interviews to produce a comprehensive readiness assessment.'
     ),
-    createHeading('3.1 ' + readinessTemplates.checksPerformed.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.1 ` + readinessTemplates.checksPerformed.title, HeadingLevel.HEADING_2),
     ...buildCheckList(modeFlags ?? {}),
   ];
 
@@ -77,7 +78,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
   if (blockerVMs.length > 0) {
     sections.push(
       new Paragraph({ spacing: { before: 240 } }),
-      createHeading('3.2 ' + readinessTemplates.blockersSummary.title, HeadingLevel.HEADING_2),
+      createHeading(`${s}.2 ` + readinessTemplates.blockersSummary.title, HeadingLevel.HEADING_2),
       createParagraph(readinessTemplates.blockersSummary.description),
       // Description above table
       ...createTableDescription(
@@ -134,7 +135,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
   if (warningVMs.length > 0) {
     sections.push(
       new Paragraph({ spacing: { before: 240 } }),
-      createHeading('3.3 ' + readinessTemplates.warningsSummary.title, HeadingLevel.HEADING_2),
+      createHeading(`${s}.3 ` + readinessTemplates.warningsSummary.title, HeadingLevel.HEADING_2),
       createParagraph(readinessTemplates.warningsSummary.description),
       // Description above table
       ...createTableDescription(
@@ -190,7 +191,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
   // Key Migration Risks section
   sections.push(
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('3.4 Key Migration Risks', HeadingLevel.HEADING_2),
+    createHeading(`${s}.4 Key Migration Risks`, HeadingLevel.HEADING_2),
     createParagraph(
       'The following risks have been identified based on the environment analysis. These should be addressed during migration planning.',
       { spacing: { after: 200 } }
@@ -228,7 +229,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
   // Common migration risks (static, from industry experience)
   sections.push(
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('3.4.1 Common Migration Risks', HeadingLevel.HEADING_3),
+    createHeading(`${s}.4.1 Common Migration Risks`, HeadingLevel.HEADING_3),
     createParagraph(
       'In addition to the environment-specific risks above, the following risks are commonly encountered in VMware migration projects and should be considered during planning.'
     ),
@@ -247,7 +248,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
   if (aiInsights?.riskAssessment) {
     sections.push(
       ...createAISection(
-        '3.5 AI Risk Assessment',
+        `${s}.5 AI Risk Assessment`,
         aiInsights.riskAssessment,
         HeadingLevel.HEADING_2
       )

@@ -19,14 +19,16 @@ export function buildROKSOverview(
   rawData?: RVToolsData,
   wavePlanningPreference?: WavePlanningPreference | null,
   platformSelection?: PlatformSelectionExport | null,
+  sectionNum?: number,
 ): DocumentContent[] {
   const roksTemplates = reportTemplates.roksOverview;
+  const s = sectionNum != null ? sectionNum : 6;
 
   const sections: DocumentContent[] = [
-    createHeading('6. ' + roksTemplates.title, HeadingLevel.HEADING_1),
+    createHeading(`${s}. ` + roksTemplates.title, HeadingLevel.HEADING_1),
     createParagraph(roksTemplates.introduction),
 
-    createHeading('6.1 ' + roksTemplates.whatIsRoks.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.1 ` + roksTemplates.whatIsRoks.title, HeadingLevel.HEADING_2),
     createParagraph(roksTemplates.whatIsRoks.content),
     createDocLink(
       'For the OpenShift Virtualization reference architecture, see',
@@ -34,7 +36,7 @@ export function buildROKSOverview(
       DOC_LINKS.roksArchitecture
     ),
 
-    createHeading('6.2 ' + roksTemplates.architecture.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.2 ` + roksTemplates.architecture.title, HeadingLevel.HEADING_2),
     createParagraph(roksTemplates.architecture.content),
     ...createBulletList(roksTemplates.architecture.components),
     createDocLink(
@@ -53,20 +55,20 @@ export function buildROKSOverview(
       DOC_LINKS.roksNetworking
     ),
 
-    createHeading('6.3 ' + roksTemplates.benefits.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.3 ` + roksTemplates.benefits.title, HeadingLevel.HEADING_2),
     ...roksTemplates.benefits.items.flatMap((b) => [
       createParagraph(b.title, { bold: true }),
       createParagraph(b.description),
     ]),
 
-    createHeading('6.4 ' + roksTemplates.considerations.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.4 ` + roksTemplates.considerations.title, HeadingLevel.HEADING_2),
     ...createBulletList(roksTemplates.considerations.items),
 
-    createHeading('6.5 ' + roksTemplates.sizing.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.5 ` + roksTemplates.sizing.title, HeadingLevel.HEADING_2),
     createParagraph(roksTemplates.sizing.description),
     createParagraph(roksTemplates.sizing.methodology, { spacing: { after: 120 } }),
 
-    createHeading('6.5.1 ODF Storage Sizing', HeadingLevel.HEADING_3),
+    createHeading(`${s}.5.1 ODF Storage Sizing`, HeadingLevel.HEADING_3),
     createParagraph(
       'OpenShift Data Foundation (ODF) uses Ceph for software-defined storage with 3-way replication for data protection. ' +
       'The sizing calculation reserves 25% of usable capacity for ODF operational overhead, resulting in 75% operational capacity.',
@@ -79,7 +81,7 @@ export function buildROKSOverview(
       'Headroom for workload growth without immediate capacity expansion',
     ]),
 
-    createHeading('6.5.2 ODF Edition Comparison', HeadingLevel.HEADING_3),
+    createHeading(`${s}.5.2 ODF Edition Comparison`, HeadingLevel.HEADING_3),
     createParagraph(
       'Red Hat OpenShift Data Foundation is available in two editions: Essentials and Advanced. ' +
       'Essentials provides core block and file storage with Ceph 3-way replication. ' +
@@ -109,7 +111,7 @@ export function buildROKSOverview(
       { spacing: { before: 120, after: 120 } }
     ),
 
-    createHeading('6.5.3 CPU Over-commitment', HeadingLevel.HEADING_3),
+    createHeading(`${s}.5.3 CPU Over-commitment`, HeadingLevel.HEADING_3),
     createParagraph(
       `OpenShift Virtualization supports CPU over-commitment. The sizing calculations in this report use a ${sizing.cpuOvercommit}:1 CPU over-commit ratio.`,
       { spacing: { after: 120 } }
@@ -120,7 +122,7 @@ export function buildROKSOverview(
       'Node Capacity: OpenShift reserves ~15% CPU for system services',
     ]),
 
-    createHeading('6.5.4 Memory Over-commitment', HeadingLevel.HEADING_3),
+    createHeading(`${s}.5.4 Memory Over-commitment`, HeadingLevel.HEADING_3),
     createParagraph(
       'Memory over-commitment is supported but not enabled by default. This sizing uses 1:1 memory allocation for predictable VM performance.',
       { spacing: { after: 120 } }
@@ -132,7 +134,7 @@ export function buildROKSOverview(
     ]),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('6.5.5 Recommended Configuration', HeadingLevel.HEADING_3),
+    createHeading(`${s}.5.5 Recommended Configuration`, HeadingLevel.HEADING_3),
     // ROKS sizing table - description above, label below
     ...createTableDescription(
       templates.tableDescriptions.roksSizing.title,
@@ -156,7 +158,7 @@ export function buildROKSOverview(
 
   // 6.6 Red Hat OpenShift Virtualization (ROV)
   sections.push(
-    createHeading('6.6 Red Hat OpenShift Virtualization (ROV)', HeadingLevel.HEADING_2),
+    createHeading(`${s}.6 Red Hat OpenShift Virtualization (ROV)`, HeadingLevel.HEADING_2),
     createParagraph(
       'ROV is a cost-optimised variant of ROKS for environments without containerisation requirements. ' +
       'It uses the same bare metal infrastructure, the same ODF storage, and the same MTV migration tooling as full ROKS.',
@@ -180,22 +182,24 @@ export function buildROKSOverview(
   }
 
   // ROKS Wave Summary (moved from strategy)
+  let subNum = 7;
   if (rawData && wavePlanningPreference) {
     const roksWaves = computeWavesForMode(rawData, 'roks', wavePlanningPreference);
     const isComplexity = wavePlanningPreference.wavePlanningMode === 'complexity';
     sections.push(
-      createHeading('6.7 ROKS Wave Summary', HeadingLevel.HEADING_2),
+      createHeading(`${s}.${subNum} ROKS Wave Summary`, HeadingLevel.HEADING_2),
       createParagraph(
         `${roksWaves.length} wave${roksWaves.length !== 1 ? 's' : ''} generated for ROKS (OpenShift Virtualization) migration using the ${getStrategyLabel(wavePlanningPreference)} strategy:`,
         { spacing: { after: 120 } }
       ),
       buildWaveTable(roksWaves, isComplexity),
     );
+    subNum++;
   }
 
   // ROKS Migration Considerations (moved from strategy)
   sections.push(
-    createHeading(rawData && wavePlanningPreference ? '6.8 ROKS Migration Considerations' : '6.7 ROKS Migration Considerations', HeadingLevel.HEADING_2),
+    createHeading(`${s}.${subNum} ROKS Migration Considerations`, HeadingLevel.HEADING_2),
     createParagraph(
       'For ROKS with OpenShift Virtualization, subnet-based migration aligns with the Migration Toolkit for Virtualization (MTV) workflow:',
       { spacing: { after: 120 } }

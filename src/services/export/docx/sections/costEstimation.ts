@@ -15,7 +15,8 @@ const templates = reportTemplates as typeof reportTemplates & {
 export function buildCostEstimation(
   roksSizing: ROKSSizing,
   vsiMappings: VSIMapping[],
-  aiInsights?: MigrationInsights | null
+  aiInsights?: MigrationInsights | null,
+  sectionNum?: number,
 ): DocumentContent[] {
   const costTemplates = reportTemplates.costEstimation;
 
@@ -32,12 +33,13 @@ export function buildCostEstimation(
   const costRatio = totalVSIMonthlyCost > 0 ? (roksMonthlyCost / totalVSIMonthlyCost).toFixed(1) : 'N/A';
   const annualDifference = (roksMonthlyCost - totalVSIMonthlyCost) * 12;
 
+  const s = sectionNum != null ? sectionNum : 8;
   const sections: DocumentContent[] = [
-    createHeading('8. ' + costTemplates.title, HeadingLevel.HEADING_1),
+    createHeading(`${s}. ` + costTemplates.title, HeadingLevel.HEADING_1),
     createParagraph(costTemplates.introduction),
     createParagraph(costTemplates.disclaimer, { spacing: { after: 240 } }),
 
-    createHeading('8.1 ' + costTemplates.sections.comparison.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.1 ` + costTemplates.sections.comparison.title, HeadingLevel.HEADING_2),
     createParagraph(costTemplates.sections.comparison.description),
 
     // Cost comparison table - description above, label below
@@ -156,7 +158,7 @@ export function buildCostEstimation(
     ]),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('8.2 Cost Analysis & Recommendations', HeadingLevel.HEADING_2),
+    createHeading(`${s}.2 Cost Analysis & Recommendations`, HeadingLevel.HEADING_2),
 
     new Paragraph({
       spacing: { before: 120, after: 120 },
@@ -198,7 +200,7 @@ export function buildCostEstimation(
     ),
 
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading('8.3 ' + costTemplates.notes.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.3 ` + costTemplates.notes.title, HeadingLevel.HEADING_2),
     ...createBulletList(costTemplates.notes.items),
   ];
 
@@ -206,7 +208,7 @@ export function buildCostEstimation(
   if (aiInsights?.costOptimizations && aiInsights.costOptimizations.length > 0) {
     sections.push(
       ...createAISection(
-        '8.4 AI Cost Optimization Suggestions',
+        `${s}.4 AI Cost Optimization Suggestions`,
         aiInsights.costOptimizations,
         HeadingLevel.HEADING_2
       )

@@ -27,18 +27,19 @@ const PHASE_LINKS: Record<string, Array<{ description: string; linkText: string;
   ],
 };
 
-export function buildNextSteps(options: Required<DocxExportOptions>, aiInsights?: MigrationInsights | null): DocumentContent[] {
+export function buildNextSteps(options: Required<DocxExportOptions>, aiInsights?: MigrationInsights | null, sectionNum?: number): DocumentContent[] {
   const templates = reportTemplates.nextSteps;
   const placeholders = reportTemplates.placeholders;
+  const s = sectionNum != null ? sectionNum : 10;
 
   const sections: DocumentContent[] = [
-    createHeading('10. ' + templates.title, HeadingLevel.HEADING_1),
+    createHeading(`${s}. ` + templates.title, HeadingLevel.HEADING_1),
     createParagraph(templates.introduction),
   ];
 
   templates.steps.forEach((phase, index) => {
     sections.push(
-      createHeading(`10.${index + 1} ${phase.phase}`, HeadingLevel.HEADING_2),
+      createHeading(`${s}.${index + 1} ${phase.phase}`, HeadingLevel.HEADING_2),
       ...createBulletList(phase.items)
     );
 
@@ -52,7 +53,7 @@ export function buildNextSteps(options: Required<DocxExportOptions>, aiInsights?
   if (aiInsights?.recommendations && aiInsights.recommendations.length > 0) {
     sections.push(
       ...createAISection(
-        '10.5 AI Recommendations',
+        `${s}.${templates.steps.length + 1} AI Recommendations`,
         aiInsights.recommendations,
         HeadingLevel.HEADING_2
       )
@@ -61,7 +62,7 @@ export function buildNextSteps(options: Required<DocxExportOptions>, aiInsights?
 
   sections.push(
     new Paragraph({ spacing: { before: 480 } }),
-    createHeading('10.6 ' + templates.contact.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.${templates.steps.length + (aiInsights?.recommendations?.length ? 2 : 1)} ` + templates.contact.title, HeadingLevel.HEADING_2),
     createParagraph(templates.contact.content),
     createParagraph(options.companyName || placeholders.companyName, { bold: true }),
     createParagraph(options.preparedBy || placeholders.preparedBy),
