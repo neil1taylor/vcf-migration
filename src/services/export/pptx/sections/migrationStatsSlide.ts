@@ -1,11 +1,11 @@
-// Migration Readiness Slide — remediation pre-flight checks table
+// Migration Readiness Slide — remediation pre-flight checks with color-coded status
 
 import type PptxGenJS from 'pptxgenjs';
 import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationMode } from '@/services/migration';
 import { generateRemediationItems } from '@/services/migration';
 import { COLORS, FONTS } from '../types';
-import { addSlideTitle, addTable } from '../utils';
+import { addSlideTitle } from '../utils';
 import { calculatePreflightCounts } from '../../docx/utils/calculations';
 
 /** Map severity to a human-readable status label */
@@ -26,6 +26,18 @@ function formatAffected(count: number, severity: string): string {
   return `${count} VM${count !== 1 ? 's' : ''}`;
 }
 
+/** Map severity to fill color */
+function severityFillColor(severity: string): string {
+  switch (severity) {
+    case 'success': return COLORS.green;
+    case 'blocker': return COLORS.red;
+    case 'warning': return COLORS.orange;
+    case 'info': return COLORS.cyan;
+    case 'unknown': return COLORS.mediumGray;
+    default: return COLORS.mediumGray;
+  }
+}
+
 export function addMigrationStatsSlide(
   pres: PptxGenJS,
   rawData: RVToolsData,
@@ -39,18 +51,17 @@ export function addMigrationStatsSlide(
 
   // Calculate pre-flight counts and generate remediation items
   const counts = calculatePreflightCounts(rawData, mode);
-  // VSI gets all checks (pass + fail); ROKS only gets issues (no all-checks variant)
   const includeAllChecks = mode === 'vsi';
   const items = generateRemediationItems(counts, mode, includeAllChecks);
 
-  // Filter out unverifiable items (can't be checked from RVTools data)
+  // Filter out unverifiable items
   const visibleItems = items.filter(item => !item.isUnverifiable);
 
   const modeLabel = mode === 'roks' ? 'ROKS (OpenShift Virtualization)' : 'VPC VSI';
 
   // Blue subtitle
   slide.addText('Pre-flight Compatibility Checks', {
-    x: 0.5, y: 0.85, w: 9.0, h: 0.35,
+    x: 0.5, y: 0.47, w: 9.0, h: 0.35,
     fontSize: FONTS.bodySize,
     fontFace: FONTS.face,
     color: COLORS.ibmBlue,
@@ -59,25 +70,71 @@ export function addMigrationStatsSlide(
 
   // Explanatory paragraph
   slide.addText(`Automated checks against the RVTools data to identify potential blockers and warnings before migration. Items flagged may require remediation to ensure a smooth transition to ${modeLabel}.`, {
-    x: 0.5, y: 1.2, w: 9.0, h: 0.6,
+    x: 0.5, y: 0.77, w: 9.0, h: 0.6,
     fontSize: FONTS.smallSize,
     fontFace: FONTS.face,
     color: COLORS.darkGray,
   });
 
-  // Build table rows
-  const rows: string[][] = visibleItems.map(item => [
-    item.name,
-    severityLabel(item.severity),
-    formatAffected(item.affectedCount, item.severity),
+  if (visibleItems.length === 0) return;
+
+  // Build custom table with color-coded status cells
+  const headerOpts = {
+    bold: true,
+    fill: { color: COLORS.ibmBlue },
+    color: COLORS.white,
+    fontSize: 9,
+    fontFace: FONTS.face,
+    valign: 'middle' as const,
+    align: 'left' as const,
+  };
+
+  const tableRows: PptxGenJS.TableRow[] = [];
+
+  // Header row
+  tableRows.push([
+    { text: 'Pre-flight Check', options: headerOpts },
+    { text: 'Status', options: headerOpts },
+    { text: 'Affected', options: headerOpts },
   ]);
 
-  if (rows.length > 0) {
-    addTable(
-      slide,
-      ['Pre-flight Check', 'Status', 'Affected'],
-      rows,
-      { y: 1.8, colW: [5.0, 2.0, 2.0], fontSize: 9 }
-    );
+  // Data rows with color-coded status
+  for (let i = 0; i < visibleItems.length; i++) {
+    const item = visibleItems[i];
+    const rowFill = i % 2 === 0 ? COLORS.white : COLORS.lightGray;
+    const baseCellOpts = {
+      fontSize: 9,
+      fontFace: FONTS.face,
+      color: COLORS.darkGray,
+      fill: { color: rowFill },
+      valign: 'middle' as const,
+      align: 'left' as const,
+    };
+
+    tableRows.push([
+      { text: item.name, options: baseCellOpts },
+      {
+        text: severityLabel(item.severity),
+        options: {
+          fontSize: 9,
+          fontFace: FONTS.face,
+          color: COLORS.white,
+          bold: true,
+          fill: { color: severityFillColor(item.severity) },
+          valign: 'middle' as const,
+          align: 'center' as const,
+        },
+      },
+      { text: formatAffected(item.affectedCount, item.severity), options: baseCellOpts },
+    ]);
   }
+
+  slide.addTable(tableRows, {
+    x: 0.5,
+    y: 1.25,
+    w: 9.0,
+    colW: [5.0, 2.0, 2.0],
+    border: { type: 'solid', pt: 0.5, color: COLORS.mediumGray },
+    autoPage: false,
+  });
 }

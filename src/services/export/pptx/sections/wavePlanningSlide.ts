@@ -14,21 +14,6 @@ export function addWavePlanningSlide(
   const slide = pres.addSlide({ masterName: 'CONTENT' });
   addSlideTitle(slide, 'Migration Wave Planning');
 
-  // Blue subtitle with caveat text
-  slide.addText(
-    'Wave groupings are preliminary suggestions. The migration partner will refine based on application dependencies and business priorities.',
-    {
-      x: BODY.x,
-      y: 0.75,
-      w: BODY.w,
-      h: 0.3,
-      fontSize: 8,
-      fontFace: FONTS.face,
-      color: COLORS.ibmBlue,
-      italic: true,
-    }
-  );
-
   const preference = options.wavePlanningPreference;
 
   if (!preference) {
@@ -45,29 +30,19 @@ export function addWavePlanningSlide(
     return;
   }
 
-  // Strategy sentence
+  // Merged subtitle with strategy and disclaimer
   const strategyLabel = getStrategyLabel(preference);
-  slide.addText(`The waves below use a ${strategyLabel} grouping strategy.`, {
-    x: BODY.x,
-    y: 1.05,
-    w: BODY.w,
-    h: 0.25,
-    fontSize: FONTS.bodySize,
-    fontFace: FONTS.face,
-    color: COLORS.darkGray,
-  });
-
-  // Strategy descriptions
   slide.addText(
-    'Three strategies are available: Complexity-Based groups VMs by migration difficulty (simple to complex); Network-Based (Cluster) groups VMs sharing the same cluster; Network-Based (Port Group) groups VMs on the same network segment to minimise cutover disruption.',
+    `The waves below use a ${strategyLabel} grouping strategy. Wave groupings are preliminary — the migration partner will refine based on application dependencies.`,
     {
       x: BODY.x,
-      y: 1.3,
+      y: 0.47,
       w: BODY.w,
       h: 0.35,
-      fontSize: 7,
+      fontSize: FONTS.bodySize,
       fontFace: FONTS.face,
-      color: COLORS.mediumGray,
+      color: COLORS.ibmBlue,
+      bold: true,
     }
   );
 
@@ -125,7 +100,7 @@ export function addWavePlanningSlide(
     : [2.5, 0.8, 0.8, 1.2, 1.2, 1.0];
 
   addTable(slide, headers, rows, {
-    y: 1.7,
+    y: 0.9,
     fontSize: 8,
     colW,
   });

@@ -1,7 +1,7 @@
-// Migration Execution Slide — describes the specialist migration partner's 3 phases
+// Migration Execution Slide — 3-column layout with blue accent bars
 
 import type PptxGenJS from 'pptxgenjs';
-import { COLORS, FONTS, BODY } from '../types';
+import { COLORS, FONTS } from '../types';
 import { addSlideTitle } from '../utils';
 
 const PHASES: { heading: string; bullets: string[] }[] = [
@@ -40,46 +40,93 @@ export function addMigrationExecutionSlide(pres: PptxGenJS): void {
   const slide = pres.addSlide({ masterName: 'CONTENT' });
   addSlideTitle(slide, 'Migration Execution');
 
-  // Build TextProps array with top-level section headers and indented bullets
-  const textItems: PptxGenJS.TextProps[] = [];
+  // Blue subtitle
+  slide.addText('Discover, Design & Configure, Migrate', {
+    x: 0.5, y: 0.47, w: 9.0, h: 0.35,
+    fontSize: FONTS.bodySize,
+    fontFace: FONTS.face,
+    color: COLORS.ibmBlue,
+    bold: true,
+  });
 
-  for (const phase of PHASES) {
-    // Top-level section header (bold, same fontSize as body, no indent)
-    textItems.push({
-      text: phase.heading,
-      options: {
-        fontSize: 11,
-        fontFace: FONTS.face,
-        color: COLORS.darkGray,
-        bold: true,
-        bullet: { type: 'none' },
-        breakType: 'none',
-        paraSpaceBefore: 8,
-        paraSpaceAfter: 2,
-      },
+  // Explanatory paragraph
+  slide.addText('The migration follows a structured three-phase approach. Each phase builds on the outputs of the previous stage to ensure a controlled, repeatable migration.', {
+    x: 0.5, y: 0.77, w: 9.0, h: 0.4,
+    fontSize: FONTS.smallSize,
+    fontFace: FONTS.face,
+    color: COLORS.darkGray,
+  });
+
+  const colCount = 3;
+  const totalWidth = 9.0;
+  const gap = 0.15;
+  const colWidth = (totalWidth - gap * (colCount - 1)) / colCount;
+  const startX = 0.5;
+  const startY = 1.2;
+  const accentH = 0.04;
+
+  for (let i = 0; i < PHASES.length; i++) {
+    const phase = PHASES[i];
+    const colX = startX + i * (colWidth + gap);
+
+    // Blue accent bar at top of column
+    slide.addShape('rect' as PptxGenJS.ShapeType, {
+      x: colX,
+      y: startY,
+      w: colWidth,
+      h: accentH,
+      fill: { color: COLORS.ibmBlue },
     });
 
-    // Bullet items (indented under each phase)
-    for (const bullet of phase.bullets) {
-      textItems.push({
-        text: bullet,
-        options: {
-          fontSize: 9,
-          fontFace: FONTS.face,
-          color: COLORS.darkGray,
-          bullet: true,
-          indentLevel: 1,
-          paraSpaceAfter: 2,
-        },
+    // Column heading (bold blue)
+    slide.addText(phase.heading, {
+      x: colX,
+      y: startY + accentH + 0.05,
+      w: colWidth,
+      h: 0.35,
+      fontSize: 14,
+      fontFace: FONTS.face,
+      color: COLORS.ibmBlue,
+      bold: true,
+      valign: 'top',
+    });
+
+    // Bullet list
+    const bulletItems: PptxGenJS.TextProps[] = phase.bullets.map((bullet) => ({
+      text: bullet,
+      options: {
+        fontSize: 8,
+        fontFace: FONTS.face,
+        color: COLORS.darkGray,
+        bullet: true,
+        breakType: 'none' as const,
+        paraSpaceAfter: 4,
+      },
+    }));
+
+    slide.addText(bulletItems, {
+      x: colX,
+      y: startY + accentH + 0.4,
+      w: colWidth,
+      h: 3.4,
+      valign: 'top',
+    });
+
+    // Add chevron arrow between columns (except after last)
+    if (i < PHASES.length - 1) {
+      const chevronX = colX + colWidth + (gap / 2) - 0.06;
+      slide.addText('>', {
+        x: chevronX,
+        y: startY + 0.05,
+        w: 0.12,
+        h: 0.35,
+        fontSize: 16,
+        fontFace: FONTS.face,
+        color: COLORS.mediumGray,
+        bold: true,
+        align: 'center',
+        valign: 'middle',
       });
     }
   }
-
-  slide.addText(textItems, {
-    x: BODY.x,
-    y: 0.9,
-    w: BODY.w,
-    h: 4.3,
-    valign: 'top',
-  });
 }

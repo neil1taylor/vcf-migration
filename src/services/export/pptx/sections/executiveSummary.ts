@@ -1,9 +1,9 @@
-// Executive Summary Slide — table of RVTools environment highlights
+// Executive Summary Slide — KPI tiles + table of RVTools environment highlights
 
 import type PptxGenJS from 'pptxgenjs';
 import type { RVToolsData, VirtualMachine } from '@/types/rvtools';
 import { COLORS, FONTS } from '../types';
-import { addSlideTitle, addTable, fmt } from '../utils';
+import { addSlideTitle, addTable, addKPINumber, fmt } from '../utils';
 
 export function addExecutiveSummarySlide(
   pres: PptxGenJS,
@@ -55,26 +55,9 @@ export function addExecutiveSummarySlide(
   const avgVCPUsPerVM = totalVMs > 0 ? totalVCPUs / totalVMs : 0;
   const avgStoragePerVM = totalVMs > 0 ? totalInUseGiB / totalVMs : 0;
 
-  const rows: [string, string][] = [
-    ['ESXi Hosts', fmt(hostCount)],
-    ['Clusters', fmt(clusterCount)],
-    ['Datacenters', fmt(datacenterCount)],
-    ['Datastores', fmt(datastoreCount)],
-    ['Templates', fmt(templateCount)],
-    ['Total VMs', fmt(totalVMs)],
-    ['Total vCPUs', fmt(totalVCPUs)],
-    ['Total Memory', fmtMemory(totalMemoryGiB)],
-    ['Disk Capacity', fmtStorage(totalDiskCapacityGiB)],
-    ['In Use', fmtStorage(totalInUseGiB)],
-    ['Provisioned', fmtStorage(totalProvisionedGiB)],
-    ['Avg Memory per VM', `${avgMemPerVM.toFixed(1)} GiB`],
-    ['Avg vCPUs per VM', avgVCPUsPerVM.toFixed(1)],
-    ['Avg Storage per VM (In Use)', `${avgStoragePerVM.toFixed(1)} GiB`],
-  ];
-
   // Blue subtitle
   slide.addText('Source Environment Overview', {
-    x: 0.5, y: 0.85, w: 9.0, h: 0.35,
+    x: 0.5, y: 0.47, w: 9.0, h: 0.35,
     fontSize: FONTS.bodySize,
     fontFace: FONTS.face,
     color: COLORS.ibmBlue,
@@ -83,15 +66,38 @@ export function addExecutiveSummarySlide(
 
   // Explanatory paragraph
   slide.addText('A summary of the VMware environment captured from the RVTools export, including compute, storage, and infrastructure metrics across all discovered virtual machines.', {
-    x: 0.5, y: 1.2, w: 9.0, h: 0.6,
+    x: 0.5, y: 0.77, w: 9.0, h: 0.5,
     fontSize: FONTS.smallSize,
     fontFace: FONTS.face,
     color: COLORS.darkGray,
   });
 
+  // 4 KPI tiles — evenly spaced across 9" width
+  const kpiY = 1.2;
+  const kpiW = 2.25;
+  addKPINumber(slide, 'Total VMs', fmt(totalVMs), { x: 0.5, y: kpiY, w: kpiW });
+  addKPINumber(slide, 'Total vCPUs', fmt(totalVCPUs), { x: 0.5 + kpiW, y: kpiY, w: kpiW });
+  addKPINumber(slide, 'Total Memory', fmtMemory(totalMemoryGiB), { x: 0.5 + kpiW * 2, y: kpiY, w: kpiW });
+  addKPINumber(slide, 'Disk In Use', fmtStorage(totalInUseGiB), { x: 0.5 + kpiW * 3, y: kpiY, w: kpiW });
+
+  // Table rows — infrastructure and averages (KPI values removed from table)
+  const rows: [string, string][] = [
+    ['ESXi Hosts', fmt(hostCount)],
+    ['Clusters', fmt(clusterCount)],
+    ['Datacenters', fmt(datacenterCount)],
+    ['Datastores', fmt(datastoreCount)],
+    ['Templates', fmt(templateCount)],
+    ['Disk Capacity', fmtStorage(totalDiskCapacityGiB)],
+    ['In Use', fmtStorage(totalInUseGiB)],
+    ['Provisioned', fmtStorage(totalProvisionedGiB)],
+    ['Avg Memory per VM', `${avgMemPerVM.toFixed(1)} GiB`],
+    ['Avg vCPUs per VM', avgVCPUsPerVM.toFixed(1)],
+    ['Avg Storage per VM (In Use)', `${avgStoragePerVM.toFixed(1)} GiB`],
+  ];
+
   addTable(slide, ['Metric', 'Value'], rows, {
-    y: 1.8,
+    y: 2.0,
     colW: [4.5, 4.5],
-    fontSize: 9,
+    fontSize: 8,
   });
 }

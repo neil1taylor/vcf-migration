@@ -11,8 +11,8 @@ export function addAgendaSlide(pres: PptxGenJS, contentTitles: string[]): void {
   addSlideTitle(slide, 'Agenda');
 
   addBulletList(slide, contentTitles, {
-    y: 1.0,
-    h: 3.8,
+    y: 0.47,
+    h: 4.2,
     fontSize: 16,
   });
 }

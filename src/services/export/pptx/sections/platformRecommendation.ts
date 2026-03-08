@@ -1,4 +1,4 @@
-// Platform Recommendation Slide — questions & responses table
+// Platform Recommendation Slide — questions & responses table (answered only)
 
 import type PptxGenJS from 'pptxgenjs';
 import type { PptxExportOptions } from '../types';
@@ -42,9 +42,9 @@ export function addPlatformRecommendationSlide(
     score.leaning === 'roks' ? 'ROKS (OpenShift)' :
     score.leaning === 'vsi' ? 'VPC VSI' : 'Neutral';
 
-  // Blue subtitle
-  slide.addText('IBM Cloud Target Platform Assessment', {
-    x: 0.5, y: 0.85, w: 9.0, h: 0.35,
+  // Blue subtitle — includes recommendation
+  slide.addText(`IBM Cloud Target Platform Assessment — Recommendation: ${leaningLabel}`, {
+    x: 0.5, y: 0.47, w: 9.0, h: 0.35,
     fontSize: FONTS.bodySize,
     fontFace: FONTS.face,
     color: COLORS.ibmBlue,
@@ -53,37 +53,36 @@ export function addPlatformRecommendationSlide(
 
   // Explanatory paragraph
   slide.addText('Based on responses to the platform selection questionnaire, a target IBM Cloud platform is recommended. Each question evaluates factors such as workload type, operational preferences, and infrastructure requirements.', {
-    x: 0.5, y: 1.2, w: 9.0, h: 0.6,
+    x: 0.5, y: 0.77, w: 9.0, h: 0.45,
     fontSize: FONTS.smallSize,
     fontFace: FONTS.face,
     color: COLORS.darkGray,
   });
 
-  // Recommendation text
-  slide.addText([
-    { text: 'Recommendation: ', options: { fontSize: FONTS.bodySize, fontFace: FONTS.face, color: COLORS.darkGray, bold: true } },
-    { text: leaningLabel, options: { fontSize: FONTS.bodySize + 2, fontFace: FONTS.face, color: COLORS.ibmBlue, bold: true } },
-  ], {
-    x: 0.5,
-    y: 1.75,
-    w: 9.0,
-    h: 0.4,
-    valign: 'middle',
-  });
+  // Filter to only answered questions
+  const allFactors = platformSelectionFactors.factors;
+  const answeredRows: string[][] = allFactors
+    .filter((factor) => {
+      const answer = answers[factor.id];
+      return answer && answer !== '—';
+    })
+    .map((factor) => {
+      const answer = answers[factor.id];
+      const responseLabel = ANSWER_LABELS[answer] || '—';
+      return [factor.label, responseLabel];
+    });
 
-  // Questions & responses table
-  const rows: string[][] = platformSelectionFactors.factors.map((factor) => {
-    const answer = answers[factor.id];
-    const responseLabel = answer ? (ANSWER_LABELS[answer] || '—') : '—';
-    return [factor.label, responseLabel];
-  });
+  const totalQuestions = allFactors.length;
+  const answeredCount = answeredRows.length;
 
-  addTable(
-    slide,
-    ['Question', 'Response'],
-    rows,
-    { y: 2.15, colW: [7.0, 1.5], fontSize: 7 }
-  );
+  if (answeredRows.length > 0) {
+    addTable(
+      slide,
+      ['Question', 'Response'],
+      answeredRows,
+      { y: 1.4, colW: [7.0, 2.0], fontSize: 8 }
+    );
+  }
 
   // Cost comparison if available
   const costs: string[] = [];
@@ -104,7 +103,10 @@ export function addPlatformRecommendationSlide(
   }
 
   // Answered count note
-  slide.addText(`Based on ${score.answeredCount} answered question${score.answeredCount !== 1 ? 's' : ''} in the Platform Selection questionnaire.`, {
+  const noteText = answeredCount === totalQuestions
+    ? `Based on ${answeredCount} answered questions in the Platform Selection questionnaire.`
+    : `Showing ${answeredCount} of ${totalQuestions} questions (unanswered questions hidden).`;
+  slide.addText(noteText, {
     x: 0.5,
     y: 5.1,
     w: 9.0,

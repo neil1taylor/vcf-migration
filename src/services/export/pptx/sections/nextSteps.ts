@@ -1,6 +1,7 @@
 // Next Steps Slide — action items as bullet list
 
 import type PptxGenJS from 'pptxgenjs';
+import { COLORS, FONTS } from '../types';
 import { addSlideTitle, addBulletList } from '../utils';
 
 const DEFAULT_NEXT_STEPS = [
@@ -19,10 +20,27 @@ export function addNextStepsSlide(
   const slide = pres.addSlide({ masterName: 'CONTENT' });
   addSlideTitle(slide, 'Next Steps');
 
+  // Blue subtitle
+  slide.addText('Recommended Actions', {
+    x: 0.5, y: 0.47, w: 9.0, h: 0.35,
+    fontSize: FONTS.bodySize,
+    fontFace: FONTS.face,
+    color: COLORS.ibmBlue,
+    bold: true,
+  });
+
+  // Explanatory paragraph
+  slide.addText('The following steps outline the recommended path forward for progressing the migration from assessment to execution.', {
+    x: 0.5, y: 0.77, w: 9.0, h: 0.4,
+    fontSize: FONTS.smallSize,
+    fontFace: FONTS.face,
+    color: COLORS.darkGray,
+  });
+
   addBulletList(slide, DEFAULT_NEXT_STEPS, {
-    y: 1.0,
-    h: 3.8,
-    fontSize: 13,
+    y: 1.15,
+    h: 3.5,
+    fontSize: 11,
   });
 
 }
