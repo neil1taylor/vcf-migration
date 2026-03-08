@@ -43,17 +43,49 @@ describe('buildDefaultTimeline', () => {
 });
 
 describe('calculateWaveDurationWeeks', () => {
-  it.each([
-    [0, 1],
-    [1, 1],
-    [5, 1],
-    [10, 1],
-    [11, 2],
-    [20, 2],
-    [35, 4],
-    [100, 10],
-  ])('vmCount=%i → %i weeks', (vmCount, expected) => {
-    expect(calculateWaveDurationWeeks(vmCount)).toBe(expected);
+  describe('VM-floor-dominated cases (no storage or low storage)', () => {
+    it.each([
+      [0, undefined, 1],   // 0 VMs → minimum 1 week
+      [1, undefined, 1],   // 1 * 0.25 = 0.25 days → 1 week
+      [5, undefined, 1],   // 5 * 0.25 = 1.25 days → 1 week
+      [10, undefined, 1],  // 10 * 0.25 = 2.5 days → 1 week
+      [20, undefined, 1],  // 20 * 0.25 = 5 days → 1 week
+      [21, undefined, 2],  // 21 * 0.25 = 5.25 days → 2 weeks
+      [40, undefined, 2],  // 40 * 0.25 = 10 days → 2 weeks
+      [100, undefined, 5], // 100 * 0.25 = 25 days → 5 weeks
+      [10, 50, 1],         // storage: 50/500=0.1 days, VM floor: 2.5 days → VM floor wins → 1 week
+    ])('vmCount=%i, storageGiB=%s → %i weeks', (vmCount, storageGiB, expected) => {
+      expect(calculateWaveDurationWeeks(vmCount, storageGiB ?? undefined)).toBe(expected);
+    });
+  });
+
+  describe('storage-dominated cases', () => {
+    it.each([
+      [10, 5000, 2],    // storage: 5000/500=10 days, VM floor: 2.5 days → storage wins → 2 weeks
+      [5, 10000, 4],    // storage: 10000/500=20 days, VM floor: 1.25 days → storage wins → 4 weeks
+      [2, 3000, 2],     // storage: 3000/500=6 days, VM floor: 0.5 days → storage wins → 2 weeks
+      [1, 2500, 1],     // storage: 2500/500=5 days, VM floor: 0.25 days → storage wins → 1 week
+      [1, 2501, 2],     // storage: 2501/500=5.002 days → 2 weeks
+      [50, 50000, 20],  // storage: 50000/500=100 days → 20 weeks
+    ])('vmCount=%i, storageGiB=%i → %i weeks', (vmCount, storageGiB, expected) => {
+      expect(calculateWaveDurationWeeks(vmCount, storageGiB)).toBe(expected);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('0 VMs returns minimum 1 week', () => {
+      expect(calculateWaveDurationWeeks(0)).toBe(1);
+      expect(calculateWaveDurationWeeks(0, 5000)).toBe(1);
+    });
+
+    it('0 storage falls back to VM floor', () => {
+      expect(calculateWaveDurationWeeks(10, 0)).toBe(1);
+    });
+
+    it('both drivers produce same result', () => {
+      // 10 VMs * 0.25 = 2.5 days, 1250 GiB / 500 = 2.5 days → tied → 1 week
+      expect(calculateWaveDurationWeeks(10, 1250)).toBe(1);
+    });
   });
 });
 
@@ -71,18 +103,37 @@ describe('buildDefaultTimeline with waveVmCounts', () => {
     });
   });
 
-  it('scales pilot and production wave durations from waveVmCounts', () => {
-    // waveVmCounts: [pilot=5, wave1=20, wave2=35]
-    const phases = buildDefaultTimeline(2, undefined, [5, 20, 35]);
+  it('scales pilot and production wave durations from waveVmCounts and storage', () => {
+    // waveVmCounts: [pilot=5, wave1=20, wave2=10]
+    // waveStorageGiB: [100, 8000, 200]
+    // pilot: max(100/500=0.2, 5*0.25=1.25) = 1.25 → ceil(1.25/5) = 1
+    // wave1: max(8000/500=16, 20*0.25=5) = 16 → ceil(16/5) = 4
+    // wave2: max(200/500=0.4, 10*0.25=2.5) = 2.5 → ceil(2.5/5) = 1
+    const phases = buildDefaultTimeline(2, undefined, [5, 20, 10], undefined, [100, 8000, 200]);
     const pilot = phases.find(p => p.type === 'pilot')!;
     const prods = phases.filter(p => p.type === 'production');
 
-    expect(pilot.durationWeeks).toBe(1);       // ceil(5/10) = 1
+    expect(pilot.durationWeeks).toBe(1);
     expect(pilot.defaultDurationWeeks).toBe(1);
-    expect(prods[0].durationWeeks).toBe(2);     // ceil(20/10) = 2
-    expect(prods[0].defaultDurationWeeks).toBe(2);
-    expect(prods[1].durationWeeks).toBe(4);     // ceil(35/10) = 4
-    expect(prods[1].defaultDurationWeeks).toBe(4);
+    expect(prods[0].durationWeeks).toBe(4);     // storage-dominated
+    expect(prods[0].defaultDurationWeeks).toBe(4);
+    expect(prods[1].durationWeeks).toBe(1);     // VM-floor-dominated
+    expect(prods[1].defaultDurationWeeks).toBe(1);
+  });
+
+  it('scales durations from VM counts alone when no storage provided', () => {
+    // waveVmCounts: [pilot=5, wave1=20, wave2=40]
+    // No storage → VM floor only
+    // pilot: 5*0.25=1.25 → ceil(1.25/5) = 1
+    // wave1: 20*0.25=5 → ceil(5/5) = 1
+    // wave2: 40*0.25=10 → ceil(10/5) = 2
+    const phases = buildDefaultTimeline(2, undefined, [5, 20, 40]);
+    const pilot = phases.find(p => p.type === 'pilot')!;
+    const prods = phases.filter(p => p.type === 'production');
+
+    expect(pilot.durationWeeks).toBe(1);
+    expect(prods[0].durationWeeks).toBe(1);
+    expect(prods[1].durationWeeks).toBe(2);
   });
 
   it('user overrides take precedence over scaled defaults', () => {
@@ -90,7 +141,7 @@ describe('buildDefaultTimeline with waveVmCounts', () => {
       'phase-2': 5,  // pilot
       'phase-3': 8,  // wave 1
     };
-    const phases = buildDefaultTimeline(2, overrides, [5, 20, 35]);
+    const phases = buildDefaultTimeline(2, overrides, [5, 20, 40], undefined, [100, 8000, 200]);
     const pilot = phases.find(p => p.type === 'pilot')!;
     const prods = phases.filter(p => p.type === 'production');
 
@@ -98,9 +149,9 @@ describe('buildDefaultTimeline with waveVmCounts', () => {
     expect(prods[0].durationWeeks).toBe(8);
     // defaultDurationWeeks still reflects the scaled value
     expect(pilot.defaultDurationWeeks).toBe(1);
-    expect(prods[0].defaultDurationWeeks).toBe(2);
+    expect(prods[0].defaultDurationWeeks).toBe(4); // storage-dominated: 8000/500=16, ceil(16/5)=4
     // Non-overridden wave uses scaled default
-    expect(prods[1].durationWeeks).toBe(4);
+    expect(prods[1].durationWeeks).toBe(2); // 40*0.25=10, ceil(10/5)=2
   });
 
   it('handles fewer waveVmCounts than production waves', () => {
@@ -114,7 +165,7 @@ describe('buildDefaultTimeline with waveVmCounts', () => {
   });
 
   it('preparation, validation, and buffer phases are unaffected by waveVmCounts', () => {
-    const phases = buildDefaultTimeline(1, undefined, [50, 100]);
+    const phases = buildDefaultTimeline(1, undefined, [50, 100], undefined, [5000, 10000]);
     const prep = phases.find(p => p.type === 'preparation')!;
     const val = phases.find(p => p.type === 'validation')!;
     const buf = phases.find(p => p.type === 'buffer')!;
@@ -219,20 +270,15 @@ describe('buildDefaultTimeline with waveStorageGiB', () => {
 
 describe('buildDefaultTimeline waveCount excludes pilot', () => {
   it('waveCount=2 (from 3 activeWaves minus pilot) creates pilot + 2 production waves', () => {
-    // Simulates: activeWaves = [Pilot(5vm), QuickWins(10vm), Standard(20vm)]
-    // waveCount = 3 - 1 = 2 production waves
     const waveVmCounts = [5, 10, 20];
     const phases = buildDefaultTimeline(2, undefined, waveVmCounts);
     const pilot = phases.find(p => p.type === 'pilot')!;
     const prods = phases.filter(p => p.type === 'production');
 
-    // Exactly 2 production waves, not 3
     expect(prods).toHaveLength(2);
-    // VM counts align: pilot=5, wave1=10, wave2=20
     expect(pilot.waveVmCount).toBe(5);
     expect(prods[0].waveVmCount).toBe(10);
     expect(prods[1].waveVmCount).toBe(20);
-    // No undefined VM counts
     expect(prods.every(p => p.waveVmCount !== undefined)).toBe(true);
   });
 
@@ -243,7 +289,7 @@ describe('buildDefaultTimeline waveCount excludes pilot', () => {
     const prods = phases.filter(p => p.type === 'production');
 
     expect(pilot.waveVmCount).toBe(5);
-    expect(prods).toHaveLength(1); // minimum 1 production wave
+    expect(prods).toHaveLength(1);
   });
 });
 

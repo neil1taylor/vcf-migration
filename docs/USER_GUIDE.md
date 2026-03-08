@@ -437,7 +437,7 @@ The timeline automatically generates phases based on your wave planning:
 
 ### Duration Formula
 
-Wave durations (pilot and production) are auto-populated at **0.5 day per VM**, rounded up to the nearest week. For example, 10 VMs = 5 days = 1 week; 11 VMs = 5.5 days = 2 weeks. The migration partner will revise and enhance the timeline after discovery and further planning.
+Wave durations (pilot and production) are estimated based on data volume at **500 GB/day** migration throughput, with a minimum of **0.25 days per VM** for setup and validation overhead, rounded up to the nearest week. The migration partner will revise and enhance the timeline after discovery and further planning.
 
 ### Customizing the Timeline
 

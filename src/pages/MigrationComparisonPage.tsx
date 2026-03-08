@@ -279,7 +279,7 @@ export function MigrationComparisonPage() {
                     <h3 style={{ marginBottom: '0.25rem' }}>Phase Configuration</h3>
                     <p className="cds--label" style={{ marginBottom: '0.75rem' }}>
                       The pilot wave migrates a small set of test VMs to prove the migration process before production waves begin.
-                      For this initial timeline, wave durations are auto-populated at 0.5 day per VM (rounded up to the nearest week) and can be adjusted.
+                      For this initial timeline, wave durations are estimated based on data volume at 500 GB/day throughput (with a minimum of 0.25 days per VM), rounded up to the nearest week.
                       The migration partner will revise and enhance the timeline after discovery and further planning.
                     </p>
                     <Table size="md">

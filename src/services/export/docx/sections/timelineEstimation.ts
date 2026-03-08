@@ -40,7 +40,7 @@ export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date):
     createStyledTable(headers, rows),
     createTableLabel('Migration Timeline Phases'),
     createParagraph(
-      'The pilot wave is intended to migrate a small number of test VMs to prove the migration process before production waves begin. Wave durations are estimated at 0.5 day per VM, rounded up to the nearest week.'
+      'The pilot wave is intended to migrate a small number of test VMs to prove the migration process before production waves begin. Wave durations are estimated based on data volume at 500 GB/day migration throughput, with a minimum of 0.25 days per VM for setup and validation overhead, rounded up to the nearest week.'
     ),
     createParagraph(
       'This timeline is indicative and based on typical migration patterns. Once a migration partner is engaged, they will produce a detailed, dependency-aware schedule with specific dates, maintenance windows, and resource assignments tailored to your environment.'

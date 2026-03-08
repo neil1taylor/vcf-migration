@@ -3,13 +3,24 @@
 import type { TimelinePhase, TimelinePhaseType, TimelineTotals } from '@/types/timeline';
 import { PHASE_COLORS, PHASE_DEFAULTS } from '@/types/timeline';
 
+export const MIGRATION_THROUGHPUT_GB_PER_DAY = 500;
+export const MIN_DAYS_PER_VM = 0.25;
+export const WORKING_DAYS_PER_WEEK = 5;
+
 let idCounter = 0;
 function nextId(): string {
   return `phase-${++idCounter}`;
 }
 
-export function calculateWaveDurationWeeks(vmCount: number): number {
-  return Math.max(1, Math.ceil(vmCount / 10));
+export function calculateWaveDurationWeeks(vmCount: number, storageGiB?: number): number {
+  if (vmCount <= 0) return 1;
+
+  const storageGB = storageGiB ?? 0;
+  const dataDays = storageGB / MIGRATION_THROUGHPUT_GB_PER_DAY;
+  const vmFloorDays = vmCount * MIN_DAYS_PER_VM;
+  const days = Math.max(dataDays, vmFloorDays);
+
+  return Math.max(1, Math.ceil(days / WORKING_DAYS_PER_WEEK));
 }
 
 export function buildDefaultTimeline(
@@ -38,7 +49,7 @@ export function buildDefaultTimeline(
   // Pilot wave
   const pilotId = nextId();
   const pilotDefault = waveVmCounts?.[0] != null
-    ? calculateWaveDurationWeeks(waveVmCounts[0])
+    ? calculateWaveDurationWeeks(waveVmCounts[0], waveStorageGiB?.[0])
     : PHASE_DEFAULTS.pilot;
   phases.push({
     id: pilotId,
@@ -60,7 +71,7 @@ export function buildDefaultTimeline(
     const waveId = nextId();
     // waveVmCounts index offset by 1: index 0 is pilot, production waves start at index 1
     const prodDefault = waveVmCounts?.[i + 1] != null
-      ? calculateWaveDurationWeeks(waveVmCounts[i + 1])
+      ? calculateWaveDurationWeeks(waveVmCounts[i + 1], waveStorageGiB?.[i + 1])
       : PHASE_DEFAULTS.production;
     phases.push({
       id: waveId,
