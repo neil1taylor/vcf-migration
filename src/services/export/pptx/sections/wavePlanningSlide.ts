@@ -14,6 +14,21 @@ export function addWavePlanningSlide(
   const slide = pres.addSlide({ masterName: 'CONTENT' });
   addSlideTitle(slide, 'Migration Wave Planning');
 
+  // Blue subtitle with caveat text
+  slide.addText(
+    'Wave groupings are preliminary suggestions. The migration partner will refine based on application dependencies and business priorities.',
+    {
+      x: BODY.x,
+      y: 0.75,
+      w: BODY.w,
+      h: 0.3,
+      fontSize: 8,
+      fontFace: FONTS.face,
+      color: COLORS.ibmBlue,
+      italic: true,
+    }
+  );
+
   const preference = options.wavePlanningPreference;
 
   if (!preference) {
@@ -30,18 +45,31 @@ export function addWavePlanningSlide(
     return;
   }
 
-  // Strategy label
+  // Strategy sentence
   const strategyLabel = getStrategyLabel(preference);
-  slide.addText(`Strategy: ${strategyLabel}`, {
+  slide.addText(`The waves below use a ${strategyLabel} grouping strategy.`, {
     x: BODY.x,
-    y: 0.85,
+    y: 1.05,
     w: BODY.w,
-    h: 0.35,
+    h: 0.25,
     fontSize: FONTS.bodySize,
     fontFace: FONTS.face,
-    color: COLORS.ibmBlue,
-    bold: true,
+    color: COLORS.darkGray,
   });
+
+  // Strategy descriptions
+  slide.addText(
+    'Three strategies are available: Complexity-Based groups VMs by migration difficulty (simple to complex); Network-Based (Cluster) groups VMs sharing the same cluster; Network-Based (Port Group) groups VMs on the same network segment to minimise cutover disruption.',
+    {
+      x: BODY.x,
+      y: 1.3,
+      w: BODY.w,
+      h: 0.35,
+      fontSize: 7,
+      fontFace: FONTS.face,
+      color: COLORS.mediumGray,
+    }
+  );
 
   // Compute waves — use VSI as default since it's the primary migration target
   const migrationMode = options.includeVSI ? 'vsi' : 'roks';
@@ -65,20 +93,16 @@ export function addWavePlanningSlide(
 
   // Build table
   const headers = isComplexity
-    ? ['Wave', 'Description', 'VMs', 'vCPUs', 'Memory (GiB)', 'Storage (GiB)', 'Blockers', 'Avg Complexity']
-    : ['Wave', 'Description', 'VMs', 'vCPUs', 'Memory (GiB)', 'Storage (GiB)', 'Blockers'];
+    ? ['Wave', 'VMs', 'vCPUs', 'Memory (GiB)', 'Storage (GiB)', 'Blockers', 'Avg Complexity']
+    : ['Wave', 'VMs', 'vCPUs', 'Memory (GiB)', 'Storage (GiB)', 'Blockers'];
 
   const rows = waves.map((wave, idx) => {
     const waveName = isComplexity
       ? wave.name
       : `Wave ${idx + 1}: ${wave.name.length > 20 ? wave.name.substring(0, 17) + '...' : wave.name}`;
-    const desc = wave.description.length > 35
-      ? wave.description.substring(0, 32) + '...'
-      : wave.description;
 
     const row: (string | number)[] = [
       waveName,
-      desc,
       fmt(wave.vmCount),
       fmt(wave.vcpus),
       fmt(wave.memoryGiB),
@@ -97,27 +121,12 @@ export function addWavePlanningSlide(
   });
 
   const colW = isComplexity
-    ? [1.2, 2.0, 0.6, 0.7, 1.1, 1.1, 0.8, 1.1]
-    : [1.5, 2.5, 0.7, 0.7, 1.1, 1.1, 0.9];
+    ? [1.8, 0.7, 0.8, 1.2, 1.2, 0.9, 1.2]
+    : [2.5, 0.8, 0.8, 1.2, 1.2, 1.0];
 
   addTable(slide, headers, rows, {
-    y: 1.25,
-    fontSize: 9,
+    y: 1.7,
+    fontSize: 8,
     colW,
   });
-
-  // Caveat text
-  slide.addText(
-    'Wave groupings are preliminary suggestions. The migration partner will refine based on application dependencies and business priorities.',
-    {
-      x: BODY.x,
-      y: 4.9,
-      w: BODY.w,
-      h: 0.4,
-      fontSize: 8,
-      fontFace: FONTS.face,
-      color: COLORS.mediumGray,
-      italic: true,
-    }
-  );
 }
