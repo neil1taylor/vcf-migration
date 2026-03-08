@@ -102,7 +102,7 @@ export function buildOSCompatibilitySection(
       createStyledTable(
         ['OS Family', 'VM Count', 'Status', 'Notes'],
         vsiRows,
-        { columnAligns: [undefined, AlignmentType.RIGHT, undefined, undefined] }
+        { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT, AlignmentType.LEFT, AlignmentType.LEFT] }
       ),
       createTableLabel('VSI OS Compatibility'),
     );
@@ -133,7 +133,7 @@ export function buildOSCompatibilitySection(
       createStyledTable(
         ['OS Family', 'VM Count', 'Status', 'Notes'],
         roksRows,
-        { columnAligns: [undefined, AlignmentType.RIGHT, undefined, undefined] }
+        { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT, AlignmentType.LEFT, AlignmentType.LEFT] }
       ),
       createTableLabel('ROKS OS Compatibility'),
     );

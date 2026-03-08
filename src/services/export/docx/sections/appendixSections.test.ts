@@ -1,8 +1,7 @@
 // Appendix Sections Tests
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock docx library
+import { describe, it, expect, vi } from 'vitest';
 vi.mock('docx', () => ({
   Paragraph: class { constructor(public opts?: any) {} },
   PageBreak: class { constructor() {} },

@@ -15,6 +15,7 @@ import {
 } from '../utils/helpers';
 import { AlignmentType } from 'docx';
 
+const L = AlignmentType.LEFT;
 const R = AlignmentType.RIGHT;
 
 // ===== Compute Deep-dive =====
@@ -46,7 +47,7 @@ export function buildComputeAppendix(rawData: RVToolsData, label: string): Docum
 
   sections.push(
     ...createTableDescription('vCPU Distribution', 'Distribution of virtual CPUs across VMs.'),
-    createStyledTable(['vCPU Range', 'Count', '%'], cpuRows, { columnAligns: [undefined, R, R] }),
+    createStyledTable(['vCPU Range', 'Count', '%'], cpuRows, { columnAligns: [L, R, R] }),
     createTableLabel('vCPU Distribution'),
   );
 
@@ -70,7 +71,7 @@ export function buildComputeAppendix(rawData: RVToolsData, label: string): Docum
 
   sections.push(
     ...createTableDescription('Memory Distribution', 'Distribution of memory allocation across VMs.'),
-    createStyledTable(['Memory Range', 'Count', '%'], memRows, { columnAligns: [undefined, R, R] }),
+    createStyledTable(['Memory Range', 'Count', '%'], memRows, { columnAligns: [L, R, R] }),
     createTableLabel('Memory Distribution'),
   );
 
@@ -86,7 +87,7 @@ export function buildComputeAppendix(rawData: RVToolsData, label: string): Docum
         `${mibToGiB(vm.memory).toFixed(1)}`,
         vm.cluster,
       ]),
-      { columnAligns: [undefined, R, R, undefined] }
+      { columnAligns: [L, R, R, L] }
     ),
     createTableLabel('Top CPU Consumers'),
   );
@@ -103,7 +104,7 @@ export function buildComputeAppendix(rawData: RVToolsData, label: string): Docum
         `${mibToGiB(vm.memory).toFixed(1)}`,
         vm.cluster,
       ]),
-      { columnAligns: [undefined, R, R, undefined] }
+      { columnAligns: [L, R, R, L] }
     ),
     createTableLabel('Top Memory Consumers'),
   );
@@ -138,7 +139,7 @@ export function buildStorageAppendix(rawData: RVToolsData, label: string): Docum
       createStyledTable(
         ['Name', 'Type', 'Capacity GiB', 'Used GiB', 'Free GiB', 'Free %', 'VMs'],
         dsRows,
-        { columnAligns: [undefined, undefined, R, R, R, R, R] }
+        { columnAligns: [L, L, R, R, R, R, R] }
       ),
       createTableLabel('Datastore Summary'),
     );
@@ -157,7 +158,7 @@ export function buildStorageAppendix(rawData: RVToolsData, label: string): Docum
           ['Thin', `${thinCount}`, `${((thinCount / rawData.vDisk.length) * 100).toFixed(1)}%`],
           ['Thick', `${thickCount}`, `${((thickCount / rawData.vDisk.length) * 100).toFixed(1)}%`],
         ],
-        { columnAligns: [undefined, R, R] }
+        { columnAligns: [L, R, R] }
       ),
       createTableLabel('Disk Provisioning'),
     );
@@ -205,7 +206,7 @@ export function buildClusterAppendix(rawData: RVToolsData, label: string): Docum
     createStyledTable(
       ['Cluster', 'VMs', 'Hosts', 'CPU Cores', 'Memory GiB', 'HA', 'DRS', 'EVC Mode'],
       rows,
-      { columnAligns: [undefined, R, R, R, R, undefined, undefined, undefined] }
+      { columnAligns: [L, R, R, R, R, L, L, L] }
     ),
     createTableLabel('Cluster Inventory'),
   );
@@ -240,7 +241,7 @@ export function buildHostAppendix(rawData: RVToolsData, label: string): Document
     createStyledTable(
       ['Host', 'Cluster', 'ESXi', 'CPU Model', 'Sockets', 'Cores', 'Memory GiB', 'VMs'],
       rows,
-      { columnAligns: [undefined, undefined, undefined, undefined, R, R, R, R] }
+      { columnAligns: [L, L, L, L, R, R, R, R] }
     ),
     createTableLabel('Host Inventory'),
   );
@@ -274,7 +275,7 @@ export function buildSnapshotAppendix(rawData: RVToolsData, label: string): Docu
     createStyledTable(
       ['VM Name', 'Snapshot Name', 'Age (Days)', 'Size GiB'],
       rows,
-      { columnAligns: [undefined, undefined, R, R] }
+      { columnAligns: [L, L, R, R] }
     ),
     createTableLabel('Aged Snapshots'),
   );
@@ -312,7 +313,7 @@ export function buildVMInventoryAppendix(rawData: RVToolsData, label: string): D
     createStyledTable(
       ['VM Name', 'Power', 'Guest OS', 'vCPUs', 'Memory GiB', 'Storage GiB', 'Cluster', 'Datacenter'],
       rows,
-      { columnAligns: [undefined, undefined, undefined, R, R, R, undefined, undefined] }
+      { columnAligns: [L, L, L, R, R, R, L, L] }
     ),
     createTableLabel('VM Inventory'),
   );

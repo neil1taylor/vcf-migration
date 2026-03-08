@@ -65,7 +65,7 @@ export function buildComplexityAssessment(
     createStyledTable(
       ['Category', 'Score Range', 'Count', '%'],
       distRows,
-      { columnAligns: [undefined, undefined, AlignmentType.RIGHT, AlignmentType.RIGHT] }
+      { columnAligns: [AlignmentType.LEFT, AlignmentType.LEFT, AlignmentType.RIGHT, AlignmentType.RIGHT] }
     ),
     createTableLabel('Complexity Distribution'),
   );
@@ -90,7 +90,7 @@ export function buildComplexityAssessment(
       createStyledTable(
         ['VM Name', 'OS', 'Score', 'Category', 'Factors'],
         topRows,
-        { columnAligns: [undefined, undefined, AlignmentType.RIGHT, undefined, undefined] }
+        { columnAligns: [AlignmentType.LEFT, AlignmentType.LEFT, AlignmentType.RIGHT, AlignmentType.LEFT, AlignmentType.LEFT] }
       ),
       createTableLabel('Top Complex VMs'),
     );

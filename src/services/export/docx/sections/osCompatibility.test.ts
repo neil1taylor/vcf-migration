@@ -1,8 +1,7 @@
 // OS Compatibility Section Tests
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-
-// Mock docx library
+import { describe, it, expect, vi } from 'vitest';
 vi.mock('docx', () => ({
   Paragraph: class { constructor(public opts?: any) {} },
   PageBreak: class { constructor() {} },
@@ -49,10 +48,6 @@ function makeRawData(vms: any[]): RVToolsData {
 }
 
 describe('buildOSCompatibilitySection', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('returns DocumentContent[] with correct heading', () => {
     const rawData = makeRawData([makeVM()]);
     const result = buildOSCompatibilitySection(rawData, { includeROKS: true, includeVSI: true }, 5);

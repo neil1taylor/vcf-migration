@@ -1,4 +1,5 @@
 // DOCX Generator Tests
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock all the section builders before importing the module
