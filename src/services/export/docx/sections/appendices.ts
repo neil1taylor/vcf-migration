@@ -43,6 +43,7 @@ export function buildAppendices(readiness: VMReadiness[], maxIssueVMs: number): 
         },
         rows: [
           new TableRow({
+          cantSplit: true,
             children: [
               createTableCell('VM Name', { header: true }),
               createTableCell('Cluster', { header: true }),
@@ -54,6 +55,7 @@ export function buildAppendices(readiness: VMReadiness[], maxIssueVMs: number): 
           ...allBlockerVMs.map(
             (vm, index) =>
               new TableRow({
+          cantSplit: true,
                 children: [
                   createTableCell(
                     vm.vmName.length > 25 ? vm.vmName.substring(0, 22) + '...' : vm.vmName,
@@ -93,6 +95,7 @@ export function buildAppendices(readiness: VMReadiness[], maxIssueVMs: number): 
         },
         rows: [
           new TableRow({
+          cantSplit: true,
             children: [
               createTableCell('VM Name', { header: true }),
               createTableCell('Cluster', { header: true }),
@@ -104,6 +107,7 @@ export function buildAppendices(readiness: VMReadiness[], maxIssueVMs: number): 
           ...allWarningVMs.map(
             (vm, index) =>
               new TableRow({
+          cantSplit: true,
                 children: [
                   createTableCell(
                     vm.vmName.length > 25 ? vm.vmName.substring(0, 22) + '...' : vm.vmName,

@@ -31,6 +31,7 @@ export function parseRichDescription(
     color?: string;
     alignment?: (typeof AlignmentType)[keyof typeof AlignmentType];
     firstParagraphBefore?: number;
+    keepNext?: boolean;
   }
 ): Paragraph[] {
   const lines = description.split('\n');
@@ -43,6 +44,7 @@ export function parseRichDescription(
       paragraphs.push(
         new Paragraph({
           bullet: { level: 0 },
+          keepNext: options?.keepNext,
           spacing: {
             before: isFirst ? options?.firstParagraphBefore : undefined,
             after: 60,
@@ -63,6 +65,7 @@ export function parseRichDescription(
       paragraphs.push(
         new Paragraph({
           alignment: hasBullets ? undefined : options?.alignment,
+          keepNext: options?.keepNext,
           spacing: {
             before: isFirst ? options?.firstParagraphBefore : undefined,
             after: 120,
@@ -110,6 +113,7 @@ export function createTableDescription(_title: string, description: string): Par
 
   return parseRichDescription(description, STYLES.bodySize, {
     firstParagraphBefore: 200,
+    keepNext: true,
   });
 }
 
@@ -157,6 +161,7 @@ export function createTableCaption(title: string, description?: string): Paragra
   paragraphs.push(
     new Paragraph({
       alignment: AlignmentType.CENTER,
+      keepNext: true,
       spacing: { before: 120, after: 60 },
       children: [
         new Bookmark({
@@ -185,6 +190,7 @@ export function createTableCaption(title: string, description?: string): Paragra
     paragraphs.push(
       new Paragraph({
         alignment: AlignmentType.CENTER,
+        keepNext: true,
         spacing: { after: 120 },
         children: [
           new TextRun({
@@ -388,12 +394,14 @@ export function createStyledTable(
     rows: [
       new TableRow({
         tableHeader: true,
+        cantSplit: true,
         children: headers.map((h, i) =>
           createTableCell(h, { header: true, align: columnAligns[i] })
         ),
       }),
       ...rows.map((row, rowIndex) =>
         new TableRow({
+          cantSplit: true,
           children: row.map((cell, cellIndex) =>
             createTableCell(cell, {
               align: columnAligns[cellIndex],
@@ -412,6 +420,7 @@ export function createHeading(
 ): Paragraph {
   return new Paragraph({
     heading: level,
+    keepNext: true,
     spacing: { before: 360, after: 200 },
     children: [
       new TextRun({

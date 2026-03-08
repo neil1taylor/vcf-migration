@@ -71,6 +71,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
       },
       rows: [
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Family', { header: true }),
             createTableCell('CPU:Memory', { header: true }),
@@ -80,6 +81,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
         ...vsiTemplates.profileFamilies.families.map(
           (f) =>
             new TableRow({
+          cantSplit: true,
               children: [
                 createTableCell(f.name),
                 createTableCell(f.ratio),
@@ -116,6 +118,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
       },
       rows: [
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Profile Family', { header: true }),
             createTableCell('VM Count', { header: true, align: AlignmentType.RIGHT }),
@@ -124,6 +127,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
         ...Object.entries(profileDistribution).map(
           ([family, count]) =>
             new TableRow({
+          cantSplit: true,
               children: [
                 createTableCell(family),
                 createTableCell(`${count}`, { align: AlignmentType.RIGHT }),
@@ -152,6 +156,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
       },
       rows: [
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('VM Name', { header: true }),
             createTableCell('vCPUs', { header: true, align: AlignmentType.RIGHT }),
@@ -162,6 +167,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
         ...mappings.slice(0, maxVMs).map(
           (m) =>
             new TableRow({
+          cantSplit: true,
               children: [
                 createTableCell(m.vmName.length > 25 ? m.vmName.substring(0, 22) + '...' : m.vmName),
                 createTableCell(`${m.sourceVcpus}`, { align: AlignmentType.RIGHT }),
@@ -197,6 +203,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
       },
       rows: [
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Profile', { header: true }),
             createTableCell('IOPS/GB', { header: true, align: AlignmentType.CENTER }),
@@ -205,6 +212,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('general-purpose'),
             createTableCell('3', { align: AlignmentType.CENTER }),
@@ -213,6 +221,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('5iops-tier'),
             createTableCell('5', { align: AlignmentType.CENTER }),
@@ -221,6 +230,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('10iops-tier'),
             createTableCell('10', { align: AlignmentType.CENTER }),

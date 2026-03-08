@@ -126,7 +126,7 @@ function buildWaveTable(waves: (WaveGroup | NetworkWaveGroup)[], isComplexity: b
         : 0);
       cells.push(createTableCell(`${avg}`, { align: AlignmentType.RIGHT }));
     }
-    return new TableRow({ children: cells });
+    return new TableRow({ cantSplit: true, children: cells });
   });
 
   return new Table({
@@ -139,7 +139,7 @@ function buildWaveTable(waves: (WaveGroup | NetworkWaveGroup)[], isComplexity: b
       insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
       insideVertical: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
     },
-    rows: [new TableRow({ children: headerCells }), ...rows],
+    rows: [new TableRow({ cantSplit: true, children: headerCells }), ...rows],
   });
 }
 
@@ -278,6 +278,7 @@ export function buildMigrationStrategy(
         },
         rows: [
           new TableRow({
+          cantSplit: true,
             children: [
               createTableCell('Wave', { header: true }),
               createTableCell('Port Group', { header: true }),
@@ -289,6 +290,7 @@ export function buildMigrationStrategy(
           }),
           ...topWaves.map((wave, idx) =>
             new TableRow({
+          cantSplit: true,
               children: [
                 createTableCell(`Wave ${idx + 1}`),
                 createTableCell(wave.portGroup.length > 25 ? wave.portGroup.substring(0, 22) + '...' : wave.portGroup),

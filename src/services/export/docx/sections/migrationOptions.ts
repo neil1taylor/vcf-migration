@@ -38,6 +38,7 @@ export function buildMigrationOptions(): DocumentContent[] {
       },
       rows: [
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Characteristic', { header: true }),
             createTableCell('ROKS + OpenShift Virt', { header: true }),
@@ -45,6 +46,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Migration Approach', { bold: true }),
             createTableCell('Lift-convert-shift (MTV)'),
@@ -52,6 +54,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Infrastructure', { bold: true }),
             createTableCell('Bare Metal with local NVMe'),
@@ -59,6 +62,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Storage', { bold: true }),
             createTableCell('ODF (Ceph) with 3x replication'),
@@ -66,6 +70,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Modernization Path', { bold: true }),
             createTableCell('Containerization ready'),
@@ -73,6 +78,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Operational Model', { bold: true }),
             createTableCell('Kubernetes/GitOps'),
@@ -80,6 +86,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Best For', { bold: true }),
             createTableCell('Application modernization'),
@@ -87,6 +94,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Backup & Recovery', { bold: true }),
             createTableCell('OADP, IBM Cloud Backup and Recovery, Veeam Kasten'),
@@ -94,6 +102,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Disaster Recovery', { bold: true }),
             createTableCell('ODF Regional DR with multi-cluster + RHACM'),
@@ -101,6 +110,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Observability', { bold: true }),
             createTableCell('Built-in OpenShift monitoring + IBM Cloud Monitoring & Logging'),
@@ -108,6 +118,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Security Model', { bold: true }),
             createTableCell('OpenShift RBAC + VPC security groups'),
@@ -115,6 +126,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Networking', { bold: true }),
             createTableCell('OpenShift OVN SDN + VPC networking'),

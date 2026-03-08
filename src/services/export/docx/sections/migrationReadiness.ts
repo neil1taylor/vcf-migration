@@ -53,6 +53,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
         },
         rows: [
           new TableRow({
+          cantSplit: true,
             children: [
               createTableCell('VM Name', { header: true }),
               createTableCell('Cluster', { header: true }),
@@ -62,6 +63,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
           ...blockerVMs.map(
             (vm) =>
               new TableRow({
+          cantSplit: true,
                 children: [
                   createTableCell(vm.vmName.length > 30 ? vm.vmName.substring(0, 27) + '...' : vm.vmName),
                   createTableCell(vm.cluster),
@@ -108,6 +110,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
         },
         rows: [
           new TableRow({
+          cantSplit: true,
             children: [
               createTableCell('VM Name', { header: true }),
               createTableCell('Cluster', { header: true }),
@@ -117,6 +120,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
           ...warningVMs.map(
             (vm) =>
               new TableRow({
+          cantSplit: true,
                 children: [
                   createTableCell(vm.vmName.length > 30 ? vm.vmName.substring(0, 27) + '...' : vm.vmName),
                   createTableCell(vm.cluster),

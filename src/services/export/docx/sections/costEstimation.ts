@@ -57,6 +57,7 @@ export function buildCostEstimation(
       },
       rows: [
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Platform', { header: true }),
             createTableCell('Compute', { header: true, align: AlignmentType.RIGHT }),
@@ -66,6 +67,7 @@ export function buildCostEstimation(
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('ROKS (Bare Metal)'),
             createTableCell(`$${roksMonthlyCost.toLocaleString()}`, { align: AlignmentType.RIGHT }),
@@ -75,6 +77,7 @@ export function buildCostEstimation(
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('VPC VSI'),
             createTableCell(`$${Math.round(totalVSIComputeCost).toLocaleString()}`, { align: AlignmentType.RIGHT }),
@@ -105,6 +108,7 @@ export function buildCostEstimation(
       },
       rows: [
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Storage Type', { header: true }),
             createTableCell('Capacity', { header: true, align: AlignmentType.RIGHT }),
@@ -113,6 +117,7 @@ export function buildCostEstimation(
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Boot Volumes'),
             createTableCell(`${Math.round(totalBootStorageGiB)} GiB`, { align: AlignmentType.RIGHT }),
@@ -121,6 +126,7 @@ export function buildCostEstimation(
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Data Volumes'),
             createTableCell(`${Math.round(totalDataStorageGiB)} GiB`, { align: AlignmentType.RIGHT }),
@@ -129,6 +135,7 @@ export function buildCostEstimation(
           ],
         }),
         new TableRow({
+          cantSplit: true,
           children: [
             createTableCell('Total Storage', { bold: true }),
             createTableCell(`${Math.round(totalVSIStorageGiB / 1024)} TiB`, { align: AlignmentType.RIGHT, bold: true }),
