@@ -12,7 +12,7 @@
  * - CSV export, JSON export/import of overrides
  */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   DataTable,
   TableContainer,
@@ -64,6 +64,7 @@ import type {
 } from './DiscoveryVMTableTypes';
 import { DiscoveryCategoryFilterBar } from './DiscoveryCategoryFilterBar';
 import { DiscoveryVMModals } from './DiscoveryVMModals';
+import { VMDetailModal } from './VMDetailModal';
 import './DiscoveryVMTable.scss';
 
 // ===== COMPONENT =====
@@ -82,6 +83,8 @@ export function DiscoveryVMTable({
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [statusFilters, setStatusFilters] = useState<FilterOption[]>([]);
+  const [viewingVMName, setViewingVMName] = useState<string | null>(null);
+  const handleCloseDetail = useCallback(() => setViewingVMName(null), []);
 
   const workloadCategories = useMemo(() => getWorkloadCategories(), []);
 
@@ -512,6 +515,10 @@ export function DiscoveryVMTable({
                         <TableCell>
                           <OverflowMenu size="sm" flipped iconDescription="Actions">
                             <OverflowMenuItem
+                              itemText="View Details"
+                              onClick={() => setViewingVMName(originalRow.vmName)}
+                            />
+                            <OverflowMenuItem
                               itemText={getActionText(originalRow)}
                               onClick={() => handleToggleExclusion(originalRow)}
                             />
@@ -566,6 +573,9 @@ export function DiscoveryVMTable({
           itemsPerPageText="VMs per page:"
         />
       </div>
+
+      {/* VM Detail Modal */}
+      <VMDetailModal vmName={viewingVMName} onClose={handleCloseDetail} />
 
       {/* Modals */}
       <DiscoveryVMModals
