@@ -18,7 +18,7 @@ export interface UsePDFExportReturn {
   isExporting: boolean;
   progress: number;
   error: string | null;
-  exportPDF: (data: RVToolsData, options?: PDFExportOptions) => Promise<void>;
+  exportPDF: (data: RVToolsData, options?: PDFExportOptions, filename?: string) => Promise<void>;
 }
 
 export function usePDFExport(): UsePDFExportReturn {
@@ -26,7 +26,7 @@ export function usePDFExport(): UsePDFExportReturn {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const exportPDF = useCallback(async (data: RVToolsData, options?: PDFExportOptions) => {
+  const exportPDF = useCallback(async (data: RVToolsData, options?: PDFExportOptions, filename?: string) => {
     setIsExporting(true);
     setProgress(0);
     setError(null);
@@ -41,10 +41,10 @@ export function usePDFExport(): UsePDFExportReturn {
       // Create filename
       const date = new Date().toISOString().split('T')[0];
       const baseName = data.metadata.fileName.replace(/\.[^/.]+$/, '');
-      const filename = `${baseName}_analysis_${date}.pdf`;
+      const finalFilename = filename || `${baseName}_analysis_${date}.pdf`;
 
       // Download
-      downloadPDF(blob, filename);
+      downloadPDF(blob, finalFilename);
       setProgress(100);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to generate PDF';

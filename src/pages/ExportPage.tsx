@@ -1,10 +1,9 @@
 // Export & Reports page — consolidates all export options into a visible workflow step
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import {
   Grid,
   Column,
   Tile,
-  ClickableTile,
   Tag,
   Button,
   Checkbox,
@@ -13,6 +12,9 @@ import {
   Modal,
   UnorderedList,
   ListItem,
+  ContentSwitcher,
+  Switch,
+  TextInput,
 } from '@carbon/react';
 import {
   DocumentPdf,
@@ -22,9 +24,14 @@ import {
   Report,
   DataShare,
   Upload,
+  CheckmarkOutline,
+  ChartVennDiagram,
+  Debug,
+  Kubernetes,
+  Deploy,
 } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
-import { useData, usePDFExport, useExcelExport, useDocxExport, usePptxExport, useAISettings, useVMs, useAutoExclusion, usePlatformSelection } from '@/hooks';
+import { useData, usePDFExport, useExcelExport, useDocxExport, usePptxExport, useAISettings, useVMs, useAllVMs, useAutoExclusion, usePlatformSelection, useVMOverrides, useMigrationAssessment, useWavePlanning } from '@/hooks';
 import { downloadHandoverFile } from '@/services/export/handoverExporter';
 import { extractSettingsFromFile, type ExtractedSettings } from '@/services/settingsExtractor';
 import { restoreBundledSettings } from '@/services/settingsRestore';
@@ -36,10 +43,19 @@ import { buildInsightsInput } from '@/services/ai/insightsInputBuilder';
 import { ROUTES } from '@/utils/constants';
 import { formatNumber } from '@/utils/formatters';
 import { createLogger } from '@/utils/logger';
+import { getVMIdentifier } from '@/utils/vmIdentifier';
 import type { PDFExportOptions } from '@/hooks/usePDFExport';
 import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
 import { getWavePlanningPreference } from '@/services/export/docx/types';
+import { getDefaultFilename, sanitizeFilename } from '@/utils/exportFilenames';
+import { runPreFlightChecks, type CheckMode } from '@/services/preflightChecks';
+import { exportPreFlightExcel, downloadWavePlanningExcel } from '@/services/export/excelGenerator';
+import { buildDiagnosticBundle, downloadDiagnosticBundle } from '@/services/diagnosticBundle';
+import { getCachedBOM, hasCachedBOM } from '@/services/bomCache';
+import { downloadVSIBOMExcel, downloadROKSBOMExcel, MTVYAMLGenerator, downloadBlob } from '@/services/export';
+import type { MTVExportOptions } from '@/types/mtvYaml';
+import { RackwareExportModal } from '@/components/export/RackwareExportModal';
 import './ExportPage.scss';
 
 const logger = createLogger('ExportPage');
@@ -85,10 +101,24 @@ const DEFAULT_PDF_OPTIONS: PDFExportOptions = {
   includeResourcePools: true,
 };
 
+const DEFAULT_MTV_OPTIONS: MTVExportOptions = {
+  namespace: 'openshift-mtv',
+  sourceProviderName: 'vmware-source',
+  destinationProviderName: 'host',
+  networkMapName: 'vmware-network-map',
+  storageMapName: 'vmware-storage-map',
+  defaultStorageClass: 'ocs-storagecluster-ceph-rbd',
+  targetNamespace: 'migrated-vms',
+  warm: false,
+  preserveStaticIPs: false,
+};
+
 export function ExportPage() {
   const { rawData, originalFileBuffer, originalFileName } = useData();
   const vms = useVMs();
-  const { autoExcludedCount } = useAutoExclusion();
+  const allVmsRaw = useAllVMs();
+  const vmOverrides = useVMOverrides();
+  const { autoExcludedCount, getAutoExclusionById } = useAutoExclusion();
   const { isExporting: isPDFExporting, error: pdfError, exportPDF } = usePDFExport();
   const { isExporting: isExcelExporting, error: excelError, exportExcel } = useExcelExport();
   const { isExporting: isDocxExporting, error: docxError, exportDocx } = useDocxExport();
@@ -103,6 +133,93 @@ export function ExportPage() {
   const [importResult, setImportResult] = useState<ExtractedSettings | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+
+  // Pre-flight mode
+  const [preflightMode, setPreflightMode] = useState<CheckMode>('roks');
+
+  // RackWare modal
+  const [rackwareModalOpen, setRackwareModalOpen] = useState(false);
+
+  // MTV export state
+  const [mtvExporting, setMtvExporting] = useState(false);
+
+  // ===== Filename state =====
+  const filenameCtx = useMemo(() => ({
+    sourceFileName: originalFileName || undefined,
+  }), [originalFileName]);
+
+  const [pdfFilename, setPdfFilename] = useState(() => getDefaultFilename('pdf', filenameCtx));
+  const [excelFilename, setExcelFilename] = useState(() => getDefaultFilename('excel', filenameCtx));
+  const [docxFilename, setDocxFilename] = useState(() => getDefaultFilename('docx', filenameCtx));
+  const [pptxFilename, setPptxFilename] = useState(() => getDefaultFilename('pptx', filenameCtx));
+  const [preflightFilename, setPreflightFilename] = useState(() => getDefaultFilename('preflight', { ...filenameCtx, mode: preflightMode }));
+  const [wavesFilename, setWavesFilename] = useState(() => getDefaultFilename('waves', filenameCtx));
+  const [mtvYamlFilename, setMtvYamlFilename] = useState(() => getDefaultFilename('mtv-yaml', filenameCtx));
+  const [vsiBomFilename, setVsiBomFilename] = useState(() => getDefaultFilename('vsi-bom', filenameCtx));
+  const [roksBomFilename, setRoksBomFilename] = useState(() => getDefaultFilename('roks-bom', filenameCtx));
+  const [handoverFilename, setHandoverFilename] = useState(() => getDefaultFilename('handover', filenameCtx));
+  const [diagnosticsFilename, setDiagnosticsFilename] = useState(() => getDefaultFilename('diagnostics', filenameCtx));
+
+  // ===== Filtered VMs (same exclusion logic as migration pages) =====
+  const includedVMs = useMemo(() => {
+    return allVmsRaw.filter(vm => {
+      const vmId = getVMIdentifier(vm);
+      const autoResult = getAutoExclusionById(vmId);
+      return !vmOverrides.isEffectivelyExcluded(vmId, autoResult.isAutoExcluded);
+    });
+  }, [allVmsRaw, vmOverrides, getAutoExclusionById]);
+
+  const poweredOnVMs = useMemo(() => includedVMs.filter(vm => vm.powerState === 'poweredOn'), [includedVMs]);
+
+  // Derived data arrays
+  const disks = useMemo(() => rawData?.vDisk ?? [], [rawData?.vDisk]);
+  const snapshots = useMemo(() => rawData?.vSnapshot ?? [], [rawData?.vSnapshot]);
+  const tools = useMemo(() => rawData?.vTools ?? [], [rawData?.vTools]);
+  const networks = useMemo(() => rawData?.vNetwork ?? [], [rawData?.vNetwork]);
+
+  // ===== Pre-flight filtered rawData =====
+  const filteredRawData = useMemo(() => {
+    if (!rawData) return null;
+    const includedNames = new Set(includedVMs.map(vm => vm.vmName));
+    return {
+      ...rawData,
+      vInfo: includedVMs,
+      vDisk: rawData.vDisk.filter(d => includedNames.has(d.vmName)),
+      vSnapshot: rawData.vSnapshot.filter(s => includedNames.has(s.vmName)),
+      vTools: rawData.vTools.filter(t => includedNames.has(t.vmName)),
+      vNetwork: rawData.vNetwork.filter(n => includedNames.has(n.vmName)),
+      vCD: rawData.vCD.filter(c => includedNames.has(c.vmName)),
+      vCPU: rawData.vCPU.filter(c => includedNames.has(c.vmName)),
+      vMemory: rawData.vMemory.filter(m => includedNames.has(m.vmName)),
+    };
+  }, [rawData, includedVMs]);
+
+  // ===== Migration Assessment (for complexity scores) =====
+  const { complexityScores } = useMigrationAssessment({
+    mode: 'roks',
+    vms: poweredOnVMs,
+    disks,
+    networks,
+    blockerCount: 0,
+    warningCount: 0,
+  });
+
+  // ===== Wave Planning =====
+  const wavePlanning = useWavePlanning({
+    mode: 'roks',
+    vms: poweredOnVMs,
+    complexityScores,
+    disks,
+    snapshots,
+    tools,
+    networks,
+  });
+
+  // ===== Pre-flight check results =====
+  const preflightResults = useMemo(
+    () => filteredRawData ? runPreFlightChecks(filteredRawData, preflightMode) : [],
+    [filteredRawData, preflightMode]
+  );
 
   const handleImportFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -155,9 +272,9 @@ export function ExportPage() {
       aiInsights = insights;
       if (warning) setAIWarning(warning);
     }
-    await exportPDF(rawData, { ...pdfOptions, aiInsights });
+    await exportPDF(rawData, { ...pdfOptions, aiInsights }, sanitizeFilename(pdfFilename, '.pdf'));
     markExportComplete();
-  }, [rawData, pdfOptions, exportPDF, aiAvailable, markExportComplete]);
+  }, [rawData, pdfOptions, exportPDF, aiAvailable, markExportComplete, pdfFilename]);
 
   const handleExportExcel = useCallback(async () => {
     if (!rawData) return;
@@ -168,9 +285,9 @@ export function ExportPage() {
       aiInsights = insights;
       if (warning) setAIWarning(warning);
     }
-    exportExcel(rawData, undefined, aiInsights);
+    exportExcel(rawData, sanitizeFilename(excelFilename, '.xlsx'), aiInsights);
     markExportComplete();
-  }, [rawData, exportExcel, aiAvailable, markExportComplete]);
+  }, [rawData, exportExcel, aiAvailable, markExportComplete, excelFilename]);
 
   const handleExportDocx = useCallback(async () => {
     if (!rawData) return;
@@ -181,29 +298,133 @@ export function ExportPage() {
       aiInsights = insights;
       if (warning) setAIWarning(warning);
     }
-    await exportDocx(rawData, { aiInsights, wavePlanningPreference: getWavePlanningPreference() });
+    await exportDocx(rawData, { aiInsights, wavePlanningPreference: getWavePlanningPreference() }, sanitizeFilename(docxFilename, '.docx'));
     markExportComplete();
-  }, [rawData, exportDocx, aiAvailable, markExportComplete]);
+  }, [rawData, exportDocx, aiAvailable, markExportComplete, docxFilename]);
 
   const handleExportPptx = useCallback(async () => {
     if (!rawData) return;
     const platformSelection = Object.keys(answers).length > 0 ? { score, answers } : null;
-    await exportPptx(rawData, { platformSelection, wavePlanningPreference: getWavePlanningPreference() });
+    await exportPptx(rawData, { platformSelection, wavePlanningPreference: getWavePlanningPreference() }, sanitizeFilename(pptxFilename, '.pptx'));
     markExportComplete();
-  }, [rawData, exportPptx, markExportComplete, answers, score]);
+  }, [rawData, exportPptx, markExportComplete, answers, score, pptxFilename]);
 
   const handleExportHandover = useCallback(async () => {
     if (!originalFileBuffer || !originalFileName) return;
-    await downloadHandoverFile(originalFileBuffer, originalFileName);
+    await downloadHandoverFile(originalFileBuffer, originalFileName, sanitizeFilename(handoverFilename, '.xlsx'));
     markExportComplete();
-  }, [originalFileBuffer, originalFileName, markExportComplete]);
+  }, [originalFileBuffer, originalFileName, markExportComplete, handoverFilename]);
+
+  // ===== Migration Export Handlers =====
+
+  const handleExportPreFlight = useCallback(() => {
+    if (preflightResults.length === 0) return;
+    exportPreFlightExcel(preflightResults, preflightMode, sanitizeFilename(preflightFilename, '.xlsx'));
+    markExportComplete();
+  }, [preflightResults, preflightMode, markExportComplete, preflightFilename]);
+
+  const handleExportWaves = useCallback(() => {
+    const waves = wavePlanning.activeWaves;
+    if (!waves || waves.length === 0) return;
+    downloadWavePlanningExcel(
+      waves,
+      wavePlanning.wavePlanningMode,
+      wavePlanning.wavePlanningMode === 'network' ? wavePlanning.networkGroupBy : undefined,
+      sanitizeFilename(wavesFilename, '.xlsx'),
+    );
+    markExportComplete();
+  }, [wavePlanning, markExportComplete, wavesFilename]);
+
+  const handleExportVSIBOM = useCallback(async () => {
+    const cached = getCachedBOM('vsi');
+    if (!cached) return;
+    await downloadVSIBOMExcel(
+      cached.vmDetails ?? [],
+      cached.estimate,
+      'Default VPC',
+      cached.region,
+      cached.discountType,
+      sanitizeFilename(vsiBomFilename, '.xlsx'),
+    );
+    markExportComplete();
+  }, [markExportComplete, vsiBomFilename]);
+
+  const handleExportROKSBOM = useCallback(async () => {
+    const cached = getCachedBOM('roks');
+    if (!cached) return;
+    await downloadROKSBOMExcel(
+      cached.estimate,
+      cached.roksNodeDetails ?? [],
+      'ROKS Cluster',
+      cached.region,
+      cached.discountType,
+      sanitizeFilename(roksBomFilename, '.xlsx'),
+    );
+    markExportComplete();
+  }, [markExportComplete, roksBomFilename]);
+
+  const handleExportMTVYAML = useCallback(async () => {
+    const waves = wavePlanning.activeWaves;
+    if (!waves || waves.length === 0 || !rawData) return;
+    setMtvExporting(true);
+    try {
+      const generator = new MTVYAMLGenerator(DEFAULT_MTV_OPTIONS);
+      const waveData = waves.map(w => ({
+        name: w.name,
+        vms: poweredOnVMs.filter(vm => w.vms.some(wv => wv.vmName === vm.vmName)),
+      }));
+      const blob = await generator.generateBundle(
+        waveData,
+        rawData.vNetwork,
+        rawData.vDatastore,
+      );
+      downloadBlob(blob, sanitizeFilename(mtvYamlFilename, '.zip'));
+      markExportComplete();
+    } catch (error) {
+      logger.error('MTV YAML export failed', error instanceof Error ? error : new Error(String(error)));
+    } finally {
+      setMtvExporting(false);
+    }
+  }, [wavePlanning.activeWaves, rawData, poweredOnVMs, markExportComplete, mtvYamlFilename]);
+
+  const handleExportDiagnostics = useCallback(() => {
+    const allVms = rawData?.vInfo ?? [];
+    let excludedCount = 0;
+    for (const vm of allVms) {
+      const vmId = getVMIdentifier(vm);
+      const autoResult = getAutoExclusionById(vmId);
+      if (vmOverrides.isEffectivelyExcluded(vmId, autoResult.isAutoExcluded)) {
+        excludedCount++;
+      }
+    }
+
+    const loadedSheets: string[] = [];
+    if (rawData) {
+      const sheetKeys = ['vInfo', 'vCPU', 'vMemory', 'vDisk', 'vPartition', 'vNetwork', 'vCD', 'vSnapshot', 'vTools', 'vCluster', 'vHost', 'vDatastore', 'vResourcePool', 'vLicense', 'vHealth', 'vSource'] as const;
+      for (const key of sheetKeys) {
+        if ((rawData[key]?.length ?? 0) > 0) {
+          loadedSheets.push(key);
+        }
+      }
+    }
+
+    const bundle = buildDiagnosticBundle({
+      vmCount: allVms.length,
+      excludedVMCount: excludedCount,
+      loadedSheets,
+    });
+    downloadDiagnosticBundle(bundle, sanitizeFilename(diagnosticsFilename, '.json'));
+  }, [rawData, vmOverrides, getAutoExclusionById, diagnosticsFilename]);
 
   if (!rawData) return <Navigate to={ROUTES.home} replace />;
 
   const totalVMs = vms.length;
   const hasAnyPdfSelected = Object.values(pdfOptions).some(v => v);
-  const isAnyExporting = isPDFExporting || isExcelExporting || isDocxExporting || isPptxExporting;
+  const isAnyExporting = isPDFExporting || isExcelExporting || isDocxExporting || isPptxExporting || mtvExporting;
   const anyError = pdfError || excelError || docxError || pptxError;
+  const hasVSIBOM = hasCachedBOM('vsi');
+  const hasROKSBOM = hasCachedBOM('roks');
+  const hasWaves = wavePlanning.activeWaves.length > 0;
 
   return (
     <div className="export-page">
@@ -250,16 +471,12 @@ export function ExportPage() {
               The <strong>Word document</strong> is the full migration assessment report with sizing, costs, risks, and recommendations.
               {aiAvailable && ' AI-powered insights from watsonx.ai are included automatically in both.'}
             </p>
-            <p className="export-page__summary-description">
-              For BOM (Bill of Materials) exports and MTV YAML, visit the ROKS or VSI Migration pages
-              where sizing context is available.
-            </p>
           </Tile>
         </Column>
 
-        {/* Export Format Cards */}
+        {/* ===== Section 1: Reports ===== */}
         <Column lg={16} md={8} sm={4}>
-          <h2 className="export-page__section-title">Export Formats</h2>
+          <h2 className="export-page__section-title">Reports</h2>
         </Column>
 
         {/* PDF Report */}
@@ -296,6 +513,14 @@ export function ExportPage() {
               </div>
             )}
 
+            <TextInput
+              id="pdf-filename"
+              labelText="Filename"
+              size="sm"
+              value={pdfFilename}
+              onChange={(e) => setPdfFilename(e.target.value)}
+              className="export-page__card-filename"
+            />
             <Button
               kind="primary"
               size="md"
@@ -321,6 +546,14 @@ export function ExportPage() {
                 </p>
               </div>
             </div>
+            <TextInput
+              id="excel-filename"
+              labelText="Filename"
+              size="sm"
+              value={excelFilename}
+              onChange={(e) => setExcelFilename(e.target.value)}
+              className="export-page__card-filename"
+            />
             <Button
               kind="primary"
               size="md"
@@ -346,6 +579,14 @@ export function ExportPage() {
                 </p>
               </div>
             </div>
+            <TextInput
+              id="docx-filename"
+              labelText="Filename"
+              size="sm"
+              value={docxFilename}
+              onChange={(e) => setDocxFilename(e.target.value)}
+              className="export-page__card-filename"
+            />
             <Button
               kind="primary"
               size="md"
@@ -371,6 +612,14 @@ export function ExportPage() {
                 </p>
               </div>
             </div>
+            <TextInput
+              id="pptx-filename"
+              labelText="Filename"
+              size="sm"
+              value={pptxFilename}
+              onChange={(e) => setPptxFilename(e.target.value)}
+              className="export-page__card-filename"
+            />
             <Button
               kind="primary"
               size="md"
@@ -384,23 +633,237 @@ export function ExportPage() {
           </Tile>
         </Column>
 
-        {/* BOM / YAML Info */}
+        {/* ===== Section 2: Migration Exports ===== */}
+        <Column lg={16} md={8} sm={4}>
+          <h2 className="export-page__section-title">Migration Exports</h2>
+        </Column>
+
+        {/* VSI BOM */}
         <Column lg={8} md={4} sm={4}>
-          <ClickableTile
-            className="export-page__card export-page__card--link"
-            onClick={() => window.location.assign(ROUTES.roksMigration)}
-          >
+          <Tile className="export-page__card">
             <div className="export-page__card-header">
               <Report size={24} className="export-page__card-icon" />
               <div>
-                <h3 className="export-page__card-title">BOM &amp; MTV YAML</h3>
+                <h3 className="export-page__card-title">VSI Bill of Materials</h3>
                 <p className="export-page__card-description">
-                  Bill of Materials and MTV migration YAML exports are available on the ROKS and VSI Migration pages
-                  where sizing context is provided.
+                  Detailed BOM with per-VM VSI profile assignments, storage volumes, and cost breakdown for VPC Virtual Server deployment.
                 </p>
               </div>
             </div>
-          </ClickableTile>
+            {!hasVSIBOM && (
+              <p className="export-page__card-helper">Complete cost estimation on the VSI Migration page to enable.</p>
+            )}
+            <TextInput
+              id="vsi-bom-filename"
+              labelText="Filename"
+              size="sm"
+              value={vsiBomFilename}
+              onChange={(e) => setVsiBomFilename(e.target.value)}
+              disabled={!hasVSIBOM}
+              className="export-page__card-filename"
+            />
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={Report}
+              onClick={handleExportVSIBOM}
+              disabled={!hasVSIBOM}
+              className="export-page__card-action"
+            >
+              Export VSI BOM
+            </Button>
+          </Tile>
+        </Column>
+
+        {/* ROKS BOM */}
+        <Column lg={8} md={4} sm={4}>
+          <Tile className="export-page__card">
+            <div className="export-page__card-header">
+              <Report size={24} className="export-page__card-icon" />
+              <div>
+                <h3 className="export-page__card-title">ROKS Bill of Materials</h3>
+                <p className="export-page__card-description">
+                  Detailed BOM with bare metal node specifications, ODF storage configuration, and cost breakdown for OpenShift deployment.
+                </p>
+              </div>
+            </div>
+            {!hasROKSBOM && (
+              <p className="export-page__card-helper">Complete cost estimation on the ROKS Migration page to enable.</p>
+            )}
+            <TextInput
+              id="roks-bom-filename"
+              labelText="Filename"
+              size="sm"
+              value={roksBomFilename}
+              onChange={(e) => setRoksBomFilename(e.target.value)}
+              disabled={!hasROKSBOM}
+              className="export-page__card-filename"
+            />
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={Report}
+              onClick={handleExportROKSBOM}
+              disabled={!hasROKSBOM}
+              className="export-page__card-action"
+            >
+              Export ROKS BOM
+            </Button>
+          </Tile>
+        </Column>
+
+        {/* Pre-Flight Report */}
+        <Column lg={8} md={4} sm={4}>
+          <Tile className="export-page__card">
+            <div className="export-page__card-header">
+              <CheckmarkOutline size={24} className="export-page__card-icon" />
+              <div>
+                <h3 className="export-page__card-title">Pre-Flight Report</h3>
+                <p className="export-page__card-description">
+                  VM-by-VM readiness checks covering tools, storage, hardware, configuration, and OS compatibility for the selected migration target.
+                </p>
+              </div>
+            </div>
+            <div className="export-page__card-switcher">
+              <ContentSwitcher
+                size="sm"
+                onChange={(e) => {
+                  const newMode = e.name as CheckMode;
+                  setPreflightMode(newMode);
+                  setPreflightFilename(getDefaultFilename('preflight', { ...filenameCtx, mode: newMode }));
+                }}
+                selectedIndex={preflightMode === 'roks' ? 0 : 1}
+              >
+                <Switch name="roks" text="ROKS" />
+                <Switch name="vsi" text="VSI" />
+              </ContentSwitcher>
+            </div>
+            <TextInput
+              id="preflight-filename"
+              labelText="Filename"
+              size="sm"
+              value={preflightFilename}
+              onChange={(e) => setPreflightFilename(e.target.value)}
+              className="export-page__card-filename"
+            />
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={CheckmarkOutline}
+              onClick={handleExportPreFlight}
+              disabled={preflightResults.length === 0}
+              className="export-page__card-action"
+            >
+              Export Pre-Flight Report
+            </Button>
+          </Tile>
+        </Column>
+
+        {/* Wave Planning */}
+        <Column lg={8} md={4} sm={4}>
+          <Tile className="export-page__card">
+            <div className="export-page__card-header">
+              <ChartVennDiagram size={24} className="export-page__card-icon" />
+              <div>
+                <h3 className="export-page__card-title">Wave Planning Excel</h3>
+                <p className="export-page__card-description">
+                  Migration wave assignments with VM details, complexity scores, resource totals, and blocker status per wave.
+                </p>
+              </div>
+            </div>
+            {!hasWaves && (
+              <p className="export-page__card-helper">No VMs available for wave planning.</p>
+            )}
+            <TextInput
+              id="waves-filename"
+              labelText="Filename"
+              size="sm"
+              value={wavesFilename}
+              onChange={(e) => setWavesFilename(e.target.value)}
+              disabled={!hasWaves}
+              className="export-page__card-filename"
+            />
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={ChartVennDiagram}
+              onClick={handleExportWaves}
+              disabled={!hasWaves}
+              className="export-page__card-action"
+            >
+              Export Waves
+            </Button>
+          </Tile>
+        </Column>
+
+        {/* MTV YAML */}
+        <Column lg={8} md={4} sm={4}>
+          <Tile className="export-page__card">
+            <div className="export-page__card-header">
+              <Kubernetes size={24} className="export-page__card-icon" />
+              <div>
+                <h3 className="export-page__card-title">MTV YAML Bundle</h3>
+                <p className="export-page__card-description">
+                  Migration Toolkit for Virtualization YAML manifests — migration plans, network maps, and storage maps for OpenShift deployment.
+                </p>
+              </div>
+            </div>
+            {!hasWaves && (
+              <p className="export-page__card-helper">No VMs available for MTV export.</p>
+            )}
+            <TextInput
+              id="mtv-yaml-filename"
+              labelText="Filename"
+              size="sm"
+              value={mtvYamlFilename}
+              onChange={(e) => setMtvYamlFilename(e.target.value)}
+              disabled={!hasWaves}
+              className="export-page__card-filename"
+            />
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={Kubernetes}
+              onClick={handleExportMTVYAML}
+              disabled={!hasWaves || mtvExporting}
+              className="export-page__card-action"
+            >
+              {mtvExporting ? 'Generating...' : 'Export MTV YAML'}
+            </Button>
+          </Tile>
+        </Column>
+
+        {/* RackWare CSV */}
+        <Column lg={8} md={4} sm={4}>
+          <Tile className="export-page__card">
+            <div className="export-page__card-header">
+              <Deploy size={24} className="export-page__card-icon" />
+              <div>
+                <h3 className="export-page__card-title">RackWare CSV</h3>
+                <p className="export-page__card-description">
+                  RackWare RMM import file for automated VM migration to IBM Cloud VPC. Includes wave-based grouping and VM metadata.
+                </p>
+              </div>
+            </div>
+            {!hasWaves && (
+              <p className="export-page__card-helper">No VMs available for RackWare export.</p>
+            )}
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={Deploy}
+              onClick={() => setRackwareModalOpen(true)}
+              disabled={!hasWaves}
+              className="export-page__card-action"
+            >
+              Export RackWare CSV
+            </Button>
+          </Tile>
+        </Column>
+
+        {/* ===== Section 3: Data & Settings ===== */}
+        <Column lg={16} md={8} sm={4}>
+          <h2 className="export-page__section-title">Data &amp; Settings</h2>
         </Column>
 
         {/* Handover File */}
@@ -418,6 +881,15 @@ export function ExportPage() {
             {!originalFileBuffer && (
               <p className="export-page__card-helper">Upload an RVTools file first to enable handover export.</p>
             )}
+            <TextInput
+              id="handover-filename"
+              labelText="Filename"
+              size="sm"
+              value={handoverFilename}
+              onChange={(e) => setHandoverFilename(e.target.value)}
+              disabled={!originalFileBuffer}
+              className="export-page__card-filename"
+            />
             <Button
               kind="primary"
               size="md"
@@ -472,6 +944,38 @@ export function ExportPage() {
           </Tile>
         </Column>
 
+        {/* Diagnostics */}
+        <Column lg={8} md={4} sm={4}>
+          <Tile className="export-page__card">
+            <div className="export-page__card-header">
+              <Debug size={24} className="export-page__card-icon" />
+              <div>
+                <h3 className="export-page__card-title">Diagnostics</h3>
+                <p className="export-page__card-description">
+                  Download a diagnostic bundle containing application logs, environment info, and an anonymized state snapshot for troubleshooting.
+                </p>
+              </div>
+            </div>
+            <TextInput
+              id="diagnostics-filename"
+              labelText="Filename"
+              size="sm"
+              value={diagnosticsFilename}
+              onChange={(e) => setDiagnosticsFilename(e.target.value)}
+              className="export-page__card-filename"
+            />
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={Debug}
+              onClick={handleExportDiagnostics}
+              className="export-page__card-action"
+            >
+              Export Diagnostics
+            </Button>
+          </Tile>
+        </Column>
+
         {/* Status */}
         {isAnyExporting && (
           <Column lg={16} md={8} sm={4}>
@@ -504,6 +1008,7 @@ export function ExportPage() {
         )}
       </Grid>
 
+      {/* Import Settings Modal */}
       <Modal
         open={importModalOpen}
         modalHeading="Import Settings from Handover File"
@@ -547,6 +1052,16 @@ export function ExportPage() {
           </div>
         )}
       </Modal>
+
+      {/* RackWare Export Modal */}
+      <RackwareExportModal
+        open={rackwareModalOpen}
+        onClose={() => setRackwareModalOpen(false)}
+        waves={wavePlanning.activeWaves}
+        mode="vsi"
+        wavePlanningMode={wavePlanning.wavePlanningMode}
+        networkGroupBy={wavePlanning.networkGroupBy}
+      />
     </div>
   );
 }

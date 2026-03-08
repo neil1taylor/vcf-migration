@@ -330,7 +330,8 @@ export function downloadExcel(rawData: RVToolsData, filename = 'rvtools-analysis
 // Pre-flight check Excel export
 export function exportPreFlightExcel(
   results: VMCheckResults[],
-  mode: CheckMode
+  mode: CheckMode,
+  filename?: string
 ): void {
   const checksForMode = getChecksForMode(mode);
   const workbook = XLSX.utils.book_new();
@@ -462,8 +463,8 @@ export function exportPreFlightExcel(
   XLSX.utils.book_append_sheet(workbook, checkDefSheet, 'Check Definitions');
 
   // Download the file
-  const filename = `preflight-report-${mode}-${new Date().toISOString().split('T')[0]}.xlsx`;
-  XLSX.writeFile(workbook, filename);
+  const defaultFilename = `preflight-report-${mode}-${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(workbook, filename || defaultFilename);
 }
 
 // ===== Wave Planning Export =====
@@ -498,7 +499,8 @@ export interface WaveGroup {
 export function downloadWavePlanningExcel(
   waves: WaveGroup[],
   planningMode: 'network' | 'complexity',
-  groupBy?: string
+  groupBy?: string,
+  filename?: string
 ): void {
   const workbook = XLSX.utils.book_new();
 
@@ -609,6 +611,6 @@ export function downloadWavePlanningExcel(
 
   // Download the file
   const modeLabel = planningMode === 'network' ? `network-${groupBy || 'cluster'}` : 'complexity';
-  const filename = `wave-planning-${modeLabel}-${new Date().toISOString().split('T')[0]}.xlsx`;
-  XLSX.writeFile(workbook, filename);
+  const defaultFilename = `wave-planning-${modeLabel}-${new Date().toISOString().split('T')[0]}.xlsx`;
+  XLSX.writeFile(workbook, filename || defaultFilename);
 }

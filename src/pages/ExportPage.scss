@@ -111,6 +111,22 @@
     margin-top: auto;
   }
 
+  &__card-helper {
+    font-size: 0.75rem;
+    color: var(--cds-text-helper, #6f6f6f);
+    margin-bottom: spacing.$spacing-04;
+    font-style: italic;
+  }
+
+  &__card-filename {
+    margin-bottom: spacing.$spacing-04;
+  }
+
+  &__card-switcher {
+    margin-bottom: spacing.$spacing-04;
+    max-width: 12rem;
+  }
+
   &__card--link {
     cursor: pointer;
   }

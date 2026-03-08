@@ -101,7 +101,7 @@ export function buildDiagnosticBundle(stateInput: DiagnosticStateInput): Diagnos
 
 // ===== DOWNLOAD =====
 
-export function downloadDiagnosticBundle(bundle: DiagnosticBundle): void {
+export function downloadDiagnosticBundle(bundle: DiagnosticBundle, filename?: string): void {
   const json = JSON.stringify(bundle, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -112,7 +112,7 @@ export function downloadDiagnosticBundle(bundle: DiagnosticBundle): void {
 
   const link = document.createElement('a');
   link.href = url;
-  link.download = `vcf-diagnostics-${timestamp}.json`;
+  link.download = filename || `vcf-diagnostics-${timestamp}.json`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);

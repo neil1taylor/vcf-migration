@@ -67,7 +67,8 @@ export function generateHandoverFile(
 
 export function downloadHandoverFile(
   originalBuffer: ArrayBuffer,
-  originalFileName: string
+  originalFileName: string,
+  filename?: string
 ): void {
   const data = generateHandoverFile(originalBuffer, originalFileName);
   const blob = new Blob([data as BlobPart], {
@@ -84,7 +85,7 @@ export function downloadHandoverFile(
 
   const link = document.createElement('a');
   link.href = url;
-  link.download = `${baseName}_coe_${dateSuffix}.xlsx`;
+  link.download = filename || `${baseName}_coe_${dateSuffix}.xlsx`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
