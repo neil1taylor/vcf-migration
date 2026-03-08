@@ -8,10 +8,10 @@ export function addClosingSlide(pres: PptxGenJS, options: PptxExportOptions): vo
   const slide = pres.addSlide({ masterName: 'CLOSING' });
 
   slide.addText('Thank You', {
-    x: 0.5,
-    y: 1.2,
-    w: 9.0,
-    h: 1.0,
+    x: 1.33,
+    y: 3.2,
+    w: 24.0,
+    h: 2.67,
     fontSize: FONTS.titleSize,
     fontFace: FONTS.face,
     color: COLORS.white,
@@ -26,10 +26,10 @@ export function addClosingSlide(pres: PptxGenJS, options: PptxExportOptions): vo
   contactLines.push('IBM Cloud Migration Services');
 
   slide.addText(contactLines.join('\n'), {
-    x: 0.5,
-    y: 2.5,
-    w: 9.0,
-    h: 1.5,
+    x: 1.33,
+    y: 6.67,
+    w: 24.0,
+    h: 4.0,
     fontSize: FONTS.subtitleSize,
     fontFace: FONTS.face,
     color: COLORS.white,

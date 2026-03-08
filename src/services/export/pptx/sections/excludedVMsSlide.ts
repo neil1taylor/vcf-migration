@@ -14,10 +14,10 @@ export function addExcludedVMsSlide(
   addSlideTitle(slide, 'Excluded VMs');
 
   slide.addText('VMs Not Requiring Migration', {
-    x: 0.5,
-    y: 0.47,
-    w: 9.0,
-    h: 0.35,
+    x: 1.33,
+    y: 1.25,
+    w: 24.0,
+    h: 0.93,
     fontSize: FONTS.bodySize,
     fontFace: FONTS.face,
     color: COLORS.ibmBlue,
@@ -27,10 +27,10 @@ export function addExcludedVMsSlide(
   slide.addText(
     'Not all VMs in the source environment require migration. VMs such as templates, powered-off instances, vCenter management appliances, and infrastructure tooling (e.g. backup proxies, monitoring agents) are automatically excluded as they will be reprovisioned natively on the target platform or are no longer needed.',
     {
-      x: 0.5,
-      y: 0.77,
-      w: 9.0,
-      h: 0.6,
+      x: 1.33,
+      y: 2.05,
+      w: 24.0,
+      h: 1.6,
       fontSize: FONTS.smallSize,
       fontFace: FONTS.face,
       color: COLORS.darkGray,
@@ -78,19 +78,19 @@ export function addExcludedVMsSlide(
     ];
 
     slide.addTable(tableRows, {
-      x: 0.5,
-      y: 1.25,
-      w: 9.0,
-      colW: [6.0, 3.0],
+      x: 1.33,
+      y: 3.33,
+      w: 24.0,
+      colW: [16.0, 8.0],
       border: { type: 'solid', pt: 0.5, color: COLORS.mediumGray },
       autoPage: false,
     });
   } else {
     slide.addText('No VMs are auto-excluded.', {
-      x: 0.5,
-      y: 2.5,
-      w: 9.0,
-      h: 2.0,
+      x: 1.33,
+      y: 6.67,
+      w: 24.0,
+      h: 5.33,
       fontSize: FONTS.bodySize,
       fontFace: FONTS.face,
       color: COLORS.mediumGray,

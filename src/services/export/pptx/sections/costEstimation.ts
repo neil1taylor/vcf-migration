@@ -20,7 +20,7 @@ export function addCostEstimationSlide(
 
   // Blue subtitle
   slide.addText('Estimated IBM Cloud Compute Costs', {
-    x: 0.5, y: 0.47, w: 9.0, h: 0.35,
+    x: 1.33, y: 1.25, w: 24.0, h: 0.93,
     fontSize: FONTS.bodySize, fontFace: FONTS.face,
     color: COLORS.ibmBlue, bold: true,
   });
@@ -29,15 +29,15 @@ export function addCostEstimationSlide(
   slide.addText(
     'Based on current IBM Cloud US South region list prices. A detailed pricing proposal will be provided at the next stage. Costs do not include storage, networking, or support.',
     {
-      x: 0.5, y: 0.77, w: 9.0, h: 0.4,
+      x: 1.33, y: 2.05, w: 24.0, h: 1.07,
       fontSize: FONTS.smallSize, fontFace: FONTS.face,
       color: COLORS.darkGray,
     }
   );
 
-  const cellOpts = { fontSize: 8, fontFace: FONTS.face, color: COLORS.darkGray };
+  const cellOpts = { fontSize: 21, fontFace: FONTS.face, color: COLORS.darkGray };
   const rightCellOpts = { ...cellOpts, align: 'right' as const };
-  const headerOpts = { bold: true, fill: { color: COLORS.ibmBlue }, color: COLORS.white, fontSize: 8, fontFace: FONTS.face };
+  const headerOpts = { bold: true, fill: { color: COLORS.ibmBlue }, color: COLORS.white, fontSize: 21, fontFace: FONTS.face };
 
   // Pre-calculate totals for KPI tiles
   let roksMonthly = 0;
@@ -58,20 +58,20 @@ export function addCostEstimationSlide(
   const totalAnnual = totalMonthly * 12;
 
   // KPI tiles
-  const kpiY = 1.15;
+  const kpiY = 3.07;
   if (includeROKS && includeVSI) {
     // 4 KPIs: separate ROKS and VSI costs
-    const kpiW = 2.25;
-    addKPINumber(slide, 'ROKS Monthly', fmtCurrency(roksMonthly), { x: 0.5, y: kpiY, w: kpiW });
-    addKPINumber(slide, 'VSI Monthly', fmtCurrency(vsiMonthly), { x: 0.5 + kpiW, y: kpiY, w: kpiW });
-    addKPINumber(slide, 'ROKS Annual', fmtCurrency(roksMonthly * 12), { x: 0.5 + kpiW * 2, y: kpiY, w: kpiW });
-    addKPINumber(slide, 'VSI Annual', fmtCurrency(vsiMonthly * 12), { x: 0.5 + kpiW * 3, y: kpiY, w: kpiW });
+    const kpiW = 6.0;
+    addKPINumber(slide, 'ROKS Monthly', fmtCurrency(roksMonthly), { x: 1.33, y: kpiY, w: kpiW });
+    addKPINumber(slide, 'VSI Monthly', fmtCurrency(vsiMonthly), { x: 1.33 + kpiW, y: kpiY, w: kpiW });
+    addKPINumber(slide, 'ROKS Annual', fmtCurrency(roksMonthly * 12), { x: 1.33 + kpiW * 2, y: kpiY, w: kpiW });
+    addKPINumber(slide, 'VSI Annual', fmtCurrency(vsiMonthly * 12), { x: 1.33 + kpiW * 3, y: kpiY, w: kpiW });
   } else {
     // 3 KPIs: single platform
-    const kpiW = 3.0;
-    addKPINumber(slide, 'Total Monthly', fmtCurrency(totalMonthly), { x: 0.5, y: kpiY, w: kpiW });
-    addKPINumber(slide, 'Total Annual', fmtCurrency(totalAnnual), { x: 0.5 + kpiW, y: kpiY, w: kpiW });
-    addKPINumber(slide, 'Total VMs / Nodes', fmt(totalCount), { x: 0.5 + kpiW * 2, y: kpiY, w: kpiW });
+    const kpiW = 8.0;
+    addKPINumber(slide, 'Total Monthly', fmtCurrency(totalMonthly), { x: 1.33, y: kpiY, w: kpiW });
+    addKPINumber(slide, 'Total Annual', fmtCurrency(totalAnnual), { x: 1.33 + kpiW, y: kpiY, w: kpiW });
+    addKPINumber(slide, 'Total VMs / Nodes', fmt(totalCount), { x: 1.33 + kpiW * 2, y: kpiY, w: kpiW });
   }
 
   // Detailed cost breakdown table
@@ -138,10 +138,10 @@ export function addCostEstimationSlide(
   ]);
 
   slide.addTable(tableRows, {
-    x: 0.5,
-    y: 1.95,
-    w: 9.0,
-    colW: [1.8, 2.2, 0.8, 2.0, 2.2],
+    x: 1.33,
+    y: 5.2,
+    w: 24.0,
+    colW: [4.8, 5.87, 2.13, 5.33, 5.87],
     border: { type: 'solid', pt: 0.5, color: COLORS.mediumGray },
     autoPage: false,
   });

@@ -8,11 +8,11 @@ import { BODY, FONTS, COLORS } from '../types';
  */
 export function addSlideTitle(slide: PptxGenJS.Slide, title: string): void {
   slide.addText(title, {
-    x: 0.5,
-    y: 0.15,
-    w: 9.0,
-    h: 0.3,
-    fontSize: 20,
+    x: 1.33,
+    y: 0.40,
+    w: 24.0,
+    h: 0.80,
+    fontSize: 53,
     fontFace: FONTS.face,
     color: COLORS.darkGray,
     bold: true,
@@ -94,7 +94,7 @@ export function addBulletList(
       color: COLORS.darkGray,
       bullet: true,
       breakType: 'none' as const,
-      paraSpaceAfter: 6,
+      paraSpaceAfter: 16,
     },
   }));
 
@@ -120,7 +120,7 @@ export function addKPINumber(
     x: position.x,
     y: position.y,
     w: position.w,
-    h: 0.5,
+    h: 1.33,
     fontSize: FONTS.kpiSize,
     fontFace: FONTS.face,
     color: COLORS.ibmBlue,
@@ -130,9 +130,9 @@ export function addKPINumber(
   });
   slide.addText(label, {
     x: position.x,
-    y: position.y + 0.5,
+    y: position.y + 1.33,
     w: position.w,
-    h: 0.3,
+    h: 0.80,
     fontSize: FONTS.smallSize,
     fontFace: FONTS.face,
     color: COLORS.mediumGray,
@@ -146,11 +146,11 @@ export function addKPINumber(
  */
 export function addFooter(slide: PptxGenJS.Slide, companyName: string): void {
   slide.addText(companyName, {
-    x: 0.5,
-    y: 5.2,
-    w: 9.0,
-    h: 0.3,
-    fontSize: 8,
+    x: 1.33,
+    y: 13.87,
+    w: 24.0,
+    h: 0.80,
+    fontSize: 21,
     fontFace: FONTS.face,
     color: COLORS.mediumGray,
     align: 'left',

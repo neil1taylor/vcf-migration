@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // Mock all section builders
 vi.mock('./sections', () => ({
   addTitleSlide: vi.fn(),
-  addImageSlide: vi.fn(),
   addAgendaSlide: vi.fn(),
   addExecutiveSummarySlide: vi.fn(),
   addMigrationStatsSlide: vi.fn(),
@@ -42,7 +41,7 @@ vi.mock('../docx/utils/calculations', () => ({
   ]),
 }));
 
-// Mock theme
+// Mock theme and utils
 vi.mock('./utils', () => ({
   defineMasterSlides: vi.fn(),
   addSlideTitle: vi.fn(),
@@ -52,6 +51,7 @@ vi.mock('./utils', () => ({
   addFooter: vi.fn(),
   fmt: vi.fn((n: number) => String(n)),
   fmtCurrency: vi.fn((n: number) => `$${n}`),
+  injectReferenceSlides: vi.fn((blob: Blob) => Promise.resolve(blob)),
 }));
 
 // Mock pptxgenjs
@@ -65,6 +65,7 @@ vi.mock('pptxgenjs', () => {
       company = '';
       subject = '';
       ChartType = { pie: 'pie', bar: 'bar' };
+      defineLayout = vi.fn();
       defineSlideMaster = vi.fn();
       addSlide = vi.fn(() => ({
         addText: vi.fn(),
@@ -91,7 +92,6 @@ vi.mock('@/data/reportTemplates.json', () => ({
 import { generatePptxReport } from './index';
 import {
   addTitleSlide,
-  addImageSlide,
   addAgendaSlide,
   addExecutiveSummarySlide,
   addMigrationStatsSlide,
@@ -102,7 +102,7 @@ import {
   addMigrationExecutionSlide,
   addNextStepsSlide,
 } from './sections';
-import { defineMasterSlides } from './utils';
+import { defineMasterSlides, injectReferenceSlides } from './utils';
 import type { RVToolsData } from '@/types/rvtools';
 
 const mockRVToolsData = {
@@ -156,12 +156,17 @@ describe('generatePptxReport', () => {
     expect(defineMasterSlides).toHaveBeenCalledTimes(1);
   });
 
+  it('calls injectReferenceSlides for post-processing', async () => {
+    await generatePptxReport(mockRVToolsData);
+    expect(injectReferenceSlides).toHaveBeenCalledTimes(1);
+    expect(injectReferenceSlides).toHaveBeenCalledWith(expect.any(Blob));
+  });
+
   it('calls all required section builders in correct order', async () => {
     await generatePptxReport(mockRVToolsData);
 
-    // Image slides (title + 2 section dividers)
+    // Title slide
     expect(addTitleSlide).toHaveBeenCalledTimes(1);
-    expect(addImageSlide).toHaveBeenCalledTimes(2);
 
     // Agenda slide
     expect(addAgendaSlide).toHaveBeenCalledTimes(1);
@@ -264,9 +269,11 @@ describe('generatePptxReport', () => {
     expect(blob).toBeInstanceOf(Blob);
   });
 
-  it('passes image paths to addImageSlide for section dividers', async () => {
+  it('adds placeholder slides for reference XML injection (slides 3 & 4)', async () => {
     await generatePptxReport(mockRVToolsData);
-    expect(addImageSlide).toHaveBeenCalledWith(expect.anything(), expect.stringContaining('/pptx/slide3.png'));
-    expect(addImageSlide).toHaveBeenCalledWith(expect.anything(), expect.stringContaining('/pptx/slide4.png'));
+    // The presentation should have addSlide called for placeholders
+    // Title (1) + Agenda (1) + 2 placeholders + content slides
+    // Verify injectReferenceSlides is called to replace them
+    expect(injectReferenceSlides).toHaveBeenCalledTimes(1);
   });
 });

@@ -57,7 +57,7 @@ export function addExecutiveSummarySlide(
 
   // Blue subtitle
   slide.addText('Source Environment Overview', {
-    x: 0.5, y: 0.47, w: 9.0, h: 0.35,
+    x: 1.33, y: 1.25, w: 24.0, h: 0.93,
     fontSize: FONTS.bodySize,
     fontFace: FONTS.face,
     color: COLORS.ibmBlue,
@@ -66,19 +66,19 @@ export function addExecutiveSummarySlide(
 
   // Explanatory paragraph
   slide.addText('A summary of the VMware environment captured from the RVTools export, including compute, storage, and infrastructure metrics across all discovered virtual machines.', {
-    x: 0.5, y: 0.77, w: 9.0, h: 0.5,
+    x: 1.33, y: 2.05, w: 24.0, h: 1.33,
     fontSize: FONTS.smallSize,
     fontFace: FONTS.face,
     color: COLORS.darkGray,
   });
 
-  // 4 KPI tiles — evenly spaced across 9" width
-  const kpiY = 1.2;
-  const kpiW = 2.25;
-  addKPINumber(slide, 'Total VMs', fmt(totalVMs), { x: 0.5, y: kpiY, w: kpiW });
-  addKPINumber(slide, 'Total vCPUs', fmt(totalVCPUs), { x: 0.5 + kpiW, y: kpiY, w: kpiW });
-  addKPINumber(slide, 'Total Memory', fmtMemory(totalMemoryGiB), { x: 0.5 + kpiW * 2, y: kpiY, w: kpiW });
-  addKPINumber(slide, 'Disk In Use', fmtStorage(totalInUseGiB), { x: 0.5 + kpiW * 3, y: kpiY, w: kpiW });
+  // 4 KPI tiles — evenly spaced across 24" width
+  const kpiY = 3.2;
+  const kpiW = 6.0;
+  addKPINumber(slide, 'Total VMs', fmt(totalVMs), { x: 1.33, y: kpiY, w: kpiW });
+  addKPINumber(slide, 'Total vCPUs', fmt(totalVCPUs), { x: 1.33 + kpiW, y: kpiY, w: kpiW });
+  addKPINumber(slide, 'Total Memory', fmtMemory(totalMemoryGiB), { x: 1.33 + kpiW * 2, y: kpiY, w: kpiW });
+  addKPINumber(slide, 'Disk In Use', fmtStorage(totalInUseGiB), { x: 1.33 + kpiW * 3, y: kpiY, w: kpiW });
 
   // Table rows — infrastructure and averages (KPI values removed from table)
   const rows: [string, string][] = [
@@ -96,8 +96,8 @@ export function addExecutiveSummarySlide(
   ];
 
   addTable(slide, ['Metric', 'Value'], rows, {
-    y: 2.0,
-    colW: [4.5, 4.5],
-    fontSize: 8,
+    y: 5.33,
+    colW: [12.0, 12.0],
+    fontSize: 21,
   });
 }

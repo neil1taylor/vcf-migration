@@ -17,10 +17,10 @@ export function defineMasterSlides(pres: PptxGenJS): void {
           options: {
             name: 'title',
             type: 'title',
-            x: 0.5,
-            y: 1.2,
-            w: 9.0,
-            h: 1.5,
+            x: 1.33,
+            y: 3.2,
+            w: 24.0,
+            h: 4.0,
             fontSize: FONTS.titleSize,
             fontFace: FONTS.face,
             color: COLORS.white,
@@ -36,10 +36,10 @@ export function defineMasterSlides(pres: PptxGenJS): void {
           options: {
             name: 'subtitle',
             type: 'body',
-            x: 0.5,
-            y: 2.8,
-            w: 9.0,
-            h: 1.0,
+            x: 1.33,
+            y: 7.47,
+            w: 24.0,
+            h: 2.67,
             fontSize: FONTS.subtitleSize,
             fontFace: FONTS.face,
             color: COLORS.white,
@@ -52,17 +52,27 @@ export function defineMasterSlides(pres: PptxGenJS): void {
     ],
   });
 
-  // CONTENT master — white background, no title bar
+  // CONTENT master — white background, slide number bottom-right
   pres.defineSlideMaster({
     title: 'CONTENT',
     background: { color: COLORS.white },
+    slideNumber: {
+      x: 24.27, y: 13.87, w: 1.33, h: 0.8,
+      fontSize: 21, color: COLORS.mediumGray,
+      fontFace: FONTS.face,
+    },
     objects: [],
   });
 
-  // CLOSING master — same as TITLE
+  // CLOSING master — same as TITLE, with slide number
   pres.defineSlideMaster({
     title: 'CLOSING',
     background: { color: COLORS.ibmBlue },
+    slideNumber: {
+      x: 24.27, y: 13.87, w: 1.33, h: 0.8,
+      fontSize: 21, color: COLORS.white,
+      fontFace: FONTS.face,
+    },
     objects: [],
   });
 

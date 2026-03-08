@@ -24,10 +24,10 @@ export function addPlatformRecommendationSlide(
 
   if (!ps) {
     slide.addText('Platform selection questionnaire has not been completed.\nComplete it on the Migration Comparison page to see recommendations here.', {
-      x: 0.5,
-      y: 1.5,
-      w: 9.0,
-      h: 2.0,
+      x: 1.33,
+      y: 4.0,
+      w: 24.0,
+      h: 5.33,
       fontSize: FONTS.bodySize,
       fontFace: FONTS.face,
       color: COLORS.mediumGray,
@@ -44,7 +44,7 @@ export function addPlatformRecommendationSlide(
 
   // Blue subtitle — includes recommendation
   slide.addText(`IBM Cloud Target Platform Assessment — Recommendation: ${leaningLabel}`, {
-    x: 0.5, y: 0.47, w: 9.0, h: 0.35,
+    x: 1.33, y: 1.25, w: 24.0, h: 0.93,
     fontSize: FONTS.bodySize,
     fontFace: FONTS.face,
     color: COLORS.ibmBlue,
@@ -53,7 +53,7 @@ export function addPlatformRecommendationSlide(
 
   // Explanatory paragraph
   slide.addText('Based on responses to the platform selection questionnaire, a target IBM Cloud platform is recommended. Each question evaluates factors such as workload type, operational preferences, and infrastructure requirements.', {
-    x: 0.5, y: 0.77, w: 9.0, h: 0.45,
+    x: 1.33, y: 2.05, w: 24.0, h: 1.2,
     fontSize: FONTS.smallSize,
     fontFace: FONTS.face,
     color: COLORS.darkGray,
@@ -80,7 +80,7 @@ export function addPlatformRecommendationSlide(
       slide,
       ['Question', 'Response'],
       answeredRows,
-      { y: 1.4, colW: [7.0, 2.0], fontSize: 8 }
+      { y: 3.73, colW: [18.67, 5.33], fontSize: 21 }
     );
   }
 
@@ -92,10 +92,10 @@ export function addPlatformRecommendationSlide(
 
   if (costs.length > 0) {
     slide.addText(`Estimated costs: ${costs.join('  |  ')}`, {
-      x: 0.5,
-      y: 4.7,
-      w: 9.0,
-      h: 0.3,
+      x: 1.33,
+      y: 12.53,
+      w: 24.0,
+      h: 0.80,
       fontSize: FONTS.smallSize,
       fontFace: FONTS.face,
       color: COLORS.darkGray,
@@ -107,10 +107,10 @@ export function addPlatformRecommendationSlide(
     ? `Based on ${answeredCount} answered questions in the Platform Selection questionnaire.`
     : `Showing ${answeredCount} of ${totalQuestions} questions (unanswered questions hidden).`;
   slide.addText(noteText, {
-    x: 0.5,
-    y: 5.1,
-    w: 9.0,
-    h: 0.3,
+    x: 1.33,
+    y: 13.6,
+    w: 24.0,
+    h: 0.80,
     fontSize: FONTS.smallSize,
     fontFace: FONTS.face,
     color: COLORS.mediumGray,

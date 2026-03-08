@@ -42,7 +42,7 @@ export function addMigrationExecutionSlide(pres: PptxGenJS): void {
 
   // Blue subtitle
   slide.addText('Discover, Design & Configure, Migrate', {
-    x: 0.5, y: 0.47, w: 9.0, h: 0.35,
+    x: 1.33, y: 1.25, w: 24.0, h: 0.93,
     fontSize: FONTS.bodySize,
     fontFace: FONTS.face,
     color: COLORS.ibmBlue,
@@ -51,19 +51,19 @@ export function addMigrationExecutionSlide(pres: PptxGenJS): void {
 
   // Explanatory paragraph
   slide.addText('The migration follows a structured three-phase approach. Each phase builds on the outputs of the previous stage to ensure a controlled, repeatable migration.', {
-    x: 0.5, y: 0.77, w: 9.0, h: 0.4,
+    x: 1.33, y: 2.05, w: 24.0, h: 1.07,
     fontSize: FONTS.smallSize,
     fontFace: FONTS.face,
     color: COLORS.darkGray,
   });
 
   const colCount = 3;
-  const totalWidth = 9.0;
-  const gap = 0.15;
+  const totalWidth = 24.0;
+  const gap = 0.40;
   const colWidth = (totalWidth - gap * (colCount - 1)) / colCount;
-  const startX = 0.5;
-  const startY = 1.2;
-  const accentH = 0.04;
+  const startX = 1.33;
+  const startY = 3.2;
+  const accentH = 0.11;
 
   for (let i = 0; i < PHASES.length; i++) {
     const phase = PHASES[i];
@@ -81,10 +81,10 @@ export function addMigrationExecutionSlide(pres: PptxGenJS): void {
     // Column heading (bold blue)
     slide.addText(phase.heading, {
       x: colX,
-      y: startY + accentH + 0.05,
+      y: startY + accentH + 0.13,
       w: colWidth,
-      h: 0.35,
-      fontSize: 14,
+      h: 0.93,
+      fontSize: 37,
       fontFace: FONTS.face,
       color: COLORS.ibmBlue,
       bold: true,
@@ -95,32 +95,32 @@ export function addMigrationExecutionSlide(pres: PptxGenJS): void {
     const bulletItems: PptxGenJS.TextProps[] = phase.bullets.map((bullet) => ({
       text: bullet,
       options: {
-        fontSize: 8,
+        fontSize: 21,
         fontFace: FONTS.face,
         color: COLORS.darkGray,
         bullet: true,
         breakType: 'none' as const,
-        paraSpaceAfter: 4,
+        paraSpaceAfter: 11,
       },
     }));
 
     slide.addText(bulletItems, {
       x: colX,
-      y: startY + accentH + 0.4,
+      y: startY + accentH + 1.07,
       w: colWidth,
-      h: 3.4,
+      h: 9.07,
       valign: 'top',
     });
 
     // Add chevron arrow between columns (except after last)
     if (i < PHASES.length - 1) {
-      const chevronX = colX + colWidth + (gap / 2) - 0.06;
+      const chevronX = colX + colWidth + (gap / 2) - 0.16;
       slide.addText('>', {
         x: chevronX,
-        y: startY + 0.05,
-        w: 0.12,
-        h: 0.35,
-        fontSize: 16,
+        y: startY + 0.13,
+        w: 0.32,
+        h: 0.93,
+        fontSize: 43,
         fontFace: FONTS.face,
         color: COLORS.mediumGray,
         bold: true,

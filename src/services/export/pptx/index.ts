@@ -4,12 +4,11 @@
 import PptxGenJS from 'pptxgenjs';
 import type { RVToolsData } from '@/types/rvtools';
 import reportTemplates from '@/data/reportTemplates.json';
-import { type PptxExportOptions, SLIDE_LAYOUT } from './types';
+import { type PptxExportOptions, SLIDE_WIDTH, SLIDE_HEIGHT, CUSTOM_LAYOUT_NAME } from './types';
 import { calculateROKSSizing, calculateVSIMappings } from '../docx/utils/calculations';
-import { defineMasterSlides } from './utils';
+import { defineMasterSlides, injectReferenceSlides } from './utils';
 import {
   addTitleSlide,
-  addImageSlide,
   addAgendaSlide,
   addExecutiveSummarySlide,
   addMigrationStatsSlide,
@@ -44,7 +43,11 @@ export async function generatePptxReport(
 
   // Create presentation
   const pres = new PptxGenJS();
-  pres.layout = SLIDE_LAYOUT;
+
+  // Define custom wide layout matching IBM reference deck
+  pres.defineLayout({ name: CUSTOM_LAYOUT_NAME, width: SLIDE_WIDTH, height: SLIDE_HEIGHT });
+  pres.layout = CUSTOM_LAYOUT_NAME;
+
   pres.title = `VMware Migration Assessment - ${finalOptions.clientName}`;
   pres.author = finalOptions.preparedBy;
   pres.company = finalOptions.companyName;
@@ -56,8 +59,6 @@ export async function generatePptxReport(
   // Calculate data (reuse from DOCX calculations)
   const roksSizing = calculateROKSSizing(rawData);
   const vsiMappings = calculateVSIMappings(rawData);
-
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
 
   // Build content titles for agenda (based on which slides are included)
   const contentTitles: string[] = [
@@ -80,9 +81,9 @@ export async function generatePptxReport(
   // Slide 2: Agenda
   addAgendaSlide(pres, contentTitles);
 
-  // Slides 3-4: Section divider images
-  addImageSlide(pres, `${baseUrl}/pptx/slide3.png`);
-  addImageSlide(pres, `${baseUrl}/pptx/slide4.png`);
+  // Slides 3-4: Placeholder slides (content replaced by reference XML post-processing)
+  pres.addSlide({ masterName: 'CONTENT' });
+  pres.addSlide({ masterName: 'CONTENT' });
 
   // Content slides
   addExecutiveSummarySlide(pres, rawData);
@@ -98,9 +99,10 @@ export async function generatePptxReport(
   addMigrationExecutionSlide(pres);
   addNextStepsSlide(pres);
 
-  // Generate blob
+  // Generate blob and inject reference slides
   const output = await pres.write({ outputType: 'blob' });
-  return output as Blob;
+  const finalBlob = await injectReferenceSlides(output as Blob);
+  return finalBlob;
 }
 
 /**

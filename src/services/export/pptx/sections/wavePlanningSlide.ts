@@ -21,7 +21,7 @@ export function addWavePlanningSlide(
       x: BODY.x,
       y: BODY.y,
       w: BODY.w,
-      h: 1.0,
+      h: 2.67,
       fontSize: FONTS.bodySize,
       fontFace: FONTS.face,
       color: COLORS.mediumGray,
@@ -36,9 +36,9 @@ export function addWavePlanningSlide(
     `The waves below use a ${strategyLabel} grouping strategy. Wave groupings are preliminary — the migration partner will refine based on application dependencies.`,
     {
       x: BODY.x,
-      y: 0.47,
+      y: 1.25,
       w: BODY.w,
-      h: 0.35,
+      h: 0.93,
       fontSize: FONTS.bodySize,
       fontFace: FONTS.face,
       color: COLORS.ibmBlue,
@@ -53,9 +53,9 @@ export function addWavePlanningSlide(
   if (waves.length === 0) {
     slide.addText('No active VMs found for wave planning.', {
       x: BODY.x,
-      y: 1.4,
+      y: 3.73,
       w: BODY.w,
-      h: 0.5,
+      h: 1.33,
       fontSize: FONTS.bodySize,
       fontFace: FONTS.face,
       color: COLORS.mediumGray,
@@ -96,12 +96,12 @@ export function addWavePlanningSlide(
   });
 
   const colW = isComplexity
-    ? [1.8, 0.7, 0.8, 1.2, 1.2, 0.9, 1.2]
-    : [2.5, 0.8, 0.8, 1.2, 1.2, 1.0];
+    ? [4.8, 1.87, 2.13, 3.2, 3.2, 2.4, 3.2]
+    : [6.67, 2.13, 2.13, 3.2, 3.2, 2.67];
 
   addTable(slide, headers, rows, {
-    y: 0.9,
-    fontSize: 8,
+    y: 2.4,
+    fontSize: 21,
     colW,
   });
 }

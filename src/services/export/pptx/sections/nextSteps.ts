@@ -22,7 +22,7 @@ export function addNextStepsSlide(
 
   // Blue subtitle
   slide.addText('Recommended Actions', {
-    x: 0.5, y: 0.47, w: 9.0, h: 0.35,
+    x: 1.33, y: 1.25, w: 24.0, h: 0.93,
     fontSize: FONTS.bodySize,
     fontFace: FONTS.face,
     color: COLORS.ibmBlue,
@@ -31,16 +31,16 @@ export function addNextStepsSlide(
 
   // Explanatory paragraph
   slide.addText('The following steps outline the recommended path forward for progressing the migration from assessment to execution.', {
-    x: 0.5, y: 0.77, w: 9.0, h: 0.4,
+    x: 1.33, y: 2.05, w: 24.0, h: 1.07,
     fontSize: FONTS.smallSize,
     fontFace: FONTS.face,
     color: COLORS.darkGray,
   });
 
   addBulletList(slide, DEFAULT_NEXT_STEPS, {
-    y: 1.15,
-    h: 3.5,
-    fontSize: 11,
+    y: 3.07,
+    h: 9.33,
+    fontSize: 29,
   });
 
 }

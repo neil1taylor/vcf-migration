@@ -14,40 +14,40 @@ export interface PptxExportOptions {
   wavePlanningPreference?: WavePlanningPreference | null;
 }
 
-// 16:9 slide layout (inches)
-export const SLIDE_LAYOUT = 'LAYOUT_16x9' as const;
-export const SLIDE_WIDTH = 10;
-export const SLIDE_HEIGHT = 5.625;
+// 16:9 slide layout (inches) — matches IBM reference deck dimensions
+export const SLIDE_WIDTH = 26.67;
+export const SLIDE_HEIGHT = 15;
+export const CUSTOM_LAYOUT_NAME = 'LAYOUT_WIDE_16x9';
 
 // Title bar styling
 export const TITLE_BAR = {
   x: 0,
   y: 0,
   w: SLIDE_WIDTH,
-  h: 0.7,
+  h: 1.87,
   bgColor: '0f62fe',
   fontColor: 'ffffff',
-  fontSize: 20,
+  fontSize: 53,
   fontFace: 'IBM Plex Sans',
 } as const;
 
 // Body content area
 export const BODY = {
-  x: 0.5,
-  y: 1.0,
-  w: 9.0,
-  maxH: 4.2,
+  x: 1.33,
+  y: 2.67,
+  w: 24.0,
+  maxH: 11.2,
 } as const;
 
 // Font defaults
 export const FONTS = {
   face: 'IBM Plex Sans Light',
-  titleSize: 28,
-  subtitleSize: 16,
-  headingSize: 20,
-  bodySize: 12,
-  smallSize: 10,
-  kpiSize: 36,
+  titleSize: 75,
+  subtitleSize: 43,
+  headingSize: 53,
+  bodySize: 32,
+  smallSize: 27,
+  kpiSize: 64,
 } as const;
 
 // IBM Design colors (hex without #)

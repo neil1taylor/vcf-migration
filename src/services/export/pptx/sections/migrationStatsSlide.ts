@@ -61,7 +61,7 @@ export function addMigrationStatsSlide(
 
   // Blue subtitle
   slide.addText('Pre-flight Compatibility Checks', {
-    x: 0.5, y: 0.47, w: 9.0, h: 0.35,
+    x: 1.33, y: 1.25, w: 24.0, h: 0.93,
     fontSize: FONTS.bodySize,
     fontFace: FONTS.face,
     color: COLORS.ibmBlue,
@@ -70,7 +70,7 @@ export function addMigrationStatsSlide(
 
   // Explanatory paragraph
   slide.addText(`Automated checks against the RVTools data to identify potential blockers and warnings before migration. Items flagged may require remediation to ensure a smooth transition to ${modeLabel}.`, {
-    x: 0.5, y: 0.77, w: 9.0, h: 0.6,
+    x: 1.33, y: 2.05, w: 24.0, h: 1.6,
     fontSize: FONTS.smallSize,
     fontFace: FONTS.face,
     color: COLORS.darkGray,
@@ -83,7 +83,7 @@ export function addMigrationStatsSlide(
     bold: true,
     fill: { color: COLORS.ibmBlue },
     color: COLORS.white,
-    fontSize: 9,
+    fontSize: 24,
     fontFace: FONTS.face,
     valign: 'middle' as const,
     align: 'left' as const,
@@ -103,7 +103,7 @@ export function addMigrationStatsSlide(
     const item = visibleItems[i];
     const rowFill = i % 2 === 0 ? COLORS.white : COLORS.lightGray;
     const baseCellOpts = {
-      fontSize: 9,
+      fontSize: 24,
       fontFace: FONTS.face,
       color: COLORS.darkGray,
       fill: { color: rowFill },
@@ -116,7 +116,7 @@ export function addMigrationStatsSlide(
       {
         text: severityLabel(item.severity),
         options: {
-          fontSize: 9,
+          fontSize: 24,
           fontFace: FONTS.face,
           color: COLORS.white,
           bold: true,
@@ -130,10 +130,10 @@ export function addMigrationStatsSlide(
   }
 
   slide.addTable(tableRows, {
-    x: 0.5,
-    y: 1.25,
-    w: 9.0,
-    colW: [5.0, 2.0, 2.0],
+    x: 1.33,
+    y: 3.33,
+    w: 24.0,
+    colW: [13.33, 5.33, 5.33],
     border: { type: 'solid', pt: 0.5, color: COLORS.mediumGray },
     autoPage: false,
   });
