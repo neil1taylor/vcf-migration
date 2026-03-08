@@ -47,7 +47,7 @@ import { getVMIdentifier } from '@/utils/vmIdentifier';
 import type { PDFExportOptions } from '@/hooks/usePDFExport';
 import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
-import { getWavePlanningPreference } from '@/services/export/docx/types';
+import { getWavePlanningPreference, getPlatformSelectionExport, getRiskAssessmentExport, getTimelineExport, getVPCDesignExport } from '@/services/export/docx/types';
 import { getDefaultFilename, sanitizeFilename } from '@/utils/exportFilenames';
 import { runPreFlightChecks, type CheckMode } from '@/services/preflightChecks';
 import { exportPreFlightExcel, downloadWavePlanningExcel } from '@/services/export/excelGenerator';
@@ -298,7 +298,22 @@ export function ExportPage() {
       aiInsights = insights;
       if (warning) setAIWarning(warning);
     }
-    await exportDocx(rawData, { aiInsights, wavePlanningPreference: getWavePlanningPreference() }, sanitizeFilename(docxFilename, '.docx'));
+
+    // Gather all user inputs from localStorage
+    const platformSelection = getPlatformSelectionExport(rawData);
+    const riskAssessment = getRiskAssessmentExport(rawData);
+    const timelineData = getTimelineExport(rawData);
+    const vpcDesign = getVPCDesignExport(rawData);
+
+    await exportDocx(rawData, {
+      aiInsights,
+      wavePlanningPreference: getWavePlanningPreference(),
+      platformSelection,
+      riskAssessment,
+      timelinePhases: timelineData?.phases,
+      timelineStartDate: timelineData?.startDate,
+      vpcDesign,
+    }, sanitizeFilename(docxFilename, '.docx'));
     markExportComplete();
   }, [rawData, exportDocx, aiAvailable, markExportComplete, docxFilename]);
 

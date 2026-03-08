@@ -3,7 +3,7 @@
 import { HeadingLevel } from 'docx';
 import type { VPCDesign } from '@/types/vpcDesign';
 import type { DocumentContent } from '../types';
-import { createHeading, createParagraph, createStyledTable, createTableCaption } from '../utils/helpers';
+import { createHeading, createParagraph, createStyledTable, createTableDescription, createTableLabel } from '../utils/helpers';
 
 export function buildNetworkDesignSection(design: VPCDesign): DocumentContent[] {
   const sections: DocumentContent[] = [
@@ -20,8 +20,9 @@ export function buildNetworkDesignSection(design: VPCDesign): DocumentContent[] 
       s.name, s.cidr, s.zone, s.sourcePortGroup, s.vmCount.toString(), s.purpose,
     ]);
     sections.push(
-      ...createTableCaption('VPC Subnet Mapping', 'VMware port groups mapped to IBM Cloud VPC subnets'),
+      ...createTableDescription('VPC Subnet Mapping', 'VMware port groups mapped to IBM Cloud VPC subnets'),
       createStyledTable(subnetHeaders, subnetRows),
+      createTableLabel('VPC Subnet Mapping'),
     );
   }
 
@@ -33,8 +34,9 @@ export function buildNetworkDesignSection(design: VPCDesign): DocumentContent[] 
       sg.name, sg.workloadType, sg.inboundRules.length.toString(), sg.outboundRules.length.toString(),
     ]);
     sections.push(
-      ...createTableCaption('Security Group Summary', 'Security groups generated from workload classification'),
+      ...createTableDescription('Security Group Summary', 'Security groups generated from workload classification'),
       createStyledTable(sgHeaders, sgRows),
+      createTableLabel('Security Group Summary'),
     );
   }
 
@@ -49,8 +51,9 @@ export function buildNetworkDesignSection(design: VPCDesign): DocumentContent[] 
         : [[gw.name, '(no connections)', '']]
     );
     sections.push(
-      ...createTableCaption('Transit Gateway Configuration', 'Transit gateways connecting the VPC to other networks'),
+      ...createTableDescription('Transit Gateway Configuration', 'Transit gateways connecting the VPC to other networks'),
       createStyledTable(tgwHeaders, tgwRows),
+      createTableLabel('Transit Gateway Configuration'),
     );
   }
 

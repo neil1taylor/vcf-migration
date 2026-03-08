@@ -2,7 +2,7 @@
 
 import { HeadingLevel } from 'docx';
 import type { PlatformSelectionExport, DocumentContent } from '../types';
-import { createHeading, createParagraph, createStyledTable, createTableCaption } from '../utils/helpers';
+import { createHeading, createParagraph, createStyledTable, createTableDescription, createTableLabel } from '../utils/helpers';
 import factorsData from '@/data/platformSelectionFactors.json';
 
 const LEANING_LABELS: Record<string, string> = {
@@ -52,8 +52,9 @@ export function buildPlatformSelectionSection(data: PlatformSelectionExport): Do
     ['ROKS Variant', VARIANT_LABELS[score.roksVariant] ?? 'Full'],
   ];
   sections.push(
-    ...createTableCaption('Platform Selection Score Summary', 'Aggregated platform selection questionnaire results'),
+    ...createTableDescription('Platform Selection Score Summary', 'Aggregated platform selection questionnaire results'),
     createStyledTable(summaryHeaders, summaryRows),
+    createTableLabel('Platform Selection Score Summary'),
   );
 
   // Per-factor detail table
@@ -81,8 +82,9 @@ export function buildPlatformSelectionSection(data: PlatformSelectionExport): Do
     ];
   });
   sections.push(
-    ...createTableCaption('Platform Selection Factor Responses', 'Individual factor responses from the platform selection questionnaire'),
+    ...createTableDescription('Platform Selection Factor Responses', 'Individual factor responses from the platform selection questionnaire'),
     createStyledTable(factorHeaders, factorRows),
+    createTableLabel('Platform Selection Factor Responses'),
   );
 
   // Callout for unanswered / "Not Sure" responses

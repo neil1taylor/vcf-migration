@@ -2,10 +2,18 @@
 
 import { Paragraph, Table, AlignmentType, HeadingLevel } from 'docx';
 import type { MigrationInsights } from '@/services/ai/types';
-import type { RiskTableData } from '@/types/riskAssessment';
-import type { TimelinePhase } from '@/types/timeline';
-import type { VPCDesign } from '@/types/vpcDesign';
+import type { RVToolsData } from '@/types/rvtools';
+import type { RiskTableData, RiskTableOverrides } from '@/types/riskAssessment';
+import type { TimelinePhase, TimelineConfig } from '@/types/timeline';
+import type { VPCDesign, VPCDesignData } from '@/types/vpcDesign';
 import type { PlatformSelectionScore, FactorAnswer } from '@/hooks/usePlatformSelection';
+import type { SubnetOverridesData } from '@/hooks/useSubnetOverrides';
+import { buildRiskTable } from '@/services/riskAssessment';
+import { buildDefaultTimeline } from '@/services/migration/timelineEstimation';
+import { buildVPCDesign } from '@/services/network/vpcDesignService';
+import { getCachedBOM } from '@/services/bomCache';
+import { getEnvironmentFingerprint, fingerprintsMatch } from '@/utils/vmIdentifier';
+import factorsData from '@/data/platformSelectionFactors.json';
 
 // Type alias for document content elements
 export type DocumentContent = Paragraph | Table;
@@ -147,6 +155,190 @@ export const DATA_STORAGE_COST_PER_GB =
   (DATA_STORAGE_TIER_DISTRIBUTION.generalPurpose * 0.08) +
   (DATA_STORAGE_TIER_DISTRIBUTION.tier5iops * 0.10) +
   (DATA_STORAGE_TIER_DISTRIBUTION.tier10iops * 0.13);
+
+// ===== EXPORT READER FUNCTIONS =====
+// Pure functions that read user inputs from localStorage for DOCX export
+// without requiring React hooks.
+
+/**
+ * Compute platform selection score from answers (pure function).
+ * Mirrors the scoring logic in usePlatformSelection hook.
+ */
+function computePlatformScore(
+  answers: Record<string, FactorAnswer>,
+  costData?: { roksMonthlyCost?: number | null; vsiMonthlyCost?: number | null }
+): PlatformSelectionScore {
+  let vsiCount = 0;
+  let roksCount = 0;
+  let answeredCount = 0;
+  let costLeaning: 'vsi' | 'roks' | null = null;
+
+  const roksCost = costData?.roksMonthlyCost;
+  const vsiCost = costData?.vsiMonthlyCost;
+  if (roksCost != null && vsiCost != null) {
+    if (vsiCost < roksCost) costLeaning = 'vsi';
+    else if (roksCost < vsiCost) costLeaning = 'roks';
+  }
+
+  for (const factor of factorsData.factors) {
+    const answer = answers[factor.id];
+    if (answer === 'yes') {
+      answeredCount++;
+      if (factor.target === 'vsi') {
+        vsiCount++;
+      } else if (factor.target === 'roks') {
+        roksCount++;
+      } else if (factor.target === 'dynamic' && (factor as { dynamicResolver?: string }).dynamicResolver === 'cost') {
+        if (costLeaning === 'vsi') vsiCount++;
+        else if (costLeaning === 'roks') roksCount++;
+      }
+    } else if (answer === 'no' || answer === 'no-preference') {
+      answeredCount++;
+    }
+  }
+
+  const leaning: 'roks' | 'vsi' | 'neutral' =
+    vsiCount > roksCount ? 'vsi' :
+    roksCount > vsiCount ? 'roks' :
+    'neutral';
+
+  let roksVariant: 'full' | 'rov' = 'full';
+  if (leaning === 'roks' || (leaning === 'neutral' && roksCount > 0)) {
+    const containerFactors = factorsData.factors.filter(
+      (f: { containerRelated?: boolean }) => f.containerRelated
+    );
+    const hasContainerNeed = containerFactors.some(
+      (f: { id: string }) => answers[f.id] === 'yes'
+    );
+    if (!hasContainerNeed) {
+      roksVariant = 'rov';
+    }
+  }
+
+  return { vsiCount, roksCount, answeredCount, leaning, costLeaning, roksVariant };
+}
+
+/**
+ * Read platform selection data from localStorage and compute score.
+ * Returns null if no answers have been recorded.
+ */
+export function getPlatformSelectionExport(rawData: RVToolsData | null): PlatformSelectionExport | null {
+  try {
+    const stored = localStorage.getItem('vcf-platform-selection');
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    if (!parsed?.version || !parsed.answers || Object.keys(parsed.answers).length === 0) return null;
+
+    // Fingerprint check
+    if (rawData && parsed.environmentFingerprint) {
+      const fp = getEnvironmentFingerprint(rawData);
+      if (!fingerprintsMatch(parsed.environmentFingerprint, fp)) return null;
+    }
+
+    const roksCache = getCachedBOM('roks');
+    const vsiCache = getCachedBOM('vsi');
+    const roksMonthlyCost = roksCache?.estimate?.monthlyCost ?? null;
+    const vsiMonthlyCost = vsiCache?.estimate?.monthlyCost ?? null;
+
+    const score = computePlatformScore(parsed.answers, { roksMonthlyCost, vsiMonthlyCost });
+
+    return {
+      score,
+      answers: parsed.answers,
+      roksMonthlyCost,
+      vsiMonthlyCost,
+      rovMonthlyCost: null, // ROV cost not separately cached
+    };
+  } catch { /* ignore */ }
+  return null;
+}
+
+/**
+ * Read risk assessment overrides from localStorage and build risk table.
+ * Returns null if no overrides exist for the current environment.
+ */
+export function getRiskAssessmentExport(rawData: RVToolsData): RiskTableData | null {
+  try {
+    const stored = localStorage.getItem('vcf-risk-overrides');
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    if (parsed?.version !== 3 || !parsed.rowOverrides) return null;
+
+    // Fingerprint check
+    const fp = getEnvironmentFingerprint(rawData);
+    if (parsed.environmentFingerprint && !fingerprintsMatch(parsed.environmentFingerprint, fp)) return null;
+
+    return buildRiskTable(rawData, parsed as RiskTableOverrides);
+  } catch { /* ignore */ }
+  return null;
+}
+
+/**
+ * Read timeline configuration from localStorage and build phases.
+ * Returns null if unconfigured for the current environment.
+ */
+export function getTimelineExport(rawData: RVToolsData): { phases: TimelinePhase[]; startDate?: Date } | null {
+  try {
+    const stored = localStorage.getItem('vcf-timeline-config');
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as TimelineConfig;
+    if (!parsed?.version || !parsed.phaseDurations) return null;
+
+    // Fingerprint check
+    const fp = getEnvironmentFingerprint(rawData);
+    if (parsed.environmentFingerprint && !fingerprintsMatch(parsed.environmentFingerprint, fp)) return null;
+
+    // Get wave count from wave planning mode
+    const wavePref = getWavePlanningPreference();
+    const waveCount = wavePref ? 3 : 3; // Default wave count; actual wave-aware count requires hook data
+
+    const phases = buildDefaultTimeline(waveCount, parsed.phaseDurations);
+    const startDate = parsed.startDate ? new Date(parsed.startDate) : undefined;
+
+    return { phases, startDate };
+  } catch { /* ignore */ }
+  return null;
+}
+
+/**
+ * Read VPC design from localStorage and rebuild.
+ * Returns null if unconfigured for the current environment.
+ */
+export function getVPCDesignExport(rawData: RVToolsData): VPCDesign | null {
+  try {
+    const stored = localStorage.getItem('vcf-vpc-design');
+    if (!stored) return null;
+    const parsed = JSON.parse(stored) as VPCDesignData;
+    if (!parsed?.version || !parsed.region) return null;
+
+    // Fingerprint check
+    const fp = getEnvironmentFingerprint(rawData);
+    if (parsed.environmentFingerprint && !fingerprintsMatch(parsed.environmentFingerprint, fp)) return null;
+
+    // Read subnet overrides
+    const subnetMap: Record<string, string> = {};
+    try {
+      const subnetStored = localStorage.getItem('vcf-subnet-overrides');
+      if (subnetStored) {
+        const subnetData = JSON.parse(subnetStored) as SubnetOverridesData;
+        if (subnetData?.overrides) {
+          Object.values(subnetData.overrides).forEach(o => {
+            if (o.subnet) subnetMap[o.portGroup] = o.subnet;
+          });
+        }
+      }
+    } catch { /* ignore */ }
+
+    // Build simple workload map (same as NetworkDesignPage)
+    const workloadMap: Record<string, string> = {};
+    rawData.vInfo.forEach(vm => {
+      workloadMap[vm.vmName] = 'Default';
+    });
+
+    return buildVPCDesign(rawData, parsed.region, subnetMap, workloadMap, parsed);
+  } catch { /* ignore */ }
+  return null;
+}
 
 /**
  * Read wave planning preference from localStorage.

@@ -39,6 +39,7 @@ import type { VMDetail, ROKSNodeDetail } from '@/services/export';
 import { calculateOdfReservation } from '@/utils/odfCalculation';
 import type { OdfTuningProfile, OdfCpuUnitMode } from '@/utils/odfCalculation';
 import { calculateNodesForProfile } from '@/utils/nodeCalculation';
+import { cacheBOMData } from '@/services/bomCache';
 import './CostEstimation.scss';
 
 interface CostEstimationProps {
@@ -147,6 +148,13 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
   useEffect(() => {
     onEstimateChange?.(estimate?.totalMonthly ?? null);
   }, [estimate?.totalMonthly, onEstimateChange]);
+
+  // Cache BOM data for Export page
+  useEffect(() => {
+    if (estimate) {
+      cacheBOMData(type, estimate, vmDetails, roksNodeDetails, region, discountType);
+    }
+  }, [estimate, type, vmDetails, roksNodeDetails, region, discountType]);
 
   // Calculate costs for all bare metal profiles (ROKS only)
   const allProfileCosts = useMemo(() => {

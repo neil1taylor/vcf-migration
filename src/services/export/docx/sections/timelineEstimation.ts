@@ -4,7 +4,7 @@ import { HeadingLevel } from 'docx';
 import type { TimelinePhase } from '@/types/timeline';
 import { calculateTimelineTotals } from '@/services/migration/timelineEstimation';
 import type { DocumentContent } from '../types';
-import { createHeading, createParagraph, createStyledTable, createTableCaption } from '../utils/helpers';
+import { createHeading, createParagraph, createStyledTable, createTableDescription, createTableLabel } from '../utils/helpers';
 
 export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date): DocumentContent[] {
   const totals = calculateTimelineTotals(phases, startDate);
@@ -36,8 +36,9 @@ export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date):
   ]);
 
   sections.push(
-    ...createTableCaption('Migration Timeline Phases', 'Detailed breakdown of migration phases and durations'),
+    ...createTableDescription('Migration Timeline Phases', 'Detailed breakdown of migration phases and durations'),
     createStyledTable(headers, rows),
+    createTableLabel('Migration Timeline Phases'),
     createParagraph(
       'The pilot wave is intended to migrate a small number of test VMs to prove the migration process before production waves begin. Wave durations are estimated at 0.5 day per VM, rounded up to the nearest week.'
     ),

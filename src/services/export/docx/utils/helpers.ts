@@ -17,6 +17,74 @@ import {
 import type { ITableCellOptions } from 'docx';
 import { STYLES, FONT_FAMILY, type DocumentContent } from '../types';
 
+// ===== RICH DESCRIPTION PARSER =====
+
+/**
+ * Parse a description string with rich text conventions into Paragraph objects.
+ * Convention: \n separates paragraphs, lines starting with "- " become bullets.
+ */
+export function parseRichDescription(
+  description: string,
+  fontSize: number,
+  options?: {
+    italics?: boolean;
+    color?: string;
+    alignment?: (typeof AlignmentType)[keyof typeof AlignmentType];
+    firstParagraphBefore?: number;
+  }
+): Paragraph[] {
+  const lines = description.split('\n');
+  const paragraphs: Paragraph[] = [];
+  const hasBullets = lines.some(l => l.startsWith('- '));
+  let isFirst = true;
+
+  for (const line of lines) {
+    if (line.startsWith('- ')) {
+      paragraphs.push(
+        new Paragraph({
+          bullet: { level: 0 },
+          spacing: {
+            before: isFirst ? options?.firstParagraphBefore : undefined,
+            after: 60,
+          },
+          children: [
+            new TextRun({
+              text: line.slice(2),
+              size: fontSize,
+              italics: options?.italics,
+              color: options?.color,
+              font: FONT_FAMILY,
+            }),
+          ],
+        })
+      );
+      isFirst = false;
+    } else if (line.trim()) {
+      paragraphs.push(
+        new Paragraph({
+          alignment: hasBullets ? undefined : options?.alignment,
+          spacing: {
+            before: isFirst ? options?.firstParagraphBefore : undefined,
+            after: 120,
+          },
+          children: [
+            new TextRun({
+              text: line,
+              size: fontSize,
+              italics: options?.italics,
+              color: options?.color,
+              font: FONT_FAMILY,
+            }),
+          ],
+        })
+      );
+      isFirst = false;
+    }
+  }
+
+  return paragraphs;
+}
+
 // ===== CAPTION COUNTERS =====
 // These track table and figure numbers across the document
 let tableCounter = 0;
@@ -39,23 +107,10 @@ export function resetCaptionCounters(): void {
  */
 export function createTableDescription(_title: string, description: string): Paragraph[] {
   tableCounter++;
-  const paragraphs: Paragraph[] = [];
 
-  // Description paragraph only (table reference appears in label below table)
-  paragraphs.push(
-    new Paragraph({
-      spacing: { before: 200, after: 120 },
-      children: [
-        new TextRun({
-          text: description,
-          size: STYLES.bodySize,
-          font: FONT_FAMILY,
-        }),
-      ],
-    })
-  );
-
-  return paragraphs;
+  return parseRichDescription(description, STYLES.bodySize, {
+    firstParagraphBefore: 200,
+  });
 }
 
 /**
@@ -67,7 +122,7 @@ export function createTableDescription(_title: string, description: string): Par
 export function createTableLabel(title: string): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.CENTER,
-    spacing: { before: 120, after: 200 },
+    spacing: { before: 120, after: 300 },
     children: [
       new Bookmark({
         id: `table_${tableCounter}`,
@@ -156,23 +211,10 @@ export function createTableCaption(title: string, description?: string): Paragra
  */
 export function createFigureDescription(_title: string, description: string): Paragraph[] {
   figureCounter++;
-  const paragraphs: Paragraph[] = [];
 
-  // Description paragraph only (figure reference appears in label below chart)
-  paragraphs.push(
-    new Paragraph({
-      spacing: { before: 200, after: 120 },
-      children: [
-        new TextRun({
-          text: description,
-          size: STYLES.bodySize,
-          font: FONT_FAMILY,
-        }),
-      ],
-    })
-  );
-
-  return paragraphs;
+  return parseRichDescription(description, STYLES.bodySize, {
+    firstParagraphBefore: 200,
+  });
 }
 
 /**
@@ -184,7 +226,7 @@ export function createFigureDescription(_title: string, description: string): Pa
 export function createFigureLabel(title: string): Paragraph {
   return new Paragraph({
     alignment: AlignmentType.CENTER,
-    spacing: { before: 120, after: 200 },
+    spacing: { before: 120, after: 300 },
     children: [
       new Bookmark({
         id: `figure_${figureCounter}`,
@@ -370,7 +412,7 @@ export function createHeading(
 ): Paragraph {
   return new Paragraph({
     heading: level,
-    spacing: { before: 240, after: 120 },
+    spacing: { before: 360, after: 200 },
     children: [
       new TextRun({
         text,
@@ -421,7 +463,7 @@ export function createBulletList(items: string[]): Paragraph[] {
  */
 export function createDocLink(description: string, linkText: string, url: string): Paragraph {
   return new Paragraph({
-    spacing: { before: 80, after: 80 },
+    spacing: { before: 120, after: 120 },
     children: [
       new TextRun({
         text: description + ' ',

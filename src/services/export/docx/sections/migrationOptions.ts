@@ -2,6 +2,7 @@
 
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle } from 'docx';
 import reportTemplates from '@/data/reportTemplates.json';
+import factorsData from '@/data/platformSelectionFactors.json';
 import { STYLES, type DocumentContent } from '../types';
 import { createHeading, createParagraph, createBulletList, createStyledTable, createTableCell, createTableDescription, createTableLabel, createDocLink } from '../utils/helpers';
 import { DOC_LINKS } from '../utils/docLinks';
@@ -141,27 +142,29 @@ export function buildMigrationOptions(): DocumentContent[] {
 }
 
 function buildDecisionFactorsSection(): DocumentContent[] {
+  const TARGET_LABELS: Record<string, string> = {
+    vsi: 'VPC VSI',
+    roks: 'ROKS',
+    dynamic: 'Dynamic (cost)',
+  };
+
+  // Group: VSI factors first, then ROKS, then dynamic
+  const sortedFactors = [...factorsData.factors].sort((a, b) => {
+    const order: Record<string, number> = { vsi: 0, roks: 1, dynamic: 2 };
+    return (order[a.target] ?? 3) - (order[b.target] ?? 3);
+  });
+
+  const rows = sortedFactors.map(factor => [
+    factor.label,
+    TARGET_LABELS[factor.target] ?? factor.target,
+  ]);
+
   return [
     createHeading('Choosing the Right Target', HeadingLevel.HEADING_2),
     createParagraph(
       'The choice between VPC Virtual Servers and ROKS with OpenShift Virtualization depends on your team\'s skills, modernisation goals, and workload characteristics. The following table summarises the key decision factors.'
     ),
-    createStyledTable(
-      ['Factor', 'Favours'],
-      [
-        ['Team knows traditional infrastructure', 'VPC VSI'],
-        ['Small-to-medium VM estate', 'VPC VSI'],
-        ['Cloud experience without learning Kubernetes', 'VPC VSI'],
-        ['Certified for SAP workloads', 'VPC VSI'],
-        ['IBM-provided OS licences included', 'VPC VSI'],
-        ['Want containers alongside VMs', 'ROKS'],
-        ['Plan to modernise VMs to containers', 'ROKS'],
-        ['Need hybrid/multi-cloud consistency', 'ROKS'],
-        ['Team already knows OpenShift', 'ROKS'],
-        ['Large estate with modernisation roadmap', 'ROKS'],
-        ['Wants to adopt DevOps approach for VMs', 'ROKS'],
-      ]
-    ),
+    createStyledTable(['Factor', 'Favours'], rows),
     createParagraph(
       'Some clients may need both. Enterprise workloads like Oracle or SAP may need PowerVS — all environments can be connected via Transit Gateways.',
       { spacing: { after: 200 } }
