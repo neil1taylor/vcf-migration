@@ -2,6 +2,7 @@
 
 import type PptxGenJS from 'pptxgenjs';
 import type { RVToolsData, VirtualMachine } from '@/types/rvtools';
+import { COLORS, FONTS } from '../types';
 import { addSlideTitle, addTable, fmt } from '../utils';
 
 export function addExecutiveSummarySlide(
@@ -71,8 +72,25 @@ export function addExecutiveSummarySlide(
     ['Avg Storage per VM (In Use)', `${avgStoragePerVM.toFixed(1)} GiB`],
   ];
 
+  // Blue subtitle
+  slide.addText('Source Environment Overview', {
+    x: 0.5, y: 0.85, w: 9.0, h: 0.35,
+    fontSize: FONTS.bodySize,
+    fontFace: FONTS.face,
+    color: COLORS.ibmBlue,
+    bold: true,
+  });
+
+  // Explanatory paragraph
+  slide.addText('A summary of the VMware environment captured from the RVTools export, including compute, storage, and infrastructure metrics across all discovered virtual machines.', {
+    x: 0.5, y: 1.2, w: 9.0, h: 0.6,
+    fontSize: FONTS.smallSize,
+    fontFace: FONTS.face,
+    color: COLORS.darkGray,
+  });
+
   addTable(slide, ['Metric', 'Value'], rows, {
-    y: 0.9,
+    y: 1.8,
     colW: [4.5, 4.5],
     fontSize: 9,
   });

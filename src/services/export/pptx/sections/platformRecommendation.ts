@@ -42,13 +42,30 @@ export function addPlatformRecommendationSlide(
     score.leaning === 'roks' ? 'ROKS (OpenShift)' :
     score.leaning === 'vsi' ? 'VPC VSI' : 'Neutral';
 
+  // Blue subtitle
+  slide.addText('IBM Cloud Target Platform Assessment', {
+    x: 0.5, y: 0.85, w: 9.0, h: 0.35,
+    fontSize: FONTS.bodySize,
+    fontFace: FONTS.face,
+    color: COLORS.ibmBlue,
+    bold: true,
+  });
+
+  // Explanatory paragraph
+  slide.addText('Based on responses to the platform selection questionnaire, a target IBM Cloud platform is recommended. Each question evaluates factors such as workload type, operational preferences, and infrastructure requirements.', {
+    x: 0.5, y: 1.2, w: 9.0, h: 0.6,
+    fontSize: FONTS.smallSize,
+    fontFace: FONTS.face,
+    color: COLORS.darkGray,
+  });
+
   // Recommendation text
   slide.addText([
     { text: 'Recommendation: ', options: { fontSize: FONTS.bodySize, fontFace: FONTS.face, color: COLORS.darkGray, bold: true } },
     { text: leaningLabel, options: { fontSize: FONTS.bodySize + 2, fontFace: FONTS.face, color: COLORS.ibmBlue, bold: true } },
   ], {
     x: 0.5,
-    y: 0.85,
+    y: 1.75,
     w: 9.0,
     h: 0.4,
     valign: 'middle',
@@ -65,7 +82,7 @@ export function addPlatformRecommendationSlide(
     slide,
     ['Question', 'Response'],
     rows,
-    { y: 1.3, colW: [7.0, 1.5], fontSize: 7 }
+    { y: 2.15, colW: [7.0, 1.5], fontSize: 7 }
   );
 
   // Cost comparison if available

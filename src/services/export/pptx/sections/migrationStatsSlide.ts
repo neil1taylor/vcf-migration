@@ -46,17 +46,23 @@ export function addMigrationStatsSlide(
   // Filter out unverifiable items (can't be checked from RVTools data)
   const visibleItems = items.filter(item => !item.isUnverifiable);
 
-  // Add mode subtitle
   const modeLabel = mode === 'roks' ? 'ROKS (OpenShift Virtualization)' : 'VPC VSI';
-  slide.addText(`Target: ${modeLabel}`, {
-    x: 0.5,
-    y: 0.65,
-    w: 9.0,
-    h: 0.3,
+
+  // Blue subtitle
+  slide.addText('Pre-flight Compatibility Checks', {
+    x: 0.5, y: 0.85, w: 9.0, h: 0.35,
+    fontSize: FONTS.bodySize,
+    fontFace: FONTS.face,
+    color: COLORS.ibmBlue,
+    bold: true,
+  });
+
+  // Explanatory paragraph
+  slide.addText(`Automated checks against the RVTools data to identify potential blockers and warnings before migration. Items flagged may require remediation to ensure a smooth transition to ${modeLabel}.`, {
+    x: 0.5, y: 1.2, w: 9.0, h: 0.6,
     fontSize: FONTS.smallSize,
     fontFace: FONTS.face,
-    color: COLORS.mediumGray,
-    valign: 'middle',
+    color: COLORS.darkGray,
   });
 
   // Build table rows
@@ -71,7 +77,7 @@ export function addMigrationStatsSlide(
       slide,
       ['Pre-flight Check', 'Status', 'Affected'],
       rows,
-      { y: 1.0, colW: [5.0, 2.0, 2.0], fontSize: 9 }
+      { y: 1.8, colW: [5.0, 2.0, 2.0], fontSize: 9 }
     );
   }
 }
