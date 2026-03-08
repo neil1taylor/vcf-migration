@@ -3,6 +3,7 @@
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle } from 'docx';
 import type { MigrationInsights } from '@/services/ai/types';
 import reportTemplates from '@/data/reportTemplates.json';
+import { CHECK_DEFINITIONS, type CheckDefinition } from '@/services/preflightChecks';
 import { STYLES, type DocumentContent, type VMReadiness } from '../types';
 import { createHeading, createParagraph, createBulletList, createTableCell, createTableDescription, createTableLabel, createAISection } from '../utils/helpers';
 
@@ -12,7 +13,52 @@ const templates = reportTemplates as typeof reportTemplates & {
   figureDescriptions: Record<string, { title: string; description: string }>;
 };
 
-export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: number, aiInsights?: MigrationInsights | null): DocumentContent[] {
+interface ModeFlags {
+  includeROKS?: boolean;
+  includeVSI?: boolean;
+}
+
+function formatCheckBullet(check: CheckDefinition): string {
+  const severity = check.severity === 'blocker' ? 'blocker' : check.severity;
+  return `${check.name}: ${check.description} (${severity})`;
+}
+
+function buildCheckList(modeFlags: ModeFlags): DocumentContent[] {
+  const includeROKS = modeFlags.includeROKS ?? true;
+  const includeVSI = modeFlags.includeVSI ?? true;
+  const bothModes = includeROKS && includeVSI;
+
+  const roksChecks = CHECK_DEFINITIONS.filter(c => c.modes.includes('roks'));
+  const vsiChecks = CHECK_DEFINITIONS.filter(c => c.modes.includes('vsi'));
+
+  if (bothModes) {
+    // Group into common, ROKS-specific, VSI-specific
+    const commonChecks = CHECK_DEFINITIONS.filter(
+      c => c.modes.includes('roks') && c.modes.includes('vsi')
+    );
+    const roksOnly = roksChecks.filter(c => !c.modes.includes('vsi'));
+    const vsiOnly = vsiChecks.filter(c => !c.modes.includes('roks'));
+
+    const items: DocumentContent[] = [];
+
+    items.push(createHeading('Common Checks', HeadingLevel.HEADING_3));
+    items.push(...createBulletList(commonChecks.map(formatCheckBullet)));
+
+    items.push(createHeading('ROKS-Specific Checks (OpenShift Virtualization)', HeadingLevel.HEADING_3));
+    items.push(...createBulletList(roksOnly.map(formatCheckBullet)));
+
+    items.push(createHeading('VSI-Specific Checks (IBM Cloud VPC)', HeadingLevel.HEADING_3));
+    items.push(...createBulletList(vsiOnly.map(formatCheckBullet)));
+
+    return items;
+  }
+
+  // Single mode — flat list
+  const checks = includeROKS ? roksChecks : vsiChecks;
+  return createBulletList(checks.map(formatCheckBullet));
+}
+
+export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: number, aiInsights?: MigrationInsights | null, modeFlags?: ModeFlags): DocumentContent[] {
   const readinessTemplates = reportTemplates.migrationReadiness;
   const blockerVMs = readiness.filter((r) => r.hasBlocker).slice(0, maxIssueVMs);
   const warningVMs = readiness.filter((r) => r.hasWarning && !r.hasBlocker).slice(0, maxIssueVMs);
@@ -24,9 +70,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
       'This readiness assessment is based on RVTools metadata. The migration partner will conduct detailed discovery including application dependency mapping, performance baselining, and stakeholder interviews to produce a comprehensive readiness assessment.'
     ),
     createHeading('3.1 ' + readinessTemplates.checksPerformed.title, HeadingLevel.HEADING_2),
-    ...createBulletList(
-      readinessTemplates.checksPerformed.checks.map((c) => `${c.name}: ${c.description}`)
-    ),
+    ...buildCheckList(modeFlags ?? {}),
   ];
 
   // Blockers table - description above, label below

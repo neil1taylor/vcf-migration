@@ -116,12 +116,13 @@ describe('classifyVMTarget', () => {
       expect(result.reasons[0]).toContain('unsupported on VSI');
     });
 
-    it('classifies CentOS 7 as ROKS (unsupported on VSI, supported-with-caveats on ROKS)', () => {
-      // CentOS 7 is unsupported on VSI but supported-with-caveats on ROKS
+    it('classifies CentOS 7 as ROKS (BYOL on VSI, supported-with-caveats on ROKS)', () => {
+      // CentOS 7 is BYOL on VSI (not unsupported), so crosscheck doesn't fire
+      // Falls through to linux-default rule with low confidence
       const vm = makeVM({ guestOS: 'CentOS Linux 7 (64-bit)' });
       const result = classifyVMTarget(vm);
       expect(result.target).toBe('roks');
-      expect(result.confidence).toBe('high');
+      expect(result.confidence).toBe('low');
     });
   });
 

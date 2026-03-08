@@ -249,6 +249,77 @@
       "compatibilityScore": 0,
       "notes": "AIX is not supported (IBM Power platform)",
       "recommendedUpgrade": "Migrate workload to supported OS (RHEL, Ubuntu, Windows)"
+    },
+
+    {
+      "id": "rhel-generic",
+      "displayName": "Red Hat Enterprise Linux (version unknown)",
+      "patterns": ["red hat enterprise linux", "rhel"],
+      "compatibilityStatus": "supported-with-caveats",
+      "compatibilityScore": 70,
+      "notes": "RHEL version not detected — verify actual version on the VM. RHEL 8/9 fully supported",
+      "recommendedUpgrade": "Verify RHEL version and upgrade to RHEL 8 or 9 if needed",
+      "documentationLink": "https://access.redhat.com/articles/973163"
+    },
+    {
+      "id": "centos-generic",
+      "displayName": "CentOS Linux (version unknown)",
+      "patterns": ["centos linux", "centos"],
+      "compatibilityStatus": "supported-with-caveats",
+      "compatibilityScore": 60,
+      "notes": "CentOS version not detected — verify actual version on the VM. CentOS Stream 8/9 supported",
+      "recommendedUpgrade": "Verify CentOS version and migrate to CentOS Stream 9 or RHEL 9",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/"
+    },
+    {
+      "id": "ubuntu-generic",
+      "displayName": "Ubuntu Linux (version unknown)",
+      "patterns": ["ubuntu linux", "ubuntu server", "ubuntu"],
+      "compatibilityStatus": "supported-with-caveats",
+      "compatibilityScore": 65,
+      "notes": "Ubuntu version not detected — verify actual version. Ubuntu 20.04+ fully supported",
+      "recommendedUpgrade": "Verify Ubuntu version and upgrade to 20.04 LTS or later if needed",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/"
+    },
+    {
+      "id": "debian-generic",
+      "displayName": "Debian GNU/Linux (version unknown)",
+      "patterns": ["debian gnu/linux", "debian"],
+      "compatibilityStatus": "supported-with-caveats",
+      "compatibilityScore": 65,
+      "notes": "Debian version not detected — verify actual version on the VM. Debian 11/12 fully supported",
+      "recommendedUpgrade": "Verify Debian version and upgrade to Debian 11 or 12 if needed",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/"
+    },
+    {
+      "id": "sles-generic",
+      "displayName": "SUSE Linux Enterprise Server (version unknown)",
+      "patterns": ["suse linux enterprise", "sles"],
+      "compatibilityStatus": "supported-with-caveats",
+      "compatibilityScore": 65,
+      "notes": "SLES version not detected — verify actual version on the VM. SLES 15 SP3+ fully supported",
+      "recommendedUpgrade": "Verify SLES version and upgrade to SLES 15 SP3 or later if needed",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/"
+    },
+    {
+      "id": "windows-server-generic",
+      "displayName": "Windows Server (version unknown)",
+      "patterns": ["windows server", "microsoft windows server"],
+      "compatibilityStatus": "supported-with-caveats",
+      "compatibilityScore": 70,
+      "notes": "Windows Server version not detected — verify actual version. Windows Server 2016+ fully supported with VirtIO drivers",
+      "recommendedUpgrade": "Verify Windows Server version and upgrade to 2019 or 2022 if needed",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/"
+    },
+    {
+      "id": "windows-generic",
+      "displayName": "Windows Desktop (version unknown)",
+      "patterns": ["windows 1", "microsoft windows 1"],
+      "compatibilityStatus": "supported-with-caveats",
+      "compatibilityScore": 65,
+      "notes": "Windows version not detected — verify actual version. Windows 10/11 supported with VirtIO drivers",
+      "recommendedUpgrade": "Verify Windows version and upgrade to Windows 10 21H2+ or Windows 11 if needed",
+      "documentationLink": "https://docs.openshift.com/container-platform/latest/virt/"
     }
   ],
   "defaultEntry": {

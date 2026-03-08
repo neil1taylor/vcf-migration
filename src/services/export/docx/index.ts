@@ -126,7 +126,7 @@ export async function generateDocxReport(
     ...executiveSummary,
     ...buildAssumptionsAndScope(),
     ...environmentAnalysis,
-    ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights),
+    ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }),
     ...buildMigrationOptions(),
     ...buildMigrationStrategy(rawData, aiInsights, finalOptions.wavePlanningPreference, finalOptions.includeROKS, finalOptions.includeVSI),
   ];

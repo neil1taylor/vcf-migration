@@ -15,8 +15,7 @@ import {
   HW_VERSION_MINIMUM,
   SNAPSHOT_BLOCKER_AGE_DAYS,
 } from '@/utils/constants';
-import osCompatibilityData from '@/data/redhatOSCompatibility.json';
-import { getVSIOSCompatibility } from '@/services/migration/osCompatibility';
+import { getROKSOSCompatibility, getVSIOSCompatibility } from '@/services/migration/osCompatibility';
 
 // ===== TYPE DEFINITIONS =====
 
@@ -280,24 +279,7 @@ function isRFC1123Compliant(name: string): boolean {
   return rfc1123Pattern.test(lowerName);
 }
 
-function getROKSOSCompatibility(guestOS: string): {
-  status: string; score: number;
-  notes?: string; recommendedUpgrade?: string; eolDate?: string;
-} {
-  const osLower = guestOS.toLowerCase();
-  for (const entry of osCompatibilityData.osEntries) {
-    if (entry.patterns.some((p: string) => osLower.includes(p))) {
-      return {
-        status: entry.compatibilityStatus,
-        score: entry.compatibilityScore,
-        notes: entry.notes,
-        recommendedUpgrade: entry.recommendedUpgrade,
-        eolDate: entry.eolDate,
-      };
-    }
-  }
-  return { status: 'unsupported', score: 0 };
-}
+// OS compatibility check now delegated to canonical service in osCompatibility.ts
 
 
 // ===== CHECK CONTEXT =====
@@ -611,15 +593,15 @@ function evaluateCheck(
     // ===== OS CHECKS =====
     case 'os-compatible': {
       const compat = getROKSOSCompatibility(vm.guestOS);
-      if (compat.status === 'unsupported') {
+      if (compat.compatibilityStatus === 'unsupported') {
         return {
           status: 'fail',
           value: vm.guestOS.substring(0, 30),
           message: compat.notes || 'Not supported by OpenShift Virtualization',
         };
       }
-      if (compat.status === 'supported-with-caveats') {
-        const parts = [compat.notes];
+      if (compat.compatibilityStatus === 'supported-with-caveats') {
+        const parts: (string | undefined)[] = [compat.notes];
         if (compat.recommendedUpgrade) parts.push(compat.recommendedUpgrade);
         return {
           status: 'warn',
