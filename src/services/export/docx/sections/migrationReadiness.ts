@@ -64,21 +64,27 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
   const warningVMs = readiness.filter((r) => r.hasWarning && !r.hasBlocker).slice(0, maxIssueVMs);
   const s = sectionNum != null ? sectionNum : 3;
 
+  // Local sub-counter for sequential numbering (conditional sections don't create gaps)
+  let sub = 0;
+  const nextSub = () => ++sub;
+
+  const checksNum = nextSub(); // 1
   const sections: DocumentContent[] = [
     createHeading(`${s}. ` + readinessTemplates.title, HeadingLevel.HEADING_1),
     createParagraph(readinessTemplates.introduction),
     createParagraph(
       'This readiness assessment is based on RVTools metadata. The migration partner will conduct detailed discovery including application dependency mapping, performance baselining, and stakeholder interviews to produce a comprehensive readiness assessment.'
     ),
-    createHeading(`${s}.1 ` + readinessTemplates.checksPerformed.title, HeadingLevel.HEADING_2),
+    createHeading(`${s}.${checksNum} ` + readinessTemplates.checksPerformed.title, HeadingLevel.HEADING_2),
     ...buildCheckList(modeFlags ?? {}),
   ];
 
   // Blockers table - description above, label below
   if (blockerVMs.length > 0) {
+    const blockersNum = nextSub();
     sections.push(
       new Paragraph({ spacing: { before: 240 } }),
-      createHeading(`${s}.2 ` + readinessTemplates.blockersSummary.title, HeadingLevel.HEADING_2),
+      createHeading(`${s}.${blockersNum} ` + readinessTemplates.blockersSummary.title, HeadingLevel.HEADING_2),
       createParagraph(readinessTemplates.blockersSummary.description),
       // Description above table
       ...createTableDescription(
@@ -133,9 +139,10 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
 
   // Warnings table - description above, label below
   if (warningVMs.length > 0) {
+    const warningsNum = nextSub();
     sections.push(
       new Paragraph({ spacing: { before: 240 } }),
-      createHeading(`${s}.3 ` + readinessTemplates.warningsSummary.title, HeadingLevel.HEADING_2),
+      createHeading(`${s}.${warningsNum} ` + readinessTemplates.warningsSummary.title, HeadingLevel.HEADING_2),
       createParagraph(readinessTemplates.warningsSummary.description),
       // Description above table
       ...createTableDescription(
@@ -189,9 +196,10 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
   }
 
   // Key Migration Risks section
+  const risksNum = nextSub();
   sections.push(
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading(`${s}.4 Key Migration Risks`, HeadingLevel.HEADING_2),
+    createHeading(`${s}.${risksNum} Key Migration Risks`, HeadingLevel.HEADING_2),
     createParagraph(
       'The following risks have been identified based on the environment analysis. These should be addressed during migration planning.',
       { spacing: { after: 200 } }
@@ -229,7 +237,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
   // Common migration risks (static, from industry experience)
   sections.push(
     new Paragraph({ spacing: { before: 240 } }),
-    createHeading(`${s}.4.1 Common Migration Risks`, HeadingLevel.HEADING_3),
+    createHeading(`${s}.${risksNum}.1 Common Migration Risks`, HeadingLevel.HEADING_3),
     createParagraph(
       'In addition to the environment-specific risks above, the following risks are commonly encountered in VMware migration projects and should be considered during planning.'
     ),
@@ -248,7 +256,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
   if (aiInsights?.riskAssessment) {
     sections.push(
       ...createAISection(
-        `${s}.5 AI Risk Assessment`,
+        `${s}.${nextSub()} AI Risk Assessment`,
         aiInsights.riskAssessment,
         HeadingLevel.HEADING_2
       )

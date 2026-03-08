@@ -47,7 +47,7 @@ export function parseRichDescription(
           keepNext: options?.keepNext,
           spacing: {
             before: isFirst ? options?.firstParagraphBefore : undefined,
-            after: 60,
+            after: options?.keepNext ? 120 : 60,
           },
           children: [
             new TextRun({
