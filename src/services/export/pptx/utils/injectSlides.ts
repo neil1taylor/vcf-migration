@@ -1,6 +1,7 @@
 // Post-process PPTX blob to inject reference slide XML for slides 3 & 4
 
 import { SLIDE3_XML, SLIDE4_XML, SLIDE3_RELS, SLIDE4_RELS } from '../data/referenceSlideXml';
+import { IMAGE6_BASE64, IMAGE7_BASE64, HDPHOTO1_BASE64 } from '../data/referenceMedia';
 
 /**
  * IBM reference theme color scheme values.
@@ -39,6 +40,14 @@ export async function injectReferenceSlides(blob: Blob): Promise<Blob> {
   zip.file('ppt/slides/_rels/slide3.xml.rels', SLIDE3_RELS);
   zip.file('ppt/slides/_rels/slide4.xml.rels', SLIDE4_RELS);
 
+  // Add media files referenced by slide 4 images
+  zip.file('ppt/media/image6.png', IMAGE6_BASE64, { base64: true });
+  zip.file('ppt/media/image7.png', IMAGE7_BASE64, { base64: true });
+  zip.file('ppt/media/hdphoto1.wdp', HDPHOTO1_BASE64, { base64: true });
+
+  // Ensure Content_Types includes png and wdp extensions
+  await ensureContentTypes(zip);
+
   // Fix theme colors to match IBM reference theme
   await fixThemeColors(zip);
 
@@ -46,6 +55,26 @@ export async function injectReferenceSlides(blob: Blob): Promise<Blob> {
   await fixColorMap(zip);
 
   return await zip.generateAsync({ type: 'blob' });
+}
+
+/**
+ * Ensure [Content_Types].xml includes entries for png and wdp media types.
+ */
+async function ensureContentTypes(zip: JSZip): Promise<void> {
+  const ctPath = '[Content_Types].xml';
+  const ctFile = zip.file(ctPath);
+  if (!ctFile) return;
+
+  let xml = await ctFile.async('string');
+
+  if (!xml.includes('Extension="png"')) {
+    xml = xml.replace('</Types>', '<Default Extension="png" ContentType="image/png"/></Types>');
+  }
+  if (!xml.includes('Extension="wdp"')) {
+    xml = xml.replace('</Types>', '<Default Extension="wdp" ContentType="image/vnd.ms-photo"/></Types>');
+  }
+
+  zip.file(ctPath, xml);
 }
 
 /**

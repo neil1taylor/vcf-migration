@@ -79,7 +79,7 @@ export function addExcludedVMsSlide(
 
     slide.addTable(tableRows, {
       x: 1.33,
-      y: 3.33,
+      y: 4.0,
       w: 24.0,
       colW: [16.0, 8.0],
       border: { type: 'solid', pt: 0.5, color: COLORS.mediumGray },

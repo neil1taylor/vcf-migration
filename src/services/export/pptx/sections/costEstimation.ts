@@ -74,34 +74,50 @@ export function addCostEstimationSlide(
     addKPINumber(slide, 'Total VMs / Nodes', fmt(totalCount), { x: 1.33 + kpiW * 2, y: kpiY, w: kpiW });
   }
 
-  // Detailed cost breakdown table
-  const tableRows: PptxGenJS.TableRow[] = [];
+  // Detailed cost breakdown table(s)
+  const colW = [4.8, 5.87, 2.13, 5.33, 5.87];
+  const tableOpts = {
+    x: 1.33,
+    w: 24.0,
+    colW,
+    border: { type: 'solid' as const, pt: 0.5, color: COLORS.mediumGray },
+    autoPage: false,
+  };
 
-  // Header
-  tableRows.push([
+  const boldCellOpts = { ...cellOpts, bold: true };
+  const boldRightOpts = { ...rightCellOpts, bold: true };
+
+  const makeHeader = (): PptxGenJS.TableRow => [
     { text: 'Component', options: headerOpts },
     { text: 'Profile / Detail', options: headerOpts },
     { text: 'Qty', options: { ...headerOpts, align: 'right' as const } },
     { text: 'Monthly', options: { ...headerOpts, align: 'right' as const } },
     { text: 'Annual', options: { ...headerOpts, align: 'right' as const } },
-  ]);
+  ];
 
-  // ROKS section
-  if (includeROKS) {
-    const roksMonthlyCost = roksSizing.monthlyCost;
-    const roksAnnualCost = roksMonthlyCost * 12;
-
-    tableRows.push([
+  if (includeROKS && includeVSI) {
+    // Two separate tables when both platforms are present
+    const roksRows: PptxGenJS.TableRow[] = [makeHeader()];
+    const roksAnnualCost = roksSizing.monthlyCost * 12;
+    roksRows.push([
       { text: 'ROKS Worker Nodes', options: cellOpts },
       { text: roksSizing.profileName, options: cellOpts },
       { text: String(roksSizing.workerNodes), options: rightCellOpts },
-      { text: fmtCurrency(roksMonthlyCost), options: rightCellOpts },
+      { text: fmtCurrency(roksSizing.monthlyCost), options: rightCellOpts },
       { text: fmtCurrency(roksAnnualCost), options: rightCellOpts },
     ]);
-  }
+    roksRows.push([
+      { text: 'ROKS Subtotal', options: boldCellOpts },
+      { text: '', options: boldCellOpts },
+      { text: String(roksSizing.workerNodes), options: boldRightOpts },
+      { text: fmtCurrency(roksSizing.monthlyCost), options: boldRightOpts },
+      { text: fmtCurrency(roksAnnualCost), options: boldRightOpts },
+    ]);
 
-  // VSI section — group by profile
-  if (includeVSI) {
+    slide.addTable(roksRows, { ...tableOpts, y: 5.2 });
+
+    // VSI table below ROKS
+    const vsiRows: PptxGenJS.TableRow[] = [makeHeader()];
     const profileGroups = new Map<string, { count: number; monthly: number }>();
     for (const vm of vsiMappings) {
       const existing = profileGroups.get(vm.profile) || { count: 0, monthly: 0 };
@@ -111,38 +127,74 @@ export function addCostEstimationSlide(
     }
 
     let isFirst = true;
+    let vsiCount = 0;
     for (const [profile, group] of profileGroups) {
-      const annualCost = group.monthly * 12;
-
-      tableRows.push([
+      vsiCount += group.count;
+      vsiRows.push([
         { text: isFirst ? 'VPC VSI' : '', options: cellOpts },
         { text: profile, options: cellOpts },
         { text: String(group.count), options: rightCellOpts },
         { text: fmtCurrency(group.monthly), options: rightCellOpts },
-        { text: fmtCurrency(annualCost), options: rightCellOpts },
+        { text: fmtCurrency(group.monthly * 12), options: rightCellOpts },
       ]);
       isFirst = false;
     }
+    vsiRows.push([
+      { text: 'VSI Subtotal', options: boldCellOpts },
+      { text: '', options: boldCellOpts },
+      { text: String(vsiCount), options: boldRightOpts },
+      { text: fmtCurrency(vsiMonthly), options: boldRightOpts },
+      { text: fmtCurrency(vsiMonthly * 12), options: boldRightOpts },
+    ]);
+
+    // Position VSI table below ROKS (3 rows × ~0.5 each + gap)
+    const vsiTableY = 5.2 + (roksRows.length * 0.53) + 0.27;
+    slide.addTable(vsiRows, { ...tableOpts, y: vsiTableY });
+  } else {
+    // Single platform — one table with total
+    const tableRows: PptxGenJS.TableRow[] = [makeHeader()];
+
+    if (includeROKS) {
+      const roksAnnualCost = roksSizing.monthlyCost * 12;
+      tableRows.push([
+        { text: 'ROKS Worker Nodes', options: cellOpts },
+        { text: roksSizing.profileName, options: cellOpts },
+        { text: String(roksSizing.workerNodes), options: rightCellOpts },
+        { text: fmtCurrency(roksSizing.monthlyCost), options: rightCellOpts },
+        { text: fmtCurrency(roksAnnualCost), options: rightCellOpts },
+      ]);
+    }
+
+    if (includeVSI) {
+      const profileGroups = new Map<string, { count: number; monthly: number }>();
+      for (const vm of vsiMappings) {
+        const existing = profileGroups.get(vm.profile) || { count: 0, monthly: 0 };
+        existing.count++;
+        existing.monthly += vm.monthlyCost;
+        profileGroups.set(vm.profile, existing);
+      }
+
+      let isFirst = true;
+      for (const [profile, group] of profileGroups) {
+        tableRows.push([
+          { text: isFirst ? 'VPC VSI' : '', options: cellOpts },
+          { text: profile, options: cellOpts },
+          { text: String(group.count), options: rightCellOpts },
+          { text: fmtCurrency(group.monthly), options: rightCellOpts },
+          { text: fmtCurrency(group.monthly * 12), options: rightCellOpts },
+        ]);
+        isFirst = false;
+      }
+    }
+
+    tableRows.push([
+      { text: 'Total', options: boldCellOpts },
+      { text: '', options: boldCellOpts },
+      { text: String(totalCount), options: boldRightOpts },
+      { text: fmtCurrency(totalMonthly), options: boldRightOpts },
+      { text: fmtCurrency(totalAnnual), options: boldRightOpts },
+    ]);
+
+    slide.addTable(tableRows, { ...tableOpts, y: 5.2 });
   }
-
-  // Totals row
-  const boldCellOpts = { ...cellOpts, bold: true };
-  const boldRightOpts = { ...rightCellOpts, bold: true };
-
-  tableRows.push([
-    { text: 'Total', options: boldCellOpts },
-    { text: '', options: boldCellOpts },
-    { text: String(totalCount), options: boldRightOpts },
-    { text: fmtCurrency(totalMonthly), options: boldRightOpts },
-    { text: fmtCurrency(totalAnnual), options: boldRightOpts },
-  ]);
-
-  slide.addTable(tableRows, {
-    x: 1.33,
-    y: 5.2,
-    w: 24.0,
-    colW: [4.8, 5.87, 2.13, 5.33, 5.87],
-    border: { type: 'solid', pt: 0.5, color: COLORS.mediumGray },
-    autoPage: false,
-  });
 }

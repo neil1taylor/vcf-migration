@@ -59,15 +59,29 @@ export function addMigrationExecutionSlide(pres: PptxGenJS): void {
 
   const colCount = 3;
   const totalWidth = 24.0;
-  const gap = 0.40;
+  const gap = 0.67;
+  const arrowW = 0.53;
   const colWidth = (totalWidth - gap * (colCount - 1)) / colCount;
   const startX = 1.33;
   const startY = 3.2;
-  const accentH = 0.11;
+  const accentH = 0.13;
 
   for (let i = 0; i < PHASES.length; i++) {
     const phase = PHASES[i];
     const colX = startX + i * (colWidth + gap);
+
+    // Phase number label (e.g. "Phase 1")
+    slide.addText(`Phase ${i + 1}`, {
+      x: colX,
+      y: startY - 0.53,
+      w: colWidth,
+      h: 0.53,
+      fontSize: 24,
+      fontFace: FONTS.face,
+      color: COLORS.mediumGray,
+      bold: true,
+      valign: 'bottom',
+    });
 
     // Blue accent bar at top of column
     slide.addShape('rect' as PptxGenJS.ShapeType, {
@@ -112,20 +126,17 @@ export function addMigrationExecutionSlide(pres: PptxGenJS): void {
       valign: 'top',
     });
 
-    // Add chevron arrow between columns (except after last)
+    // Add flow arrow between columns (except after last)
     if (i < PHASES.length - 1) {
-      const chevronX = colX + colWidth + (gap / 2) - 0.16;
-      slide.addText('>', {
-        x: chevronX,
-        y: startY + 0.13,
-        w: 0.32,
-        h: 0.93,
-        fontSize: 43,
-        fontFace: FONTS.face,
-        color: COLORS.mediumGray,
-        bold: true,
-        align: 'center',
-        valign: 'middle',
+      const arrowX = colX + colWidth + (gap / 2) - (arrowW / 2);
+      // Arrow triangle pointing right
+      slide.addShape('triangle' as PptxGenJS.ShapeType, {
+        x: arrowX,
+        y: startY + 0.27,
+        w: arrowW,
+        h: 0.53,
+        fill: { color: COLORS.ibmBlue },
+        rotate: 90,
       });
     }
   }
