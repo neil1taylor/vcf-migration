@@ -4,9 +4,11 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useData } from './useData';
 import { useSubnetOverrides } from './useSubnetOverrides';
+import { useTargetLocation } from './useTargetLocation';
 import { getEnvironmentFingerprint, fingerprintsMatch } from '@/utils/vmIdentifier';
 import { buildVPCDesign } from '@/services/network/vpcDesignService';
 import type { VPCDesign, VPCDesignData, TransitGatewayConfig, TransitGatewayConnection } from '@/types/vpcDesign';
+import { IBM_CLOUD_REGIONS } from '@/types/vpcDesign';
 
 const STORAGE_KEY = 'vcf-vpc-design';
 const CURRENT_VERSION = 2;
@@ -105,6 +107,7 @@ export interface UseVPCDesignReturn {
 export function useVPCDesign(workloadMap: Record<string, string>): UseVPCDesignReturn {
   const { rawData } = useData();
   const { overrides: subnetOverridesData } = useSubnetOverrides();
+  const { targetMzr } = useTargetLocation();
 
   const currentFingerprint = useMemo(() => {
     if (!rawData) return '';
@@ -119,6 +122,18 @@ export function useVPCDesign(workloadMap: Record<string, string>): UseVPCDesignR
     const resolved = resolveData(currentFingerprint);
     setData(resolved);
   }, [currentFingerprint]);
+
+  // Sync region when Discovery MZR changes
+  const validRegionIds = IBM_CLOUD_REGIONS.map(r => r.id);
+  useEffect(() => {
+    if (targetMzr && validRegionIds.includes(targetMzr)) {
+      setData(prev => ({
+        ...prev,
+        region: targetMzr,
+        modifiedAt: new Date().toISOString(),
+      }));
+    }
+  }, [targetMzr]); // eslint-disable-line react-hooks/exhaustive-deps -- validRegionIds is stable
 
   // Persist to localStorage when data changes
   useEffect(() => {
