@@ -6,6 +6,14 @@ import { isVMwareInfrastructureVM } from '@/utils/autoExclusion';
 import { HW_VERSION_MINIMUM, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import osCompatibilityData from '@/data/redhatOSCompatibility.json';
+import {
+  type MigrationMode,
+  type PreflightCheckCounts,
+  VPC_BOOT_DISK_MIN_GB,
+  VPC_BOOT_DISK_MAX_GB,
+  VPC_MAX_DISKS_PER_VM,
+  getVSIOSCompatibility,
+} from '@/services/migration';
 import type { VMReadiness, ROKSSizing, VSIMapping } from '../types';
 import { BOOT_DISK_SIZE_GIB, BOOT_STORAGE_COST_PER_GB, DATA_STORAGE_COST_PER_GB } from '../types';
 
@@ -217,4 +225,188 @@ export function calculateVSIMappings(rawData: RVToolsData): VSIMapping[] {
       monthlyCost: computeCost + storageCost,
     };
   });
+}
+
+/**
+ * Check if VM name is RFC 1123 compliant (for ROKS)
+ */
+function isRFC1123Compliant(name: string): boolean {
+  if (!name || name.length > 63) return false;
+  const lowerName = name.toLowerCase();
+  const rfc1123Pattern = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;
+  return rfc1123Pattern.test(lowerName);
+}
+
+/**
+ * Check if hostname is valid (for ROKS)
+ */
+function isValidHostname(hostname: string | null | undefined): boolean {
+  const h = hostname?.toLowerCase()?.trim();
+  return !!(h && h !== '' && h !== 'localhost' && h !== 'localhost.localdomain' && h !== 'localhost.local');
+}
+
+/**
+ * Calculate pre-flight check counts (pure function, no React dependencies).
+ * Replicates the logic from usePreflightChecks hook.
+ */
+export function calculatePreflightCounts(
+  rawData: RVToolsData,
+  mode: MigrationMode
+): PreflightCheckCounts {
+  const poweredOnVMs = rawData.vInfo.filter(
+    (vm) => vm.powerState === 'poweredOn' && !vm.template && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS)
+  );
+  const disks = rawData.vDisk;
+  const snapshots = rawData.vSnapshot;
+  const tools = rawData.vTools;
+  const networks = rawData.vNetwork || [];
+  const cdDrives = rawData.vCD || [];
+  const cpuInfo = rawData.vCPU || [];
+  const memoryInfo = rawData.vMemory || [];
+
+  const toolsMap = new Map(tools.map((t: VToolsInfo) => [t.vmName, t]));
+
+  // VMware Tools checks
+  const vmsWithoutToolsList = poweredOnVMs.filter(vm => {
+    const tool = toolsMap.get(vm.vmName);
+    return !tool || tool.toolsStatus === 'toolsNotInstalled' || tool.toolsStatus === 'guestToolsNotInstalled';
+  }).map(vm => vm.vmName);
+
+  const vmsWithToolsNotRunningList = poweredOnVMs.filter(vm => {
+    const tool = toolsMap.get(vm.vmName);
+    return tool && (tool.toolsStatus === 'toolsNotRunning' || tool.toolsStatus === 'guestToolsNotRunning');
+  }).map(vm => vm.vmName);
+
+  // Snapshot checks
+  const vmsWithOldSnapshotsList = [...new Set(
+    snapshots.filter((s: VSnapshotInfo) => s.ageInDays > SNAPSHOT_BLOCKER_AGE_DAYS).map((s: VSnapshotInfo) => s.vmName)
+  )];
+
+  // Storage checks
+  const vmsWithRDMList = [...new Set(disks.filter((d: VDiskInfo) => d.raw).map((d: VDiskInfo) => d.vmName))];
+  const vmsWithSharedDisksList = [...new Set(disks.filter((d: VDiskInfo) =>
+    d.sharingMode && d.sharingMode.toLowerCase() !== 'sharingnone'
+  ).map((d: VDiskInfo) => d.vmName))];
+  const vmsWithLargeDisksList = [...new Set(
+    disks.filter((d: VDiskInfo) => mibToGiB(d.capacityMiB) > 2000).map((d: VDiskInfo) => d.vmName)
+  )];
+
+  // Hardware version
+  const hwVersionOutdatedList: string[] = [];
+  poweredOnVMs.forEach(vm => {
+    const versionNum = getHardwareVersionNumber(vm.hardwareVersion);
+    if (versionNum < HW_VERSION_MINIMUM) {
+      hwVersionOutdatedList.push(vm.vmName);
+    }
+  });
+
+  const counts: PreflightCheckCounts = {
+    vmsWithoutTools: vmsWithoutToolsList.length,
+    vmsWithoutToolsList,
+    vmsWithToolsNotRunning: vmsWithToolsNotRunningList.length,
+    vmsWithToolsNotRunningList,
+    vmsWithOldSnapshots: vmsWithOldSnapshotsList.length,
+    vmsWithOldSnapshotsList,
+    vmsWithRDM: vmsWithRDMList.length,
+    vmsWithRDMList,
+    vmsWithSharedDisks: vmsWithSharedDisksList.length,
+    vmsWithSharedDisksList,
+    vmsWithLargeDisks: vmsWithLargeDisksList.length,
+    vmsWithLargeDisksList,
+    hwVersionOutdated: hwVersionOutdatedList.length,
+    hwVersionOutdatedList,
+  };
+
+  // VSI-specific checks
+  if (mode === 'vsi') {
+    const vmsWithSmallBootDiskList = poweredOnVMs.filter(vm => {
+      const vmDisks = disks.filter((d: VDiskInfo) => d.vmName === vm.vmName);
+      if (vmDisks.length === 0) return false;
+      const sortedDisks = [...vmDisks].sort((a, b) => (a.diskKey || 0) - (b.diskKey || 0));
+      const bootDisk = sortedDisks[0];
+      return bootDisk && mibToGiB(bootDisk.capacityMiB) < VPC_BOOT_DISK_MIN_GB;
+    }).map(vm => vm.vmName);
+    counts.vmsWithSmallBootDisk = vmsWithSmallBootDiskList.length;
+    counts.vmsWithSmallBootDiskList = vmsWithSmallBootDiskList;
+
+    const vmsWithLargeBootDiskList = poweredOnVMs.filter(vm => {
+      const vmDisks = disks.filter((d: VDiskInfo) => d.vmName === vm.vmName);
+      if (vmDisks.length === 0) return false;
+      const sortedDisks = [...vmDisks].sort((a, b) => (a.diskKey || 0) - (b.diskKey || 0));
+      const bootDisk = sortedDisks[0];
+      return bootDisk && mibToGiB(bootDisk.capacityMiB) > VPC_BOOT_DISK_MAX_GB;
+    }).map(vm => vm.vmName);
+    counts.vmsWithLargeBootDisk = vmsWithLargeBootDiskList.length;
+    counts.vmsWithLargeBootDiskList = vmsWithLargeBootDiskList;
+
+    const vmsWithTooManyDisksList = poweredOnVMs.filter(vm => {
+      const vmDiskCount = disks.filter((d: VDiskInfo) => d.vmName === vm.vmName).length;
+      return vmDiskCount > VPC_MAX_DISKS_PER_VM;
+    }).map(vm => vm.vmName);
+    counts.vmsWithTooManyDisks = vmsWithTooManyDisksList.length;
+    counts.vmsWithTooManyDisksList = vmsWithTooManyDisksList;
+
+    const vmsWithLargeMemoryList = poweredOnVMs.filter(vm => mibToGiB(vm.memory) > 512).map(vm => vm.vmName);
+    const vmsWithVeryLargeMemoryList = poweredOnVMs.filter(vm => mibToGiB(vm.memory) > 1024).map(vm => vm.vmName);
+    counts.vmsWithLargeMemory = vmsWithLargeMemoryList.length;
+    counts.vmsWithLargeMemoryList = vmsWithLargeMemoryList;
+    counts.vmsWithVeryLargeMemory = vmsWithVeryLargeMemoryList.length;
+    counts.vmsWithVeryLargeMemoryList = vmsWithVeryLargeMemoryList;
+
+    const vmsWithUnsupportedOSList = poweredOnVMs.filter(vm => {
+      const compat = getVSIOSCompatibility(vm.guestOS);
+      return compat.status === 'unsupported';
+    }).map(vm => vm.vmName);
+    counts.vmsWithUnsupportedOS = vmsWithUnsupportedOSList.length;
+    counts.vmsWithUnsupportedOSList = vmsWithUnsupportedOSList;
+  }
+
+  // ROKS-specific checks
+  if (mode === 'roks') {
+    const vmsWithCdConnectedList = [...new Set(cdDrives.filter(cd => cd.connected).map(cd => cd.vmName))];
+    counts.vmsWithCdConnected = vmsWithCdConnectedList.length;
+    counts.vmsWithCdConnectedList = vmsWithCdConnectedList;
+
+    const vmsWithLegacyNICList = [...new Set(
+      networks.filter(n => n.adapterType?.toLowerCase().includes('e1000')).map(n => n.vmName)
+    )];
+    counts.vmsWithLegacyNIC = vmsWithLegacyNICList.length;
+    counts.vmsWithLegacyNICList = vmsWithLegacyNICList;
+
+    const vmsWithoutCBTList = poweredOnVMs.filter(vm => !vm.cbtEnabled).map(vm => vm.vmName);
+    counts.vmsWithoutCBT = vmsWithoutCBTList.length;
+    counts.vmsWithoutCBTList = vmsWithoutCBTList;
+
+    const vmsWithInvalidNamesList = poweredOnVMs.filter(vm => !isRFC1123Compliant(vm.vmName)).map(vm => vm.vmName);
+    counts.vmsWithInvalidNames = vmsWithInvalidNamesList.length;
+    counts.vmsWithInvalidNamesList = vmsWithInvalidNamesList;
+
+    const cpuMap = new Map(cpuInfo.map(c => [c.vmName, c]));
+    const vmsWithCPUHotPlugList = poweredOnVMs.filter(vm => cpuMap.get(vm.vmName)?.hotAddEnabled).map(vm => vm.vmName);
+    counts.vmsWithCPUHotPlug = vmsWithCPUHotPlugList.length;
+    counts.vmsWithCPUHotPlugList = vmsWithCPUHotPlugList;
+
+    const memMap = new Map(memoryInfo.map(m => [m.vmName, m]));
+    const vmsWithMemoryHotPlugList = poweredOnVMs.filter(vm => memMap.get(vm.vmName)?.hotAddEnabled).map(vm => vm.vmName);
+    counts.vmsWithMemoryHotPlug = vmsWithMemoryHotPlugList.length;
+    counts.vmsWithMemoryHotPlugList = vmsWithMemoryHotPlugList;
+
+    const vmsWithIndependentDisksList = [...new Set(
+      disks.filter((d: VDiskInfo) => d.diskMode?.toLowerCase().includes('independent')).map((d: VDiskInfo) => d.vmName)
+    )];
+    counts.vmsWithIndependentDisks = vmsWithIndependentDisksList.length;
+    counts.vmsWithIndependentDisksList = vmsWithIndependentDisksList;
+
+    const vmsWithInvalidHostnameList = poweredOnVMs.filter(vm => !isValidHostname(vm.guestHostname)).map(vm => vm.vmName);
+    counts.vmsWithInvalidHostname = vmsWithInvalidHostnameList.length;
+    counts.vmsWithInvalidHostnameList = vmsWithInvalidHostnameList;
+
+    const vmsStaticIPPoweredOffList = rawData.vInfo.filter(vm =>
+      vm.powerState === 'poweredOff' && vm.guestIP
+    ).map(vm => vm.vmName);
+    counts.vmsStaticIPPoweredOff = vmsStaticIPPoweredOffList.length;
+    counts.vmsStaticIPPoweredOffList = vmsStaticIPPoweredOffList;
+  }
+
+  return counts;
 }
