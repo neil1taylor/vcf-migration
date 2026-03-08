@@ -20,11 +20,16 @@ export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date):
   }
 
   // Phase table
-  const headers = ['Phase', 'Source', 'VMs', 'Duration (weeks)', 'Start Week', 'End Week'];
+  const headers = ['Phase', 'Source', 'VMs', 'Data', 'Duration (weeks)', 'Start Week', 'End Week'];
   const rows = phases.map(p => [
     p.name,
     p.waveSourceName || p.type,
     p.waveVmCount?.toString() ?? '—',
+    p.waveStorageGiB != null
+      ? (p.waveStorageGiB >= 1024
+          ? `${Math.round(p.waveStorageGiB / 1024).toLocaleString()} TiB`
+          : `${Math.round(p.waveStorageGiB).toLocaleString()} GiB`)
+      : '—',
     p.durationWeeks.toString(),
     p.startWeek.toString(),
     p.endWeek.toString(),

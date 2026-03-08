@@ -16,7 +16,8 @@ export function buildDefaultTimeline(
   waveCount: number,
   phaseDurations?: Record<string, number>,
   waveVmCounts?: number[],
-  waveNames?: string[]
+  waveNames?: string[],
+  waveStorageGiB?: number[]
 ): TimelinePhase[] {
   idCounter = 0;
   const phases: TimelinePhase[] = [];
@@ -47,6 +48,7 @@ export function buildDefaultTimeline(
     defaultDurationWeeks: pilotDefault,
     waveSourceName: waveNames?.[0],
     waveVmCount: waveVmCounts?.[0],
+    waveStorageGiB: waveStorageGiB?.[0],
     startWeek: 0,
     endWeek: 0,
     color: PHASE_COLORS.pilot,
@@ -69,6 +71,7 @@ export function buildDefaultTimeline(
       waveIndex: i,
       waveSourceName: waveNames?.[i + 1],
       waveVmCount: waveVmCounts?.[i + 1],
+      waveStorageGiB: waveStorageGiB?.[i + 1],
       startWeek: 0,
       endWeek: 0,
       color: PHASE_COLORS.production,

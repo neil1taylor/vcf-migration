@@ -11,6 +11,7 @@ export interface TimelinePhase {
   waveIndex?: number;
   waveSourceName?: string;
   waveVmCount?: number;
+  waveStorageGiB?: number;
   startWeek: number;  // cumulative
   endWeek: number;
   color: string;

@@ -187,6 +187,66 @@ describe('buildDefaultTimeline with waveVmCount', () => {
   });
 });
 
+describe('buildDefaultTimeline with waveStorageGiB', () => {
+  it('assigns waveStorageGiB to pilot and production phases', () => {
+    const phases = buildDefaultTimeline(2, undefined, undefined, undefined, [500, 2048, 4096]);
+    const pilot = phases.find(p => p.type === 'pilot')!;
+    const prods = phases.filter(p => p.type === 'production');
+
+    expect(pilot.waveStorageGiB).toBe(500);
+    expect(prods[0].waveStorageGiB).toBe(2048);
+    expect(prods[1].waveStorageGiB).toBe(4096);
+  });
+
+  it('non-wave phases have no waveStorageGiB', () => {
+    const phases = buildDefaultTimeline(1, undefined, undefined, undefined, [100, 200]);
+    const prep = phases.find(p => p.type === 'preparation')!;
+    const val = phases.find(p => p.type === 'validation')!;
+    const buf = phases.find(p => p.type === 'buffer')!;
+
+    expect(prep.waveStorageGiB).toBeUndefined();
+    expect(val.waveStorageGiB).toBeUndefined();
+    expect(buf.waveStorageGiB).toBeUndefined();
+  });
+
+  it('waveStorageGiB is undefined when not provided', () => {
+    const phases = buildDefaultTimeline(2);
+    phases.forEach(p => {
+      expect(p.waveStorageGiB).toBeUndefined();
+    });
+  });
+});
+
+describe('buildDefaultTimeline waveCount excludes pilot', () => {
+  it('waveCount=2 (from 3 activeWaves minus pilot) creates pilot + 2 production waves', () => {
+    // Simulates: activeWaves = [Pilot(5vm), QuickWins(10vm), Standard(20vm)]
+    // waveCount = 3 - 1 = 2 production waves
+    const waveVmCounts = [5, 10, 20];
+    const phases = buildDefaultTimeline(2, undefined, waveVmCounts);
+    const pilot = phases.find(p => p.type === 'pilot')!;
+    const prods = phases.filter(p => p.type === 'production');
+
+    // Exactly 2 production waves, not 3
+    expect(prods).toHaveLength(2);
+    // VM counts align: pilot=5, wave1=10, wave2=20
+    expect(pilot.waveVmCount).toBe(5);
+    expect(prods[0].waveVmCount).toBe(10);
+    expect(prods[1].waveVmCount).toBe(20);
+    // No undefined VM counts
+    expect(prods.every(p => p.waveVmCount !== undefined)).toBe(true);
+  });
+
+  it('waveCount=0 (single pilot wave) creates pilot + 1 minimum production wave', () => {
+    const waveVmCounts = [5];
+    const phases = buildDefaultTimeline(0, undefined, waveVmCounts);
+    const pilot = phases.find(p => p.type === 'pilot')!;
+    const prods = phases.filter(p => p.type === 'production');
+
+    expect(pilot.waveVmCount).toBe(5);
+    expect(prods).toHaveLength(1); // minimum 1 production wave
+  });
+});
+
 describe('calculateTimelineTotals', () => {
   it('calculates totals correctly', () => {
     const phases = buildDefaultTimeline(3);

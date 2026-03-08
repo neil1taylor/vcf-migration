@@ -26,7 +26,15 @@ import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import type { WaveSuggestionInput } from '@/services/ai/types';
 import { RiskTable } from '@/components/risk/RiskTable';
 import { PHASE_COLORS } from '@/types/timeline';
+import { formatNumber } from '@/utils/formatters';
 import './MigrationPage.scss';
+
+function formatStorageGiB(gib: number): string {
+  if (gib >= 1024) {
+    return `${formatNumber(Math.round(gib / 1024))} TiB`;
+  }
+  return `${formatNumber(Math.round(gib))} GiB`;
+}
 
 
 export function MigrationComparisonPage() {
@@ -106,10 +114,11 @@ export function MigrationComparisonPage() {
   }, [assignments, calculatedCosts, roksCount, vsiCount]);
 
   // Wave count derived from active waves; VM counts per wave for scaled timeline durations
-  const waveCount = wavePlanning.activeWaves.length;
+  const waveCount = Math.max(0, wavePlanning.activeWaves.length - 1);
   const waveVmCounts = useMemo(() => wavePlanning.waveResources.map(w => w.vmCount), [wavePlanning.waveResources]);
   const waveNames = useMemo(() => wavePlanning.waveResources.map(w => w.name), [wavePlanning.waveResources]);
-  const { phases, totals, startDate, updatePhaseDuration, resetToDefaults } = useTimelineConfig(waveCount, waveVmCounts, waveNames);
+  const waveStorageGiB = useMemo(() => wavePlanning.waveResources.map(w => w.storageGiB), [wavePlanning.waveResources]);
+  const { phases, totals, startDate, updatePhaseDuration, resetToDefaults } = useTimelineConfig(waveCount, waveVmCounts, waveNames, waveStorageGiB);
 
   // AI wave suggestion data
   const waveSuggestionData = useMemo<WaveSuggestionInput | null>(() => {
@@ -279,6 +288,7 @@ export function MigrationComparisonPage() {
                           <TableHeader>Phase</TableHeader>
                           <TableHeader>Source</TableHeader>
                           <TableHeader>VMs</TableHeader>
+                          <TableHeader>Data</TableHeader>
                           <TableHeader>Duration (weeks)</TableHeader>
                           <TableHeader>Start Week</TableHeader>
                           <TableHeader>End Week</TableHeader>
@@ -302,6 +312,9 @@ export function MigrationComparisonPage() {
                             </TableCell>
                             <TableCell>
                               {phase.waveVmCount ?? '—'}
+                            </TableCell>
+                            <TableCell>
+                              {phase.waveStorageGiB != null ? formatStorageGiB(phase.waveStorageGiB) : '—'}
                             </TableCell>
                             <TableCell>
                               <NumberInput
