@@ -63,7 +63,7 @@ export function addMigrationExecutionSlide(pres: PptxGenJS): void {
   const arrowW = 0.53;
   const colWidth = (totalWidth - gap * (colCount - 1)) / colCount;
   const startX = 1.33;
-  const startY = 3.2;
+  const startY = 3.87;
   const accentH = 0.13;
 
   for (let i = 0; i < PHASES.length; i++) {

@@ -35,9 +35,17 @@ export function addCostEstimationSlide(
     }
   );
 
-  const cellOpts = { fontSize: 21, fontFace: FONTS.face, color: COLORS.darkGray };
+  // Count VSI profile groups to determine table density
+  const profileGroupCount = includeVSI
+    ? new Set(vsiMappings.map(vm => vm.profile)).size
+    : 0;
+  // Use smaller font when both platforms + many VSI profiles
+  const isCompact = includeROKS && includeVSI && profileGroupCount > 8;
+  const tableFontSize = isCompact ? 17 : 21;
+
+  const cellOpts = { fontSize: tableFontSize, fontFace: FONTS.face, color: COLORS.darkGray };
   const rightCellOpts = { ...cellOpts, align: 'right' as const };
-  const headerOpts = { bold: true, fill: { color: COLORS.ibmBlue }, color: COLORS.white, fontSize: 21, fontFace: FONTS.face };
+  const headerOpts = { bold: true, fill: { color: COLORS.ibmBlue }, color: COLORS.white, fontSize: tableFontSize, fontFace: FONTS.face };
 
   // Pre-calculate totals for KPI tiles
   let roksMonthly = 0;
@@ -147,8 +155,9 @@ export function addCostEstimationSlide(
       { text: fmtCurrency(vsiMonthly * 12), options: boldRightOpts },
     ]);
 
-    // Position VSI table below ROKS (3 rows × ~0.5 each + gap)
-    const vsiTableY = 5.2 + (roksRows.length * 0.53) + 0.27;
+    // Position VSI table below ROKS (rows × height + gap)
+    const rowH = isCompact ? 0.43 : 0.53;
+    const vsiTableY = 5.2 + (roksRows.length * rowH) + 0.27;
     slide.addTable(vsiRows, { ...tableOpts, y: vsiTableY });
   } else {
     // Single platform — one table with total
