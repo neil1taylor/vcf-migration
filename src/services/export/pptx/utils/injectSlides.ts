@@ -1,5 +1,6 @@
 // Post-process PPTX blob to inject reference slide XML for slides 3 & 4
 
+import type JSZipType from 'jszip';
 import { SLIDE3_XML, SLIDE4_XML, SLIDE3_RELS, SLIDE4_RELS } from '../data/referenceSlideXml';
 import { IMAGE6_BASE64, IMAGE7_BASE64, HDPHOTO1_BASE64 } from '../data/referenceMedia';
 
@@ -60,7 +61,7 @@ export async function injectReferenceSlides(blob: Blob): Promise<Blob> {
 /**
  * Ensure [Content_Types].xml includes entries for png and wdp media types.
  */
-async function ensureContentTypes(zip: JSZip): Promise<void> {
+async function ensureContentTypes(zip: JSZipType): Promise<void> {
   const ctPath = '[Content_Types].xml';
   const ctFile = zip.file(ctPath);
   if (!ctFile) return;
@@ -81,7 +82,7 @@ async function ensureContentTypes(zip: JSZip): Promise<void> {
  * Update the theme color scheme to match IBM reference values.
  * Our pptxgenjs slides use hardcoded srgbClr values so they're unaffected.
  */
-async function fixThemeColors(zip: JSZip): Promise<void> {
+async function fixThemeColors(zip: JSZipType): Promise<void> {
   const themePath = 'ppt/theme/theme1.xml';
   const themeFile = zip.file(themePath);
   if (!themeFile) return;
@@ -106,7 +107,7 @@ async function fixThemeColors(zip: JSZip): Promise<void> {
  * bg1→dk1, tx1→lt1, bg2→dk2, tx2→lt2
  * This ensures schemeClr "bg1" resolves to dk1 (FFFFFF = white).
  */
-async function fixColorMap(zip: JSZip): Promise<void> {
+async function fixColorMap(zip: JSZipType): Promise<void> {
   const masterPath = 'ppt/slideMasters/slideMaster1.xml';
   const masterFile = zip.file(masterPath);
   if (!masterFile) return;

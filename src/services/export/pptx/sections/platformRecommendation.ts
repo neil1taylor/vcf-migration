@@ -64,7 +64,7 @@ export function addPlatformRecommendationSlide(
   const answeredRows: string[][] = allFactors
     .filter((factor) => {
       const answer = answers[factor.id];
-      return answer && answer !== '—';
+      return answer && (answer as string) !== '—';
     })
     .map((factor) => {
       const answer = answers[factor.id];

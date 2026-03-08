@@ -241,8 +241,8 @@ export function getPlatformSelectionExport(rawData: RVToolsData | null): Platfor
 
     const roksCache = getCachedBOM('roks');
     const vsiCache = getCachedBOM('vsi');
-    const roksMonthlyCost = roksCache?.estimate?.monthlyCost ?? null;
-    const vsiMonthlyCost = vsiCache?.estimate?.monthlyCost ?? null;
+    const roksMonthlyCost = roksCache?.estimate?.totalMonthly ?? null;
+    const vsiMonthlyCost = vsiCache?.estimate?.totalMonthly ?? null;
 
     const score = computePlatformScore(parsed.answers, { roksMonthlyCost, vsiMonthlyCost });
 

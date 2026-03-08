@@ -1,83 +1,13 @@
 // Migration Strategy Section
 
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle, AlignmentType } from 'docx';
-import type { RVToolsData, VirtualMachine, VNetworkInfo } from '@/types/rvtools';
+import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
-import { mibToGiB } from '@/utils/formatters';
 import { calculateComplexityScores } from '@/services/migration/migrationAssessment';
 import { buildVMWaveData, createComplexityWaves, createNetworkWaves } from '@/services/migration/wavePlanning';
 import type { WaveGroup, NetworkWaveGroup } from '@/services/migration/wavePlanning';
-import { STYLES, type DocumentContent, type NetworkWave, type WavePlanningPreference } from '../types';
+import { STYLES, type DocumentContent, type WavePlanningPreference } from '../types';
 import { createHeading, createParagraph, createBulletList, createTableCell, createAISection } from '../utils/helpers';
-
-function buildLegacyNetworkWaves(rawData: RVToolsData): NetworkWave[] {
-  const networks = rawData.vNetwork;
-  const vms = rawData.vInfo.filter((vm: VirtualMachine) => vm.powerState === 'poweredOn' && !vm.template);
-
-  const portGroupMap = new Map<string, {
-    vSwitch: string;
-    vmNames: Set<string>;
-    ips: string[];
-  }>();
-
-  networks.forEach((nic: VNetworkInfo) => {
-    const pg = nic.networkName || 'Unknown';
-    if (!portGroupMap.has(pg)) {
-      portGroupMap.set(pg, {
-        vSwitch: nic.switchName || 'Unknown',
-        vmNames: new Set(),
-        ips: [],
-      });
-    }
-    const data = portGroupMap.get(pg)!;
-    data.vmNames.add(nic.vmName);
-    if (nic.ipv4Address) {
-      data.ips.push(nic.ipv4Address);
-    }
-  });
-
-  const networkWaves: NetworkWave[] = [];
-  portGroupMap.forEach((data, portGroup) => {
-    const vmNames = Array.from(data.vmNames);
-    const waveVMs = vms.filter((vm: VirtualMachine) => vmNames.includes(vm.vmName));
-
-    let subnet = 'N/A';
-    if (data.ips.length > 0) {
-      const prefixCounts = new Map<string, number>();
-      data.ips.forEach(ip => {
-        const parts = ip.split('.');
-        if (parts.length >= 3) {
-          const prefix = `${parts[0]}.${parts[1]}.${parts[2]}`;
-          prefixCounts.set(prefix, (prefixCounts.get(prefix) || 0) + 1);
-        }
-      });
-      let maxCount = 0;
-      let mostCommonPrefix = '';
-      prefixCounts.forEach((count, prefix) => {
-        if (count > maxCount) {
-          maxCount = count;
-          mostCommonPrefix = prefix;
-        }
-      });
-      if (mostCommonPrefix) {
-        subnet = `${mostCommonPrefix}.0/24`;
-      }
-    }
-
-    networkWaves.push({
-      portGroup,
-      vSwitch: data.vSwitch,
-      vmCount: waveVMs.length,
-      vcpus: waveVMs.reduce((sum: number, vm: VirtualMachine) => sum + vm.cpus, 0),
-      memoryGiB: Math.round(waveVMs.reduce((sum: number, vm: VirtualMachine) => sum + mibToGiB(vm.memory), 0)),
-      storageGiB: Math.round(waveVMs.reduce((sum: number, vm: VirtualMachine) => sum + mibToGiB(vm.provisionedMiB), 0)),
-      subnet,
-    });
-  });
-
-  networkWaves.sort((a, b) => a.vmCount - b.vmCount);
-  return networkWaves;
-}
 
 export function computeWavesForMode(
   rawData: RVToolsData,
@@ -150,11 +80,11 @@ export function getStrategyLabel(pref: WavePlanningPreference): string {
 }
 
 export function buildMigrationStrategy(
-  rawData: RVToolsData,
+  _rawData: RVToolsData,
   aiInsights?: MigrationInsights | null,
   wavePlanningPreference?: WavePlanningPreference | null,
-  includeROKS: boolean = true,
-  includeVSI: boolean = true,
+  _includeROKS: boolean = true,
+  _includeVSI: boolean = true,
   sectionNum?: number,
 ): DocumentContent[] {
   const s = sectionNum != null ? sectionNum : 5;

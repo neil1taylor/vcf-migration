@@ -65,10 +65,11 @@ export async function getRVToolsData(): Promise<RVToolsData> {
     vLicense: parseSheet('vLicense', parseVLicense),
     vResourcePool: parseSheet('vRP', parseVRP),
     vSource: parseSheet('vSource', parseVSource),
+    vPartition: [],
     vHealth: [],
   };
 
-  return cachedData;
+  return cachedData!;
 }
 
 /**

@@ -124,7 +124,7 @@ export function useVPCDesign(workloadMap: Record<string, string>): UseVPCDesignR
   }, [currentFingerprint]);
 
   // Sync region when Discovery MZR changes
-  const validRegionIds = IBM_CLOUD_REGIONS.map(r => r.id);
+  const validRegionIds: string[] = IBM_CLOUD_REGIONS.map(r => r.id);
   useEffect(() => {
     if (targetMzr && validRegionIds.includes(targetMzr)) {
       setData(prev => ({
