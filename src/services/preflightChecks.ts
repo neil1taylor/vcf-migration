@@ -714,3 +714,101 @@ export function getChecksForMode(mode: CheckMode): CheckDefinition[] {
 export function getCheckDefinition(checkId: string): CheckDefinition | undefined {
   return CHECK_DEFINITIONS.find(c => c.id === checkId);
 }
+
+/**
+ * Derive PreflightCheckCounts from VMCheckResults[].
+ * Maps check IDs to the count fields expected by generateRemediationItems.
+ */
+export function derivePreflightCounts(
+  results: VMCheckResults[],
+  mode: CheckMode
+): import('@/services/migration/remediation').PreflightCheckCounts {
+  // Helper: collect VM names where a specific check failed
+  const failedVMs = (checkId: string): string[] =>
+    results
+      .filter(r => r.checks[checkId]?.status === 'fail')
+      .map(r => r.vmName);
+
+  const vmsWithoutToolsList = failedVMs(mode === 'vsi' ? 'vsi-tools' : 'tools-installed');
+  const vmsWithToolsNotRunningList = failedVMs('tools-running');
+  const vmsWithOldSnapshotsList = failedVMs('old-snapshots');
+  const vmsWithRDMList = failedVMs('rdm-disks');
+  const vmsWithSharedDisksList = failedVMs('shared-disks');
+  const vmsWithLargeDisksList = failedVMs('large-disks');
+  const hwVersionOutdatedList = failedVMs('hw-version');
+
+  const counts: import('@/services/migration/remediation').PreflightCheckCounts = {
+    vmsWithoutTools: vmsWithoutToolsList.length,
+    vmsWithoutToolsList,
+    vmsWithToolsNotRunning: vmsWithToolsNotRunningList.length,
+    vmsWithToolsNotRunningList,
+    vmsWithOldSnapshots: vmsWithOldSnapshotsList.length,
+    vmsWithOldSnapshotsList,
+    vmsWithRDM: vmsWithRDMList.length,
+    vmsWithRDMList,
+    vmsWithSharedDisks: vmsWithSharedDisksList.length,
+    vmsWithSharedDisksList,
+    vmsWithLargeDisks: vmsWithLargeDisksList.length,
+    vmsWithLargeDisksList,
+    hwVersionOutdated: hwVersionOutdatedList.length,
+    hwVersionOutdatedList,
+  };
+
+  if (mode === 'vsi') {
+    const vmsWithSmallBootDiskList = failedVMs('boot-disk-size-min');
+    counts.vmsWithSmallBootDisk = vmsWithSmallBootDiskList.length;
+    counts.vmsWithSmallBootDiskList = vmsWithSmallBootDiskList;
+
+    const vmsWithLargeBootDiskList = failedVMs('boot-disk-size');
+    counts.vmsWithLargeBootDisk = vmsWithLargeBootDiskList.length;
+    counts.vmsWithLargeBootDiskList = vmsWithLargeBootDiskList;
+
+    const vmsWithTooManyDisksList = failedVMs('disk-count');
+    counts.vmsWithTooManyDisks = vmsWithTooManyDisksList.length;
+    counts.vmsWithTooManyDisksList = vmsWithTooManyDisksList;
+
+    const vmsWithVeryLargeMemoryList = failedVMs('memory-1tb');
+    counts.vmsWithVeryLargeMemory = vmsWithVeryLargeMemoryList.length;
+    counts.vmsWithVeryLargeMemoryList = vmsWithVeryLargeMemoryList;
+
+    const vmsWithLargeMemoryList = failedVMs('memory-512gb');
+    counts.vmsWithLargeMemory = vmsWithLargeMemoryList.length;
+    counts.vmsWithLargeMemoryList = vmsWithLargeMemoryList;
+
+    const vmsWithUnsupportedOSList = failedVMs('vsi-os');
+    counts.vmsWithUnsupportedOS = vmsWithUnsupportedOSList.length;
+    counts.vmsWithUnsupportedOSList = vmsWithUnsupportedOSList;
+  }
+
+  if (mode === 'roks') {
+    const vmsWithCdConnectedList = failedVMs('cd-connected');
+    counts.vmsWithCdConnected = vmsWithCdConnectedList.length;
+    counts.vmsWithCdConnectedList = vmsWithCdConnectedList;
+
+    const vmsWithoutCBTList = failedVMs('cbt-enabled');
+    counts.vmsWithoutCBT = vmsWithoutCBTList.length;
+    counts.vmsWithoutCBTList = vmsWithoutCBTList;
+
+    const vmsWithInvalidNamesList = failedVMs('rfc1123-name');
+    counts.vmsWithInvalidNames = vmsWithInvalidNamesList.length;
+    counts.vmsWithInvalidNamesList = vmsWithInvalidNamesList;
+
+    const vmsWithCPUHotPlugList = failedVMs('cpu-hotplug');
+    counts.vmsWithCPUHotPlug = vmsWithCPUHotPlugList.length;
+    counts.vmsWithCPUHotPlugList = vmsWithCPUHotPlugList;
+
+    const vmsWithMemoryHotPlugList = failedVMs('mem-hotplug');
+    counts.vmsWithMemoryHotPlug = vmsWithMemoryHotPlugList.length;
+    counts.vmsWithMemoryHotPlugList = vmsWithMemoryHotPlugList;
+
+    const vmsWithIndependentDisksList = failedVMs('independent-disks');
+    counts.vmsWithIndependentDisks = vmsWithIndependentDisksList.length;
+    counts.vmsWithIndependentDisksList = vmsWithIndependentDisksList;
+
+    const vmsWithInvalidHostnameList = failedVMs('hostname-valid');
+    counts.vmsWithInvalidHostname = vmsWithInvalidHostnameList.length;
+    counts.vmsWithInvalidHostnameList = vmsWithInvalidHostnameList;
+  }
+
+  return counts;
+}

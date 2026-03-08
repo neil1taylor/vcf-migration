@@ -37,6 +37,7 @@ import {
   Pagination,
   Tooltip,
   MultiSelect,
+  Link,
 } from '@carbon/react';
 import {
   Download,
@@ -494,7 +495,11 @@ export function DiscoveryVMTable({
                         className={rowClassName}
                       >
                         <TableSelectRow {...getSelectionProps({ row })} />
-                        <TableCell>{originalRow.vmName}</TableCell>
+                        <TableCell>
+                          <Link href="#" onClick={(e: React.MouseEvent) => { e.preventDefault(); setViewingVMName(originalRow.vmName); }}>
+                            {originalRow.vmName}
+                          </Link>
+                        </TableCell>
                         <TableCell>{originalRow.cluster}</TableCell>
                         <TableCell>{originalRow.cpus}</TableCell>
                         <TableCell>{originalRow.memoryGiB} GiB</TableCell>

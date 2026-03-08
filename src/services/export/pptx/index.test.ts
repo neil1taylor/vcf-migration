@@ -15,9 +15,10 @@ vi.mock('./sections', () => ({
   addNextStepsSlide: vi.fn(),
 }));
 
-// Mock calculations (reused from DOCX)
-vi.mock('../docx/utils/calculations', () => ({
-  calculatePreflightCounts: vi.fn(() => ({
+// Mock preflight checks service (used by migrationStatsSlide)
+vi.mock('@/services/preflightChecks', () => ({
+  runPreFlightChecks: vi.fn(() => []),
+  derivePreflightCounts: vi.fn(() => ({
     vmsWithoutTools: 0, vmsWithoutToolsList: [],
     vmsWithToolsNotRunning: 0, vmsWithToolsNotRunningList: [],
     vmsWithOldSnapshots: 0, vmsWithOldSnapshotsList: [],
@@ -26,6 +27,11 @@ vi.mock('../docx/utils/calculations', () => ({
     vmsWithLargeDisks: 0, vmsWithLargeDisksList: [],
     hwVersionOutdated: 0, hwVersionOutdatedList: [],
   })),
+  CHECK_DEFINITIONS: [],
+}));
+
+// Mock calculations (reused from DOCX)
+vi.mock('../docx/utils/calculations', () => ({
   calculateROKSSizing: vi.fn(() => ({
     workerNodes: 3,
     profileName: 'bx2d-metal-96x384',

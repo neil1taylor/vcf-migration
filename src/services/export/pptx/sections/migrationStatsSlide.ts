@@ -4,9 +4,9 @@ import type PptxGenJS from 'pptxgenjs';
 import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationMode } from '@/services/migration';
 import { generateRemediationItems } from '@/services/migration';
+import { runPreFlightChecks, derivePreflightCounts } from '@/services/preflightChecks';
 import { COLORS, FONTS } from '../types';
 import { addSlideTitle } from '../utils';
-import { calculatePreflightCounts } from '../../docx/utils/calculations';
 
 /** Map severity to a human-readable status label */
 function severityLabel(severity: string): string {
@@ -49,8 +49,9 @@ export function addMigrationStatsSlide(
   // Determine mode from platform leaning
   const mode: MigrationMode = leaning === 'roks' ? 'roks' : 'vsi';
 
-  // Calculate pre-flight counts and generate remediation items
-  const counts = calculatePreflightCounts(rawData, mode);
+  // Run pre-flight checks using the shared service and derive counts
+  const checkResults = runPreFlightChecks(rawData, mode);
+  const counts = derivePreflightCounts(checkResults, mode);
   const includeAllChecks = mode === 'vsi';
   const items = generateRemediationItems(counts, mode, includeAllChecks);
 

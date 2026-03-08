@@ -77,7 +77,10 @@ export async function generateDocxReport(
   resetCaptionCounters();
 
   // Calculate all data
-  const readiness = calculateVMReadiness(rawData);
+  const readiness = calculateVMReadiness(rawData, {
+    includeROKS: finalOptions.includeROKS,
+    includeVSI: finalOptions.includeVSI,
+  });
   const roksSizing = calculateROKSSizing(rawData);
   const vsiMappings = calculateVSIMappings(rawData);
 
