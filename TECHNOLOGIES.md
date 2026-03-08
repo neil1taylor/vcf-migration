@@ -182,6 +182,24 @@ The application uses docx for generating migration assessment reports that stake
 
 ---
 
+## PowerPoint Generation with PptxGenJS
+
+**PptxGenJS** is a JavaScript library for creating PowerPoint presentations (.pptx) programmatically in the browser and Node.js. It provides a simple API for building slides with text, tables, charts, images, and shapes.
+
+The application uses PptxGenJS for generating summary presentation decks with native editable charts (readiness pie charts, cost bar charts), KPI numbers, platform recommendations, and next steps — ideal for client meetings and stakeholder briefings.
+
+🔗 https://github.com/gitbrent/PptxGenJS
+
+---
+
+## ZIP Archive Handling with JSZip
+
+**JSZip** is a JavaScript library for creating, reading, and editing ZIP files in the browser and Node.js. It is used internally for OOXML document processing and for test infrastructure that inspects generated DOCX and PPTX files at the XML level.
+
+🔗 https://stuk.github.io/jszip/
+
+---
+
 ## PDF Generation
 
 The application includes client-side **PDF generation** to allow users to export reports, summaries, and migration-related data in a portable, shareable format. Generating PDFs directly in the browser avoids the need for backend rendering services and enables fast, interactive export workflows.
@@ -384,6 +402,8 @@ This technology stack combines a modern React frontend with strong typing, fast 
 | Generate styled Excel with formulas | ExcelJS |
 | Generate PDF reports | jsPDF + AutoTable |
 | Generate Word documents | docx |
+| Generate PowerPoint presentations | PptxGenJS |
+| ZIP archive handling | JSZip |
 | Read/write basic Excel | SheetJS (`xlsx`) |
 
 ### Data Management
