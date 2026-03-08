@@ -37,7 +37,6 @@ import {
   buildAppendices,
   buildRiskAssessmentSection,
   buildTimelineSection,
-  buildNetworkDesignSection,
   buildPlatformSelectionSection,
 } from './sections';
 
@@ -120,6 +119,11 @@ export async function generateDocxReport(
     new Paragraph({ children: [new PageBreak()] }),
   ];
 
+  // Build document sections in new order:
+  // 1. Cover Page, 2. ToC, 3. Executive Summary, 4. Assumptions, 5. Environment,
+  // 6. Readiness, 7. Migration Options, 8. Migration Strategy (generic),
+  // 9. ROKS/ROV, 10. VSI (with network design), 11. Comparison (platform selection + costs),
+  // 12. Timeline, 13. Risk, 14. Day 2, 15. Next Steps, 16. Appendices
   const sections: DocumentContent[] = [
     ...buildCoverPage(finalOptions),
     ...tableOfContents,
@@ -131,33 +135,43 @@ export async function generateDocxReport(
     ...buildMigrationStrategy(rawData, aiInsights, finalOptions.wavePlanningPreference, finalOptions.includeROKS, finalOptions.includeVSI),
   ];
 
-  // Assess step sections
-  if (finalOptions.riskAssessment) {
-    sections.push(...buildRiskAssessmentSection(finalOptions.riskAssessment));
+  // ROKS/ROV section (with wave summary and migration considerations)
+  if (finalOptions.includeROKS) {
+    sections.push(...buildROKSOverview(
+      roksSizing,
+      rawData,
+      finalOptions.wavePlanningPreference,
+      finalOptions.platformSelection,
+    ));
   }
 
-  if (finalOptions.timelinePhases) {
-    sections.push(...buildTimelineSection(finalOptions.timelinePhases, finalOptions.timelineStartDate));
+  // VSI section (with network design, wave summary, and migration considerations)
+  if (finalOptions.includeVSI) {
+    sections.push(...buildVSIOverview(
+      vsiMappings,
+      20,
+      rawData,
+      finalOptions.wavePlanningPreference,
+      finalOptions.vpcDesign,
+    ));
   }
 
-  if (finalOptions.vpcDesign) {
-    sections.push(...buildNetworkDesignSection(finalOptions.vpcDesign));
-  }
-
+  // Comparison & Recommendations (platform selection + costs)
   if (finalOptions.platformSelection) {
     sections.push(...buildPlatformSelectionSection(finalOptions.platformSelection));
   }
 
-  if (finalOptions.includeROKS) {
-    sections.push(...buildROKSOverview(roksSizing));
-  }
-
-  if (finalOptions.includeVSI) {
-    sections.push(...buildVSIOverview(vsiMappings, 20));
-  }
-
   if (finalOptions.includeCosts && (finalOptions.includeROKS || finalOptions.includeVSI)) {
     sections.push(...buildCostEstimation(roksSizing, vsiMappings, aiInsights));
+  }
+
+  // Timeline and Risk (combined, after comparison)
+  if (finalOptions.timelinePhases) {
+    sections.push(...buildTimelineSection(finalOptions.timelinePhases, finalOptions.timelineStartDate));
+  }
+
+  if (finalOptions.riskAssessment) {
+    sections.push(...buildRiskAssessmentSection(finalOptions.riskAssessment));
   }
 
   sections.push(...buildDay2OperationsSection());

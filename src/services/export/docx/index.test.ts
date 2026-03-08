@@ -17,6 +17,8 @@ vi.mock('./sections', () => ({
   buildNextSteps: vi.fn(() => []),
   buildAppendices: vi.fn(() => []),
   buildPlatformSelectionSection: vi.fn(() => []),
+  buildRiskAssessmentSection: vi.fn(() => []),
+  buildTimelineSection: vi.fn(() => []),
 }));
 
 // Mock utility functions
@@ -38,6 +40,7 @@ vi.mock('./utils/calculations', () => ({
     workerMemoryGiB: 192,
     totalVMs: 10,
     supportedVMs: 8,
+    cpuOvercommit: 5,
   })),
   calculateVSIMappings: vi.fn(() => ({
     mappings: [],
@@ -116,7 +119,13 @@ vi.mock('@/data/reportTemplates.json', () => ({
 }));
 
 import { generateDocxReport } from './index';
-import { buildPlatformSelectionSection } from './sections';
+import {
+  buildROKSOverview,
+  buildVSIOverview,
+  buildPlatformSelectionSection,
+  buildRiskAssessmentSection,
+  buildTimelineSection,
+} from './sections';
 import type { RVToolsData } from '@/types/rvtools';
 
 const mockRVToolsData = {
@@ -264,5 +273,70 @@ describe('generateDocxReport', () => {
     await generateDocxReport(mockRVToolsData, { platformSelection: null });
 
     expect(buildPlatformSelectionSection).not.toHaveBeenCalled();
+  });
+
+  it('passes rawData and wavePlanningPreference to buildROKSOverview', async () => {
+    const wavePref = { wavePlanningMode: 'complexity' as const, networkGroupBy: 'cluster' as const };
+    const platformSelection = {
+      score: { vsiCount: 2, roksCount: 5, answeredCount: 10, leaning: 'roks' as const, roksVariant: 'rov' as const },
+      answers: {},
+    };
+
+    await generateDocxReport(mockRVToolsData, {
+      wavePlanningPreference: wavePref,
+      platformSelection,
+    });
+
+    expect(buildROKSOverview).toHaveBeenCalledWith(
+      expect.any(Object), // sizing
+      mockRVToolsData,
+      wavePref,
+      platformSelection,
+    );
+  });
+
+  it('passes rawData, wavePlanningPreference, and vpcDesign to buildVSIOverview', async () => {
+    const wavePref = { wavePlanningMode: 'network' as const, networkGroupBy: 'portGroup' as const };
+    const vpcDesign = { vpcName: 'test-vpc', region: 'us-south', subnets: [], zones: [], securityGroups: [], transitGateways: [] };
+
+    await generateDocxReport(mockRVToolsData, {
+      wavePlanningPreference: wavePref,
+      vpcDesign: vpcDesign as any,
+    });
+
+    expect(buildVSIOverview).toHaveBeenCalledWith(
+      expect.any(Object), // mappings
+      20,
+      mockRVToolsData,
+      wavePref,
+      vpcDesign,
+    );
+  });
+
+  it('orders sections: ROKS before VSI before comparison before timeline before risk', async () => {
+    const platformSelection = {
+      score: { vsiCount: 3, roksCount: 3, answeredCount: 6, leaning: 'neutral' as const },
+      answers: {},
+    };
+    const timelinePhases = [{ id: '1', name: 'Prep', type: 'preparation' as const, durationWeeks: 2, startWeek: 0, endWeek: 2, color: '#ccc', defaultDurationWeeks: 2 }];
+    const riskAssessment = { rows: [], autoRisks: [], curatedRisks: [] };
+
+    await generateDocxReport(mockRVToolsData, {
+      platformSelection,
+      timelinePhases: timelinePhases as any,
+      riskAssessment: riskAssessment as any,
+    });
+
+    // Verify call order: ROKS → VSI → Platform Selection → Timeline → Risk
+    const roksCall = (buildROKSOverview as any).mock.invocationCallOrder[0];
+    const vsiCall = (buildVSIOverview as any).mock.invocationCallOrder[0];
+    const platCall = (buildPlatformSelectionSection as any).mock.invocationCallOrder[0];
+    const timeCall = (buildTimelineSection as any).mock.invocationCallOrder[0];
+    const riskCall = (buildRiskAssessmentSection as any).mock.invocationCallOrder[0];
+
+    expect(roksCall).toBeLessThan(vsiCall);
+    expect(vsiCall).toBeLessThan(platCall);
+    expect(platCall).toBeLessThan(timeCall);
+    expect(timeCall).toBeLessThan(riskCall);
   });
 });

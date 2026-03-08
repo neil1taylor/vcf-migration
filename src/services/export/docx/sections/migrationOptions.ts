@@ -50,7 +50,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           children: [
             createTableCell('Migration Approach', { bold: true }),
             createTableCell('Lift-convert-shift (MTV)'),
-            createTableCell('Lift-convert-shift (RackWare RMM)'),
+            createTableCell('Lift-convert-shift (Wanclouds VPC+, RackWare RMM, migration provider tools)'),
           ],
         }),
         new TableRow({
@@ -82,7 +82,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           children: [
             createTableCell('Operational Model', { bold: true }),
             createTableCell('Kubernetes/GitOps'),
-            createTableCell('Traditional VM management'),
+            createTableCell('Traditional VM management, Terraform/Ansible'),
           ],
         }),
         new TableRow({
@@ -97,8 +97,8 @@ export function buildMigrationOptions(): DocumentContent[] {
           cantSplit: true,
           children: [
             createTableCell('Backup & Recovery', { bold: true }),
-            createTableCell('OADP, IBM Cloud Backup and Recovery, Veeam Kasten'),
-            createTableCell('IBM Cloud native snapshots, Veeam'),
+            createTableCell('OADP, Veeam Kasten K10, other third party kubernetes backup solution. IBM Cloud Backup and Recovery (future)'),
+            createTableCell('IBM Cloud native snapshots, IBM Cloud Backup, IBM Cloud Backup and Recovery, Veeam and other third part agent based solutions'),
           ],
         }),
         new TableRow({
@@ -106,7 +106,7 @@ export function buildMigrationOptions(): DocumentContent[] {
           children: [
             createTableCell('Disaster Recovery', { bold: true }),
             createTableCell('ODF Regional DR with multi-cluster + RHACM'),
-            createTableCell('Cross-region snapshots, Wanclouds VPC+, RackWare RMM'),
+            createTableCell('IBM Cloud VPC cross-region snapshots, Wanclouds VPC+, RackWare RMM'),
           ],
         }),
         new TableRow({
@@ -123,6 +123,14 @@ export function buildMigrationOptions(): DocumentContent[] {
             createTableCell('Security Model', { bold: true }),
             createTableCell('OpenShift RBAC + VPC security groups'),
             createTableCell('VPC security groups, firewalls, IAM'),
+          ],
+        }),
+        new TableRow({
+          cantSplit: true,
+          children: [
+            createTableCell('Encryption', { bold: true }),
+            createTableCell('ODF client-side encryption (per-PV) with Advanced edition; etcd encryption at rest'),
+            createTableCell('IBM Cloud Block Storage encryption at rest (provider-managed or customer-managed keys via Key Protect / HPCS)'),
           ],
         }),
         new TableRow({
@@ -188,10 +196,10 @@ function buildMigrationProcess(): DocumentContent[] {
   return [
     createHeading('4.1 How the Migration Works', HeadingLevel.HEADING_2),
     createParagraph(
-      'A common concern when planning a cloud migration is whether applications will need to be rewritten or significantly modified. This is not the case. Migrating VMware virtual machines to IBM Cloud is a well-established, repeatable process that has been successfully completed for thousands of enterprise environments worldwide. Your applications, operating systems, and data remain exactly as they are today — the migration simply moves them from one infrastructure platform to another.'
+      'A common concern when planning a cloud migration is whether applications will need to be rewritten or significantly modified. This is not the case. Migrating VMware virtual machines to IBM Cloud VPC VIS or ROKS/ROV is a well-established, repeatable process that has been successfully completed for thousands of enterprise environments worldwide. Your applications, operating systems, and data remain exactly as they are today — the migration simply moves them from one infrastructure platform to another.'
     ),
     createParagraph(
-      'The process is best described as "lift, convert, and shift." Each virtual machine is lifted from the VMware environment, its disk format is converted from the VMware-specific format (VMDK) to a cloud-compatible format (QCOW2 or raw image), and the resulting image is transferred to IBM Cloud where it runs on the new infrastructure. No application code changes are required. No databases need to be restructured. No users need to be retrained. From the perspective of the applications and services running inside each virtual machine, the migration is transparent — they continue to operate exactly as before.',
+      'The process is best described as "lift, convert, and shift." Each virtual machine is lifted from the VMware environment, its disk format is converted from the VMware-specific format (VMDK) to a cloud-compatible format (QCOW2 or raw image). VMware drivers are replaced with virtio drivers, and the resulting image is transferred to IBM Cloud where it runs on the new infrastructure. No application code changes are required. No databases need to be restructured. No users need to be retrained. From the perspective of the applications and services running inside each virtual machine, the migration is transparent — they continue to operate exactly as before.',
       { spacing: { after: 200 } }
     ),
     createDocLink(
@@ -202,10 +210,10 @@ function buildMigrationProcess(): DocumentContent[] {
 
     createHeading('4.1.1 The Disk Conversion Step', HeadingLevel.HEADING_3),
     createParagraph(
-      'Virtual machines on VMware store their data in a proprietary disk format called VMDK (Virtual Machine Disk). Cloud platforms, including IBM Cloud, use open industry-standard formats such as QCOW2 or raw disk images. As part of the migration, each VM\'s disk is converted from VMDK to the appropriate target format. This is a fully automated, mechanical process handled by well-proven tooling — it does not alter the contents of the disk in any way. The operating system, installed applications, configuration files, and data all remain identical. The conversion simply changes the container format, much like saving a document from one file format to another without changing its content.'
+      'Virtual machines on VMware store their data in a proprietary disk format called VMDK (Virtual Machine Disk). Cloud platforms, including IBM Cloud and OpenShift, use open industry-standard formats such as QCOW2 or raw disk images. As part of the migration, each VM\'s disk is converted from VMDK to the appropriate target format. This is a fully automated, mechanical process handled by well-proven tooling — it does not alter the contents of the disk in any way. The operating system, installed applications, configuration files, and data all remain identical. The conversion simply changes the container format, much like saving a document from one file format to another without changing its content.'
     ),
     createParagraph(
-      'For ROKS migrations, the Migration Toolkit for Virtualization (MTV) performs this conversion automatically as part of its migration workflow — no manual intervention is required. For VPC Virtual Server migrations, established tools such as RackWare RMM handle the conversion and transfer as a single orchestrated operation. In both cases, the conversion step is invisible to the end user and fully managed by the migration tooling.',
+      'For ROKS migrations, the Migration Toolkit for Virtualization (MTV) performs this conversion automatically as part of its migration workflow — no manual intervention is required. For VPC Virtual Server migrations, established tools such as Wanclouds VPC+, RackWare RMM and other migration provider tooling handle the conversion and transfer as a single orchestrated operation. In both cases, the conversion step is invisible to the end user and fully managed by the migration tooling.',
       { spacing: { after: 200 } }
     ),
 
@@ -214,7 +222,7 @@ function buildMigrationProcess(): DocumentContent[] {
       'There are two approaches to transferring a virtual machine, commonly referred to as "warm" and "cold" migration. Both approaches require a maintenance window for the final cutover, but they differ in how long that window needs to be.'
     ),
     createParagraph(
-      'Cold migration is the simpler approach: the virtual machine is shut down, its disks are copied in full to the target platform, and the VM is started on IBM Cloud. The maintenance window lasts for the duration of the full disk copy. This approach is straightforward, reliable, and well suited to smaller VMs or workloads that can tolerate a longer planned outage.',
+      'Cold migration is the simpler approach: the virtual machine is shut down, its disks are copied in full to the target platform, and the VM is started on the target platform. The maintenance window lasts for the duration of the full disk copy. This approach is straightforward, reliable, and well suited to smaller VMs or workloads that can tolerate a longer planned outage.',
       { spacing: { after: 120 } }
     ),
     createParagraph(
@@ -246,13 +254,13 @@ function buildMigrationProcess(): DocumentContent[] {
       DOC_LINKS.migrationToolkit
     ),
     createParagraph(
-      'For VPC Virtual Server migrations:',
+      'For VPC Virtual Server migrations using RackWare RMM (RackWare Migration Module) for example:',
       { bold: true, spacing: { before: 120, after: 60 } }
     ),
     ...createBulletList([
-      'RackWare RMM (RackWare Migration Module) is the recommended tool for enterprise-scale VSI migrations. RackWare is an IBM partner with extensive experience in cloud migration projects.',
+      'RackWare is an IBM partner with extensive experience in cloud migration software.',
       'RackWare automates discovery, provisioning of target VSIs, disk transfer, and driver installation. It supports wave-based migration with delta synchronisation to minimise downtime.',
-      'Additional proven methods are available for specific scenarios, including image-based import via IBM Cloud Object Storage, direct volume copy, and direct extraction from vCenter using the VMware VDDK toolkit.',
+      'Additional proven methods are available for specific scenarios, including Wanclouds VPC+ and image-based import via IBM Cloud Object Storage, direct volume copy, and direct extraction from vCenter using the VMware VDDK toolkit.',
       'All methods handle the necessary driver updates (such as virtio drivers for Linux and Windows) automatically, ensuring VMs boot correctly on the new platform.',
     ]),
     createDocLink(
@@ -297,7 +305,7 @@ function buildMigrationProcess(): DocumentContent[] {
       'Post-migration validation: Confirming that applications are functioning correctly on the new platform, updating DNS records, and performing any necessary network cutover.',
     ]),
     createParagraph(
-      'The migration does not require application developers, database administrators, or end users to be involved in the process. It is an infrastructure operation carried out by the infrastructure and migration team, using established tooling and well-documented procedures.'
+      'The migration approach limits the effort needed from application developers, database administrators, and end users in the process. It is primarily an infrastructure operation carried out by the infrastructure and migration team, using established tooling and well-documented procedures.'
     ),
     createDocLink(
       'For pre-migration planning guidance, see',
@@ -312,11 +320,12 @@ function buildMigrationProcess(): DocumentContent[] {
     createStyledTable(
       ['VMware Tool', 'Function', 'ROKS Replacement', 'VPC VSI Replacement'],
       [
-        ['VMware SRM', 'Disaster Recovery', 'ODF Regional DR + RHACM', 'Cross-region snapshots, Wanclouds VPC+, RackWare'],
-        ['Zerto', 'DR / CDP', 'ODF Regional DR + RHACM', 'Wanclouds VPC+, RackWare RMM'],
-        ['Veeam B&R (VADP)', 'Backup via VMware APIs', 'OADP, Veeam Kasten', 'IBM Cloud Backup, Veeam (agent-based)'],
-        ['Veeam CDP', 'Continuous Data Protection', 'ODF Regional DR', 'Cross-region snapshots'],
+        ['VMware SRM', 'Disaster Recovery', 'ODF Regional DR + RHACM', 'IBM Cloud cross-region snapshots, Wanclouds VPC+, RackWare RMM'],
+        ['Zerto', 'DR / CDP', 'ODF Regional DR + RHACM', 'IBM Cloud cross-region snapshots, Wanclouds VPC+, RackWare RMM'],
+        ['Veeam B&R (VADP)', 'Backup via VMware APIs', 'OADP, Veeam Kasten, third party agent based backup', 'IBM Cloud Backup, IBM Cloud Backup and Recovery, Veeam or other third party agent based backup'],
+        ['Veeam CDP', 'Continuous Data Protection', 'ODF Regional DR + RHACM', 'IBM Cloud cross-region snapshots, Wanclouds VPC+, RackWare RMM'],
         ['Aria Operations', 'Monitoring / Capacity', 'OpenShift Monitoring + IBM Cloud Monitoring', 'IBM Cloud Monitoring + Instana'],
+        ['Aria Logging', 'Logging', 'OpenShift Events + IBM Cloud Logging', 'IBM Cloud Logging'],
         ['Aria Automation', 'Provisioning / IaC', 'OpenShift GitOps (ArgoCD) + Ansible', 'Terraform + Ansible + Schematics'],
         ['vSphere DRS/HA', 'Cluster Management', 'Kubernetes scheduling + pod anti-affinity', 'VPC placement groups + auto-recovery'],
       ]

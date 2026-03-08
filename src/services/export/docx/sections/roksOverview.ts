@@ -1,10 +1,12 @@
 // ROKS Overview Section
 
 import { Paragraph, PageBreak, HeadingLevel, AlignmentType } from 'docx';
+import type { RVToolsData } from '@/types/rvtools';
 import reportTemplates from '@/data/reportTemplates.json';
-import { type DocumentContent, type ROKSSizing } from '../types';
+import { type DocumentContent, type ROKSSizing, type WavePlanningPreference, type PlatformSelectionExport } from '../types';
 import { createHeading, createParagraph, createBulletList, createStyledTable, createTableDescription, createTableLabel, createDocLink } from '../utils/helpers';
 import { DOC_LINKS } from '../utils/docLinks';
+import { computeWavesForMode, buildWaveTable, getStrategyLabel } from './migrationStrategy';
 
 // Type assertion for templates with table/figure descriptions
 const templates = reportTemplates as typeof reportTemplates & {
@@ -12,10 +14,15 @@ const templates = reportTemplates as typeof reportTemplates & {
   figureDescriptions: Record<string, { title: string; description: string }>;
 };
 
-export function buildROKSOverview(sizing: ROKSSizing): DocumentContent[] {
+export function buildROKSOverview(
+  sizing: ROKSSizing,
+  rawData?: RVToolsData,
+  wavePlanningPreference?: WavePlanningPreference | null,
+  platformSelection?: PlatformSelectionExport | null,
+): DocumentContent[] {
   const roksTemplates = reportTemplates.roksOverview;
 
-  return [
+  const sections: DocumentContent[] = [
     createHeading('6. ' + roksTemplates.title, HeadingLevel.HEADING_1),
     createParagraph(roksTemplates.introduction),
 
@@ -104,7 +111,7 @@ export function buildROKSOverview(sizing: ROKSSizing): DocumentContent[] {
 
     createHeading('6.5.3 CPU Over-commitment', HeadingLevel.HEADING_3),
     createParagraph(
-      'OpenShift Virtualization supports CPU over-commitment. The sizing calculations in this report use a conservative 1.8:1 CPU over-commit ratio.',
+      `OpenShift Virtualization supports CPU over-commitment. The sizing calculations in this report use a ${sizing.cpuOvercommit}:1 CPU over-commit ratio.`,
       { spacing: { after: 120 } }
     ),
     ...createBulletList([
@@ -145,7 +152,64 @@ export function buildROKSOverview(sizing: ROKSSizing): DocumentContent[] {
       { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT] }
     ),
     createTableLabel(templates.tableDescriptions.roksSizing.title),
-
-    new Paragraph({ children: [new PageBreak()] }),
   ];
+
+  // 6.6 Red Hat OpenShift Virtualization (ROV)
+  sections.push(
+    createHeading('6.6 Red Hat OpenShift Virtualization (ROV)', HeadingLevel.HEADING_2),
+    createParagraph(
+      'ROV is a cost-optimised variant of ROKS for environments without containerisation requirements. ' +
+      'It uses the same bare metal infrastructure, the same ODF storage, and the same MTV migration tooling as full ROKS.',
+      { spacing: { after: 120 } }
+    ),
+    ...createBulletList([
+      'Reduced OpenShift licence cost using the OVE tier (OpenShift Virtualization Engine) instead of full OCP',
+      'Same bare metal worker nodes, ODF storage, and networking as full ROKS',
+      'Same migration tooling (MTV) and same operational model',
+      'Recommended when the platform selection questionnaire identifies no containerisation needs',
+      'Can be upgraded to full ROKS at any time if containerisation requirements emerge',
+    ]),
+  );
+  if (platformSelection?.score?.roksVariant === 'rov') {
+    sections.push(
+      createParagraph(
+        'Based on the platform selection assessment, the ROV variant is recommended for this environment as no containerisation requirements were identified.',
+        { spacing: { before: 120, after: 120 } }
+      ),
+    );
+  }
+
+  // ROKS Wave Summary (moved from strategy)
+  if (rawData && wavePlanningPreference) {
+    const roksWaves = computeWavesForMode(rawData, 'roks', wavePlanningPreference);
+    const isComplexity = wavePlanningPreference.wavePlanningMode === 'complexity';
+    sections.push(
+      createHeading('6.7 ROKS Wave Summary', HeadingLevel.HEADING_2),
+      createParagraph(
+        `${roksWaves.length} wave${roksWaves.length !== 1 ? 's' : ''} generated for ROKS (OpenShift Virtualization) migration using the ${getStrategyLabel(wavePlanningPreference)} strategy:`,
+        { spacing: { after: 120 } }
+      ),
+      buildWaveTable(roksWaves, isComplexity),
+    );
+  }
+
+  // ROKS Migration Considerations (moved from strategy)
+  sections.push(
+    createHeading(rawData && wavePlanningPreference ? '6.8 ROKS Migration Considerations' : '6.7 ROKS Migration Considerations', HeadingLevel.HEADING_2),
+    createParagraph(
+      'For ROKS with OpenShift Virtualization, subnet-based migration aligns with the Migration Toolkit for Virtualization (MTV) workflow:',
+      { spacing: { after: 120 } }
+    ),
+    ...createBulletList([
+      'MTV supports network mapping to translate VMware port groups to OpenShift network attachment definitions',
+      'OVN-Kubernetes secondary networks can mirror the original VLAN structure for seamless connectivity',
+      'VMs can retain their original IP addresses when migrated to appropriately configured secondary networks',
+      'Migration plans in MTV naturally map to port group waves, enabling orchestrated cutover',
+      'During coexistence, traffic between migrated VMs in OpenShift and non-migrated on-prem VMs will traverse the Direct Link or VPN, introducing latency for cross-environment communication',
+    ]),
+  );
+
+  sections.push(new Paragraph({ children: [new PageBreak()] }));
+
+  return sections;
 }

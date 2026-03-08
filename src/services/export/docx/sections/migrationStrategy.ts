@@ -79,7 +79,7 @@ function buildLegacyNetworkWaves(rawData: RVToolsData): NetworkWave[] {
   return networkWaves;
 }
 
-function computeWavesForMode(
+export function computeWavesForMode(
   rawData: RVToolsData,
   migrationMode: 'roks' | 'vsi',
   preference: WavePlanningPreference
@@ -96,7 +96,7 @@ function computeWavesForMode(
   return createNetworkWaves(vmWaveData, preference.networkGroupBy);
 }
 
-function buildWaveTable(waves: (WaveGroup | NetworkWaveGroup)[], isComplexity: boolean): Table {
+export function buildWaveTable(waves: (WaveGroup | NetworkWaveGroup)[], isComplexity: boolean): Table {
   const headerCells = [
     createTableCell('Wave', { header: true }),
     createTableCell('Description', { header: true }),
@@ -143,7 +143,7 @@ function buildWaveTable(waves: (WaveGroup | NetworkWaveGroup)[], isComplexity: b
   });
 }
 
-function getStrategyLabel(pref: WavePlanningPreference): string {
+export function getStrategyLabel(pref: WavePlanningPreference): string {
   if (pref.wavePlanningMode === 'complexity') return 'Complexity-Based';
   if (pref.networkGroupBy === 'cluster') return 'Network-Based (Cluster)';
   return 'Network-Based (Port Group)';
@@ -175,18 +175,18 @@ export function buildMigrationStrategy(
 
     createHeading('Complexity-Based', HeadingLevel.HEADING_3),
     createParagraph(
-      'Organizes VMs into 5 progressive waves based on migration complexity scores: Pilot, Quick Wins, Standard, Complex, and Remediation. VMs with blockers are automatically placed in the Remediation wave.',
+      'Organizes VMs into 5 progressive waves based on migration complexity scores: Pilot, Quick Wins, Standard, Complex, and Remediation. VMs with blockers are automatically placed in the Remediation wave. This approach assumes that the IP addressing of the VMs will change.',
       { spacing: { after: 80 } }
     ),
     ...createBulletList([
       'Best when: Heterogeneous environment with widely varying complexity, or when a risk-graduated rollout is desired.',
       'Pros: Natural pilot identification with lowest-complexity VMs, risk-ordered progression, blocker isolation.',
-      'Cons: May split network-adjacent VMs across waves, requiring more network reconfiguration per wave.',
+      'Cons: May split network-adjacent VMs across waves, requiring more network reconfiguration per wave including assigning new IP addresses to VMs.',
     ]),
 
     createHeading('Network-Based (Cluster)', HeadingLevel.HEADING_3),
     createParagraph(
-      'Groups VMs by their VMware cluster. Each cluster becomes a migration wave, keeping co-located workloads together.',
+      'Groups VMs by their VMware cluster. Each cluster becomes a migration wave, keeping co-located workloads together. This approach is also known as big-bang.',
       { spacing: { after: 80 } }
     ),
     ...createBulletList([
@@ -201,7 +201,7 @@ export function buildMigrationStrategy(
       { spacing: { after: 80 } }
     ),
     ...createBulletList([
-      'Best when: Minimal network reconfiguration is desired, or subnet-aligned cutover is required.',
+      'Best when: Minimal network reconfiguration is desired, or subnet-aligned cutover is required and keeping the IP addresses of the VM is essential.',
       'Pros: Network continuity during migration, predictable wave boundaries, reduced split-brain scenarios.',
       'Cons: May split application tiers across waves if they span multiple subnets.',
     ]),
@@ -213,7 +213,7 @@ export function buildMigrationStrategy(
     const label = getStrategyLabel(wavePlanningPreference);
     sections.push(
       createParagraph(
-        `The selected wave planning strategy is: ${label}. The wave summaries below reflect this strategy applied to the environment data.`,
+        `The selected wave planning strategy in this documented assessment is: ${label}. The wave summaries below reflect this strategy applied to the environment data.`,
         { spacing: { after: 120 } }
       )
     );
@@ -226,152 +226,26 @@ export function buildMigrationStrategy(
     );
   }
 
-  // Wave summary tables
-  if (wavePlanningPreference) {
-    const isComplexity = wavePlanningPreference.wavePlanningMode === 'complexity';
-
-    if (includeROKS) {
-      const roksWaves = computeWavesForMode(rawData, 'roks', wavePlanningPreference);
-      sections.push(
-        createHeading('5.3 ROKS Wave Summary', HeadingLevel.HEADING_2),
-        createParagraph(
-          `${roksWaves.length} wave${roksWaves.length !== 1 ? 's' : ''} generated for ROKS (OpenShift Virtualization) migration using the ${getStrategyLabel(wavePlanningPreference)} strategy:`,
-          { spacing: { after: 120 } }
-        ),
-        buildWaveTable(roksWaves, isComplexity),
-      );
-    }
-
-    if (includeVSI) {
-      const vsiWaves = computeWavesForMode(rawData, 'vsi', wavePlanningPreference);
-      const sectionNum = includeROKS ? '5.4' : '5.3';
-      sections.push(
-        createHeading(`${sectionNum} VSI Wave Summary`, HeadingLevel.HEADING_2),
-        createParagraph(
-          `${vsiWaves.length} wave${vsiWaves.length !== 1 ? 's' : ''} generated for VPC Virtual Server migration using the ${getStrategyLabel(wavePlanningPreference)} strategy:`,
-          { spacing: { after: 120 } }
-        ),
-        buildWaveTable(vsiWaves, isComplexity),
-      );
-    }
-  } else {
-    // Legacy fallback: port-group based waves from raw network data
-    const networkWaves = buildLegacyNetworkWaves(rawData);
-    const topWaves = networkWaves.slice(0, 20);
-    const sectionNum = '5.3';
-
-    sections.push(
-      createHeading(`${sectionNum} Network Wave Summary`, HeadingLevel.HEADING_2),
-      createParagraph(
-        `The environment contains ${networkWaves.length} unique port groups. The following table shows the proposed migration waves based on network topology:`,
-        { spacing: { after: 120 } }
-      ),
-      new Table({
-        width: { size: 100, type: 'pct' as const },
-        borders: {
-          top: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-          bottom: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-          left: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-          right: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-          insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-          insideVertical: { style: BorderStyle.SINGLE, size: 1, color: STYLES.mediumGray },
-        },
-        rows: [
-          new TableRow({
-          cantSplit: true,
-            children: [
-              createTableCell('Wave', { header: true }),
-              createTableCell('Port Group', { header: true }),
-              createTableCell('Subnet', { header: true }),
-              createTableCell('VMs', { header: true, align: AlignmentType.RIGHT }),
-              createTableCell('vCPUs', { header: true, align: AlignmentType.RIGHT }),
-              createTableCell('Memory', { header: true, align: AlignmentType.RIGHT }),
-            ],
-          }),
-          ...topWaves.map((wave, idx) =>
-            new TableRow({
-          cantSplit: true,
-              children: [
-                createTableCell(`Wave ${idx + 1}`),
-                createTableCell(wave.portGroup.length > 25 ? wave.portGroup.substring(0, 22) + '...' : wave.portGroup),
-                createTableCell(wave.subnet),
-                createTableCell(`${wave.vmCount}`, { align: AlignmentType.RIGHT }),
-                createTableCell(`${wave.vcpus}`, { align: AlignmentType.RIGHT }),
-                createTableCell(`${wave.memoryGiB} GiB`, { align: AlignmentType.RIGHT }),
-              ],
-            })
-          ),
-        ],
-      }),
-    );
-    if (networkWaves.length > 20) {
-      sections.push(createParagraph(
-        `Note: Showing 20 of ${networkWaves.length} port groups. Smaller waves are listed first to identify pilot migration candidates.`,
-        { spacing: { before: 120 } }
-      ));
-    }
-  }
-
   // Coexistence Network Considerations
-  const coexNum = wavePlanningPreference
-    ? (includeROKS && includeVSI ? '5.4' : includeROKS || includeVSI ? '5.3' : '5.2')
-    : '5.3';
   sections.push(
-    createHeading(`${coexNum} Coexistence Network Considerations`, HeadingLevel.HEADING_2),
+    createHeading('5.3 Coexistence Network Considerations', HeadingLevel.HEADING_2),
     createParagraph(
-      'During migration, VMs will be split between on-premises infrastructure and IBM Cloud. This coexistence period introduces network considerations that must be planned for:',
+      'During migration, VMs will be split between the source and target environments. This coexistence period introduces network considerations that must be planned for:',
       { spacing: { after: 120 } }
     ),
     ...createBulletList([
-      'Traffic between migrated (IBM Cloud) and non-migrated (on-prem) VMs traverses the VPN or Direct Link connection rather than the local LAN',
+      'Traffic between migrated and non-migrated VMs traverses the IBM Cloud network or VPN/Direct Link connection rather than the local LAN',
       'This introduces additional latency and reduced bandwidth compared to LAN communication — latency-sensitive applications (databases, real-time services) should be migrated together in the same wave',
       'Identify tightly-coupled VM pairs (e.g., app server + database) and ensure they are in the same migration wave to avoid cross-network latency',
-      'Bandwidth planning for the WAN link should account for inter-VM traffic that was previously LAN-local',
-    ]),
-  );
-
-  // ROKS Migration Considerations
-  const roksNum = wavePlanningPreference
-    ? (includeROKS && includeVSI ? '5.6' : includeROKS || includeVSI ? '5.5' : '5.4')
-    : '5.5';
-  sections.push(
-    createHeading(`${roksNum} ROKS Migration Considerations`, HeadingLevel.HEADING_2),
-    createParagraph(
-      'For ROKS with OpenShift Virtualization, subnet-based migration aligns with the Migration Toolkit for Virtualization (MTV) workflow:',
-      { spacing: { after: 120 } }
-    ),
-    ...createBulletList([
-      'MTV supports network mapping to translate VMware port groups to OpenShift network attachment definitions',
-      'OVN-Kubernetes secondary networks can mirror the original VLAN structure for seamless connectivity',
-      'VMs can retain their original IP addresses when migrated to appropriately configured secondary networks',
-      'Migration plans in MTV naturally map to port group waves, enabling orchestrated cutover',
-      'During coexistence, traffic between migrated VMs in OpenShift and non-migrated on-prem VMs will traverse the Direct Link or VPN, introducing latency for cross-environment communication',
-    ]),
-  );
-
-  // VSI Migration Considerations
-  const vsiNum = String(Number(roksNum.split('.')[1]) + 1);
-  sections.push(
-    createHeading(`5.${vsiNum} VSI Migration Considerations`, HeadingLevel.HEADING_2),
-    createParagraph(
-      'For VPC Virtual Server migration, subnet-based waves simplify VPC network design:',
-      { spacing: { after: 120 } }
-    ),
-    ...createBulletList([
-      'Each VMware port group maps to a VPC subnet with equivalent CIDR range',
-      'Security groups can be pre-configured to match existing firewall rules before migration',
-      'VPN or Direct Link connectivity can route traffic to migrated subnets during transition',
-      'Phased cutover allows gradual DNS updates as each subnet completes migration',
-      'During coexistence, traffic between migrated VSIs and non-migrated on-prem VMs traverses the VPN or Direct Link — plan waves to keep latency-sensitive VM pairs together',
+      'Bandwidth planning for the WAN link, if used, should account for inter-VM traffic that was previously LAN-local',
     ]),
   );
 
   // AI Migration Strategy
   if (aiInsights?.migrationStrategy) {
-    const aiNum = String(Number(vsiNum) + 1);
     sections.push(
       ...createAISection(
-        `5.${aiNum} AI Migration Strategy`,
+        '5.4 AI Migration Strategy',
         aiInsights.migrationStrategy,
         HeadingLevel.HEADING_2
       )

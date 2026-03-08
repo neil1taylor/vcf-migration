@@ -248,7 +248,7 @@
     "sizing": {
       "title": "Recommended Cluster Sizing",
       "description": "Based on the analysis of the source environment, the following ROKS cluster configuration is recommended.",
-      "methodology": "Sizing calculations consider CPU requirements (with conservative 1.8:1 overcommit), memory (no overcommit for VMs), and storage (3x replication with ODF operational overhead)."
+      "methodology": "Sizing calculations consider CPU requirements (with configurable overcommit ratio), memory (no overcommit for VMs), and storage (3x replication with ODF operational overhead)."
     }
   },
   "vsiOverview": {

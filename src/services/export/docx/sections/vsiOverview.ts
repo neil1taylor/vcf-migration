@@ -1,10 +1,14 @@
 // VSI Overview Section
 
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle, AlignmentType } from 'docx';
+import type { RVToolsData } from '@/types/rvtools';
+import type { VPCDesign } from '@/types/vpcDesign';
 import reportTemplates from '@/data/reportTemplates.json';
-import { STYLES, type DocumentContent, type VSIMapping } from '../types';
+import { STYLES, type DocumentContent, type VSIMapping, type WavePlanningPreference } from '../types';
 import { createHeading, createParagraph, createBulletList, createTableCell, createTableDescription, createTableLabel, createDocLink } from '../utils/helpers';
 import { DOC_LINKS } from '../utils/docLinks';
+import { computeWavesForMode, buildWaveTable, getStrategyLabel } from './migrationStrategy';
+import { buildNetworkDesignSection } from './networkDesign';
 
 // Type assertion for templates with table/figure descriptions
 const templates = reportTemplates as typeof reportTemplates & {
@@ -12,7 +16,13 @@ const templates = reportTemplates as typeof reportTemplates & {
   figureDescriptions: Record<string, { title: string; description: string }>;
 };
 
-export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): DocumentContent[] {
+export function buildVSIOverview(
+  mappings: VSIMapping[],
+  maxVMs: number,
+  rawData?: RVToolsData,
+  wavePlanningPreference?: WavePlanningPreference | null,
+  vpcDesign?: VPCDesign | null,
+): DocumentContent[] {
   const vsiTemplates = reportTemplates.vsiOverview;
 
   const profileDistribution = mappings.reduce((acc, m) => {
@@ -20,7 +30,7 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
     return acc;
   }, {} as Record<string, number>);
 
-  return [
+  const sections: DocumentContent[] = [
     createHeading('7. ' + vsiTemplates.title, HeadingLevel.HEADING_1),
     createParagraph(vsiTemplates.introduction),
 
@@ -247,7 +257,54 @@ export function buildVSIOverview(mappings: VSIMapping[], maxVMs: number): Docume
       'Boot disk size is limited to 10 GiB minimum and 250 GiB maximum',
       'VSI instances cannot have more than 12 attached disk volumes',
     ]),
-
-    new Paragraph({ children: [new PageBreak()] }),
   ];
+
+  // VPC Network Design (moved here from standalone section)
+  if (vpcDesign) {
+    sections.push(
+      createHeading('7.8 VPC Network Design', HeadingLevel.HEADING_2),
+      ...buildNetworkDesignSection(vpcDesign, true),
+    );
+  }
+
+  // VSI Wave Summary (moved from strategy)
+  if (rawData && wavePlanningPreference) {
+    const vsiWaves = computeWavesForMode(rawData, 'vsi', wavePlanningPreference);
+    const isComplexity = wavePlanningPreference.wavePlanningMode === 'complexity';
+    const sectionNum = vpcDesign ? '7.9' : '7.8';
+    sections.push(
+      createHeading(`${sectionNum} VSI Wave Summary`, HeadingLevel.HEADING_2),
+      createParagraph(
+        `${vsiWaves.length} wave${vsiWaves.length !== 1 ? 's' : ''} generated for VPC Virtual Server migration using the ${getStrategyLabel(wavePlanningPreference)} strategy:`,
+        { spacing: { after: 120 } }
+      ),
+      buildWaveTable(vsiWaves, isComplexity),
+    );
+  }
+
+  // VSI Migration Considerations (moved from strategy)
+  const considNum = (() => {
+    let n = 8;
+    if (vpcDesign) n++;
+    if (rawData && wavePlanningPreference) n++;
+    return `7.${n}`;
+  })();
+  sections.push(
+    createHeading(`${considNum} VSI Migration Considerations`, HeadingLevel.HEADING_2),
+    createParagraph(
+      'For VPC Virtual Server migration, subnet-based waves simplify VPC network design:',
+      { spacing: { after: 120 } }
+    ),
+    ...createBulletList([
+      'Each VMware port group maps to a VPC subnet with equivalent CIDR range',
+      'Security groups can be pre-configured to match existing firewall rules before migration',
+      'VPN or Direct Link connectivity can route traffic to migrated subnets during transition',
+      'Phased cutover allows gradual DNS updates as each subnet completes migration',
+      'During coexistence, traffic between migrated VSIs and non-migrated on-prem VMs traverses the VPN or Direct Link — plan waves to keep latency-sensitive VM pairs together',
+    ]),
+  );
+
+  sections.push(new Paragraph({ children: [new PageBreak()] }));
+
+  return sections;
 }

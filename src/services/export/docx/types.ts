@@ -10,6 +10,8 @@ import type { PlatformSelectionScore, FactorAnswer } from '@/hooks/usePlatformSe
 import type { SubnetOverridesData } from '@/hooks/useSubnetOverrides';
 import { buildRiskTable } from '@/services/riskAssessment';
 import { buildDefaultTimeline } from '@/services/migration/timelineEstimation';
+import { calculateComplexityScores } from '@/services/migration/migrationAssessment';
+import { buildVMWaveData, createComplexityWaves, createNetworkWaves } from '@/services/migration/wavePlanning';
 import { buildVPCDesign } from '@/services/network/vpcDesignService';
 import { getCachedBOM } from '@/services/bomCache';
 import { getEnvironmentFingerprint, fingerprintsMatch } from '@/utils/vmIdentifier';
@@ -69,6 +71,7 @@ export interface ROKSSizing {
   totalNvmeTiB: number;
   odfUsableTiB: number;
   monthlyCost: number;
+  cpuOvercommit: number;
 }
 
 export interface VSIMapping {
@@ -288,11 +291,33 @@ export function getTimelineExport(rawData: RVToolsData): { phases: TimelinePhase
     const fp = getEnvironmentFingerprint(rawData);
     if (parsed.environmentFingerprint && !fingerprintsMatch(parsed.environmentFingerprint, fp)) return null;
 
-    // Get wave count from wave planning mode
+    // Compute wave data from raw data for accurate VM counts and storage sizes
     const wavePref = getWavePlanningPreference();
-    const waveCount = wavePref ? 3 : 3; // Default wave count; actual wave-aware count requires hook data
+    let waveVmCounts: number[] | undefined;
+    let waveNames: string[] | undefined;
+    let waveStorageGiB: number[] | undefined;
+    let waveCount = 3;
 
-    const phases = buildDefaultTimeline(waveCount, parsed.phaseDurations);
+    if (wavePref) {
+      const vms = rawData.vInfo.filter(vm => vm.powerState === 'poweredOn' && !vm.template);
+      // Use 'roks' mode as default for timeline — the wave grouping is the same
+      const complexityScores = calculateComplexityScores(vms, rawData.vDisk, rawData.vNetwork, 'roks');
+      const vmWaveData = buildVMWaveData(
+        vms, complexityScores, rawData.vDisk, rawData.vSnapshot, rawData.vTools, rawData.vNetwork, 'roks'
+      );
+
+      const waves = wavePref.wavePlanningMode === 'complexity'
+        ? createComplexityWaves(vmWaveData, 'roks')
+        : createNetworkWaves(vmWaveData, wavePref.networkGroupBy);
+
+      // First wave becomes pilot, remaining become production waves
+      waveVmCounts = waves.map(w => w.vmCount);
+      waveNames = waves.map(w => w.name);
+      waveStorageGiB = waves.map(w => w.storageGiB);
+      waveCount = Math.max(1, waves.length - 1); // subtract pilot wave
+    }
+
+    const phases = buildDefaultTimeline(waveCount, parsed.phaseDurations, waveVmCounts, waveNames, waveStorageGiB);
     const startDate = parsed.startDate ? new Date(parsed.startDate) : undefined;
 
     return { phases, startDate };

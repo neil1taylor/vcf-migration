@@ -47,6 +47,19 @@ export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date):
     ),
   );
 
+  // Platform-specific migration notes
+  sections.push(
+    createHeading('Platform-Specific Migration Notes', HeadingLevel.HEADING_2),
+    createParagraph(
+      'ROKS (OpenShift Virtualization): The Migration Toolkit for Virtualization (MTV) handles disk conversion from VMDK to QCOW2 inline during transfer. Warm migration uses VMware Changed Block Tracking (CBT) to minimise cutover windows — only changed blocks are transferred during the final sync.',
+      { spacing: { after: 120 } }
+    ),
+    createParagraph(
+      'VPC Virtual Servers: RackWare RMM or Wanclouds VPC+ handle the transfer and conversion. Additional provisioning time may be required for VPC resources (subnets, security groups, floating IPs) before migration waves begin. Factor in VPC infrastructure setup during the Preparation phase.',
+      { spacing: { after: 200 } }
+    ),
+  );
+
   // Typical timeline ranges
   sections.push(
     createHeading('Typical Timeline Ranges', HeadingLevel.HEADING_2),

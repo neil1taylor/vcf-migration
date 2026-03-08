@@ -152,7 +152,8 @@ export function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
   const requiredRawStorageGiB = Math.ceil(
     (totalStorageGiB * replicaFactor) / operationalCapacity / cephEfficiency
   );
-  const adjustedVCPUs = Math.ceil(totalVCPUs / ocpVirtSizing.cpuOvercommitConservative);
+  const cpuOvercommit = ibmCloudConfig.defaults.cpuOvercommitRatio;
+  const adjustedVCPUs = Math.ceil(totalVCPUs / cpuOvercommit);
 
   const recommendedProfile = bareMetalProfiles.find(
     (p: { name: string }) => p.name === 'bx2d-metal-96x384'
@@ -185,6 +186,7 @@ export function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
     totalNvmeTiB: Math.round(totalClusterNvmeGiB / 1024),
     odfUsableTiB: parseFloat(odfUsableTiB.toFixed(1)),
     monthlyCost,
+    cpuOvercommit,
   };
 }
 
