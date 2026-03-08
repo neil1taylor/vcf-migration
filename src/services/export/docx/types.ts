@@ -48,6 +48,7 @@ export interface DocxExportOptions {
   vpcDesign?: VPCDesign | null;
   wavePlanningPreference?: WavePlanningPreference | null;
   platformSelection?: PlatformSelectionExport | null;
+  includeAppendices?: boolean;
 }
 
 export interface VMReadiness {

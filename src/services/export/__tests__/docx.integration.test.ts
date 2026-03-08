@@ -72,7 +72,37 @@ describe('DOCX integration — structural checks', () => {
     expect(joined).toContain('Executive Summary');
     expect(joined).toContain('Environment Analysis');
     expect(joined).toContain('Migration Readiness');
+    expect(joined).toContain('Complexity Assessment');
+    expect(joined).toContain('OS Compatibility Matrix');
     expect(joined).toContain('Next Steps');
+  });
+
+  it('contains appendix sections when includeAppendices is true', async () => {
+    const blob = await generateDocxReport(data, {
+      ...defaultDocxOptions,
+      includeAppendices: true,
+    });
+    const zip = await unzipBlob(blob);
+    const docXml = await getXmlContent(zip, 'word/document.xml');
+    const textContent = extractTextRuns(docXml, 'w:t');
+    const joined = textContent.join(' ');
+
+    expect(joined).toContain('Compute Deep-dive');
+    expect(joined).toContain('VM Inventory');
+  });
+
+  it('omits detailed appendices when includeAppendices is false', async () => {
+    const blob = await generateDocxReport(data, {
+      ...defaultDocxOptions,
+      includeAppendices: false,
+    });
+    const zip = await unzipBlob(blob);
+    const docXml = await getXmlContent(zip, 'word/document.xml');
+    const textContent = extractTextRuns(docXml, 'w:t');
+    const joined = textContent.join(' ');
+
+    expect(joined).not.toContain('Compute Deep-dive');
+    expect(joined).not.toContain('VM Inventory');
   });
 
   it('generates with ROKS-only options', async () => {

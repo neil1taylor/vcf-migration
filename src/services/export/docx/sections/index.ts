@@ -17,3 +17,5 @@ export { buildRiskAssessmentSection } from './riskAssessment';
 export { buildTimelineSection } from './timelineEstimation';
 export { buildNetworkDesignSection } from './networkDesign';
 export { buildPlatformSelectionSection } from './platformSelection';
+export { buildComplexityAssessment } from './complexityAssessment';
+export { buildOSCompatibilitySection } from './osCompatibility';

@@ -2,30 +2,53 @@
 
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle, AlignmentType } from 'docx';
 import { STYLES, type DocumentContent, type VMReadiness } from '../types';
+import type { RVToolsData } from '@/types/rvtools';
 import { createHeading, createParagraph, createTableCell } from '../utils/helpers';
+import {
+  buildComputeAppendix,
+  buildStorageAppendix,
+  buildClusterAppendix,
+  buildHostAppendix,
+  buildSnapshotAppendix,
+  buildVMInventoryAppendix,
+} from './appendixSections';
 
-export function buildAppendices(readiness: VMReadiness[], maxIssueVMs: number): DocumentContent[] {
+export function buildAppendices(
+  readiness: VMReadiness[],
+  maxIssueVMs: number,
+  rawData: RVToolsData,
+  includeAppendices: boolean
+): DocumentContent[] {
   const allBlockerVMs = readiness.filter((r) => r.hasBlocker);
   const allWarningVMs = readiness.filter((r) => r.hasWarning && !r.hasBlocker);
 
-  // Only include appendices if there are more VMs than shown in main body
-  if (allBlockerVMs.length <= maxIssueVMs && allWarningVMs.length <= maxIssueVMs) {
+  const hasOverflowBlockers = allBlockerVMs.length > maxIssueVMs;
+  const hasOverflowWarnings = allWarningVMs.length > maxIssueVMs;
+  const hasOverflow = hasOverflowBlockers || hasOverflowWarnings;
+
+  // Check if there will be any appendix content at all
+  if (!hasOverflow && !includeAppendices) {
     return [];
   }
+
+  // Dynamic letter counter
+  let letterIndex = 0;
+  const nextLetter = () => String.fromCharCode(65 + letterIndex++); // A, B, C, ...
 
   const sections: DocumentContent[] = [
     createHeading('Appendices', HeadingLevel.HEADING_1),
     createParagraph(
-      'The following appendices contain the complete lists of virtual machines with migration issues that were summarized in the main report.',
+      'The following appendices provide detailed reference data supporting the main report findings.',
       { spacing: { after: 200 } }
     ),
   ];
 
-  // Appendix A: Full Blockers List
-  if (allBlockerVMs.length > maxIssueVMs) {
+  // Appendix: Full Blockers List (unconditional — overflow from main body)
+  if (hasOverflowBlockers) {
+    const label = nextLetter();
     sections.push(
       new Paragraph({ spacing: { before: 240 } }),
-      createHeading('Appendix A: Complete List of VMs with Blockers', HeadingLevel.HEADING_2),
+      createHeading(`Appendix ${label}: Complete List of VMs with Blockers`, HeadingLevel.HEADING_2),
       createParagraph(
         `This appendix contains all ${allBlockerVMs.length} virtual machines with migration blockers that must be resolved before migration.`,
         { spacing: { after: 120 } }
@@ -73,11 +96,12 @@ export function buildAppendices(readiness: VMReadiness[], maxIssueVMs: number): 
     );
   }
 
-  // Appendix B: Full Warnings List
-  if (allWarningVMs.length > maxIssueVMs) {
+  // Appendix: Full Warnings List (unconditional — overflow from main body)
+  if (hasOverflowWarnings) {
+    const label = nextLetter();
     sections.push(
       new Paragraph({ children: [new PageBreak()] }),
-      createHeading('Appendix B: Complete List of VMs with Warnings', HeadingLevel.HEADING_2),
+      createHeading(`Appendix ${label}: Complete List of VMs with Warnings`, HeadingLevel.HEADING_2),
       createParagraph(
         `This appendix contains all ${allWarningVMs.length} virtual machines with warnings that should be reviewed before migration.`,
         { spacing: { after: 120 } }
@@ -123,6 +147,33 @@ export function buildAppendices(readiness: VMReadiness[], maxIssueVMs: number): 
         ],
       })
     );
+  }
+
+  // Tier-2 appendices (gated by includeAppendices)
+  if (includeAppendices) {
+    const tier2Builders = [
+      buildComputeAppendix,
+      buildStorageAppendix,
+      buildClusterAppendix,
+      buildHostAppendix,
+      buildSnapshotAppendix,
+      buildVMInventoryAppendix,
+    ];
+
+    for (const builder of tier2Builders) {
+      const content = builder(rawData, nextLetter());
+      if (content.length > 0) {
+        sections.push(...content);
+      } else {
+        // Reclaim the letter since no content was emitted
+        letterIndex--;
+      }
+    }
+  }
+
+  // If only the heading was added (no actual appendix content), return empty
+  if (sections.length <= 2) {
+    return [];
   }
 
   return sections;

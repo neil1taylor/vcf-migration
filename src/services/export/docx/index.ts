@@ -39,6 +39,8 @@ import {
   buildRiskAssessmentSection,
   buildTimelineSection,
   buildPlatformSelectionSection,
+  buildComplexityAssessment,
+  buildOSCompatibilitySection,
 } from './sections';
 
 // Re-export types for consumers
@@ -68,6 +70,7 @@ export async function generateDocxReport(
     vpcDesign: options.vpcDesign ?? null,
     wavePlanningPreference: options.wavePlanningPreference ?? null,
     platformSelection: options.platformSelection ?? null,
+    includeAppendices: options.includeAppendices ?? true,
   };
 
   // Reset caption counters for fresh document
@@ -134,6 +137,8 @@ export async function generateDocxReport(
     ...buildAssumptionsAndScope(execNum),                                   // sub-section of exec summary (1.1)
     ...environmentAnalysis,                                                 // sec 2 (already assigned above)
     ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()),
+    ...buildComplexityAssessment(rawData, sec.next()),
+    ...buildOSCompatibilitySection(rawData, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()),
     ...buildMigrationOptions(sec.next()),
     ...buildMigrationStrategy(rawData, aiInsights, finalOptions.wavePlanningPreference, finalOptions.includeROKS, finalOptions.includeVSI, sec.next()),
   ];
@@ -182,8 +187,8 @@ export async function generateDocxReport(
   sections.push(...buildDay2OperationsSection(sec.next()));
   sections.push(...buildNextSteps(finalOptions, aiInsights, sec.next()));
 
-  // Add appendices if there are more VMs than shown in main body
-  sections.push(...buildAppendices(readiness, finalOptions.maxIssueVMs));
+  // Add appendices (overflow blockers/warnings + optional deep-dive sections)
+  sections.push(...buildAppendices(readiness, finalOptions.maxIssueVMs, rawData, finalOptions.includeAppendices));
 
   // Create document with professional header/footer
   const doc = new Document({

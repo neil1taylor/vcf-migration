@@ -19,6 +19,8 @@ vi.mock('./sections', () => ({
   buildPlatformSelectionSection: vi.fn(() => []),
   buildRiskAssessmentSection: vi.fn(() => []),
   buildTimelineSection: vi.fn(() => []),
+  buildComplexityAssessment: vi.fn(() => []),
+  buildOSCompatibilitySection: vi.fn(() => []),
 }));
 
 // Mock utility functions
@@ -125,6 +127,9 @@ import {
   buildPlatformSelectionSection,
   buildRiskAssessmentSection,
   buildTimelineSection,
+  buildComplexityAssessment,
+  buildOSCompatibilitySection,
+  buildAppendices,
 } from './sections';
 import type { RVToolsData } from '@/types/rvtools';
 
@@ -340,5 +345,43 @@ describe('generateDocxReport', () => {
     expect(vsiCall).toBeLessThan(platCall);
     expect(platCall).toBeLessThan(timeCall);
     expect(timeCall).toBeLessThan(riskCall);
+  });
+
+  it('calls buildComplexityAssessment with rawData and section number', async () => {
+    await generateDocxReport(mockRVToolsData);
+
+    expect(buildComplexityAssessment).toHaveBeenCalledWith(mockRVToolsData, expect.any(Number));
+  });
+
+  it('calls buildOSCompatibilitySection with rawData and platform flags', async () => {
+    await generateDocxReport(mockRVToolsData, { includeROKS: true, includeVSI: false });
+
+    expect(buildOSCompatibilitySection).toHaveBeenCalledWith(
+      mockRVToolsData,
+      { includeROKS: true, includeVSI: false },
+      expect.any(Number)
+    );
+  });
+
+  it('passes includeAppendices to buildAppendices (default true)', async () => {
+    await generateDocxReport(mockRVToolsData);
+
+    expect(buildAppendices).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(Number),
+      mockRVToolsData,
+      true
+    );
+  });
+
+  it('passes includeAppendices: false to buildAppendices when set', async () => {
+    await generateDocxReport(mockRVToolsData, { includeAppendices: false });
+
+    expect(buildAppendices).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(Number),
+      mockRVToolsData,
+      false
+    );
   });
 });

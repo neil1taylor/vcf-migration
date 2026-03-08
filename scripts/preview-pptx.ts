@@ -49,6 +49,7 @@ JSZip.loadAsync = async function(data: unknown, options?: object) {
 } as typeof JSZip.loadAsync;
 
 import { generatePptxReport } from '@/services/export/pptx/index';
+import { getPlatformSelectionExport, getWavePlanningPreference } from '@/services/export/docx/types';
 
 // Accept optional input file as CLI argument: npm run preview:pptx -- /path/to/file.xlsx
 const INPUT_FILE = process.argv[2]
@@ -58,10 +59,45 @@ const OUTPUT_DIR = path.resolve(__dirname, '../tmp');
 const SLIDES_DIR = path.resolve(OUTPUT_DIR, 'pptx-slides');
 const PPTX_PATH = path.resolve(OUTPUT_DIR, 'preview.pptx');
 
+/**
+ * Extract localStorage settings from a handover file's _vcfSettings sheet.
+ * Populates globalThis.localStorage so getPlatformSelectionExport/getWavePlanningPreference work.
+ */
+function loadHandoverSettings(workbook: XLSX.WorkBook): boolean {
+  if (!workbook.SheetNames.includes('_vcfSettings')) return false;
+
+  const rows = XLSX.utils.sheet_to_json<{ key: string; value: string }>(
+    workbook.Sheets['_vcfSettings']
+  );
+
+  // Create a minimal localStorage shim
+  const store: Record<string, string> = {};
+  for (const row of rows) {
+    if (!row.key || row.key.startsWith('_') || typeof row.value !== 'string') continue;
+    store[row.key] = row.value;
+  }
+
+  (globalThis as Record<string, unknown>).localStorage = {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => { store[key] = value; },
+    removeItem: (key: string) => { delete store[key]; },
+    clear: () => { Object.keys(store).forEach(k => delete store[k]); },
+    get length() { return Object.keys(store).length; },
+    key: (i: number) => Object.keys(store)[i] ?? null,
+  };
+
+  const settingCount = Object.keys(store).length;
+  console.log(`  Handover file detected: ${settingCount} settings loaded`);
+  return settingCount > 0;
+}
+
 function parseFixture(): RVToolsData {
   const buffer = fs.readFileSync(INPUT_FILE);
   const workbook = XLSX.read(buffer, { type: 'buffer', cellDates: true });
   const sheets = workbook.SheetNames;
+
+  // If handover file, load bundled localStorage settings
+  loadHandoverSettings(workbook);
 
   const parseSheet = <T>(name: string, parser: (sheet: XLSX.WorkSheet) => T[]): T[] =>
     sheets.includes(name) ? parser(workbook.Sheets[name]) : [];
@@ -175,7 +211,17 @@ async function main() {
   const data = parseFixture();
   console.log(`  ${data.vInfo.length} VMs loaded`);
 
-  // 2. Generate PPTX
+  // 2. Generate PPTX — extract settings from handover file if available
+  const platformSelection = getPlatformSelectionExport(data);
+  const wavePlanningPreference = getWavePlanningPreference();
+
+  if (platformSelection) {
+    console.log(`  Platform selection: ${platformSelection.score.leaning} (${platformSelection.score.answeredCount} answers)`);
+  }
+  if (wavePlanningPreference) {
+    console.log(`  Wave planning: ${wavePlanningPreference.wavePlanningMode} / ${wavePlanningPreference.networkGroupBy}`);
+  }
+
   const options: PptxExportOptions = {
     clientName: 'Preview Client',
     preparedBy: 'PPTX Preview Script',
@@ -183,6 +229,8 @@ async function main() {
     includeROKS: true,
     includeVSI: true,
     includeCosts: true,
+    platformSelection,
+    wavePlanningPreference,
   };
 
   console.log('Generating PPTX...');

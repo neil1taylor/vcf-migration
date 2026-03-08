@@ -28,8 +28,8 @@ npm run test:e2e:debug  # Run E2E tests in debug mode
 npm run test:e2e:ui     # Run E2E tests with Playwright UI
 npm run test:e2e:generate-fixture # Regenerate test Excel fixture
 npm run convert:vinventory -- input.xlsx [output.xlsx]  # Convert vInventory to RVTools format
-npm run preview:docx    # Generate DOCX from test fixture, inspect structure/formatting
-npm run preview:pptx    # Generate PPTX from test fixture, inspect structure/formatting
+npm run preview:pptx    # Generate PPTX from test fixture + convert slides to PNGs for visual inspection
+npm run preview:docx    # Generate DOCX from test fixture for visual inspection
 ```
 
 ## Testing Requirements

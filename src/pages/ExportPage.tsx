@@ -15,6 +15,7 @@ import {
   ContentSwitcher,
   Switch,
   TextInput,
+  Toggle,
 } from '@carbon/react';
 import {
   DocumentPdf,
@@ -151,6 +152,7 @@ export function ExportPage() {
   const [pdfFilename, setPdfFilename] = useState(() => getDefaultFilename('pdf', filenameCtx));
   const [excelFilename, setExcelFilename] = useState(() => getDefaultFilename('excel', filenameCtx));
   const [docxFilename, setDocxFilename] = useState(() => getDefaultFilename('docx', filenameCtx));
+  const [includeAppendices, setIncludeAppendices] = useState(true);
   const [pptxFilename, setPptxFilename] = useState(() => getDefaultFilename('pptx', filenameCtx));
   const [preflightFilename, setPreflightFilename] = useState(() => getDefaultFilename('preflight', { ...filenameCtx, mode: preflightMode }));
   const [wavesFilename, setWavesFilename] = useState(() => getDefaultFilename('waves', filenameCtx));
@@ -313,9 +315,10 @@ export function ExportPage() {
       timelinePhases: timelineData?.phases,
       timelineStartDate: timelineData?.startDate,
       vpcDesign,
+      includeAppendices,
     }, sanitizeFilename(docxFilename, '.docx'));
     markExportComplete();
-  }, [rawData, exportDocx, aiAvailable, markExportComplete, docxFilename]);
+  }, [rawData, exportDocx, aiAvailable, markExportComplete, docxFilename, includeAppendices]);
 
   const handleExportPptx = useCallback(async () => {
     if (!rawData) return;
@@ -594,6 +597,16 @@ export function ExportPage() {
                 </p>
               </div>
             </div>
+            <Toggle
+              id="docx-appendices"
+              size="sm"
+              labelText="Include detailed appendices"
+              labelA="Off"
+              labelB="On"
+              toggled={includeAppendices}
+              onToggle={(checked: boolean) => setIncludeAppendices(checked)}
+              className="export-page__card-toggle"
+            />
             <TextInput
               id="docx-filename"
               labelText="Filename"
