@@ -79,7 +79,7 @@ function mapPortGroupsToSubnets(
   return portGroups.map((pg, index) => {
     const id = `subnet-${index}`;
     const overrideData = overrides?.subnetOverrides?.[id];
-    const zoneIndex = index % zones.length;
+    const zoneIndex = 0;
 
     return {
       id,
