@@ -18,7 +18,8 @@
       "Bash(npm run:*)",
       "mcp__carbon-mcp__docs_search",
       "Skill(commit-commands:commit-push-pr)",
-      "Skill(commit-commands:commit)"
+      "Skill(commit-commands:commit)",
+      "mcp__carbon-mcp__code_search"
     ],
     "deny": [
       "Bash(rm -rf *)",

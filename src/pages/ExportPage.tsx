@@ -18,12 +18,13 @@ import {
   DocumentPdf,
   DataTable,
   Document,
+  PresentationFile,
   Report,
   DataShare,
   Upload,
 } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
-import { useData, usePDFExport, useExcelExport, useDocxExport, useAISettings, useVMs, useAutoExclusion } from '@/hooks';
+import { useData, usePDFExport, useExcelExport, useDocxExport, usePptxExport, useAISettings, useVMs, useAutoExclusion, usePlatformSelection } from '@/hooks';
 import { downloadHandoverFile } from '@/services/export/handoverExporter';
 import { extractSettingsFromFile, type ExtractedSettings } from '@/services/settingsExtractor';
 import { restoreBundledSettings } from '@/services/settingsRestore';
@@ -91,7 +92,9 @@ export function ExportPage() {
   const { isExporting: isPDFExporting, error: pdfError, exportPDF } = usePDFExport();
   const { isExporting: isExcelExporting, error: excelError, exportExcel } = useExcelExport();
   const { isExporting: isDocxExporting, error: docxError, exportDocx } = useDocxExport();
+  const { isExporting: isPptxExporting, error: pptxError, exportPptx } = usePptxExport();
   const { settings: aiSettings } = useAISettings();
+  const { answers, score } = usePlatformSelection();
   const { markExportComplete } = useWorkflowProgress();
   const [aiWarning, setAIWarning] = useState<string | null>(null);
 
@@ -182,6 +185,13 @@ export function ExportPage() {
     markExportComplete();
   }, [rawData, exportDocx, aiAvailable, markExportComplete]);
 
+  const handleExportPptx = useCallback(async () => {
+    if (!rawData) return;
+    const platformSelection = Object.keys(answers).length > 0 ? { score, answers } : null;
+    await exportPptx(rawData, { platformSelection, wavePlanningPreference: getWavePlanningPreference() });
+    markExportComplete();
+  }, [rawData, exportPptx, markExportComplete, answers, score]);
+
   const handleExportHandover = useCallback(async () => {
     if (!originalFileBuffer || !originalFileName) return;
     await downloadHandoverFile(originalFileBuffer, originalFileName);
@@ -192,8 +202,8 @@ export function ExportPage() {
 
   const totalVMs = vms.length;
   const hasAnyPdfSelected = Object.values(pdfOptions).some(v => v);
-  const isAnyExporting = isPDFExporting || isExcelExporting || isDocxExporting;
-  const anyError = pdfError || excelError || docxError;
+  const isAnyExporting = isPDFExporting || isExcelExporting || isDocxExporting || isPptxExporting;
+  const anyError = pdfError || excelError || docxError || pptxError;
 
   return (
     <div className="export-page">
@@ -345,6 +355,31 @@ export function ExportPage() {
               className="export-page__card-action"
             >
               {isDocxExporting ? 'Generating...' : 'Export DOCX'}
+            </Button>
+          </Tile>
+        </Column>
+
+        {/* PPTX Presentation */}
+        <Column lg={8} md={4} sm={4}>
+          <Tile className="export-page__card">
+            <div className="export-page__card-header">
+              <PresentationFile size={24} className="export-page__card-icon" />
+              <div>
+                <h3 className="export-page__card-title">PowerPoint Deck</h3>
+                <p className="export-page__card-description">
+                  Summary presentation with key findings — readiness charts, platform recommendation, cost estimates, and next steps. Ideal for client meetings and stakeholder briefings.
+                </p>
+              </div>
+            </div>
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={PresentationFile}
+              onClick={handleExportPptx}
+              disabled={isPptxExporting}
+              className="export-page__card-action"
+            >
+              {isPptxExporting ? 'Generating...' : 'Export PPTX'}
             </Button>
           </Tile>
         </Column>

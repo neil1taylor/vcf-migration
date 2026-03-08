@@ -34,6 +34,27 @@ export function DashboardStorageComparison({
         <p className="dashboard-page__storage-comparison-subtitle">
           Compare storage metrics for migration planning (powered-on VMs only)
         </p>
+        <div className="dashboard-page__storage-bars">
+          {[
+            { label: 'Provisioned', value: totalProvisionedTiB, color: '#8a3ffc' },
+            { label: 'Disk Capacity', value: totalDiskCapacityTiB, color: '#009d9a' },
+            { label: 'In Use', value: totalInUseTiB, color: '#0f62fe' },
+          ].map(({ label, value, color }) => {
+            const pct = totalProvisionedTiB > 0 ? (value / totalProvisionedTiB) * 100 : 0;
+            return (
+              <div key={label} className="dashboard-page__storage-bar-row">
+                <span className="dashboard-page__storage-bar-label">{label}</span>
+                <div className="dashboard-page__storage-bar-track">
+                  <div
+                    className="dashboard-page__storage-bar-fill"
+                    style={{ width: `${pct}%`, backgroundColor: color }}
+                  />
+                </div>
+                <span className="dashboard-page__storage-bar-value">{value.toFixed(2)} TiB</span>
+              </div>
+            );
+          })}
+        </div>
         <div className="dashboard-page__storage-comparison-grid">
           <div className="dashboard-page__storage-comparison-item">
             <div className="dashboard-page__storage-comparison-label">

@@ -16,6 +16,8 @@ export { useExcelExport } from './useExcelExport';
 export type { UseExcelExportReturn } from './useExcelExport';
 export { useDocxExport } from './useDocxExport';
 export type { UseDocxExportReturn } from './useDocxExport';
+export { usePptxExport } from './usePptxExport';
+export type { UsePptxExportReturn } from './usePptxExport';
 
 // Dynamic pricing and profiles hooks
 export { useDynamicPricing } from './useDynamicPricing';

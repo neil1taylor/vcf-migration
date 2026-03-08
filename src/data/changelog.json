@@ -5,6 +5,7 @@
       "date": "2026-03-07",
       "sections": {
         "added": [
+          "PowerPoint (PPTX) export — 7-slide summary presentation deck with native editable charts (readiness pie chart, cost bar chart), KPI numbers, platform recommendation, and next steps; ideal for client meetings and stakeholder briefings",
           "Import Settings from Handover File — upload a previous handover export to restore VM overrides, platform selection, target assignments, and other settings onto a fresh RVTools file; available on both the Settings page and Export & Reports page with a confirmation modal showing what will be imported",
           "Risk Assessment replaced with flat risk table — auto-detected risks from data, curated migration defaults, and user-added rows with traffic light status, inline-editable mitigation plans, and category filtering",
           "DOCX report: hypervisor-dependent tooling incompatibility warnings in Migration Readiness risks and new Section 4.1.6 with VMware-to-IBM Cloud tool replacement mapping table",

@@ -71,7 +71,7 @@ export function generateAutoRisks(
       id: 'auto-complexity',
       source: 'auto',
       category: 'Technical',
-      description: 'Complex or blocker-level VMs detected that require significant migration effort.',
+      description: 'Complex or blocker-level VMs detected that require significant migration effort. Includes tightly coupled monoliths dependent on specific storage or network topology.',
       impactArea: 'Schedule / Effort',
       status,
       mitigationPlan: 'Prioritize simple VMs in early waves; plan dedicated effort for complex workloads.',

@@ -45,7 +45,7 @@ ibmcloud plugin show code-engine
 echo "${IBM_CLOUD_API_KEY:+set}"
 ```
 
-If `IBM_CLOUD_API_KEY` is not set look in the .env file and if not found, tell the user:
+If `IBM_CLOUD_API_KEY` is not set, source the `.env` file (`source .env`) and re-check. If still not found, tell the user:
 ```
 export IBM_CLOUD_API_KEY=your-api-key
 ```
@@ -98,7 +98,7 @@ npm test -- --run
 npm run lint
 ```
 
-**Abort deployment if lint fails.** Tell the user to fix lint issues first.
+**Abort deployment if lint has errors.** Warnings alone (e.g., the TanStack Table `react-hooks/incompatible-library` warning) are acceptable — only errors should block deployment.
 
 #### 3f. Build
 
@@ -122,8 +122,8 @@ Do NOT push unless the user explicitly asks.
 **Important**: `ibmcloud` commands may trigger SSO login — run in foreground and warn the user they may need to interact with the browser.
 
 ```bash
-# Target region
-ibmcloud target -r us-south
+# Target region and resource group (resource group MUST be set before project select)
+ibmcloud target -r us-south -g vcf-migration-rg
 
 # Select the frontend project (same project as profiles/pricing proxies)
 ibmcloud ce project select --name vcf-migration
@@ -132,7 +132,15 @@ ibmcloud ce project select --name vcf-migration
 ibmcloud ce app update --name vcf-migration --build-source .
 ```
 
-Wait for the build to complete, then:
+**Note**: The `ibmcloud ce app update` command may report `FAILED` due to a timeout waiting for the new revision, even when the build and deployment actually succeed. If this happens, check the actual app status:
+
+```bash
+ibmcloud ce app get --name vcf-migration
+```
+
+If `Status Summary` says "Application deployed successfully" and `Ready` is `true`, the deployment worked despite the CLI error.
+
+Then get the URL:
 
 ```bash
 # Get the deployment URL
