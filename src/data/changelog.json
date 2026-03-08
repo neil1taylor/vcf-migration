@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "version": "2.1.0",
+      "date": "2026-03-08",
+      "sections": {
+        "added": [
+          "DOCX report: Complexity Assessment section — distribution summary table, top 10 complex VMs, and key observations based on per-VM scoring (0–100 scale)",
+          "DOCX report: OS Compatibility Matrix section — VSI and ROKS compatibility tables grouped by OS family with status and recommendations",
+          "DOCX report: detailed appendices (Compute, Storage, Cluster, Host, Snapshot, Full VM Inventory) gated by toggle on Export page — dynamic appendix lettering",
+          "Export page: 'Include detailed appendices' toggle on the Word Document card controls whether deep-dive appendix sections are included in the DOCX export"
+        ]
+      }
+    },
+    {
       "version": "2.0.0",
       "date": "2026-03-07",
       "sections": {
