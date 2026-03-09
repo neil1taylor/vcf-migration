@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "2.1.3",
+      "date": "2026-03-09",
+      "sections": {
+        "fixed": [
+          "ROKS cost estimation profile sort order on Code Engine — profiles with missing proxy pricing data (NaN costs) no longer break sort order; added NaN guards in pricing transformer, cost calculation, and sort comparator"
+        ]
+      }
+    },
+    {
       "version": "2.1.2",
       "date": "2026-03-09",
       "sections": {
