@@ -222,11 +222,8 @@ function transformBareMetalProfile(profile, roksSupported) {
   return {
     name: profile.name,
     family: profile.family || extractFamily(profile.name),
-    vcpus: profile.cpu_core_count?.value || profile.cpu_core_count || 0,
-    physicalCores:
-      profile.cpu_socket_count?.value * profile.cpu_core_count?.value ||
-      profile.cpu_core_count?.value ||
-      0,
+    physicalCores: profile.cpu_core_count?.value || profile.cpu_core_count || 0,
+    vcpus: ((profile.cpu_core_count?.value || profile.cpu_core_count || 0) * 2), // Hyperthreading: physical cores × 2
     memoryGiB: profile.memory?.value || profile.memory || 0,
     bandwidthMbps: profile.bandwidth?.value || 0,
     bandwidthGbps: (profile.bandwidth?.value || 0) / 1000,
