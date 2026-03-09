@@ -1,5 +1,7 @@
 // PPTX Generator Types and Constants
 
+import type { CostEstimate } from '@/services/costEstimation';
+import type { RVToolsData } from '@/types/rvtools';
 import type { PlatformSelectionExport, VMReadiness, WavePlanningPreference } from '../docx/types';
 export type { PlatformSelectionExport, VMReadiness, WavePlanningPreference };
 
@@ -12,6 +14,12 @@ export interface PptxExportOptions {
   includeCosts?: boolean;
   platformSelection?: PlatformSelectionExport | null;
   wavePlanningPreference?: WavePlanningPreference | null;
+  /** Pre-filtered rawData (exclusions applied). Used for target/migration sections. Falls back to rawData. */
+  filteredRawData?: RVToolsData | null;
+  /** Cached ROKS cost estimate from BOM cache — full platform costs matching the UI */
+  roksCostEstimate?: CostEstimate | null;
+  /** Cached VSI cost estimate from BOM cache — full platform costs matching the UI */
+  vsiCostEstimate?: CostEstimate | null;
 }
 
 // 16:9 slide layout (inches) — matches IBM reference deck dimensions

@@ -2,6 +2,7 @@
 
 import { Paragraph, Table, AlignmentType, HeadingLevel } from 'docx';
 import type { MigrationInsights } from '@/services/ai/types';
+import type { CostEstimate } from '@/services/costEstimation';
 import type { RVToolsData } from '@/types/rvtools';
 import type { RiskTableData, RiskTableOverrides } from '@/types/riskAssessment';
 import type { TimelinePhase, TimelineConfig } from '@/types/timeline';
@@ -55,6 +56,12 @@ export interface DocxExportOptions {
   targetAssignments?: TargetAssignmentExport[] | null;
   workloadClassification?: WorkloadClassificationExport | null;
   sourceEnvironment?: SourceEnvironmentExport | null;
+  /** Pre-filtered rawData (exclusions applied). Used for target/migration sections. Falls back to rawData. */
+  filteredRawData?: RVToolsData | null;
+  /** Cached ROKS cost estimate from BOM cache — full platform costs matching the UI */
+  roksCostEstimate?: CostEstimate | null;
+  /** Cached VSI cost estimate from BOM cache — full platform costs matching the UI */
+  vsiCostEstimate?: CostEstimate | null;
 }
 
 export interface TargetAssignmentExport {

@@ -138,8 +138,11 @@ import {
   buildExecutiveSummary,
   buildEnvironmentAnalysis,
   buildMigrationStrategy,
+  buildCostEstimation,
 } from './sections';
+import { calculateVMReadiness, calculateROKSSizing, calculateVSIMappings } from './utils/calculations';
 import type { RVToolsData } from '@/types/rvtools';
+import type { CostEstimate } from '@/services/costEstimation';
 
 const mockRVToolsData = {
   metadata: {
@@ -485,5 +488,132 @@ describe('generateDocxReport', () => {
     expect(call[3]).toEqual(expect.any(Number));     // sectionNum
     expect(call[4]).toBe(platformSelection);          // platformSelection
     expect(call[5]).toBe(workloadClassification);     // workloadClassification
+  });
+
+  describe('filteredRawData', () => {
+    const mockFilteredData = {
+      ...mockRVToolsData,
+      vInfo: [mockRVToolsData.vInfo[0]], // Only first VM
+    } as unknown as RVToolsData;
+
+    it('uses filteredRawData for target calculations when provided', async () => {
+      await generateDocxReport(mockRVToolsData, { filteredRawData: mockFilteredData });
+
+      expect(calculateVMReadiness).toHaveBeenCalledWith(mockFilteredData, expect.any(Object));
+      expect(calculateROKSSizing).toHaveBeenCalledWith(mockFilteredData);
+      expect(calculateVSIMappings).toHaveBeenCalledWith(mockFilteredData);
+    });
+
+    it('uses filteredRawData for target sections', async () => {
+      await generateDocxReport(mockRVToolsData, { filteredRawData: mockFilteredData });
+
+      expect(buildComplexityAssessment).toHaveBeenCalledWith(mockFilteredData, expect.any(Number));
+      expect(buildOSCompatibilitySection).toHaveBeenCalledWith(mockFilteredData, expect.any(Object), expect.any(Number));
+      // buildMigrationStrategy(filteredRawData, aiInsights, wavePref, includeROKS, includeVSI, sectionNum)
+      const stratCall = (buildMigrationStrategy as any).mock.calls[0];
+      expect(stratCall[0]).toBe(mockFilteredData);
+    });
+
+    it('uses filteredRawData for ROKS and VSI overviews', async () => {
+      await generateDocxReport(mockRVToolsData, { filteredRawData: mockFilteredData });
+
+      // buildROKSOverview(sizing, rawData, wavePref, platformSel, sectionNum)
+      const roksCall = (buildROKSOverview as any).mock.calls[0];
+      expect(roksCall[1]).toBe(mockFilteredData);
+
+      // buildVSIOverview(mappings, maxVMs, rawData, wavePref, vpcDesign, sectionNum)
+      const vsiCall = (buildVSIOverview as any).mock.calls[0];
+      expect(vsiCall[2]).toBe(mockFilteredData);
+    });
+
+    it('uses filteredRawData for appendices', async () => {
+      await generateDocxReport(mockRVToolsData, { filteredRawData: mockFilteredData });
+
+      expect(buildAppendices).toHaveBeenCalledWith(expect.anything(), expect.any(Number), mockFilteredData, true);
+    });
+
+    it('keeps rawData for source sections (executive summary, environment)', async () => {
+      await generateDocxReport(mockRVToolsData, { filteredRawData: mockFilteredData });
+
+      const execCall = (buildExecutiveSummary as any).mock.calls[0];
+      expect(execCall[0]).toBe(mockRVToolsData);
+
+      expect(buildEnvironmentAnalysis).toHaveBeenCalledWith(mockRVToolsData, expect.any(Number), null);
+    });
+
+    it('falls back to rawData when filteredRawData is not provided', async () => {
+      await generateDocxReport(mockRVToolsData);
+
+      expect(calculateVMReadiness).toHaveBeenCalledWith(mockRVToolsData, expect.any(Object));
+      expect(buildComplexityAssessment).toHaveBeenCalledWith(mockRVToolsData, expect.any(Number));
+    });
+  });
+
+  describe('cached cost estimates', () => {
+    const mockRoksCostEstimate: CostEstimate = {
+      architecture: 'roks',
+      region: 'us-south',
+      regionName: 'Dallas',
+      discountType: 'list',
+      discountPct: 0,
+      lineItems: [
+        { category: 'Compute', description: 'Worker Nodes', quantity: 3, unit: 'nodes', unitCost: 5000, monthlyCost: 15000, annualCost: 180000 },
+        { category: 'OCP License', description: 'OpenShift Licensing', quantity: 3, unit: 'nodes', unitCost: 2000, monthlyCost: 6000, annualCost: 72000 },
+      ],
+      subtotalMonthly: 21000,
+      subtotalAnnual: 252000,
+      discountAmountMonthly: 0,
+      discountAmountAnnual: 0,
+      totalMonthly: 21000,
+      totalAnnual: 252000,
+      metadata: { pricingVersion: '1.0', generatedAt: '2024-01-15', notes: [] },
+    };
+
+    const mockVsiCostEstimate: CostEstimate = {
+      architecture: 'vsi',
+      region: 'us-south',
+      regionName: 'Dallas',
+      discountType: 'list',
+      discountPct: 0,
+      lineItems: [
+        { category: 'Compute', description: 'VSI Instances', quantity: 10, unit: 'instances', unitCost: 500, monthlyCost: 5000, annualCost: 60000 },
+      ],
+      subtotalMonthly: 5000,
+      subtotalAnnual: 60000,
+      discountAmountMonthly: 0,
+      discountAmountAnnual: 0,
+      totalMonthly: 5000,
+      totalAnnual: 60000,
+      metadata: { pricingVersion: '1.0', generatedAt: '2024-01-15', notes: [] },
+    };
+
+    it('passes cached cost estimates to buildCostEstimation', async () => {
+      await generateDocxReport(mockRVToolsData, {
+        roksCostEstimate: mockRoksCostEstimate,
+        vsiCostEstimate: mockVsiCostEstimate,
+      });
+
+      expect(buildCostEstimation).toHaveBeenCalledWith(
+        expect.any(Object), // roksSizing
+        expect.any(Object), // vsiMappings
+        null, // aiInsights
+        expect.any(Number), // sectionNum
+        mockRoksCostEstimate,
+        mockVsiCostEstimate,
+      );
+    });
+
+    it('passes null cost estimates when not provided (fallback)', async () => {
+      await generateDocxReport(mockRVToolsData);
+
+      expect(buildCostEstimation).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.any(Object),
+        null,
+        expect.any(Number),
+        null,
+        null,
+      );
+    });
   });
 });

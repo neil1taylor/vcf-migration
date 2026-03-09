@@ -57,7 +57,11 @@ export async function generateDocxReport(
 ): Promise<Blob> {
   const aiInsights = options.aiInsights ?? null;
 
-  const finalOptions: Required<DocxExportOptions> = {
+  // filteredRawData: pre-filtered by exclusion model for target/migration sections
+  // Falls back to rawData when not provided (backward compat)
+  const filteredRawData = options.filteredRawData ?? rawData;
+
+  const finalOptions: Required<Omit<DocxExportOptions, 'filteredRawData'>> = {
     clientName: options.clientName || reportTemplates.placeholders.clientName,
     preparedBy: options.preparedBy || reportTemplates.placeholders.preparedBy,
     companyName: options.companyName || reportTemplates.placeholders.companyName,
@@ -76,18 +80,20 @@ export async function generateDocxReport(
     targetAssignments: options.targetAssignments ?? null,
     workloadClassification: options.workloadClassification ?? null,
     sourceEnvironment: options.sourceEnvironment ?? null,
+    roksCostEstimate: options.roksCostEstimate ?? null,
+    vsiCostEstimate: options.vsiCostEstimate ?? null,
   };
 
   // Reset caption counters for fresh document
   resetCaptionCounters();
 
-  // Calculate all data
-  const readiness = calculateVMReadiness(rawData, {
+  // Calculate all data using filtered data (target sections)
+  const readiness = calculateVMReadiness(filteredRawData, {
     includeROKS: finalOptions.includeROKS,
     includeVSI: finalOptions.includeVSI,
   });
-  const roksSizing = calculateROKSSizing(rawData);
-  const vsiMappings = calculateVSIMappings(rawData);
+  const roksSizing = calculateROKSSizing(filteredRawData);
+  const vsiMappings = calculateVSIMappings(filteredRawData);
 
   // Section numbering counter — incremented for each H1 section
   const sec = createSectionCounter();
@@ -151,7 +157,7 @@ export async function generateDocxReport(
     ...buildAssumptionsAndScope(execNum),                                   // §1.1
     ...environmentAnalysis,                                                 // §2 (enriched)
     ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §3
-    ...buildComplexityAssessment(rawData, sec.next()),                      // §4
+    ...buildComplexityAssessment(filteredRawData, sec.next()),               // §4
   ];
 
   // §5 Workload Classification (NEW — conditional)
@@ -160,7 +166,7 @@ export async function generateDocxReport(
   }
 
   sections.push(
-    ...buildOSCompatibilitySection(rawData, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §6
+    ...buildOSCompatibilitySection(filteredRawData, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §6
     ...buildMigrationOptions(sec.next()),                                   // §7 (with PowerVS column)
   );
 
@@ -179,14 +185,14 @@ export async function generateDocxReport(
     // VSI recommended — show VSI first
     if (finalOptions.includeVSI) {
       sections.push(...buildVSIOverview(
-        vsiMappings, 20, rawData,
+        vsiMappings, 20, filteredRawData,
         finalOptions.wavePlanningPreference, finalOptions.vpcDesign,
         sec.next(),
       ));
     }
     if (finalOptions.includeROKS) {
       sections.push(...buildROKSOverview(
-        roksSizing, rawData,
+        roksSizing, filteredRawData,
         finalOptions.wavePlanningPreference, finalOptions.platformSelection,
         sec.next(),
       ));
@@ -195,14 +201,14 @@ export async function generateDocxReport(
     // Default: ROKS first (recommended or neutral)
     if (finalOptions.includeROKS) {
       sections.push(...buildROKSOverview(
-        roksSizing, rawData,
+        roksSizing, filteredRawData,
         finalOptions.wavePlanningPreference, finalOptions.platformSelection,
         sec.next(),
       ));
     }
     if (finalOptions.includeVSI) {
       sections.push(...buildVSIOverview(
-        vsiMappings, 20, rawData,
+        vsiMappings, 20, filteredRawData,
         finalOptions.wavePlanningPreference, finalOptions.vpcDesign,
         sec.next(),
       ));
@@ -210,11 +216,11 @@ export async function generateDocxReport(
   }
 
   // §11 Migration Strategy
-  sections.push(...buildMigrationStrategy(rawData, aiInsights, finalOptions.wavePlanningPreference, finalOptions.includeROKS, finalOptions.includeVSI, sec.next()));
+  sections.push(...buildMigrationStrategy(filteredRawData, aiInsights, finalOptions.wavePlanningPreference, finalOptions.includeROKS, finalOptions.includeVSI, sec.next()));
 
   // §12 Cost Estimation
   if (finalOptions.includeCosts && (finalOptions.includeROKS || finalOptions.includeVSI)) {
-    sections.push(...buildCostEstimation(roksSizing, vsiMappings, aiInsights, sec.next()));
+    sections.push(...buildCostEstimation(roksSizing, vsiMappings, aiInsights, sec.next(), finalOptions.roksCostEstimate, finalOptions.vsiCostEstimate));
   }
 
   // §13 Migration Timeline
@@ -234,7 +240,7 @@ export async function generateDocxReport(
   sections.push(...buildNextSteps(finalOptions, aiInsights, sec.next()));
 
   // Appendices
-  sections.push(...buildAppendices(readiness, finalOptions.maxIssueVMs, rawData, finalOptions.includeAppendices));
+  sections.push(...buildAppendices(readiness, finalOptions.maxIssueVMs, filteredRawData, finalOptions.includeAppendices));
 
   // Create document with professional header/footer
   const doc = new Document({

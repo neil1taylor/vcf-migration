@@ -45,6 +45,7 @@ import { ROUTES } from '@/utils/constants';
 import { formatNumber } from '@/utils/formatters';
 import { createLogger } from '@/utils/logger';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
+import { filterRawDataByExclusions } from '@/utils/filterRawData';
 import type { PDFExportOptions } from '@/hooks/usePDFExport';
 import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
@@ -179,22 +180,11 @@ export function ExportPage() {
   const tools = useMemo(() => rawData?.vTools ?? [], [rawData?.vTools]);
   const networks = useMemo(() => rawData?.vNetwork ?? [], [rawData?.vNetwork]);
 
-  // ===== Pre-flight filtered rawData =====
+  // ===== Pre-filtered rawData for target/migration sections in exports =====
   const filteredRawData = useMemo(() => {
     if (!rawData) return null;
-    const includedNames = new Set(includedVMs.map(vm => vm.vmName));
-    return {
-      ...rawData,
-      vInfo: includedVMs,
-      vDisk: rawData.vDisk.filter(d => includedNames.has(d.vmName)),
-      vSnapshot: rawData.vSnapshot.filter(s => includedNames.has(s.vmName)),
-      vTools: rawData.vTools.filter(t => includedNames.has(t.vmName)),
-      vNetwork: rawData.vNetwork.filter(n => includedNames.has(n.vmName)),
-      vCD: rawData.vCD.filter(c => includedNames.has(c.vmName)),
-      vCPU: rawData.vCPU.filter(c => includedNames.has(c.vmName)),
-      vMemory: rawData.vMemory.filter(m => includedNames.has(m.vmName)),
-    };
-  }, [rawData, includedVMs]);
+    return filterRawDataByExclusions(rawData, allVmsRaw, vmOverrides, { getAutoExclusionById });
+  }, [rawData, allVmsRaw, vmOverrides, getAutoExclusionById]);
 
   // ===== Migration Assessment (for complexity scores) =====
   const { complexityScores } = useMigrationAssessment({
@@ -310,6 +300,9 @@ export function ExportPage() {
     const workloadClassification = getWorkloadClassificationExport(rawData);
     const sourceEnvironment = getSourceEnvironmentExport(rawData);
 
+    const roksBOM = getCachedBOM('roks');
+    const vsiBOM = getCachedBOM('vsi');
+
     await exportDocx(rawData, {
       aiInsights,
       wavePlanningPreference: getWavePlanningPreference(),
@@ -322,16 +315,27 @@ export function ExportPage() {
       targetAssignments,
       workloadClassification,
       sourceEnvironment,
+      filteredRawData,
+      roksCostEstimate: roksBOM?.estimate ?? null,
+      vsiCostEstimate: vsiBOM?.estimate ?? null,
     }, sanitizeFilename(docxFilename, '.docx'));
     markExportComplete();
-  }, [rawData, exportDocx, aiAvailable, markExportComplete, docxFilename, includeAppendices]);
+  }, [rawData, filteredRawData, exportDocx, aiAvailable, markExportComplete, docxFilename, includeAppendices]);
 
   const handleExportPptx = useCallback(async () => {
     if (!rawData) return;
     const platformSelection = Object.keys(answers).length > 0 ? { score, answers } : null;
-    await exportPptx(rawData, { platformSelection, wavePlanningPreference: getWavePlanningPreference() }, sanitizeFilename(pptxFilename, '.pptx'));
+    const roksBOMPptx = getCachedBOM('roks');
+    const vsiBOMPptx = getCachedBOM('vsi');
+    await exportPptx(rawData, {
+      platformSelection,
+      wavePlanningPreference: getWavePlanningPreference(),
+      filteredRawData,
+      roksCostEstimate: roksBOMPptx?.estimate ?? null,
+      vsiCostEstimate: vsiBOMPptx?.estimate ?? null,
+    }, sanitizeFilename(pptxFilename, '.pptx'));
     markExportComplete();
-  }, [rawData, exportPptx, markExportComplete, answers, score, pptxFilename]);
+  }, [rawData, filteredRawData, exportPptx, markExportComplete, answers, score, pptxFilename]);
 
   const handleExportHandover = useCallback(async () => {
     if (!originalFileBuffer || !originalFileName) return;

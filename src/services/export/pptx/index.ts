@@ -30,7 +30,10 @@ export async function generatePptxReport(
   rawData: RVToolsData,
   options: PptxExportOptions = {}
 ): Promise<Blob> {
-  const finalOptions: Required<PptxExportOptions> = {
+  // filteredRawData: pre-filtered by exclusion model for target/migration sections
+  const filteredRawData = options.filteredRawData ?? rawData;
+
+  const finalOptions: Required<Omit<PptxExportOptions, 'filteredRawData'>> = {
     clientName: options.clientName || reportTemplates.placeholders.clientName,
     preparedBy: options.preparedBy || reportTemplates.placeholders.preparedBy,
     companyName: options.companyName || reportTemplates.placeholders.companyName,
@@ -39,6 +42,8 @@ export async function generatePptxReport(
     includeCosts: options.includeCosts ?? true,
     platformSelection: options.platformSelection ?? null,
     wavePlanningPreference: options.wavePlanningPreference ?? null,
+    roksCostEstimate: options.roksCostEstimate ?? null,
+    vsiCostEstimate: options.vsiCostEstimate ?? null,
   };
 
   // Create presentation
@@ -56,9 +61,9 @@ export async function generatePptxReport(
   // Define master slides (theme)
   defineMasterSlides(pres);
 
-  // Calculate data (reuse from DOCX calculations)
-  const roksSizing = calculateROKSSizing(rawData);
-  const vsiMappings = calculateVSIMappings(rawData);
+  // Calculate data using filtered data (target sections)
+  const roksSizing = calculateROKSSizing(filteredRawData);
+  const vsiMappings = calculateVSIMappings(filteredRawData);
 
   // Build content titles for agenda (based on which slides are included)
   const contentTitles: string[] = [
@@ -85,17 +90,17 @@ export async function generatePptxReport(
   pres.addSlide({ masterName: 'CONTENT' });
   pres.addSlide({ masterName: 'CONTENT' });
 
-  // Content slides
+  // Content slides — source sections use rawData, target sections use filteredRawData
   addExecutiveSummarySlide(pres, rawData);
-  addMigrationStatsSlide(pres, rawData, finalOptions.platformSelection?.score?.leaning ?? 'neutral');
+  addMigrationStatsSlide(pres, filteredRawData, finalOptions.platformSelection?.score?.leaning ?? 'neutral');
   addExcludedVMsSlide(pres, rawData);
   addPlatformRecommendationSlide(pres, finalOptions);
 
   if (includeCosts) {
-    addCostEstimationSlide(pres, roksSizing, vsiMappings, finalOptions);
+    addCostEstimationSlide(pres, roksSizing, vsiMappings, finalOptions, finalOptions.roksCostEstimate, finalOptions.vsiCostEstimate);
   }
 
-  addWavePlanningSlide(pres, rawData, finalOptions);
+  addWavePlanningSlide(pres, filteredRawData, finalOptions);
   addMigrationExecutionSlide(pres);
   addNextStepsSlide(pres);
 
