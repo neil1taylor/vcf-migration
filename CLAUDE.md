@@ -30,6 +30,7 @@ npm run test:e2e:generate-fixture # Regenerate test Excel fixture
 npm run convert:vinventory -- input.xlsx [output.xlsx]  # Convert vInventory to RVTools format
 npm run preview:pptx    # Generate PPTX from test fixture + convert slides to PNGs for visual inspection
 npm run preview:docx    # Generate DOCX from test fixture for visual inspection
+npm run mcp:ai-proxy    # Start the MCP server for automated AI proxy testing
 ```
 
 ## Testing Requirements
