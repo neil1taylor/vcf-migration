@@ -136,6 +136,43 @@ function buildInsightsPrompt(data) {
 ${netLines}`;
   }
 
+  // Build workload classification section (richer than OS distribution)
+  let workloadClassificationInfo = '';
+  if (data.workloadClassificationBreakdown && Object.keys(data.workloadClassificationBreakdown).length > 0) {
+    const classLines = Object.entries(data.workloadClassificationBreakdown)
+      .sort(([, a], [, b]) => b - a)
+      .map(([type, count]) => `  - ${type}: ${count} VMs`)
+      .join('\n');
+    workloadClassificationInfo = `\nWorkload classification:
+${classLines}`;
+  }
+
+  // Build preflight check section (replaces vague blocker summary)
+  let preflightInfo = '';
+  if (data.preflightSummary) {
+    const pf = data.preflightSummary;
+    const issueLines = pf.topIssues
+      .map(i => `    ${i.checkId}: ${i.severity}, ${i.affectedCount} VMs`)
+      .join('\n');
+    preflightInfo = `\nPre-flight checks:
+  Blockers: ${pf.totalBlockers}, Warnings: ${pf.totalWarnings}
+  Top issues:
+${issueLines}`;
+  }
+
+  // Build target platform split section
+  let targetSplitInfo = '';
+  if (data.targetSplit) {
+    const ts = data.targetSplit;
+    const parts = [];
+    if (ts.roks > 0) parts.push(`ROKS: ${ts.roks}`);
+    if (ts.vsi > 0) parts.push(`VSI: ${ts.vsi}`);
+    if (ts.powervs > 0) parts.push(`PowerVS: ${ts.powervs}`);
+    if (parts.length > 0) {
+      targetSplitInfo = `\nTarget platform split: ${parts.join(', ')}`;
+    }
+  }
+
   return `You are a cloud migration strategist specializing in VMware to IBM Cloud migrations. Analyze the following environment and provide actionable insights.
 
 Environment summary:
@@ -148,8 +185,9 @@ Environment summary:
   Datastores: ${data.datastoreCount}
   Migration target: ${data.migrationTarget || 'not specified'}
 
-Workload breakdown:
+OS distribution:
 ${workloadList}
+${workloadClassificationInfo}
 
 Complexity assessment:
   Simple: ${complexity.simple} VMs
@@ -159,7 +197,9 @@ Complexity assessment:
 
 Migration blockers:
 ${blockers}
+${preflightInfo}
 ${networkInfo}
+${targetSplitInfo}
 ${costInfo}
 
 Migration wave planning context:
@@ -168,13 +208,13 @@ Migration wave planning context:
 - Smaller subnets (fewer VMs) are lower risk and should migrate first. Larger subnets with critical workloads should migrate later.
 
 Provide a JSON response with:
-- "executiveSummary": 2-3 sentence high-level summary for stakeholders. MUST include the total vCPU count, total memory (GiB), and total storage (TiB) alongside the VM count.
-- "riskAssessment": Assessment of migration risks including network complexity (2-3 sentences)
-- "recommendations": array of 3-5 specific, actionable recommendations (include subnet/network-aware migration advice when network data is available)
-- "costOptimizations": array of 2-3 cost optimization suggestions
-- "migrationStrategy": Recommended migration approach describing a subnet-based wave strategy when network data is available, explaining how to group VMs by port group/subnet to retain IP addresses and minimize network disruption (3-4 sentences)
+- "executiveSummary": 2-3 sentence high-level summary for stakeholders. MUST include the total vCPU count, total memory (GiB), and total storage (TiB) alongside the VM count. Reference workload types and complexity breakdown when available.
+- "riskAssessment": Assessment of migration risks referencing specific pre-flight check failures, complexity blockers, and network complexity (2-3 sentences)
+- "recommendations": array of 3-5 specific, actionable recommendations. Reference specific workload types (e.g., databases, middleware) and pre-flight issues (e.g., CD-ROM connected, OS incompatible) when available. Include subnet/network-aware migration advice when network data is present.
+- "costOptimizations": array of 2-3 cost optimization suggestions. Reference target platform split and workload-specific sizing when available.
+- "migrationStrategy": Recommended migration approach describing a subnet-based wave strategy when network data is available, explaining how to group VMs by port group/subnet to retain IP addresses and minimize network disruption. Reference workload types to suggest migration wave sequencing (e.g., simple workloads first, databases last) (3-4 sentences)
 
-Focus on practical advice specific to this environment. Reference specific numbers from the data including resource totals (vCPUs, memory, storage) and network/subnet details when available.
+Focus on practical advice specific to this environment. Reference specific numbers from the data including resource totals (vCPUs, memory, storage), workload categories, pre-flight issues, and network/subnet details when available.
 
 Respond ONLY with valid JSON, no other text.`;
 }

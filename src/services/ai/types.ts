@@ -112,6 +112,13 @@ export interface InsightsInput {
   };
   blockerSummary: string[];
   networkSummary?: NetworkSummaryForAI[];
+  workloadClassificationBreakdown?: Record<string, number>;
+  preflightSummary?: {
+    totalBlockers: number;
+    totalWarnings: number;
+    topIssues: Array<{ checkId: string; severity: string; affectedCount: number }>;
+  };
+  targetSplit?: { roks: number; vsi: number; powervs: number };
   costEstimate?: {
     monthly: number;
     annual: number;

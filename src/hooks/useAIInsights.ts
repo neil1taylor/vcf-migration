@@ -42,11 +42,13 @@ export function useAIInsights(): UseAIInsightsReturn {
     skipCacheRef.current = false;
 
     // Check localStorage cache first (unless skip requested)
+    const blockerTotal = data.preflightSummary?.totalBlockers ?? 0;
+    const complexBlockers = data.complexitySummary?.blocker ?? 0;
     const inputHash = buildInsightsInputHash(
       data.totalVMs,
       data.totalVCPUs,
       data.totalMemoryGiB,
-      data.migrationTarget || 'both'
+      `${data.migrationTarget || 'both'}:${blockerTotal}:${complexBlockers}`
     );
     if (!shouldSkipCache) {
       const cached = getCachedInsights(inputHash);

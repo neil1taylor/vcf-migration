@@ -6,6 +6,7 @@ import { mibToGiB, mibToTiB, getHardwareVersionNumber, formatHardwareVersion } f
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { POWER_STATE_CHART_COLORS } from '@/utils/chartConfig';
+import { getVMWorkloadCategory, getCategoryDisplayName } from '@/utils/workloadClassification';
 import type { RVToolsData, VirtualMachine, VToolsInfo, VSnapshotInfo, VSourceInfo } from '@/types/rvtools';
 import type { ChartFilter } from '@/hooks';
 import type { InsightsInput, NetworkSummaryForAI } from '@/services/ai/types';
@@ -380,6 +381,14 @@ export function useDashboardData(): DashboardData {
       });
     });
 
+    // Build workload classification breakdown from VM names
+    const workloadClassificationBreakdown: Record<string, number> = {};
+    for (const vm of vms) {
+      const categoryKey = getVMWorkloadCategory(vm.vmName, vm.annotation);
+      const displayName = getCategoryDisplayName(categoryKey) || 'Unclassified';
+      workloadClassificationBreakdown[displayName] = (workloadClassificationBreakdown[displayName] || 0) + 1;
+    }
+
     return {
       totalVMs,
       totalExcluded: excludedCount,
@@ -393,6 +402,7 @@ export function useDashboardData(): DashboardData {
       complexitySummary: { simple: 0, moderate: 0, complex: 0, blocker: 0 },
       blockerSummary: configAnalysis.configIssuesCount > 0 ? [`${configAnalysis.configIssuesCount} configuration issues detected`] : [],
       networkSummary,
+      workloadClassificationBreakdown,
       migrationTarget: 'both',
     };
   }, [totalVMs, totalVCPUs, totalMemoryGiB, totalInUseTiB, uniqueClusters, rawData, vms, vmOverrides, configAnalysis.configIssuesCount]);

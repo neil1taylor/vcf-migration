@@ -15,7 +15,7 @@ import type { ComplexityScore } from '@/services/migration';
 import type { UseWavePlanningReturn } from '@/hooks/useWavePlanning';
 import type { CustomProfile } from '@/hooks/useCustomProfiles';
 import type { StorageTierType } from '@/utils/workloadClassification';
-import { getVMWorkloadCategory, getStorageTierForWorkload } from '@/utils/workloadClassification';
+import { getVMWorkloadCategory, getStorageTierForWorkload, getCategoryDisplayName } from '@/utils/workloadClassification';
 
 // ===== INPUT TYPE =====
 
@@ -255,10 +255,10 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
     if (!isAIProxyConfigured()) return null;
     const totalStorageGiB = poweredOnVMs.reduce((sum, vm) => sum + mibToGiB(vm.inUseMiB), 0);
     const scores = Array.isArray(complexityScores) ? complexityScores : [];
-    const complexSimple = scores.filter(s => s.score < 3).length;
-    const complexModerate = scores.filter(s => s.score >= 3 && s.score < 6).length;
-    const complexHigh = scores.filter(s => s.score >= 6 && s.score < 9).length;
-    const complexBlocker = scores.filter(s => s.score >= 9).length;
+    const complexSimple = scores.filter(s => s.category === 'Simple').length;
+    const complexModerate = scores.filter(s => s.category === 'Moderate').length;
+    const complexHigh = scores.filter(s => s.category === 'Complex').length;
+    const complexBlocker = scores.filter(s => s.category === 'Blocker').length;
     const blockerSummary: string[] = [];
     if (blockerCount > 0) blockerSummary.push(`${blockerCount} pre-flight blockers`);
     if (warningCount > 0) blockerSummary.push(`${warningCount} warnings`);
@@ -281,6 +281,25 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
       networkSummary.push({ portGroup, subnet: prefixes.size > 0 ? Array.from(prefixes).sort().join(', ') : 'N/A', vmCount: data.vmNames.size });
     });
 
+    // Build workload classification breakdown from VM names
+    const workloadClassificationBreakdown: Record<string, number> = {};
+    for (const vm of poweredOnVMs) {
+      const categoryKey = getVMWorkloadCategory(vm.vmName, vm.annotation);
+      const displayName = getCategoryDisplayName(categoryKey) || 'Unclassified';
+      workloadClassificationBreakdown[displayName] = (workloadClassificationBreakdown[displayName] || 0) + 1;
+    }
+
+    // Build preflight summary from remediation items
+    const preflightSummary = remediationItems.length > 0 ? {
+      totalBlockers: blockerCount,
+      totalWarnings: warningCount,
+      topIssues: remediationItems.map(item => ({
+        checkId: item.name,
+        severity: item.severity,
+        affectedCount: item.affectedCount,
+      })),
+    } : undefined;
+
     return {
       totalVMs: poweredOnVMs.length,
       totalExcluded: allVmsRawLength - vmsLength,
@@ -294,9 +313,11 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
       complexitySummary: { simple: complexSimple, moderate: complexModerate, complex: complexHigh, blocker: complexBlocker },
       blockerSummary,
       networkSummary,
+      workloadClassificationBreakdown,
+      preflightSummary,
       migrationTarget: 'vsi',
     };
-  }, [poweredOnVMs, allVmsRawLength, vmsLength, vsiTotalVCPUs, vsiTotalMemory, complexityScores, blockerCount, warningCount, familyCounts, networks, rawData]);
+  }, [poweredOnVMs, allVmsRawLength, vmsLength, vsiTotalVCPUs, vsiTotalMemory, complexityScores, blockerCount, warningCount, familyCounts, networks, rawData, remediationItems]);
 
   // ===== AI WAVE SUGGESTIONS DATA =====
   const waveSuggestionData = useMemo<WaveSuggestionInput | null>(() => {

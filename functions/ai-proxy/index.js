@@ -38,11 +38,11 @@ const PORT = process.env.PORT || 8080;
 // Configuration
 const API_KEY = process.env.IBM_CLOUD_API_KEY;
 const PROJECT_ID = process.env.WATSONX_PROJECT_ID;
-const MODEL_ID = process.env.WATSONX_MODEL_ID || 'ibm/granite-3-8b-instruct';
+const MODEL_ID = process.env.WATSONX_MODEL_ID || 'ibm/granite-3-3-8b-instruct';
 
 // Tiered model selection — lighter model for simple tasks, larger for complex reasoning
-const FAST_MODEL = process.env.WATSONX_FAST_MODEL_ID || 'ibm/granite-3-1-8b-instruct';
-const COMPLEX_MODEL = process.env.WATSONX_COMPLEX_MODEL_ID || 'ibm/granite-3-1-34b-instruct';
+const FAST_MODEL = process.env.WATSONX_FAST_MODEL_ID || 'ibm/granite-3-3-8b-instruct';
+const COMPLEX_MODEL = process.env.WATSONX_COMPLEX_MODEL_ID || 'ibm/granite-4-h-small';
 
 /**
  * Select model based on task complexity
@@ -509,7 +509,9 @@ app.post('/api/insights', async (req, res) => {
     }
 
     // Check cache (use a hash of key metrics)
-    const cacheKey = `insights:${data.totalVMs}:${data.totalVCPUs}:${data.totalMemoryGiB}:${data.migrationTarget || 'both'}`;
+    const blockerTotal = data.preflightSummary?.totalBlockers ?? 0;
+    const complexBlockers = data.complexitySummary?.blocker ?? 0;
+    const cacheKey = `insights:${data.totalVMs}:${data.totalVCPUs}:${data.totalMemoryGiB}:${data.migrationTarget || 'both'}:${blockerTotal}:${complexBlockers}`;
     const skipCache = req.headers['x-skip-cache'] === 'true';
     if (!skipCache) {
       const cached = getCached(cacheKey);
