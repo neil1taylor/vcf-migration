@@ -33,7 +33,7 @@ const migrationRoutes = [
 ];
 
 const referenceRoutes = [
-  ROUTES.userGuide, ROUTES.info, ROUTES.documentation,
+  ROUTES.tutorial, ROUTES.userGuide, ROUTES.info, ROUTES.documentation,
   ROUTES.vsiMigrationMethods, ROUTES.mtvDocumentation, ROUTES.overheadReference,
 ];
 
@@ -235,6 +235,13 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
           defaultExpanded={isInGroup(referenceRoutes)}
           isActive={isInGroup(referenceRoutes)}
         >
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.tutorial)}
+            isActive={isActive(ROUTES.tutorial)}
+          >
+            Tutorial
+          </SideNavMenuItem>
           <SideNavMenuItem
             href="#"
             onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.userGuide)}

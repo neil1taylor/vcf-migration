@@ -1,0 +1,132 @@
+// Tutorial page styles
+@use '@carbon/styles/scss/spacing';
+@use '@carbon/styles/scss/type';
+@use '@carbon/styles/scss/theme';
+@use '@carbon/styles/scss/breakpoint';
+
+.tutorial-page {
+  :global {
+    .cds--css-grid-column,
+    [class*='cds--col'] {
+      margin-bottom: spacing.$spacing-05;
+    }
+  }
+
+  &__title {
+    @include type.type-style('heading-04');
+    margin-bottom: spacing.$spacing-03;
+    color: theme.$text-primary;
+  }
+
+  &__subtitle {
+    @include type.type-style('body-01');
+    color: theme.$text-secondary;
+    margin-bottom: spacing.$spacing-05;
+  }
+
+  &__stepper {
+    margin-bottom: spacing.$spacing-05;
+    overflow-x: auto;
+
+    // Make steps clickable
+    :global {
+      .cds--progress-step {
+        cursor: pointer;
+      }
+
+      .cds--progress-label {
+        font-size: 0.75rem;
+      }
+    }
+  }
+
+  &__content {
+    min-height: 420px;
+  }
+
+  &__illustration {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: spacing.$spacing-05;
+    height: 100%;
+    min-height: 280px;
+    background-color: var(--cds-layer-01);
+  }
+
+  &__illustration-svg {
+    width: 100%;
+    max-width: 400px;
+    height: auto;
+  }
+
+  &__details {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$spacing-04;
+  }
+
+  &__step-header {
+    display: flex;
+    flex-direction: column;
+    gap: spacing.$spacing-03;
+
+    h2 {
+      @include type.type-style('heading-03');
+      color: theme.$text-primary;
+    }
+  }
+
+  &__description {
+    @include type.type-style('body-01');
+    color: theme.$text-secondary;
+    line-height: 1.6;
+  }
+
+  // List items
+  .cds--list--unordered {
+    padding-left: spacing.$spacing-05;
+
+    .cds--list__item {
+      @include type.type-style('body-01');
+      margin-bottom: spacing.$spacing-03;
+      line-height: 1.5;
+    }
+  }
+
+  &__tips {
+    padding: spacing.$spacing-04;
+    border-left: 4px solid var(--cds-link-primary, #0f62fe);
+    background-color: var(--cds-layer-01);
+
+    h4 {
+      @include type.type-style('heading-compact-02');
+      color: theme.$text-primary;
+      margin-bottom: spacing.$spacing-03;
+    }
+  }
+
+  &__try-it {
+    align-self: flex-start;
+    margin-top: spacing.$spacing-03;
+  }
+
+  &__navigation {
+    display: flex;
+    justify-content: space-between;
+    padding-top: spacing.$spacing-05;
+    border-top: 1px solid var(--cds-border-subtle-01);
+  }
+
+  // Responsive: stack illustration above text on small screens
+  @include breakpoint.breakpoint-down('md') {
+    &__content {
+      min-height: auto;
+    }
+
+    &__illustration {
+      min-height: 200px;
+      margin-bottom: spacing.$spacing-04;
+    }
+  }
+}

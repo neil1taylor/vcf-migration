@@ -153,6 +153,7 @@ export const ROUTES = {
   export: '/export',
   settings: '/settings',
   about: '/about',
+  tutorial: '/tutorial',
   chat: '/chat',
 } as const;
 
