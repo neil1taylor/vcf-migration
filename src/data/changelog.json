@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "2.1.2",
+      "date": "2026-03-09",
+      "sections": {
+        "fixed": [
+          "Bare metal profile cores/vCPUs were swapped when using Live API vs Cache — profiles proxy now correctly calculates physicalCores and vCPUs with hyperthreading"
+        ]
+      }
+    },
+    {
       "version": "2.1.1",
       "date": "2026-03-09",
       "sections": {
