@@ -8,7 +8,7 @@
           "ROKS cost estimation now uses per-profile worker node rates from Global Catalog instead of VPC rates (~9% more accurate for compute costs)"
         ],
         "fixed": [
-          "ROKS cost estimation profile sort order on Code Engine — profiles with missing proxy pricing data (NaN costs) no longer break sort order; added NaN guards in pricing transformer, cost calculation, and sort comparator"
+          "ROKS cost estimation profile sort order on Code Engine — profiles with missing proxy pricing data (NaN costs) no longer break sort order; extracted sort logic into tested utility with robust Number coercion"
         ]
       }
     },
