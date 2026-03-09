@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { loadTestData } from './helpers/load-data';
+import { loadTestData, navigateViaSideNav } from './helpers/load-data';
 
 test.describe('Discovery Workflow', () => {
   test.beforeEach(async ({ page }) => {
@@ -14,8 +14,12 @@ test.describe('Discovery Workflow', () => {
   });
 
   test('discovery page shows VM table', async ({ page }) => {
-    await page.goto('/discovery');
-    await expect(page).toHaveURL(/\/discovery$/);
+    await navigateViaSideNav(page, 'Discovery', /\/discovery$/);
+
+    // Switch to the Workload tab which contains the VM table
+    const workloadTab = page.getByRole('tab', { name: /Workload/i });
+    await expect(workloadTab).toBeVisible({ timeout: 10_000 });
+    await workloadTab.click();
 
     // Should show a data table with VMs
     const table = page.getByRole('table');
@@ -23,11 +27,17 @@ test.describe('Discovery Workflow', () => {
   });
 
   test('discovery page has search functionality', async ({ page }) => {
-    await page.goto('/discovery');
+    await navigateViaSideNav(page, 'Discovery', /\/discovery$/);
 
-    // Search bar should be visible
+    // Switch to Workload tab which has the VM search
+    const workloadTab = page.getByRole('tab', { name: /Workload/i });
+    await expect(workloadTab).toBeVisible({ timeout: 10_000 });
+    await workloadTab.click();
+
+    // Carbon expandable search — click the input directly to expand it
     const searchInput = page.getByPlaceholder('Search VMs...');
-    await expect(searchInput).toBeVisible();
+    await searchInput.click({ force: true });
+    await expect(searchInput).toBeVisible({ timeout: 5_000 });
 
     // Type a search term
     await searchInput.fill('test');
@@ -38,22 +48,31 @@ test.describe('Discovery Workflow', () => {
   });
 
   test('discovery page has workload and network tabs', async ({ page }) => {
-    await page.goto('/discovery');
+    await navigateViaSideNav(page, 'Discovery', /\/discovery$/);
 
-    // Should have tab navigation
+    // Wait for tabs to render
+    const firstTab = page.getByRole('tab').first();
+    await expect(firstTab).toBeVisible({ timeout: 10_000 });
+
+    // Should have tab navigation (Infrastructure, Workload, Networks)
     const tabs = page.getByRole('tab');
     const tabCount = await tabs.count();
     expect(tabCount).toBeGreaterThanOrEqual(2);
   });
 
   test('VM table shows VM rows from fixture data', async ({ page }) => {
-    await page.goto('/discovery');
+    await navigateViaSideNav(page, 'Discovery', /\/discovery$/);
+
+    // Switch to the Workload tab which contains the VM table
+    const workloadTab = page.getByRole('tab', { name: /Workload/i });
+    await expect(workloadTab).toBeVisible({ timeout: 10_000 });
+    await workloadTab.click();
 
     const table = page.getByRole('table');
     await expect(table).toBeVisible({ timeout: 10_000 });
 
     // Fixture has 3 VMs — rows should be present
-    const rows = page.getByRole('row');
+    const rows = table.getByRole('row');
     // Header row + at least 1 data row
     const rowCount = await rows.count();
     expect(rowCount).toBeGreaterThanOrEqual(2);
