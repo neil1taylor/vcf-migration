@@ -1,14 +1,14 @@
 /**
  * Target Classification Service
  *
- * Data-driven rule engine that classifies VMs into migration targets (ROKS or VSI).
+ * Data-driven rule engine that classifies VMs into migration targets.
  * Rules are defined in src/data/targetClassificationRules.json and evaluated in
- * priority order. OS compatibility is determined by consulting the actual
- * compatibility JSON data rather than hardcoded OS checks.
+ * priority order. Currently handles PowerVS routing for Oracle/SAP workloads,
+ * with all other VMs falling back to VSI (platform leaning is applied by the
+ * useTargetAssignments hook at a higher level).
  */
 
 import type { VirtualMachine } from '@/types/rvtools';
-import { getROKSOSCompatibility, getVSIOSCompatibility } from './osCompatibility';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
 import rulesData from '@/data/targetClassificationRules.json';
 
@@ -43,31 +43,15 @@ interface ClassificationRule {
   target: MigrationTarget;
   confidence: ConfidenceLevel;
   reasonTemplate: string;
-  // os-compatibility-crosscheck
-  unsupportedOn?: string;
-  supportedOn?: string;
-  // resource-threshold
-  field?: string;
-  operator?: string;
-  value?: number;
-  unit?: string;
   // workload-type
   workloadTypes?: string[];
   namePatterns?: string[];
-  requireOS?: string[];
-  // os-pattern
-  patterns?: string[];
 }
 
 // --- Rule Engine ---
 
 const sortedRules: ClassificationRule[] = [...rulesData.rules]
   .sort((a, b) => a.priority - b.priority) as ClassificationRule[];
-
-function matchesOSPatterns(guestOS: string, patterns: string[]): boolean {
-  const osLower = guestOS.toLowerCase();
-  return patterns.some(p => osLower.includes(p));
-}
 
 function interpolateReason(template: string, vars: Record<string, string>): string {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key) => vars[key] ?? '');
@@ -79,42 +63,6 @@ function evaluateRule(
   workloadType: string | undefined,
 ): string | null {
   switch (rule.type) {
-    case 'os-compatibility-crosscheck': {
-      const roksCompat = getROKSOSCompatibility(vm.guestOS);
-      const vsiCompat = getVSIOSCompatibility(vm.guestOS);
-      const roksUnsupported = roksCompat.compatibilityStatus === 'unsupported';
-      const vsiUnsupported = vsiCompat.status === 'unsupported';
-
-      if (rule.unsupportedOn === 'roks' && rule.supportedOn === 'vsi') {
-        if (roksUnsupported && !vsiUnsupported) {
-          return interpolateReason(rule.reasonTemplate, { guestOS: vm.guestOS });
-        }
-      } else if (rule.unsupportedOn === 'vsi' && rule.supportedOn === 'roks') {
-        if (vsiUnsupported && !roksUnsupported) {
-          return interpolateReason(rule.reasonTemplate, { guestOS: vm.guestOS });
-        }
-      }
-      return null;
-    }
-
-    case 'resource-threshold': {
-      if (!rule.field || !rule.operator || rule.value === undefined) return null;
-      const fieldValue = (vm as unknown as Record<string, unknown>)[rule.field];
-      if (typeof fieldValue !== 'number') return null;
-
-      let matches = false;
-      if (rule.operator === '>') matches = fieldValue > rule.value;
-      else if (rule.operator === '>=') matches = fieldValue >= rule.value;
-      else if (rule.operator === '<') matches = fieldValue < rule.value;
-      else if (rule.operator === '<=') matches = fieldValue <= rule.value;
-
-      if (matches) {
-        const memoryGB = rule.field === 'memory' ? String(Math.round(fieldValue / 1024)) : String(fieldValue);
-        return interpolateReason(rule.reasonTemplate, { memoryGB, [rule.field]: String(fieldValue) });
-      }
-      return null;
-    }
-
     case 'workload-type': {
       if (!workloadType || !rule.workloadTypes) return null;
       const lower = workloadType.toLowerCase();
@@ -127,19 +75,7 @@ function evaluateRule(
         if (!nameMatches) return null;
       }
 
-      if (rule.requireOS && !matchesOSPatterns(vm.guestOS, rule.requireOS)) {
-        return null;
-      }
-
       return interpolateReason(rule.reasonTemplate, { workloadType });
-    }
-
-    case 'os-pattern': {
-      if (!rule.patterns) return null;
-      if (matchesOSPatterns(vm.guestOS, rule.patterns)) {
-        return interpolateReason(rule.reasonTemplate, { guestOS: vm.guestOS });
-      }
-      return null;
     }
 
     case 'fallback': {
@@ -154,10 +90,12 @@ function evaluateRule(
 // --- Classification ---
 
 /**
- * Classify a single VM into a migration target (ROKS or VSI).
+ * Classify a single VM into a migration target.
  *
  * Evaluates data-driven rules from targetClassificationRules.json in priority order.
- * The first matching rule determines the classification.
+ * The first matching rule determines the classification. Currently routes Oracle/SAP
+ * to PowerVS; everything else falls back to VSI. Platform leaning (ROKS vs VSI) is
+ * applied at the hook level by useTargetAssignments.
  */
 export function classifyVMTarget(
   vm: VirtualMachine,
@@ -183,7 +121,7 @@ export function classifyVMTarget(
     vmId,
     vmName: vm.vmName,
     target: 'vsi',
-    reasons: ['Default classification: VSI (no specific ROKS indicators)'],
+    reasons: ['Assigned based on platform recommendation'],
     confidence: 'low',
   };
 }

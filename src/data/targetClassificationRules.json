@@ -1,40 +1,8 @@
 {
   "rules": [
     {
-      "id": "roks-os-unsupported",
-      "priority": 1,
-      "type": "os-compatibility-crosscheck",
-      "unsupportedOn": "roks",
-      "supportedOn": "vsi",
-      "target": "vsi",
-      "confidence": "high",
-      "reasonTemplate": "OS \"{{guestOS}}\" is unsupported on ROKS but supported on VSI"
-    },
-    {
-      "id": "vsi-os-unsupported",
-      "priority": 2,
-      "type": "os-compatibility-crosscheck",
-      "unsupportedOn": "vsi",
-      "supportedOn": "roks",
-      "target": "roks",
-      "confidence": "high",
-      "reasonTemplate": "OS \"{{guestOS}}\" is unsupported on VSI but supported on ROKS"
-    },
-    {
-      "id": "high-memory",
-      "priority": 3,
-      "type": "resource-threshold",
-      "field": "memory",
-      "operator": ">",
-      "value": 524288,
-      "unit": "MiB",
-      "target": "roks",
-      "confidence": "medium",
-      "reasonTemplate": "High memory ({{memoryGB}} GB) requires bare metal, best suited for ROKS"
-    },
-    {
       "id": "powervs-oracle",
-      "priority": 4,
+      "priority": 1,
       "type": "workload-type",
       "workloadTypes": ["database"],
       "namePatterns": ["oracle"],
@@ -44,7 +12,7 @@
     },
     {
       "id": "powervs-sap",
-      "priority": 5,
+      "priority": 2,
       "type": "workload-type",
       "workloadTypes": ["enterprise"],
       "namePatterns": ["sap", "hana", "s4hana"],
@@ -53,40 +21,12 @@
       "reasonTemplate": "SAP workload \"{{workloadType}}\" is best suited for PowerVS"
     },
     {
-      "id": "vsi-workload",
-      "priority": 6,
-      "type": "workload-type",
-      "workloadTypes": ["database", "enterprise", "backup", "monitoring"],
-      "target": "vsi",
-      "confidence": "medium",
-      "reasonTemplate": "Workload type \"{{workloadType}}\" is typically better suited for VSI"
-    },
-    {
-      "id": "roks-workload",
-      "priority": 7,
-      "type": "workload-type",
-      "workloadTypes": ["middleware", "dev"],
-      "requireOS": ["linux", "ubuntu", "centos", "rhel", "red hat", "debian", "suse", "fedora", "oracle linux", "alma", "rocky"],
-      "target": "roks",
-      "confidence": "medium",
-      "reasonTemplate": "Workload type \"{{workloadType}}\" on Linux is well suited for ROKS"
-    },
-    {
-      "id": "linux-default",
-      "priority": 8,
-      "type": "os-pattern",
-      "patterns": ["linux", "ubuntu", "centos", "rhel", "red hat", "debian", "suse", "fedora", "oracle linux", "alma", "rocky"],
-      "target": "roks",
-      "confidence": "low",
-      "reasonTemplate": "Linux workload defaults to ROKS (OpenShift Virtualization)"
-    },
-    {
       "id": "fallback",
-      "priority": 9,
+      "priority": 3,
       "type": "fallback",
       "target": "vsi",
       "confidence": "low",
-      "reasonTemplate": "Default classification: VSI (no specific ROKS indicators)"
+      "reasonTemplate": "Assigned based on platform recommendation"
     }
   ]
 }
