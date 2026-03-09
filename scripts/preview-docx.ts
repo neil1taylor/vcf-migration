@@ -73,7 +73,9 @@ function loadFixture(): RVToolsData {
 
 // Chart module is mocked via vite-preview.config.ts alias (no canvas in Node)
 import { generateDocxReport } from '@/services/export/docx/index';
+import { getTimelineExport } from '@/services/export/docx/types';
 import type { DocxExportOptions } from '@/services/export/docx/types';
+import { buildDefaultTimeline } from '@/services/migration/timelineEstimation';
 
 // ── XML inspection helpers ─────────────────────────────────────────
 
@@ -437,6 +439,13 @@ async function main() {
 
   // 2. Generate DOCX
   console.log('Generating DOCX report...');
+  const timelineExport = getTimelineExport(rawData);
+  if (timelineExport) {
+    console.log(`  Timeline: ${timelineExport.phases.length} phases (from settings)\n`);
+  } else {
+    console.log('  Timeline: using synthetic default phases\n');
+  }
+
   const options: DocxExportOptions = {
     clientName: 'Preview Test Client',
     preparedBy: 'DOCX Preview Script',
@@ -444,6 +453,8 @@ async function main() {
     includeROKS: true,
     includeVSI: true,
     includeCosts: true,
+    timelinePhases: timelineExport?.phases ?? buildDefaultTimeline(3, undefined, [2, 5, 8], ['Pilot', 'Wave 1', 'Wave 2', 'Wave 3'], [50, 200, 500, 800]),
+    timelineStartDate: timelineExport?.startDate ?? new Date(),
   };
 
   const blob = await generateDocxReport(rawData, options);

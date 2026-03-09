@@ -37,12 +37,12 @@ export function buildTimelineSection(phases: TimelinePhase[], startDate?: Date, 
   ]);
 
   sections.push(
+    createParagraph(
+      'The pilot wave migrates a small set of test VMs to prove the migration process before production waves begin. For this initial timeline, wave durations are estimated based on data volume at 500 GB/day throughput (with a minimum of 0.25 days per VM), rounded up to the nearest week.'
+    ),
     ...createTableDescription('Migration Timeline Phases', 'Detailed breakdown of migration phases and durations'),
     createStyledTable(headers, rows),
     createTableLabel('Migration Timeline Phases'),
-    createParagraph(
-      'The pilot wave is intended to migrate a small number of test VMs to prove the migration process before production waves begin. Wave durations are estimated based on data volume at 500 GB/day migration throughput, with a minimum of 0.25 days per VM for setup and validation overhead, rounded up to the nearest week.'
-    ),
     createParagraph(
       'This timeline is indicative and based on typical migration patterns. Once a migration partner is engaged, they will produce a detailed, dependency-aware schedule with specific dates, maintenance windows, and resource assignments tailored to your environment.'
     ),

@@ -49,7 +49,8 @@ JSZip.loadAsync = async function(data: unknown, options?: object) {
 } as typeof JSZip.loadAsync;
 
 import { generatePptxReport } from '@/services/export/pptx/index';
-import { getPlatformSelectionExport, getWavePlanningPreference } from '@/services/export/docx/types';
+import { getPlatformSelectionExport, getTimelineExport, getWavePlanningPreference } from '@/services/export/docx/types';
+import { buildDefaultTimeline } from '@/services/migration/timelineEstimation';
 
 // Accept optional input file as CLI argument: npm run preview:pptx -- /path/to/file.xlsx
 const INPUT_FILE = process.argv[2]
@@ -222,6 +223,13 @@ async function main() {
     console.log(`  Wave planning: ${wavePlanningPreference.wavePlanningMode} / ${wavePlanningPreference.networkGroupBy}`);
   }
 
+  const timelineExport = getTimelineExport(data);
+  if (timelineExport) {
+    console.log(`  Timeline: ${timelineExport.phases.length} phases (from settings)`);
+  } else {
+    console.log('  Timeline: using synthetic default phases');
+  }
+
   const options: PptxExportOptions = {
     clientName: 'Preview Client',
     preparedBy: 'PPTX Preview Script',
@@ -231,6 +239,8 @@ async function main() {
     includeCosts: true,
     platformSelection,
     wavePlanningPreference,
+    timelinePhases: timelineExport?.phases ?? buildDefaultTimeline(3, undefined, [2, 5, 8], ['Pilot', 'Wave 1', 'Wave 2', 'Wave 3'], [50, 200, 500, 800]),
+    timelineStartDate: timelineExport?.startDate ?? new Date(),
   };
 
   console.log('Generating PPTX...');
