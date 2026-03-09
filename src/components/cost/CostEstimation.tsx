@@ -24,7 +24,7 @@ import { MetricCard } from '@/components/common';
 import { PricingRefresh } from '@/components/pricing';
 import { ProfilesRefresh } from '@/components/profiles';
 import { useDynamicPricing, useDynamicProfiles, useTargetLocation, useCostSettings } from '@/hooks';
-import type { CostEstimate, RegionCode, DiscountType, ROKSSizingInput, VSISizingInput, NetworkingOptions, DataQuality } from '@/services/costEstimation';
+import type { CostEstimate, RegionCode, DiscountType, ROKSSizingInput, VSISizingInput, DataQuality } from '@/services/costEstimation';
 import {
   calculateROKSCost,
   calculateVSICost,

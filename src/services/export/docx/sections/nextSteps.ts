@@ -27,7 +27,7 @@ const PHASE_LINKS: Record<string, Array<{ description: string; linkText: string;
   ],
 };
 
-export function buildNextSteps(options: Required<DocxExportOptions>, aiInsights?: MigrationInsights | null, sectionNum?: number): DocumentContent[] {
+export function buildNextSteps(options: Required<Omit<DocxExportOptions, 'filteredRawData'>>, aiInsights?: MigrationInsights | null, sectionNum?: number): DocumentContent[] {
   const templates = reportTemplates.nextSteps;
   const placeholders = reportTemplates.placeholders;
   const s = sectionNum != null ? sectionNum : 10;

@@ -205,9 +205,8 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData, sectionNum?
 }
 
 /** Build vCenter/ESXi/hardware details if source environment data is available */
-function buildSourceEnvironmentDetails(sourceEnv?: SourceEnvironmentExport | null, sectionNum?: number): DocumentContent[] {
+function buildSourceEnvironmentDetails(sourceEnv?: SourceEnvironmentExport | null, _sectionNum?: number): DocumentContent[] {
   if (!sourceEnv) return [];
-  const s = sectionNum != null ? `${sectionNum}` : '2';
   const elements: DocumentContent[] = [];
 
   // vCenter details

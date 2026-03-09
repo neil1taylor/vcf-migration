@@ -27,7 +27,6 @@ import {
 import { Download } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
 import { useData, useAllVMs, useVMOverrides, useAutoExclusion } from '@/hooks';
-import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { filterRawDataByExclusions } from '@/utils/filterRawData';
 import { ROUTES } from '@/utils/constants';
 import { MetricCard, CheckResultCell } from '@/components/common';
@@ -80,15 +79,6 @@ export function PreFlightReportPage() {
   const [searchText, setSearchText] = useState('');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
-
-  // Apply three-tier exclusion model (same as migration pages)
-  const includedVMs = useMemo(() => {
-    return allVmsRaw.filter(vm => {
-      const vmId = getVMIdentifier(vm);
-      const autoResult = getAutoExclusionById(vmId);
-      return !vmOverrides.isEffectivelyExcluded(vmId, autoResult.isAutoExcluded);
-    });
-  }, [allVmsRaw, vmOverrides, getAutoExclusionById]);
 
   // Create filtered rawData with excluded VMs removed
   const filteredRawData = useMemo(() => {

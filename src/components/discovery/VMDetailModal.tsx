@@ -32,7 +32,6 @@ import { useData } from '@/hooks/useData';
 import {
   formatMiB,
   formatNumber,
-  formatDate,
   formatDateTime,
   formatPowerState,
   formatHardwareVersion,

@@ -45,7 +45,7 @@ export async function generatePptxReport(
     roksCostEstimate: options.roksCostEstimate ?? null,
     vsiCostEstimate: options.vsiCostEstimate ?? null,
     timelinePhases: options.timelinePhases ?? null,
-    timelineStartDate: options.timelineStartDate,
+    timelineStartDate: options.timelineStartDate ?? new Date(),
   };
 
   // Create presentation
