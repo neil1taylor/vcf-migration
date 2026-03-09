@@ -178,18 +178,24 @@ export function useTargetAssignments(
     });
   }, [allVMs, getAutoExclusionById, vmOverrides]);
 
-  // Build workload type map
+  // Build workload type map (user overrides take priority over pattern matching)
   const workloadTypes = useMemo(() => {
     const map = new Map<string, string>();
     for (const vm of includedVMs) {
       const vmId = getVMIdentifier(vm);
-      const category = getVMWorkloadCategory(vm.vmName, vm.annotation ?? null);
-      if (category) {
-        map.set(vmId, category);
+      // User workload type override from Discovery takes priority
+      const userWorkloadType = vmOverrides.getWorkloadType(vmId);
+      if (userWorkloadType) {
+        map.set(vmId, userWorkloadType);
+      } else {
+        const category = getVMWorkloadCategory(vm.vmName, vm.annotation ?? null);
+        if (category) {
+          map.set(vmId, category);
+        }
       }
     }
     return map;
-  }, [includedVMs]);
+  }, [includedVMs, vmOverrides]);
 
   // Auto-classify all included VMs (used as fallback when leaning is neutral)
   const autoClassifications = useMemo(() => {

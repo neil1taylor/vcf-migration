@@ -81,22 +81,25 @@ export const DiscoveryVMModals = memo(function DiscoveryVMModals({
   // Local state for bulk workload selection
   const [pendingBulkWorkload, setPendingBulkWorkload] = useState<{ id: string; text: string } | null>(null);
 
-  // Counter to force-remount bulk ComboBox (avoids stale internal state)
+  // Counters to force-remount ComboBoxes (avoids stale internal state)
   const [bulkComboResetKey, setBulkComboResetKey] = useState(0);
+  const [singleComboResetKey, setSingleComboResetKey] = useState(0);
 
-  // Reset workload state when modal opens for a different VM
-  const prevWorkloadVmId = useRef<string | null>(null);
+  // Reset workload state when modal opens (for any VM, including the same one)
+  const prevWorkloadOpen = useRef<boolean>(false);
   useEffect(() => {
-    if (editingWorkload && editingWorkload.vmId !== prevWorkloadVmId.current) {
-      prevWorkloadVmId.current = editingWorkload.vmId;
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync pending state when modal opens for different VM
+    const isOpen = !!editingWorkload;
+    if (isOpen && !prevWorkloadOpen.current) {
+      prevWorkloadOpen.current = true;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync pending state when modal opens
       setPendingWorkload(
         editingWorkload.current
           ? workloadCategories.find(c => c.text === editingWorkload.current) || { id: 'custom', text: editingWorkload.current }
           : null
       );
-    } else if (!editingWorkload) {
-      prevWorkloadVmId.current = null;
+      setSingleComboResetKey(prev => prev + 1); // eslint-disable-line react-hooks/set-state-in-effect -- force ComboBox remount
+    } else if (!isOpen) {
+      prevWorkloadOpen.current = false;
     }
   }, [editingWorkload, workloadCategories]);
 
@@ -154,6 +157,7 @@ export const DiscoveryVMModals = memo(function DiscoveryVMModals({
             Select a predefined workload type, type a custom name, or choose &quot;Unclassified&quot; to clear.
           </p>
           <ComboBox
+            key={singleComboResetKey}
             id="workload-type"
             titleText="Workload Type"
             placeholder="Select or type custom workload..."

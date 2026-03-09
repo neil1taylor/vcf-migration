@@ -37,7 +37,8 @@ export interface VMRow {
   storageGiB: number;
   guestOS: string;
   // Category info
-  category: string;       // category key or '_custom' or '_unclassified'
+  category: string;       // display name (used for sorting by Carbon DataTable)
+  categoryKey: string;    // category key or '_custom' or '_unclassified'
   categoryName: string;   // display name
   categorySource: 'user' | 'maintainer' | 'ai' | 'name' | 'annotation' | 'none';
   matchedPattern: string;
@@ -50,6 +51,9 @@ export interface VMRow {
   exclusionSource: 'auto' | 'manual' | 'none';
   hasNotes: boolean;
   notes: string;
+  // Sortable derived values
+  status: string;
+  actions: string;
 }
 
 // ===== CONSTANTS =====

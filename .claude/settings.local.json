@@ -19,7 +19,18 @@
       "mcp__carbon-mcp__docs_search",
       "Skill(commit-commands:commit-push-pr)",
       "Skill(commit-commands:commit)",
-      "mcp__carbon-mcp__code_search"
+      "mcp__carbon-mcp__code_search",
+      "mcp__vcf-analyzer__parse_rvtools",
+      "mcp__vcf-analyzer__show_parsed_data",
+      "mcp__vcf-analyzer__run_preflight_checks",
+      "mcp__vcf-analyzer__estimate_costs",
+      "mcp__vcf-analyzer__configure_proxy",
+      "mcp__vcf-analyzer__ai_health_check",
+      "mcp__vcf-analyzer__ai_get_insights",
+      "mcp__vcf-analyzer__ai_chat",
+      "mcp__vcf-analyzer__ai_classify_vms",
+      "mcp__vcf-analyzer__ai_call_endpoint",
+      "mcp__vcf-analyzer__classify_targets"
     ],
     "deny": [
       "Bash(rm -rf *)",
@@ -31,5 +42,9 @@
       "Bash(git clean -f *)",
       "Bash(git branch -D *)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "vcf-analyzer"
+  ]
 }

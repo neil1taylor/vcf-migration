@@ -2,7 +2,6 @@
 
 import { requireData } from '../lib/state';
 import { proxyPost } from '../lib/proxy-client';
-import { mibToGiB } from '@/utils/formatters';
 
 export async function aiClassifyVms(limit?: number): Promise<{ content: Array<{ type: 'text'; text: string }> }> {
   const data = requireData();
@@ -10,12 +9,14 @@ export async function aiClassifyVms(limit?: number): Promise<{ content: Array<{ 
   const vmsToClassify = limit ? activeVMs.slice(0, limit) : activeVMs;
 
   // Build classification input matching proxy expected format
+  // Proxy prompt expects: vmName, guestOS, vCPUs, memoryMB, diskCount, nicCount, annotation
   const vmInputs = vmsToClassify.map(vm => ({
-    name: vm.vmName,
+    vmName: vm.vmName,
     guestOS: vm.guestOS,
-    cpus: vm.cpus,
-    memoryGiB: Math.round(mibToGiB(vm.memory)),
-    cluster: vm.cluster,
+    vCPUs: vm.cpus,
+    memoryMB: vm.memory, // MiB ≈ MB, close enough for classification
+    diskCount: vm.disks,
+    nicCount: vm.nics,
     annotation: vm.annotation,
   }));
 

@@ -124,6 +124,18 @@ export function DiscoveryVMTable({
       const categorySource = match?.source ?? 'none';
       const matchedPattern = match?.matchedPattern ?? '';
 
+      // Compute a sortable status string
+      let status: string;
+      if (isForceIncluded) {
+        status = 'Overridden';
+      } else if (isManuallyExcluded) {
+        status = 'Manually Excluded';
+      } else if (autoResult.isAutoExcluded) {
+        status = 'Auto-Excluded';
+      } else {
+        status = 'Included';
+      }
+
       return {
         id: vmId,
         vmName: vm.vmName,
@@ -133,7 +145,8 @@ export function DiscoveryVMTable({
         memoryGiB: Math.round(mibToGiB(vm.memory)),
         storageGiB: Math.round(mibToGiB(vm.provisionedMiB)),
         guestOS: vm.guestOS || 'Unknown',
-        category,
+        category: categoryName,
+        categoryKey: category,
         categoryName,
         categorySource,
         matchedPattern,
@@ -145,6 +158,8 @@ export function DiscoveryVMTable({
         exclusionSource,
         hasNotes: notes.length > 0,
         notes,
+        status,
+        actions: '',
       };
     });
   }, [vms, vmOverrides, autoExclusionMap, vmCategoryMap]);
@@ -153,9 +168,9 @@ export function DiscoveryVMTable({
   const categoryFilteredRows = useMemo(() => {
     if (!selectedCategory) return vmRows;
     if (selectedCategory === '_unclassified') {
-      return vmRows.filter(r => r.category === '_unclassified');
+      return vmRows.filter(r => r.categoryKey === '_unclassified');
     }
-    return vmRows.filter(r => r.category === selectedCategory);
+    return vmRows.filter(r => r.categoryKey === selectedCategory);
   }, [vmRows, selectedCategory]);
 
   // Apply status filter (multi-select: empty = all)
@@ -168,7 +183,7 @@ export function DiscoveryVMTable({
           case 'auto-excluded': return r.isAutoExcluded && !r.isForceIncluded;
           case 'manually-excluded': return r.isManuallyExcluded && !r.isAutoExcluded;
           case 'overridden': return r.isForceIncluded;
-          case 'unclassified': return r.category === '_unclassified';
+          case 'unclassified': return r.categoryKey === '_unclassified';
           default: return false;
         }
       });
@@ -197,7 +212,7 @@ export function DiscoveryVMTable({
 
   // Count unclassified for the filter bar
   const unclassifiedCount = useMemo(() => {
-    return vmRows.filter(r => r.category === '_unclassified').length;
+    return vmRows.filter(r => r.categoryKey === '_unclassified').length;
   }, [vmRows]);
 
   // Actions hook
@@ -262,7 +277,7 @@ export function DiscoveryVMTable({
   }
 
   function renderCategoryCell(row: VMRow) {
-    if (row.category === '_unclassified') {
+    if (row.categoryKey === '_unclassified') {
       return (
         <span className="discovery-vm-table__unclassified">
           Unclassified
