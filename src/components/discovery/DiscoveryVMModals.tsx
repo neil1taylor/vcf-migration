@@ -81,6 +81,9 @@ export const DiscoveryVMModals = memo(function DiscoveryVMModals({
   // Local state for bulk workload selection
   const [pendingBulkWorkload, setPendingBulkWorkload] = useState<{ id: string; text: string } | null>(null);
 
+  // Counter to force-remount bulk ComboBox (avoids stale internal state)
+  const [bulkComboResetKey, setBulkComboResetKey] = useState(0);
+
   // Reset workload state when modal opens for a different VM
   const prevWorkloadVmId = useRef<string | null>(null);
   useEffect(() => {
@@ -104,6 +107,7 @@ export const DiscoveryVMModals = memo(function DiscoveryVMModals({
     if (bulkOpen && !prevBulkWorkloadRef.current) {
       prevBulkWorkloadRef.current = true;
       setPendingBulkWorkload(null); // eslint-disable-line react-hooks/set-state-in-effect -- reset on modal open
+      setBulkComboResetKey(prev => prev + 1); // eslint-disable-line react-hooks/set-state-in-effect -- force ComboBox remount
     } else if (!bulkOpen) {
       prevBulkWorkloadRef.current = false;
     }
@@ -189,6 +193,7 @@ export const DiscoveryVMModals = memo(function DiscoveryVMModals({
             or choose &quot;Unclassified&quot; to clear.
           </p>
           <ComboBox
+            key={bulkComboResetKey}
             id="bulk-workload-type"
             titleText="Workload Type"
             placeholder="Select or type custom workload..."
