@@ -20,7 +20,8 @@ import {
 
 export function buildComplexityAssessment(
   rawData: RVToolsData,
-  sectionNum?: number
+  sectionNum?: number,
+  leaning?: 'roks' | 'vsi' | 'neutral'
 ): DocumentContent[] {
   const title = sectionNum ? `${sectionNum}. Complexity Assessment` : 'Complexity Assessment';
   const sections: DocumentContent[] = [
@@ -38,8 +39,9 @@ export function buildComplexityAssessment(
     return sections;
   }
 
-  // Calculate scores using ROKS mode as conservative baseline
-  const scores = calculateComplexityScores(poweredOnVMs, rawData.vDisk, rawData.vNetwork, 'roks');
+  // Use platform leaning for mode; ROKS remains default for neutral/undefined (conservative baseline)
+  const mode = leaning === 'vsi' ? 'vsi' : 'roks';
+  const scores = calculateComplexityScores(poweredOnVMs, rawData.vDisk, rawData.vNetwork, mode);
   const distribution = getComplexityDistribution(scores);
   const summary = getAssessmentSummary(scores);
 

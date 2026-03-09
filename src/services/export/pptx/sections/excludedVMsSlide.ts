@@ -4,7 +4,37 @@ import type PptxGenJS from 'pptxgenjs';
 import type { RVToolsData, VirtualMachine } from '@/types/rvtools';
 import { COLORS, FONTS } from '../types';
 import { getAutoExclusion } from '@/utils/autoExclusion';
+import { getVMIdentifier, getEnvironmentFingerprint, fingerprintsMatch } from '@/utils/vmIdentifier';
 import { addSlideTitle, fmt } from '../utils';
+
+interface VMOverrideEntry {
+  vmId: string;
+  vmName: string;
+  excluded: boolean;
+  forceIncluded?: boolean;
+  workloadType?: string;
+  notes?: string;
+}
+
+interface VMOverridesStore {
+  version: number;
+  environmentFingerprint: string;
+  overrides: Record<string, VMOverrideEntry>;
+}
+
+function loadUserOverrides(rawData: RVToolsData): Record<string, VMOverrideEntry> {
+  try {
+    const stored = localStorage.getItem('vcf-vm-overrides');
+    if (!stored) return {};
+    const parsed: VMOverridesStore = JSON.parse(stored);
+    if (parsed.version !== 2) return {};
+    const currentFingerprint = getEnvironmentFingerprint(rawData);
+    if (!fingerprintsMatch(currentFingerprint, parsed.environmentFingerprint)) return {};
+    return parsed.overrides;
+  } catch {
+    return {};
+  }
+}
 
 export function addExcludedVMsSlide(
   pres: PptxGenJS,
@@ -37,12 +67,35 @@ export function addExcludedVMsSlide(
     }
   );
 
-  // Group VMs by exclusion reason label
+  // Load user overrides from localStorage
+  const userOverrides = loadUserOverrides(rawData);
+
+  // Group VMs by exclusion reason label, merging auto-exclusion with user overrides
   const labelCounts = new Map<string, number>();
   let totalExcluded = 0;
+  let forceIncludedCount = 0;
 
   for (const vm of rawData.vInfo as VirtualMachine[]) {
+    const vmId = getVMIdentifier(vm);
+    const override = userOverrides[vmId];
     const result = getAutoExclusion(vm);
+
+    // User force-included → not excluded, even if auto-excluded
+    if (override?.forceIncluded) {
+      if (result.isAutoExcluded) {
+        forceIncludedCount++;
+      }
+      continue;
+    }
+
+    // User manually excluded → count under "User Excluded"
+    if (override?.excluded) {
+      totalExcluded++;
+      labelCounts.set('User Excluded', (labelCounts.get('User Excluded') || 0) + 1);
+      continue;
+    }
+
+    // Auto-excluded (no user override)
     if (result.isAutoExcluded) {
       totalExcluded++;
       for (const label of result.labels) {
@@ -85,8 +138,26 @@ export function addExcludedVMsSlide(
       border: { type: 'solid', pt: 0.5, color: COLORS.mediumGray },
       autoPage: false,
     });
+
+    // Note about force-included VMs overriding auto-exclusion
+    if (forceIncludedCount > 0) {
+      const noteY = 4.0 + (rows.length + 2) * 0.53; // approximate row height
+      slide.addText(
+        `Note: ${forceIncludedCount} VM${forceIncludedCount > 1 ? 's were' : ' was'} force-included by the user, overriding auto-exclusion rules.`,
+        {
+          x: 1.33,
+          y: Math.min(noteY, 13.0),
+          w: 24.0,
+          h: 0.67,
+          fontSize: FONTS.smallSize,
+          fontFace: FONTS.face,
+          color: COLORS.mediumGray,
+          italic: true,
+        }
+      );
+    }
   } else {
-    slide.addText('No VMs are auto-excluded.', {
+    slide.addText('No VMs are excluded.', {
       x: 1.33,
       y: 6.67,
       w: 24.0,

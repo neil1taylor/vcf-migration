@@ -2,7 +2,6 @@
 
 import type { RVToolsData, VirtualMachine } from '@/types/rvtools';
 import { mibToGiB } from '@/utils/formatters';
-import { isVMwareInfrastructureVM } from '@/utils/autoExclusion';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import { runPreFlightChecks, CHECK_DEFINITIONS } from '@/services/preflightChecks';
 import type { CheckMode } from '@/services/preflightChecks';
@@ -31,10 +30,7 @@ export function calculateVMReadiness(
 
   for (const results of allResults) {
     for (const result of results) {
-      // Skip VMware infrastructure VMs (DOCX excludes these)
       const vm = rawData.vInfo.find(v => v.vmName === result.vmName);
-      if (vm && isVMwareInfrastructureVM(vm.vmName, vm.guestOS)) continue;
-
       const existing = vmMap.get(result.vmName);
 
       // Convert check results to issue strings
@@ -92,7 +88,7 @@ export function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
     ...bmProfiles.memory,
   ];
   const poweredOnVMs = rawData.vInfo.filter(
-    (vm: VirtualMachine) => vm.powerState === 'poweredOn' && !vm.template && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS)
+    (vm: VirtualMachine) => vm.powerState === 'poweredOn' && !vm.template
   );
 
   const totalVCPUs = poweredOnVMs.reduce((sum: number, vm: VirtualMachine) => sum + vm.cpus, 0);
@@ -151,7 +147,7 @@ export function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
 
 export function calculateVSIMappings(rawData: RVToolsData): VSIMapping[] {
   const poweredOnVMs = rawData.vInfo.filter(
-    (vm: VirtualMachine) => vm.powerState === 'poweredOn' && !vm.template && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS)
+    (vm: VirtualMachine) => vm.powerState === 'poweredOn' && !vm.template
   );
 
   return poweredOnVMs.map((vm: VirtualMachine) => {

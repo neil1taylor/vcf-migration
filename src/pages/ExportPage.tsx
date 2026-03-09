@@ -33,6 +33,7 @@ import {
 } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
 import { useData, usePDFExport, useExcelExport, useDocxExport, usePptxExport, useAISettings, useVMs, useAllVMs, useAutoExclusion, usePlatformSelection, useVMOverrides, useMigrationAssessment, useWavePlanning } from '@/hooks';
+import { useTimelineConfig } from '@/hooks/useTimelineConfig';
 import { downloadHandoverFile } from '@/services/export/handoverExporter';
 import { extractSettingsFromFile, type ExtractedSettings } from '@/services/settingsExtractor';
 import { restoreBundledSettings } from '@/services/settingsRestore';
@@ -49,7 +50,7 @@ import { filterRawDataByExclusions } from '@/utils/filterRawData';
 import type { PDFExportOptions } from '@/hooks/usePDFExport';
 import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
-import { getWavePlanningPreference, getPlatformSelectionExport, getRiskAssessmentExport, getTimelineExport, getVPCDesignExport, getTargetAssignmentsExport, getWorkloadClassificationExport, getSourceEnvironmentExport } from '@/services/export/docx/types';
+import { getWavePlanningPreference, getPlatformSelectionExport, getRiskAssessmentExport, getVPCDesignExport, getTargetAssignmentsExport, getWorkloadClassificationExport, getSourceEnvironmentExport } from '@/services/export/docx/types';
 import { getDefaultFilename, sanitizeFilename } from '@/utils/exportFilenames';
 import { runPreFlightChecks, type CheckMode } from '@/services/preflightChecks';
 import { exportPreFlightExcel, downloadWavePlanningExcel } from '@/services/export/excelGenerator';
@@ -187,8 +188,10 @@ export function ExportPage() {
   }, [rawData, allVmsRaw, vmOverrides, getAutoExclusionById]);
 
   // ===== Migration Assessment (for complexity scores) =====
+  const waveMode = score.leaning === 'vsi' ? 'vsi' : 'roks';
+
   const { complexityScores } = useMigrationAssessment({
-    mode: 'roks',
+    mode: waveMode,
     vms: poweredOnVMs,
     disks,
     networks,
@@ -198,7 +201,7 @@ export function ExportPage() {
 
   // ===== Wave Planning =====
   const wavePlanning = useWavePlanning({
-    mode: 'roks',
+    mode: waveMode,
     vms: poweredOnVMs,
     complexityScores,
     disks,
@@ -206,6 +209,15 @@ export function ExportPage() {
     tools,
     networks,
   });
+
+  // ===== Timeline from wave data (matches UI) =====
+  const waveCount = Math.max(0, wavePlanning.activeWaves.length - 1);
+  const waveVmCounts = useMemo(() => wavePlanning.waveResources.map(w => w.vmCount), [wavePlanning.waveResources]);
+  const waveNames = useMemo(() => wavePlanning.waveResources.map(w => w.name), [wavePlanning.waveResources]);
+  const waveStorageGiB = useMemo(() => wavePlanning.waveResources.map(w => w.storageGiB), [wavePlanning.waveResources]);
+  const { phases: timelinePhases, startDate: timelineStartDate } = useTimelineConfig(
+    waveCount, waveVmCounts, waveNames, waveStorageGiB
+  );
 
   // ===== Pre-flight check results =====
   const preflightResults = useMemo(
@@ -294,7 +306,6 @@ export function ExportPage() {
     // Gather all user inputs from localStorage
     const platformSelection = getPlatformSelectionExport(rawData);
     const riskAssessment = getRiskAssessmentExport(rawData);
-    const timelineData = getTimelineExport(rawData);
     const vpcDesign = getVPCDesignExport(rawData);
     const targetAssignments = getTargetAssignmentsExport(rawData);
     const workloadClassification = getWorkloadClassificationExport(rawData);
@@ -308,8 +319,8 @@ export function ExportPage() {
       wavePlanningPreference: getWavePlanningPreference(),
       platformSelection,
       riskAssessment,
-      timelinePhases: timelineData?.phases,
-      timelineStartDate: timelineData?.startDate,
+      timelinePhases: timelinePhases.length > 0 ? timelinePhases : null,
+      timelineStartDate,
       vpcDesign,
       includeAppendices,
       targetAssignments,
@@ -320,7 +331,7 @@ export function ExportPage() {
       vsiCostEstimate: vsiBOM?.estimate ?? null,
     }, sanitizeFilename(docxFilename, '.docx'));
     markExportComplete();
-  }, [rawData, filteredRawData, exportDocx, aiAvailable, markExportComplete, docxFilename, includeAppendices]);
+  }, [rawData, filteredRawData, exportDocx, aiAvailable, markExportComplete, docxFilename, includeAppendices, timelinePhases, timelineStartDate]);
 
   const handleExportPptx = useCallback(async () => {
     if (!rawData) return;
@@ -333,9 +344,11 @@ export function ExportPage() {
       filteredRawData,
       roksCostEstimate: roksBOMPptx?.estimate ?? null,
       vsiCostEstimate: vsiBOMPptx?.estimate ?? null,
+      timelinePhases: timelinePhases.length > 0 ? timelinePhases : null,
+      timelineStartDate,
     }, sanitizeFilename(pptxFilename, '.pptx'));
     markExportComplete();
-  }, [rawData, filteredRawData, exportPptx, markExportComplete, answers, score, pptxFilename]);
+  }, [rawData, filteredRawData, exportPptx, markExportComplete, answers, score, pptxFilename, timelinePhases, timelineStartDate]);
 
   const handleExportHandover = useCallback(async () => {
     if (!originalFileBuffer || !originalFileName) return;

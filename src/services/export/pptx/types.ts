@@ -2,6 +2,7 @@
 
 import type { CostEstimate } from '@/services/costEstimation';
 import type { RVToolsData } from '@/types/rvtools';
+import type { TimelinePhase } from '@/types/timeline';
 import type { PlatformSelectionExport, VMReadiness, WavePlanningPreference } from '../docx/types';
 export type { PlatformSelectionExport, VMReadiness, WavePlanningPreference };
 
@@ -20,6 +21,10 @@ export interface PptxExportOptions {
   roksCostEstimate?: CostEstimate | null;
   /** Cached VSI cost estimate from BOM cache — full platform costs matching the UI */
   vsiCostEstimate?: CostEstimate | null;
+  /** Timeline phases for migration timeline table on wave planning slide */
+  timelinePhases?: TimelinePhase[] | null;
+  /** Start date for timeline date range display */
+  timelineStartDate?: Date;
 }
 
 // 16:9 slide layout (inches) — matches IBM reference deck dimensions

@@ -157,7 +157,7 @@ export async function generateDocxReport(
     ...buildAssumptionsAndScope(execNum),                                   // §1.1
     ...environmentAnalysis,                                                 // §2 (enriched)
     ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §3
-    ...buildComplexityAssessment(filteredRawData, sec.next()),               // §4
+    ...buildComplexityAssessment(filteredRawData, sec.next(), finalOptions.platformSelection?.score?.leaning),               // §4
   ];
 
   // §5 Workload Classification (NEW — conditional)

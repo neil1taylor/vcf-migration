@@ -44,7 +44,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Characteristic', { header: true }),
             createTableCell('ROKS + OpenShift Virt', { header: true }),
             createTableCell('VPC Virtual Servers', { header: true }),
-            createTableCell('Power Virtual Server', { header: true }),
           ],
         }),
         new TableRow({
@@ -53,7 +52,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Migration Approach', { bold: true }),
             createTableCell('Lift-convert-shift (MTV)'),
             createTableCell('Lift-convert-shift (Wanclouds VPC+, RackWare RMM, migration provider tools)'),
-            createTableCell('Lift-convert-shift (IBM PowerVC, Cloud Migration Factory)'),
           ],
         }),
         new TableRow({
@@ -62,7 +60,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Infrastructure', { bold: true }),
             createTableCell('Bare Metal with local NVMe'),
             createTableCell('Multi-tenant virtual servers'),
-            createTableCell('Dedicated POWER hardware (LPAR)'),
           ],
         }),
         new TableRow({
@@ -71,7 +68,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Storage', { bold: true }),
             createTableCell('ODF (Ceph) with 3x replication'),
             createTableCell('Block storage volumes'),
-            createTableCell('Tier 1/Tier 3 SAN storage'),
           ],
         }),
         new TableRow({
@@ -80,7 +76,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Modernization Path', { bold: true }),
             createTableCell('Containerization ready'),
             createTableCell('Traditional VM operations'),
-            createTableCell('Traditional VM operations (POWER architecture)'),
           ],
         }),
         new TableRow({
@@ -89,7 +84,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Operational Model', { bold: true }),
             createTableCell('Kubernetes/GitOps'),
             createTableCell('Traditional VM management, Terraform/Ansible'),
-            createTableCell('PowerVC management, Terraform/Ansible'),
           ],
         }),
         new TableRow({
@@ -98,7 +92,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Best For', { bold: true }),
             createTableCell('Application modernization'),
             createTableCell('Quick migration with minimal change'),
-            createTableCell('SAP HANA, Oracle DB, AIX/IBM i workloads'),
           ],
         }),
         new TableRow({
@@ -107,7 +100,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Backup & Recovery', { bold: true }),
             createTableCell('OADP, Veeam Kasten K10, other third party kubernetes backup solution. IBM Cloud Backup and Recovery (future)'),
             createTableCell('IBM Cloud native snapshots, IBM Cloud Backup, IBM Cloud Backup and Recovery, Veeam and other third part agent based solutions'),
-            createTableCell('IBM Cloud Backup, Veeam, FlashCopy snapshots'),
           ],
         }),
         new TableRow({
@@ -116,7 +108,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Disaster Recovery', { bold: true }),
             createTableCell('ODF Regional DR with multi-cluster + RHACM'),
             createTableCell('IBM Cloud VPC cross-region snapshots, Wanclouds VPC+, RackWare RMM'),
-            createTableCell('Global Replication Services (GRS), PowerHA'),
           ],
         }),
         new TableRow({
@@ -124,7 +115,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
           children: [
             createTableCell('Observability', { bold: true }),
             createTableCell('Built-in OpenShift monitoring + IBM Cloud Monitoring & Logging'),
-            createTableCell('IBM Cloud Monitoring & Logging'),
             createTableCell('IBM Cloud Monitoring & Logging'),
           ],
         }),
@@ -134,7 +124,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Security Model', { bold: true }),
             createTableCell('OpenShift RBAC + VPC security groups'),
             createTableCell('VPC security groups, firewalls, IAM'),
-            createTableCell('PowerVS network security, IAM'),
           ],
         }),
         new TableRow({
@@ -143,7 +132,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Encryption', { bold: true }),
             createTableCell('ODF client-side encryption (per-PV) with Advanced edition; etcd encryption at rest'),
             createTableCell('IBM Cloud Block Storage encryption at rest (provider-managed or customer-managed keys via Key Protect / HPCS)'),
-            createTableCell('Encryption at rest (provider-managed or customer-managed keys via Key Protect / HPCS)'),
           ],
         }),
         new TableRow({
@@ -152,7 +140,6 @@ export function buildMigrationOptions(sectionNum?: number): DocumentContent[] {
             createTableCell('Networking', { bold: true }),
             createTableCell('OpenShift OVN SDN + VPC networking'),
             createTableCell('VPC subnets, security groups, ACLs'),
-            createTableCell('PowerVS subnets, Transit Gateway to VPC'),
           ],
         }),
       ],

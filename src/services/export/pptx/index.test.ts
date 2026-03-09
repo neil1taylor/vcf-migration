@@ -180,7 +180,7 @@ describe('generatePptxReport', () => {
     expect(addAgendaSlide).toHaveBeenCalledTimes(1);
     expect(addAgendaSlide).toHaveBeenCalledWith(
       expect.anything(),
-      ['Executive Summary', 'Migration Readiness', 'Excluded VMs', 'Platform Recommendation', 'Cost Estimation', 'Migration Wave Planning', 'Migration Execution', 'Next Steps']
+      ['Executive Summary', 'Migration Readiness', 'Excluded VMs', 'Platform Recommendation', 'Cost Estimation', 'Migration Timeline', 'Migration Execution', 'Next Steps']
     );
 
     // Content slides
@@ -200,7 +200,7 @@ describe('generatePptxReport', () => {
     // Agenda should not include Cost Estimation
     expect(addAgendaSlide).toHaveBeenCalledWith(
       expect.anything(),
-      ['Executive Summary', 'Migration Readiness', 'Excluded VMs', 'Platform Recommendation', 'Migration Wave Planning', 'Migration Execution', 'Next Steps']
+      ['Executive Summary', 'Migration Readiness', 'Excluded VMs', 'Platform Recommendation', 'Migration Timeline', 'Migration Execution', 'Next Steps']
     );
   });
 
@@ -209,7 +209,7 @@ describe('generatePptxReport', () => {
     expect(addCostEstimationSlide).not.toHaveBeenCalled();
     expect(addAgendaSlide).toHaveBeenCalledWith(
       expect.anything(),
-      ['Executive Summary', 'Migration Readiness', 'Excluded VMs', 'Platform Recommendation', 'Migration Wave Planning', 'Migration Execution', 'Next Steps']
+      ['Executive Summary', 'Migration Readiness', 'Excluded VMs', 'Platform Recommendation', 'Migration Timeline', 'Migration Execution', 'Next Steps']
     );
   });
 
@@ -317,6 +317,34 @@ describe('generatePptxReport', () => {
 
       expect(calculateROKSSizing).toHaveBeenCalledWith(mockRVToolsData);
       expect(addMigrationStatsSlide).toHaveBeenCalledWith(expect.anything(), mockRVToolsData, 'neutral');
+    });
+  });
+
+  describe('timeline phases', () => {
+    it('passes timelinePhases and timelineStartDate to wave planning slide', async () => {
+      const timelinePhases = [
+        { id: 'prep', name: 'Preparation', type: 'preparation' as const, durationWeeks: 2, defaultDurationWeeks: 2, startWeek: 0, endWeek: 2, color: '#0f62fe' },
+        { id: 'pilot', name: 'Pilot', type: 'pilot' as const, durationWeeks: 2, defaultDurationWeeks: 2, waveSourceName: 'Low Complexity', waveVmCount: 5, waveStorageGiB: 100, startWeek: 2, endWeek: 4, color: '#8a3ffc' },
+      ];
+      const timelineStartDate = new Date('2024-06-01');
+
+      await generatePptxReport(mockRVToolsData, { timelinePhases, timelineStartDate });
+
+      expect(addWavePlanningSlide).toHaveBeenCalledWith(
+        expect.anything(),
+        mockRVToolsData,
+        expect.objectContaining({ timelinePhases, timelineStartDate })
+      );
+    });
+
+    it('defaults timelinePhases to null when not provided', async () => {
+      await generatePptxReport(mockRVToolsData);
+
+      expect(addWavePlanningSlide).toHaveBeenCalledWith(
+        expect.anything(),
+        mockRVToolsData,
+        expect.objectContaining({ timelinePhases: null })
+      );
     });
   });
 

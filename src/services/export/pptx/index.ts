@@ -44,6 +44,8 @@ export async function generatePptxReport(
     wavePlanningPreference: options.wavePlanningPreference ?? null,
     roksCostEstimate: options.roksCostEstimate ?? null,
     vsiCostEstimate: options.vsiCostEstimate ?? null,
+    timelinePhases: options.timelinePhases ?? null,
+    timelineStartDate: options.timelineStartDate,
   };
 
   // Create presentation
@@ -76,7 +78,7 @@ export async function generatePptxReport(
   if (includeCosts) {
     contentTitles.push('Cost Estimation');
   }
-  contentTitles.push('Migration Wave Planning');
+  contentTitles.push('Migration Timeline');
   contentTitles.push('Migration Execution');
   contentTitles.push('Next Steps');
 

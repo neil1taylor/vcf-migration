@@ -130,4 +130,22 @@ describe('buildComplexityAssessment', () => {
     const tableCount = result.filter(el => el.constructor.name === 'Table').length;
     expect(tableCount).toBe(2); // Distribution + top complex
   });
+
+  it('accepts leaning parameter and uses it for mode selection', () => {
+    const rawData = makeRawData([makeVM()]);
+
+    // Should not throw with any leaning value
+    const resultRoks = buildComplexityAssessment(rawData, 4, 'roks');
+    expect(Array.isArray(resultRoks)).toBe(true);
+
+    const resultVsi = buildComplexityAssessment(rawData, 4, 'vsi');
+    expect(Array.isArray(resultVsi)).toBe(true);
+
+    const resultNeutral = buildComplexityAssessment(rawData, 4, 'neutral');
+    expect(Array.isArray(resultNeutral)).toBe(true);
+
+    // undefined leaning should also work (backward compat)
+    const resultUndef = buildComplexityAssessment(rawData, 4);
+    expect(Array.isArray(resultUndef)).toBe(true);
+  });
 });

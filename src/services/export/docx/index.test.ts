@@ -396,10 +396,22 @@ describe('generateDocxReport', () => {
     expect(roksCall).toBeLessThan(vsiCall);
   });
 
-  it('calls buildComplexityAssessment with rawData and section number', async () => {
+  it('calls buildComplexityAssessment with rawData, section number, and leaning', async () => {
     await generateDocxReport(mockRVToolsData);
 
-    expect(buildComplexityAssessment).toHaveBeenCalledWith(mockRVToolsData, expect.any(Number));
+    // No platformSelection → leaning is undefined
+    expect(buildComplexityAssessment).toHaveBeenCalledWith(mockRVToolsData, expect.any(Number), undefined);
+  });
+
+  it('passes platform leaning to buildComplexityAssessment', async () => {
+    const platformSelection = {
+      score: { vsiCount: 5, roksCount: 2, answeredCount: 7, leaning: 'vsi' as const },
+      answers: {},
+    };
+
+    await generateDocxReport(mockRVToolsData, { platformSelection });
+
+    expect(buildComplexityAssessment).toHaveBeenCalledWith(mockRVToolsData, expect.any(Number), 'vsi');
   });
 
   it('calls buildOSCompatibilitySection with rawData and platform flags', async () => {
@@ -507,7 +519,7 @@ describe('generateDocxReport', () => {
     it('uses filteredRawData for target sections', async () => {
       await generateDocxReport(mockRVToolsData, { filteredRawData: mockFilteredData });
 
-      expect(buildComplexityAssessment).toHaveBeenCalledWith(mockFilteredData, expect.any(Number));
+      expect(buildComplexityAssessment).toHaveBeenCalledWith(mockFilteredData, expect.any(Number), undefined);
       expect(buildOSCompatibilitySection).toHaveBeenCalledWith(mockFilteredData, expect.any(Object), expect.any(Number));
       // buildMigrationStrategy(filteredRawData, aiInsights, wavePref, includeROKS, includeVSI, sectionNum)
       const stratCall = (buildMigrationStrategy as any).mock.calls[0];
@@ -545,7 +557,7 @@ describe('generateDocxReport', () => {
       await generateDocxReport(mockRVToolsData);
 
       expect(calculateVMReadiness).toHaveBeenCalledWith(mockRVToolsData, expect.any(Object));
-      expect(buildComplexityAssessment).toHaveBeenCalledWith(mockRVToolsData, expect.any(Number));
+      expect(buildComplexityAssessment).toHaveBeenCalledWith(mockRVToolsData, expect.any(Number), undefined);
     });
   });
 

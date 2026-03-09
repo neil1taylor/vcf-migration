@@ -28,6 +28,7 @@ import { Download } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
 import { useData, useAllVMs, useVMOverrides, useAutoExclusion } from '@/hooks';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
+import { filterRawDataByExclusions } from '@/utils/filterRawData';
 import { ROUTES } from '@/utils/constants';
 import { MetricCard, CheckResultCell } from '@/components/common';
 import {
@@ -92,19 +93,8 @@ export function PreFlightReportPage() {
   // Create filtered rawData with excluded VMs removed
   const filteredRawData = useMemo(() => {
     if (!rawData) return null;
-    const includedNames = new Set(includedVMs.map(vm => vm.vmName));
-    return {
-      ...rawData,
-      vInfo: includedVMs,
-      vDisk: rawData.vDisk.filter(d => includedNames.has(d.vmName)),
-      vSnapshot: rawData.vSnapshot.filter(s => includedNames.has(s.vmName)),
-      vTools: rawData.vTools.filter(t => includedNames.has(t.vmName)),
-      vNetwork: rawData.vNetwork.filter(n => includedNames.has(n.vmName)),
-      vCD: rawData.vCD.filter(c => includedNames.has(c.vmName)),
-      vCPU: rawData.vCPU.filter(c => includedNames.has(c.vmName)),
-      vMemory: rawData.vMemory.filter(m => includedNames.has(m.vmName)),
-    };
-  }, [rawData, includedVMs]);
+    return filterRawDataByExclusions(rawData, allVmsRaw, vmOverrides, { getAutoExclusionById });
+  }, [rawData, allVmsRaw, vmOverrides, getAutoExclusionById]);
 
   // Run pre-flight checks on filtered data
   const checkResults = useMemo(
