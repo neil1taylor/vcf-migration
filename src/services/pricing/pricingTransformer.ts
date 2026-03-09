@@ -88,8 +88,8 @@ export function transformProxyToAppPricing(proxyData: ProxyPricingResponse): IBM
       hasNvme,
       // Preserve roksSupported from static data (proxy doesn't provide this)
       roksSupported: staticProfile?.roksSupported,
-      hourlyRate: profile.monthlyRate / HOURS_PER_MONTH,
-      monthlyRate: profile.monthlyRate,
+      hourlyRate: profile.monthlyRate ? profile.monthlyRate / HOURS_PER_MONTH : (staticProfile?.hourlyRate ?? 0),
+      monthlyRate: profile.monthlyRate ?? staticProfile?.monthlyRate ?? 0,
       description: `${family.charAt(0).toUpperCase() + family.slice(1)} bare metal - ${profile.vcpus} vCPUs, ${profile.memoryGiB} GiB RAM`,
     };
     if (hasNvme && profile.storageGiB) {

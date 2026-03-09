@@ -506,7 +506,9 @@ export function calculateROKSCost(
   const computeProfile = pricingToUse.bareMetal[input.computeProfile as keyof typeof pricingToUse.bareMetal];
   if (computeProfile && input.computeNodes > 0) {
     const isCustomNoPricing = computeProfile.isCustom && (!computeProfile.monthlyRate || computeProfile.monthlyRate === 0);
-    const monthlyRate = isCustomNoPricing ? 0 : computeProfile.monthlyRate * multiplier;
+    const monthlyRate = (isCustomNoPricing || !Number.isFinite(computeProfile.monthlyRate))
+      ? 0
+      : computeProfile.monthlyRate * multiplier;
     lineItems.push({
       category: 'Compute',
       description: `Bare Metal - ${input.computeProfile}`,

@@ -216,7 +216,9 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
 
     // Sort by monthly cost to find most efficient (exclude unpriced custom profiles and CPU-exceeded profiles)
     const priceableCosts = costs.filter(c =>
-      !(c.profile.isCustom && (!c.profile.monthlyRate || c.profile.monthlyRate === 0)) && c.cpuViable
+      !(c.profile.isCustom && (!c.profile.monthlyRate || c.profile.monthlyRate === 0))
+      && c.cpuViable
+      && Number.isFinite(c.estimate.totalAnnual)
     );
     const sortedCosts = [...priceableCosts].sort((a, b) => a.estimate.totalMonthly - b.estimate.totalMonthly);
     const lowestCostProfileId = sortedCosts[0]?.profile.id;
@@ -233,8 +235,10 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
         const aUnpriced = a.profile.isCustom && (!a.profile.monthlyRate || a.profile.monthlyRate === 0);
         const bUnpriced = b.profile.isCustom && (!b.profile.monthlyRate || b.profile.monthlyRate === 0);
         if (aUnpriced !== bUnpriced) return aUnpriced ? 1 : -1;
-        // Sort by annual cost ascending
-        return a.estimate.totalAnnual - b.estimate.totalAnnual;
+        // Sort by annual cost ascending (NaN-safe: treat NaN as Infinity so unpriced proxy profiles sort to end)
+        const aCost = Number.isFinite(a.estimate.totalAnnual) ? a.estimate.totalAnnual : Infinity;
+        const bCost = Number.isFinite(b.estimate.totalAnnual) ? b.estimate.totalAnnual : Infinity;
+        return aCost - bCost;
       });
   }, [type, roksSizing, region, discountType, pricing]);
 
