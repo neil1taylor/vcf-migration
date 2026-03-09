@@ -40,13 +40,11 @@ export function buildCostEstimation(
   const totalVSIStorageGiB = totalBootStorageGiB + totalDataStorageGiB;
 
   const costRatio = totalVSIMonthlyCost > 0 ? (roksMonthlyCost / totalVSIMonthlyCost).toFixed(1) : 'N/A';
-  const annualDifference = (roksMonthlyCost - totalVSIMonthlyCost) * 12;
+  const annualDifference = (Math.ceil(roksMonthlyCost) - Math.ceil(totalVSIMonthlyCost)) * 12;
 
   const s = sectionNum != null ? sectionNum : 8;
 
-  // ROKS row label and storage column depend on whether we have full platform costs
   const roksLabel = hasCachedRoks ? 'ROKS (Full Platform)' : 'ROKS (Bare Metal)';
-  const roksStorageText = hasCachedRoks ? 'Included' : 'Included';
 
   const sections: DocumentContent[] = [
     createHeading(`${s}. ` + costTemplates.title, HeadingLevel.HEADING_1),
@@ -76,8 +74,6 @@ export function buildCostEstimation(
           cantSplit: true,
           children: [
             createTableCell('Platform', { header: true }),
-            createTableCell('Compute', { header: true, align: AlignmentType.RIGHT }),
-            createTableCell('Storage', { header: true, align: AlignmentType.RIGHT }),
             createTableCell('Monthly Total', { header: true, align: AlignmentType.RIGHT }),
             createTableCell('Annual Total', { header: true, align: AlignmentType.RIGHT }),
           ],
@@ -86,20 +82,16 @@ export function buildCostEstimation(
           cantSplit: true,
           children: [
             createTableCell(roksLabel),
-            createTableCell(`$${roksMonthlyCost.toLocaleString()}`, { align: AlignmentType.RIGHT }),
-            createTableCell(roksStorageText, { align: AlignmentType.RIGHT }),
-            createTableCell(`$${roksMonthlyCost.toLocaleString()}`, { align: AlignmentType.RIGHT }),
-            createTableCell(`$${(roksMonthlyCost * 12).toLocaleString()}`, { align: AlignmentType.RIGHT }),
+            createTableCell(`$${Math.ceil(roksMonthlyCost).toLocaleString()}`, { align: AlignmentType.RIGHT }),
+            createTableCell(`$${Math.ceil(roksMonthlyCost * 12).toLocaleString()}`, { align: AlignmentType.RIGHT }),
           ],
         }),
         new TableRow({
           cantSplit: true,
           children: [
             createTableCell('VPC VSI'),
-            createTableCell(hasCachedVsi ? `$${totalVSIMonthlyCost.toLocaleString()}` : `$${Math.round(totalVSIComputeCost).toLocaleString()}`, { align: AlignmentType.RIGHT }),
-            createTableCell(hasCachedVsi ? 'Included' : `$${Math.round(totalVSIStorageCost).toLocaleString()}`, { align: AlignmentType.RIGHT }),
-            createTableCell(`$${Math.round(totalVSIMonthlyCost).toLocaleString()}`, { align: AlignmentType.RIGHT }),
-            createTableCell(`$${Math.round(totalVSIMonthlyCost * 12).toLocaleString()}`, { align: AlignmentType.RIGHT }),
+            createTableCell(`$${Math.ceil(totalVSIMonthlyCost).toLocaleString()}`, { align: AlignmentType.RIGHT }),
+            createTableCell(`$${Math.ceil(totalVSIMonthlyCost * 12).toLocaleString()}`, { align: AlignmentType.RIGHT }),
           ],
         }),
       ],
