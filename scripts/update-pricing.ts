@@ -531,6 +531,128 @@ interface ROKSPricingRates {
     perClusterMonthly: number;
     description: string;
   };
+  workerRates?: {
+    bareMetal?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+    vsi?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+  };
+}
+
+// Fetch ROKS per-profile worker node compute rates from Global Catalog
+// ROKS workers have separate pricing plans that differ from standalone VPC VSI/bare metal rates.
+// Plan pattern: containers.kubernetes.vpc.{profile-with-dots}.roks
+// Metric: part-roks.vpc.{profile} (INSTANCE_HOURS)
+async function fetchROKSWorkerRates(
+  token: string
+): Promise<{ bareMetal: Record<string, { hourlyRate: number; monthlyRate: number }>; vsi: Record<string, { hourlyRate: number; monthlyRate: number }> }> {
+  console.log('');
+  console.log('--- ROKS Worker Node Rates ---');
+
+  const bareMetal: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
+  const vsi: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
+
+  try {
+    // Paginate through all containers-kubernetes catalog entries
+    let offset = 0;
+    const limit = 200;
+    let allPlans: CatalogEntry[] = [];
+
+    while (true) {
+      const params = new URLSearchParams({
+        q: 'containers-kubernetes',
+        include: 'metadata',
+        _limit: limit.toString(),
+        _offset: offset.toString(),
+      });
+      const url = `${GLOBAL_CATALOG_BASE_URL}?${params.toString()}`;
+      const response = await fetch(url, {
+        headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) break;
+
+      const data: CatalogSearchResponse = await response.json();
+      const plans = (data.resources || []).filter(
+        r => r.active && !r.disabled && r.kind === 'plan' && r.name?.includes('roks')
+      );
+      allPlans.push(...plans);
+
+      if ((data.resources || []).length < limit) break;
+      offset += limit;
+      await delay(100);
+    }
+
+    // Filter to per-profile worker plans
+    // Pattern: containers.kubernetes.vpc.{profile}.roks
+    // Exclude: gen2, reserved, cluster-level, odf plans
+    const excludePatterns = ['gen2', 'reserved', 'cluster', 'odf', 'rhoai'];
+    const workerPlans = allPlans.filter(plan => {
+      const name = plan.name || '';
+      // Must match vpc worker pattern
+      if (!name.includes('vpc') || !name.includes('roks')) return false;
+      // Exclude non-profile plans
+      if (excludePatterns.some(p => name.includes(p))) return false;
+      // Must have a profile segment (e.g., bx3d.16x80)
+      const parts = name.split('.');
+      // Expected: containers.kubernetes.vpc.{family}.{spec}.roks or similar
+      return parts.length >= 5;
+    });
+
+    console.log(`  Found ${workerPlans.length} ROKS worker profile plans`);
+
+    let fetchedCount = 0;
+    for (const plan of workerPlans) {
+      const deployments = await fetchPlanPricingDeployments(token, plan.id);
+      const usSouth = deployments.find(d =>
+        d.deployment_location === REGION || d.deployment_region === REGION
+      );
+      if (!usSouth?.metrics) {
+        await delay(50);
+        continue;
+      }
+
+      for (const metric of usSouth.metrics) {
+        // Look for the instance-hours metric: part-roks.vpc.{profile}
+        if (!metric.metric_id?.startsWith('part-roks.vpc.')) continue;
+        if (metric.metric_id?.includes('ocp') || metric.metric_id?.includes('disk') || metric.metric_id?.includes('rhoai')) continue;
+
+        const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
+        const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
+          ?? usdAmount?.prices?.[0]?.price;
+        if (!price || price === 0) continue;
+
+        const qty = metric.charge_unit_quantity || 1;
+        const hourlyRate = Math.round((price / qty) * 100000) / 100000;
+        const monthlyRate = Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100;
+
+        // Extract profile name from metric_id: part-roks.vpc.{profile-with-dots}
+        // Convert dots to hyphens: bx3d.16x80 → bx3d-16x80
+        const profileDotted = metric.metric_id.replace('part-roks.vpc.', '');
+        const profileName = profileDotted.replace(/\./g, '-');
+
+        if (profileName.includes('metal')) {
+          bareMetal[profileName] = { hourlyRate, monthlyRate };
+        } else {
+          vsi[profileName] = { hourlyRate, monthlyRate };
+        }
+        fetchedCount++;
+      }
+      await delay(50);
+    }
+
+    console.log(`  Fetched rates for ${fetchedCount} profiles (${Object.keys(bareMetal).length} bare metal, ${Object.keys(vsi).length} VSI)`);
+    if (Object.keys(vsi).length > 0) {
+      const sample = Object.entries(vsi)[0];
+      console.log(`  Sample VSI rate: ${sample[0]} = $${sample[1].hourlyRate}/hr ($${sample[1].monthlyRate}/mo)`);
+    }
+    if (Object.keys(bareMetal).length > 0) {
+      const sample = Object.entries(bareMetal)[0];
+      console.log(`  Sample BM rate: ${sample[0]} = $${sample[1].hourlyRate}/hr ($${sample[1].monthlyRate}/mo)`);
+    }
+  } catch (error) {
+    console.warn('  Warning: Failed to fetch ROKS worker rates, continuing without them');
+    console.warn('  Error:', error instanceof Error ? error.message : error);
+  }
+
+  return { bareMetal, vsi };
 }
 
 // Fetch ROKS pricing (OCP license + ODF) from Global Catalog
@@ -767,6 +889,7 @@ async function main() {
     const vsiPricing = await fetchVSIPricing(token, vsiProfileNames);
     const bareMetalPricing = await fetchBareMetalPricing(token, bmProfileNames);
     const roksPricing = await fetchROKSPricing(token);
+    const roksWorkerRates = await fetchROKSWorkerRates(token);
 
     // Update config
     console.log('');
@@ -776,6 +899,10 @@ async function main() {
 
     // Update ROKS pricing section
     if (roksPricing) {
+      // Attach per-profile worker rates if any were found
+      if (Object.keys(roksWorkerRates.bareMetal).length > 0 || Object.keys(roksWorkerRates.vsi).length > 0) {
+        roksPricing.workerRates = roksWorkerRates;
+      }
       newConfig.roks = roksPricing;
     }
 

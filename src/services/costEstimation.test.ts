@@ -10,7 +10,7 @@ import {
   findClosestPricedProfile,
 } from './costEstimation';
 import type { VSISizingInput, ROKSSizingInput } from './costEstimation';
-import type { VSIProfile } from '@/services/pricing/pricingCache';
+import type { VSIProfile, IBMCloudPricing } from '@/services/pricing/pricingCache';
 import { getStaticPricing } from '@/services/pricing/pricingCache';
 
 describe('Cost Estimation Service', () => {
@@ -474,6 +474,99 @@ describe('Cost Estimation Service', () => {
       const withoutAcm = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
       const withAcm = calculateROKSCost({ ...basicROKSInput, includeAcm: true }, 'us-south', 'onDemand');
       expect(withAcm.totalMonthly).toBeGreaterThan(withoutAcm.totalMonthly);
+    });
+
+    it('should use ROKS worker rate for bare metal compute when available', () => {
+      const staticPricing = getStaticPricing();
+      const higherRate = (staticPricing.bareMetal['bx2d-metal-96x384']?.monthlyRate || 5000) * 1.09;
+      const pricingWithWorkerRates: IBMCloudPricing = {
+        ...staticPricing,
+        roks: {
+          ...staticPricing.roks,
+          workerRates: {
+            bareMetal: {
+              'bx2d-metal-96x384': { hourlyRate: higherRate / 730, monthlyRate: higherRate },
+            },
+          },
+        },
+      };
+
+      const withWorkerRate = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand', pricingWithWorkerRates);
+      const withoutWorkerRate = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand', staticPricing);
+
+      const computeWith = withWorkerRate.lineItems.find(item => item.category === 'Compute');
+      const computeWithout = withoutWorkerRate.lineItems.find(item => item.category === 'Compute');
+
+      expect(computeWith).toBeDefined();
+      expect(computeWithout).toBeDefined();
+      expect(computeWith!.monthlyCost).toBeGreaterThan(computeWithout!.monthlyCost);
+    });
+
+    it('should fall back to VPC bare metal rate when ROKS worker rate missing', () => {
+      const staticPricing = getStaticPricing();
+      const pricingNoWorkerRates: IBMCloudPricing = {
+        ...staticPricing,
+        roks: {
+          ...staticPricing.roks,
+          // No workerRates
+        },
+      };
+
+      const result = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand', pricingNoWorkerRates);
+      const baseline = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand', staticPricing);
+
+      const computeResult = result.lineItems.find(item => item.category === 'Compute');
+      const computeBaseline = baseline.lineItems.find(item => item.category === 'Compute');
+
+      expect(computeResult?.monthlyCost).toBe(computeBaseline?.monthlyCost);
+    });
+
+    it('should use ROKS worker rate for storage VSIs in hybrid mode', () => {
+      const staticPricing = getStaticPricing();
+      const storageProfile = 'bx2-16x64';
+      const higherRate = (staticPricing.vsi[storageProfile]?.monthlyRate || 500) * 1.09;
+      const pricingWithWorkerRates: IBMCloudPricing = {
+        ...staticPricing,
+        roks: {
+          ...staticPricing.roks,
+          workerRates: {
+            vsi: {
+              [storageProfile]: { hourlyRate: higherRate / 730, monthlyRate: higherRate },
+            },
+          },
+        },
+      };
+
+      const withWorkerRate = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand', pricingWithWorkerRates);
+      const withoutWorkerRate = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand', staticPricing);
+
+      const storageWith = withWorkerRate.lineItems.find(item => item.category === 'Storage - VSI');
+      const storageWithout = withoutWorkerRate.lineItems.find(item => item.category === 'Storage - VSI');
+
+      expect(storageWith).toBeDefined();
+      expect(storageWithout).toBeDefined();
+      expect(storageWith!.monthlyCost).toBeGreaterThan(storageWithout!.monthlyCost);
+    });
+
+    it('should fall back to VPC VSI rate when ROKS VSI worker rate missing', () => {
+      const staticPricing = getStaticPricing();
+      const pricingNoWorkerRates: IBMCloudPricing = {
+        ...staticPricing,
+        roks: {
+          ...staticPricing.roks,
+          workerRates: {
+            vsi: {}, // empty — no matching profile
+          },
+        },
+      };
+
+      const result = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand', pricingNoWorkerRates);
+      const baseline = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand', staticPricing);
+
+      const storageResult = result.lineItems.find(item => item.category === 'Storage - VSI');
+      const storageBaseline = baseline.lineItems.find(item => item.category === 'Storage - VSI');
+
+      expect(storageResult?.monthlyCost).toBe(storageBaseline?.monthlyCost);
     });
   });
 

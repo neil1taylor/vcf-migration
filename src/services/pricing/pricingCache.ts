@@ -87,6 +87,10 @@ export interface IBMCloudPricing {
     };
     clusterManagement: { perClusterMonthly: number; description: string };
     acm?: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
+    workerRates?: {
+      bareMetal?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+      vsi?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+    };
   };
   ove?: {
     ocpLicense: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
@@ -96,6 +100,10 @@ export interface IBMCloudPricing {
     };
     clusterManagement: { perClusterMonthly: number; description: string };
     acm?: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
+    workerRates?: {
+      bareMetal?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+      vsi?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+    };
   };
   networking: NetworkPricing;
   storageAddons: {

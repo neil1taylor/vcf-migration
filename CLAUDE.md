@@ -128,7 +128,7 @@ npm run update-all       # Both
 ```
 
 - **Profile script** (`scripts/update-profiles.ts`): Fetches VPC instance/bare metal profiles and ROKS machine types, auto-detects ROKS support by matching bare metal profiles against ROKS flavors API.
-- **Pricing script** (`scripts/update-pricing.ts`): Fetches pricing from Global Catalog, extracts hourly rates for us-south, calculates monthly (hourly × 730).
+- **Pricing script** (`scripts/update-pricing.ts`): Fetches pricing from Global Catalog, extracts hourly rates for us-south, calculates monthly (hourly × 730). Also fetches ROKS per-profile worker node rates (which differ from VPC rates by ~9%). `calculateROKSCost()` prefers ROKS worker rates when available, falling back to VPC rates via `??`.
 - **ROKS fallback**: When proxy returns no ROKS data, `useDynamicProfiles` hook falls back to static JSON `roksSupported` values.
 - **Data source labels**: "Live API" (green) when proxy available or cached proxy data; "Cache" (gray) when using static data.
 

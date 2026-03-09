@@ -602,7 +602,7 @@ The script queries the IBM Kubernetes Service API to determine which bare metal 
 #### Pricing Update (`scripts/update-pricing.ts`)
 - **VSI Pricing** — Hourly rates computed from IBM Cloud Global Catalog plan hierarchy
 - **Bare Metal Pricing** — Flat per-server hourly rates from Global Catalog
-- **ROKS Pricing** — OCP license per-vCPU-hour and ODF storage rates (Advanced/Essentials) from the `containers-kubernetes` service
+- **ROKS Pricing** — OCP license per-vCPU-hour, ODF storage rates (Advanced/Essentials), and per-profile worker node compute rates from the `containers-kubernetes` service. Worker rates differ from VPC rates by ~9%; cost estimation uses ROKS worker rates when available, falling back to VPC rates
 - Monthly rates are calculated as `hourlyRate × 730 hours`
 - Supports three pricing models: gen2 component-based (per-vCPU + per-GB), gen3+ flat per-profile, bare metal flat per-server, and Z-series (LinuxONE) Secure Execution rates
 

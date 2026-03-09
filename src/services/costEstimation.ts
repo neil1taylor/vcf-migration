@@ -506,9 +506,10 @@ export function calculateROKSCost(
   const computeProfile = pricingToUse.bareMetal[input.computeProfile as keyof typeof pricingToUse.bareMetal];
   if (computeProfile && input.computeNodes > 0) {
     const isCustomNoPricing = computeProfile.isCustom && (!computeProfile.monthlyRate || computeProfile.monthlyRate === 0);
+    const roksComputeRate = pricingToUse.roks?.workerRates?.bareMetal?.[input.computeProfile];
     const monthlyRate = (isCustomNoPricing || !Number.isFinite(computeProfile.monthlyRate))
       ? 0
-      : computeProfile.monthlyRate * multiplier;
+      : (roksComputeRate?.monthlyRate ?? computeProfile.monthlyRate) * multiplier;
     lineItems.push({
       category: 'Compute',
       description: `Bare Metal - ${input.computeProfile}`,
@@ -544,7 +545,8 @@ export function calculateROKSCost(
     if (input.storageNodes && input.storageProfile) {
       const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
       if (storageVSI) {
-        const monthlyRate = storageVSI.monthlyRate * multiplier;
+        const roksStorageRate = pricingToUse.roks?.workerRates?.vsi?.[input.storageProfile!];
+        const monthlyRate = (roksStorageRate?.monthlyRate ?? storageVSI.monthlyRate) * multiplier;
         lineItems.push({
           category: 'Storage - VSI',
           description: `VSI - ${input.storageProfile}`,
