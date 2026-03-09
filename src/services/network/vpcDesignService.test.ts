@@ -102,6 +102,42 @@ describe('buildVPCDesign', () => {
     expect(webSubnet?.cidr).toBe('10.100.0.0/24');
   });
 
+  it('guesses subnets from VM IPs when no override exists', () => {
+    const data = createMinimalData();
+    const design = buildVPCDesign(data, 'us-south', {}, {});
+
+    const webSubnet = design.subnets.find(s => s.sourcePortGroup === 'Web-PG');
+    expect(webSubnet?.cidr).toBe('10.0.1.0/24');
+
+    const dbSubnet = design.subnets.find(s => s.sourcePortGroup === 'DB-PG');
+    expect(dbSubnet?.cidr).toBe('10.0.2.0/24');
+  });
+
+  it('guesses multiple subnets when port group has IPs in different ranges', () => {
+    const data = createMinimalData();
+    // Add a second VM on Web-PG with a different IP prefix
+    data.vInfo.push({
+      vmName: 'web2', powerState: 'poweredOn', template: false, cpus: 2, memory: 4096,
+      nics: 1, disks: 1, guestOS: 'Linux', datacenter: 'DC1', cluster: 'C1', host: 'h1',
+      provisionedMiB: 51200, inUseMiB: 25600, uuid: 'u4',
+    } as RVToolsData['vInfo'][0]);
+    data.vNetwork.push(
+      { vmName: 'web2', networkName: 'Web-PG', ipv4Address: '10.0.5.10' } as RVToolsData['vNetwork'][0],
+    );
+
+    const design = buildVPCDesign(data, 'us-south', {}, {});
+    const webSubnet = design.subnets.find(s => s.sourcePortGroup === 'Web-PG');
+    expect(webSubnet?.cidr).toBe('10.0.1.0/24, 10.0.5.0/24');
+  });
+
+  it('prefers user override over guessed subnet', () => {
+    const data = createMinimalData();
+    const design = buildVPCDesign(data, 'us-south', { 'Web-PG': '192.168.1.0/24' }, {});
+
+    const webSubnet = design.subnets.find(s => s.sourcePortGroup === 'Web-PG');
+    expect(webSubnet?.cidr).toBe('192.168.1.0/24');
+  });
+
   it('defaults to empty transit gateways', () => {
     const design = buildVPCDesign(null, 'us-south', {}, {});
     expect(design.transitGateways).toEqual([]);

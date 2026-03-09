@@ -25,12 +25,26 @@ interface PortGroupSummary {
   subnet?: string;
 }
 
+function guessSubnetFromIPs(ips: string[]): string | undefined {
+  if (ips.length === 0) return undefined;
+  const uniquePrefixes = new Set<string>();
+  ips.forEach(ip => {
+    const parts = ip.split('.');
+    if (parts.length >= 3) {
+      uniquePrefixes.add(`${parts[0]}.${parts[1]}.${parts[2]}`);
+    }
+  });
+  const subnets = Array.from(uniquePrefixes).sort().map(prefix => `${prefix}.0/24`);
+  return subnets.length > 0 ? subnets.join(', ') : undefined;
+}
+
 function summarizePortGroups(
   rawData: RVToolsData,
   subnetOverrides: Record<string, string>,
   workloadMap: Record<string, string>
 ): PortGroupSummary[] {
   const groups = new Map<string, PortGroupSummary>();
+  const groupIPs = new Map<string, string[]>();
 
   // Only active VMs
   const activeVMNames = new Set(
@@ -51,6 +65,7 @@ function summarizePortGroups(
         workloadType: 'Default',
         subnet: subnetOverrides[pgName],
       });
+      groupIPs.set(pgName, []);
     }
 
     const group = groups.get(pgName)!;
@@ -59,10 +74,22 @@ function summarizePortGroups(
       group.vmCount++;
     }
 
+    // Collect IPs for subnet guessing
+    if (nic.ipv4Address) {
+      groupIPs.get(pgName)!.push(nic.ipv4Address);
+    }
+
     // Use first VM's workload type for the group
     const vmWorkload = workloadMap[nic.vmName];
     if (vmWorkload && group.workloadType === 'Default') {
       group.workloadType = vmWorkload;
+    }
+  });
+
+  // Fill in guessed subnets where no user override exists
+  groups.forEach((group, pgName) => {
+    if (!group.subnet) {
+      group.subnet = guessSubnetFromIPs(groupIPs.get(pgName) || []);
     }
   });
 
