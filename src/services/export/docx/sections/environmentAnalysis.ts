@@ -4,7 +4,7 @@ import { Paragraph, PageBreak, HeadingLevel, AlignmentType } from 'docx';
 import type { RVToolsData, VirtualMachine, VNetworkInfo } from '@/types/rvtools';
 import { mibToGiB, mibToTiB } from '@/utils/formatters';
 import reportTemplates from '@/data/reportTemplates.json';
-import { CHART_COLORS, type DocumentContent, type ChartData } from '../types';
+import { CHART_COLORS, type DocumentContent, type ChartData, type SourceEnvironmentExport } from '../types';
 import { createHeading, createParagraph, createStyledTable, createTableDescription, createTableLabel, createFigureDescription, createFigureLabel } from '../utils/helpers';
 import { generatePieChart, createChartParagraph } from '../utils/charts';
 
@@ -14,7 +14,7 @@ const templates = reportTemplates as typeof reportTemplates & {
   figureDescriptions: Record<string, { title: string; description: string }>;
 };
 
-export async function buildEnvironmentAnalysis(rawData: RVToolsData, sectionNum?: number): Promise<DocumentContent[]> {
+export async function buildEnvironmentAnalysis(rawData: RVToolsData, sectionNum?: number, sourceEnv?: SourceEnvironmentExport | null): Promise<DocumentContent[]> {
   const envTemplates = reportTemplates.environmentAnalysis;
   const vms = rawData.vInfo.filter((vm) => !vm.template);
   const poweredOnVMs = vms.filter((vm) => vm.powerState === 'poweredOn');
@@ -107,6 +107,9 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData, sectionNum?
     ),
     createTableLabel(templates.tableDescriptions.infrastructureOverview.title),
 
+    // Source environment enrichment: vCenter, ESXi versions, host hardware
+    ...buildSourceEnvironmentDetails(sourceEnv, sectionNum),
+
     new Paragraph({ spacing: { before: 240 } }),
     createHeading((sectionNum != null ? `${sectionNum}.2 ` : '2.2 ') + envTemplates.sections.compute.title, HeadingLevel.HEADING_2),
     createParagraph(envTemplates.sections.compute.description),
@@ -174,6 +177,9 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData, sectionNum?
     createChartParagraph(dsTypeChart, 480, 260),
     createFigureLabel(templates.figureDescriptions.storageByType.title),
 
+    // Datastore utilization detail table and overcommit analysis
+    ...buildStorageAndOvercommitDetails(sourceEnv, sectionNum),
+
     new Paragraph({ spacing: { before: 240 } }),
     createHeading((sectionNum != null ? `${sectionNum}.4 ` : '2.4 ') + envTemplates.sections.network.title, HeadingLevel.HEADING_2),
     createParagraph(envTemplates.sections.network.description),
@@ -196,4 +202,117 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData, sectionNum?
 
     new Paragraph({ children: [new PageBreak()] }),
   ];
+}
+
+/** Build vCenter/ESXi/hardware details if source environment data is available */
+function buildSourceEnvironmentDetails(sourceEnv?: SourceEnvironmentExport | null, sectionNum?: number): DocumentContent[] {
+  if (!sourceEnv) return [];
+  const s = sectionNum != null ? `${sectionNum}` : '2';
+  const elements: DocumentContent[] = [];
+
+  // vCenter details
+  if (sourceEnv.vcenterServer || sourceEnv.vcenterVersion) {
+    const vcRows: string[][] = [];
+    if (sourceEnv.vcenterServer) vcRows.push(['vCenter Server', sourceEnv.vcenterServer]);
+    if (sourceEnv.vcenterVersion) vcRows.push(['vCenter Version', sourceEnv.vcenterVersion]);
+    if (vcRows.length > 0) {
+      elements.push(
+        ...createTableDescription('vCenter Details', 'Source vCenter server identification and version information.'),
+        createStyledTable(['Property', 'Value'], vcRows, { columnAligns: [AlignmentType.LEFT, AlignmentType.LEFT] }),
+        createTableLabel('vCenter Details'),
+      );
+    }
+  }
+
+  // ESXi version distribution
+  if (sourceEnv.esxiVersions.length > 0) {
+    const esxiRows = sourceEnv.esxiVersions.map(v => [v.version, `${v.hostCount}`]);
+    elements.push(
+      ...createTableDescription('ESXi Version Distribution', 'Distribution of ESXi hypervisor versions across hosts. Older versions may require additional planning for migration compatibility.'),
+      createStyledTable(['ESXi Version', 'Host Count'], esxiRows, { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT] }),
+      createTableLabel('ESXi Version Distribution'),
+    );
+  }
+
+  // Host hardware
+  if (sourceEnv.hostHardware.length > 0) {
+    const hwRows = sourceEnv.hostHardware.map(h => [h.vendor, h.model, `${h.count}`]);
+    elements.push(
+      ...createTableDescription('Host Hardware', 'Physical server vendor and model distribution across the environment.'),
+      createStyledTable(['Vendor', 'Model', 'Count'], hwRows, { columnAligns: [AlignmentType.LEFT, AlignmentType.LEFT, AlignmentType.RIGHT] }),
+      createTableLabel('Host Hardware'),
+    );
+  }
+
+  // CPU models
+  if (sourceEnv.cpuModels.length > 0) {
+    const cpuRows = sourceEnv.cpuModels.map(c => [c.model, `${c.count}`]);
+    elements.push(
+      ...createTableDescription('CPU Model Distribution', 'Processor models in use across ESXi hosts. Useful for performance baseline comparison with IBM Cloud bare metal profiles.'),
+      createStyledTable(['CPU Model', 'Host Count'], cpuRows, { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT] }),
+      createTableLabel('CPU Model Distribution'),
+    );
+  }
+
+  return elements;
+}
+
+/** Build overcommit analysis and datastore utilization detail tables */
+function buildStorageAndOvercommitDetails(sourceEnv?: SourceEnvironmentExport | null, _sectionNum?: number): DocumentContent[] {
+  if (!sourceEnv) return [];
+  const elements: DocumentContent[] = [];
+
+  // Host overcommit analysis (top 10)
+  if (sourceEnv.hostOvercommit.length > 0) {
+    const topHosts = sourceEnv.hostOvercommit.slice(0, 10);
+    const overcommitRows = topHosts.map(h => [
+      h.hostname,
+      `${h.cpuRatio.toFixed(1)}:1`,
+      `${h.memoryRatio.toFixed(1)}:1`,
+      h.cpuRatio > 4 || h.memoryRatio > 1.5 ? 'High' : h.cpuRatio > 2 || h.memoryRatio > 1.0 ? 'Medium' : 'Low',
+    ]);
+    elements.push(
+      ...createTableDescription(
+        'Host Overcommit Analysis',
+        'CPU and memory overcommit ratios per host. High overcommit ratios (CPU >4:1, Memory >1.5:1) indicate that the source environment relies heavily on overcommitment and target sizing should account for this.'
+      ),
+      createStyledTable(
+        ['Host', 'CPU Ratio', 'Memory Ratio', 'Level'],
+        overcommitRows,
+        { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT, AlignmentType.RIGHT, AlignmentType.CENTER] }
+      ),
+      createTableLabel('Host Overcommit Analysis'),
+    );
+  }
+
+  // Datastore utilization detail (top 15)
+  if (sourceEnv.datastoreUtilization.length > 0) {
+    const topDS = sourceEnv.datastoreUtilization.slice(0, 15);
+    const dsRows = topDS.map(ds => {
+      const statusLabel = ds.utilizationPct >= 80 ? 'Critical' : ds.utilizationPct >= 50 ? 'Warning' : 'OK';
+      return [
+        ds.name,
+        ds.type,
+        `${ds.capacityGiB.toLocaleString()}`,
+        `${ds.usedGiB.toLocaleString()}`,
+        `${ds.freeGiB.toLocaleString()}`,
+        `${ds.utilizationPct}%`,
+        statusLabel,
+      ];
+    });
+    elements.push(
+      ...createTableDescription(
+        'Datastore Utilization',
+        'Per-datastore capacity and utilization. Datastores at Critical (>80%) utilization may require storage consolidation or cleanup before migration to reduce data transfer volumes.'
+      ),
+      createStyledTable(
+        ['Datastore', 'Type', 'Capacity (GiB)', 'Used (GiB)', 'Free (GiB)', 'Util %', 'Status'],
+        dsRows,
+        { columnAligns: [AlignmentType.LEFT, AlignmentType.LEFT, AlignmentType.RIGHT, AlignmentType.RIGHT, AlignmentType.RIGHT, AlignmentType.RIGHT, AlignmentType.CENTER] }
+      ),
+      createTableLabel('Datastore Utilization'),
+    );
+  }
+
+  return elements;
 }

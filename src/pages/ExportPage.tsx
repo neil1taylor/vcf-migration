@@ -48,7 +48,7 @@ import { getVMIdentifier } from '@/utils/vmIdentifier';
 import type { PDFExportOptions } from '@/hooks/usePDFExport';
 import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
-import { getWavePlanningPreference, getPlatformSelectionExport, getRiskAssessmentExport, getTimelineExport, getVPCDesignExport } from '@/services/export/docx/types';
+import { getWavePlanningPreference, getPlatformSelectionExport, getRiskAssessmentExport, getTimelineExport, getVPCDesignExport, getTargetAssignmentsExport, getWorkloadClassificationExport, getSourceEnvironmentExport } from '@/services/export/docx/types';
 import { getDefaultFilename, sanitizeFilename } from '@/utils/exportFilenames';
 import { runPreFlightChecks, type CheckMode } from '@/services/preflightChecks';
 import { exportPreFlightExcel, downloadWavePlanningExcel } from '@/services/export/excelGenerator';
@@ -306,6 +306,9 @@ export function ExportPage() {
     const riskAssessment = getRiskAssessmentExport(rawData);
     const timelineData = getTimelineExport(rawData);
     const vpcDesign = getVPCDesignExport(rawData);
+    const targetAssignments = getTargetAssignmentsExport(rawData);
+    const workloadClassification = getWorkloadClassificationExport(rawData);
+    const sourceEnvironment = getSourceEnvironmentExport(rawData);
 
     await exportDocx(rawData, {
       aiInsights,
@@ -316,6 +319,9 @@ export function ExportPage() {
       timelineStartDate: timelineData?.startDate,
       vpcDesign,
       includeAppendices,
+      targetAssignments,
+      workloadClassification,
+      sourceEnvironment,
     }, sanitizeFilename(docxFilename, '.docx'));
     markExportComplete();
   }, [rawData, exportDocx, aiAvailable, markExportComplete, docxFilename, includeAppendices]);

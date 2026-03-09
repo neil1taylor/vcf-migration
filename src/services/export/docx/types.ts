@@ -14,7 +14,10 @@ import { calculateComplexityScores } from '@/services/migration/migrationAssessm
 import { buildVMWaveData, createComplexityWaves, createNetworkWaves } from '@/services/migration/wavePlanning';
 import { buildVPCDesign } from '@/services/network/vpcDesignService';
 import { getCachedBOM } from '@/services/bomCache';
-import { getEnvironmentFingerprint, fingerprintsMatch } from '@/utils/vmIdentifier';
+import { getEnvironmentFingerprint, fingerprintsMatch, getVMIdentifier } from '@/utils/vmIdentifier';
+import { classifyAllVMs, type MigrationTarget } from '@/services/migration/targetClassification';
+import { getVMWorkloadCategory, getCategoryDisplayName } from '@/utils/workloadClassification';
+import { isVMwareInfrastructureVM } from '@/utils/autoExclusion';
 import factorsData from '@/data/platformSelectionFactors.json';
 
 // Type alias for document content elements
@@ -49,6 +52,40 @@ export interface DocxExportOptions {
   wavePlanningPreference?: WavePlanningPreference | null;
   platformSelection?: PlatformSelectionExport | null;
   includeAppendices?: boolean;
+  targetAssignments?: TargetAssignmentExport[] | null;
+  workloadClassification?: WorkloadClassificationExport | null;
+  sourceEnvironment?: SourceEnvironmentExport | null;
+}
+
+export interface TargetAssignmentExport {
+  vmName: string;
+  workloadType: string;
+  target: 'roks' | 'vsi' | 'powervs';
+  reason: string;
+  isUserOverride: boolean;
+}
+
+export interface WorkloadClassificationExport {
+  categories: Array<{ category: string; count: number; percentage: number }>;
+  totalClassified: number;
+}
+
+export interface SourceEnvironmentExport {
+  vcenterServer?: string;
+  vcenterVersion?: string;
+  esxiVersions: Array<{ version: string; hostCount: number }>;
+  hostHardware: Array<{ vendor: string; model: string; count: number }>;
+  cpuModels: Array<{ model: string; count: number }>;
+  hostOvercommit: Array<{ hostname: string; cpuRatio: number; memoryRatio: number }>;
+  datastoreUtilization: Array<{
+    name: string;
+    type: string;
+    capacityGiB: number;
+    usedGiB: number;
+    freeGiB: number;
+    utilizationPct: number;
+    vmCount: number;
+  }>;
 }
 
 export interface VMReadiness {
@@ -386,6 +423,197 @@ export function getWavePlanningPreference(): WavePlanningPreference | null {
     }
   } catch { /* ignore */ }
   return null;
+}
+
+/**
+ * Read target assignments from localStorage and compute auto-classifications.
+ * Merges user overrides with auto-classification results.
+ */
+export function getTargetAssignmentsExport(rawData: RVToolsData): TargetAssignmentExport[] | null {
+  const poweredOnVMs = rawData.vInfo.filter(
+    vm => vm.powerState === 'poweredOn' && !vm.template && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS)
+  );
+  if (poweredOnVMs.length === 0) return null;
+
+  // Build workload type map
+  const workloadTypes = new Map<string, string>();
+  for (const vm of poweredOnVMs) {
+    const vmId = getVMIdentifier(vm);
+    const cat = getVMWorkloadCategory(vm.vmName, vm.annotation);
+    if (cat) {
+      workloadTypes.set(vmId, getCategoryDisplayName(cat) || cat);
+    }
+  }
+
+  // Auto-classify all VMs
+  const autoClassifications = classifyAllVMs(poweredOnVMs, workloadTypes);
+  const autoMap = new Map(autoClassifications.map(c => [c.vmId, c]));
+
+  // Read user overrides from localStorage
+  let userOverrides: Record<string, { target: MigrationTarget; reason: string }> = {};
+  try {
+    const stored = localStorage.getItem('vcf-target-assignments');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (parsed?.version && parsed.assignments) {
+        // Fingerprint check
+        if (parsed.environmentFingerprint) {
+          const fp = getEnvironmentFingerprint(rawData);
+          if (!fingerprintsMatch(parsed.environmentFingerprint, fp)) {
+            userOverrides = {};
+          } else {
+            userOverrides = parsed.assignments;
+          }
+        } else {
+          userOverrides = parsed.assignments;
+        }
+      }
+    }
+  } catch { /* ignore */ }
+
+  return poweredOnVMs.map(vm => {
+    const vmId = getVMIdentifier(vm);
+    const auto = autoMap.get(vmId);
+    const userOverride = userOverrides[vmId];
+    const workloadType = workloadTypes.get(vmId) || 'Unclassified';
+
+    if (userOverride) {
+      return {
+        vmName: vm.vmName,
+        workloadType,
+        target: userOverride.target,
+        reason: userOverride.reason,
+        isUserOverride: true,
+      };
+    }
+
+    return {
+      vmName: vm.vmName,
+      workloadType,
+      target: auto?.target ?? 'vsi',
+      reason: auto?.reasons[0] ?? 'Default classification',
+      isUserOverride: false,
+    };
+  });
+}
+
+/**
+ * Compute workload classification summary from raw VM data.
+ */
+export function getWorkloadClassificationExport(rawData: RVToolsData): WorkloadClassificationExport | null {
+  const poweredOnVMs = rawData.vInfo.filter(
+    vm => vm.powerState === 'poweredOn' && !vm.template && !isVMwareInfrastructureVM(vm.vmName, vm.guestOS)
+  );
+  if (poweredOnVMs.length === 0) return null;
+
+  const categoryCounts = new Map<string, number>();
+  let classifiedCount = 0;
+
+  for (const vm of poweredOnVMs) {
+    const cat = getVMWorkloadCategory(vm.vmName, vm.annotation);
+    const displayName = cat ? (getCategoryDisplayName(cat) || cat) : 'Unclassified';
+    categoryCounts.set(displayName, (categoryCounts.get(displayName) || 0) + 1);
+    if (cat) classifiedCount++;
+  }
+
+  const total = poweredOnVMs.length;
+  const categories = Array.from(categoryCounts.entries())
+    .map(([category, count]) => ({
+      category,
+      count,
+      percentage: Math.round((count / total) * 100),
+    }))
+    .sort((a, b) => b.count - a.count);
+
+  return { categories, totalClassified: classifiedCount };
+}
+
+/**
+ * Extract source environment details from raw data sheets.
+ */
+export function getSourceEnvironmentExport(rawData: RVToolsData): SourceEnvironmentExport | null {
+  if (rawData.vHost.length === 0 && rawData.vSource.length === 0) return null;
+
+  // vCenter info
+  const vcenterServer = rawData.vSource.length > 0 ? rawData.vSource[0].server : undefined;
+  const vcenterVersion = rawData.vSource.length > 0 ? (rawData.vSource[0].fullName || rawData.vSource[0].version || undefined) : undefined;
+
+  // ESXi version distribution
+  const esxiMap = new Map<string, number>();
+  for (const host of rawData.vHost) {
+    const ver = host.esxiVersion || 'Unknown';
+    esxiMap.set(ver, (esxiMap.get(ver) || 0) + 1);
+  }
+  const esxiVersions = Array.from(esxiMap.entries())
+    .map(([version, hostCount]) => ({ version, hostCount }))
+    .sort((a, b) => b.hostCount - a.hostCount);
+
+  // Host hardware vendor/model
+  const hwMap = new Map<string, number>();
+  for (const host of rawData.vHost) {
+    const key = `${host.vendor || 'Unknown'}|||${host.model || 'Unknown'}`;
+    hwMap.set(key, (hwMap.get(key) || 0) + 1);
+  }
+  const hostHardware = Array.from(hwMap.entries())
+    .map(([key, count]) => {
+      const [vendor, model] = key.split('|||');
+      return { vendor, model, count };
+    })
+    .sort((a, b) => b.count - a.count);
+
+  // CPU model distribution
+  const cpuMap = new Map<string, number>();
+  for (const host of rawData.vHost) {
+    const model = host.cpuModel || 'Unknown';
+    cpuMap.set(model, (cpuMap.get(model) || 0) + 1);
+  }
+  const cpuModels = Array.from(cpuMap.entries())
+    .map(([model, count]) => ({ model, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // Host overcommit ratios
+  const hostOvercommit = rawData.vHost
+    .filter(h => h.vmCount > 0)
+    .map(host => {
+      const totalHostCores = host.totalCpuCores * (host.hyperthreading ? 2 : 1);
+      const cpuRatio = totalHostCores > 0 ? host.vmCpuCount / totalHostCores : 0;
+      const hostMemGiB = host.memoryMiB / 1024;
+      const vmMemGiB = host.vmMemoryMiB / 1024;
+      const memoryRatio = hostMemGiB > 0 ? vmMemGiB / hostMemGiB : 0;
+      return {
+        hostname: host.name,
+        cpuRatio: parseFloat(cpuRatio.toFixed(2)),
+        memoryRatio: parseFloat(memoryRatio.toFixed(2)),
+      };
+    })
+    .sort((a, b) => b.cpuRatio - a.cpuRatio);
+
+  // Datastore utilization
+  const datastoreUtilization = rawData.vDatastore.map(ds => {
+    const capacityGiB = ds.capacityMiB / 1024;
+    const usedGiB = ds.inUseMiB / 1024;
+    const freeGiB = ds.freeMiB / 1024;
+    const utilizationPct = capacityGiB > 0 ? parseFloat(((usedGiB / capacityGiB) * 100).toFixed(1)) : 0;
+    return {
+      name: ds.name,
+      type: ds.type || 'Unknown',
+      capacityGiB: Math.round(capacityGiB),
+      usedGiB: Math.round(usedGiB),
+      freeGiB: Math.round(freeGiB),
+      utilizationPct,
+      vmCount: ds.vmCount,
+    };
+  }).sort((a, b) => b.utilizationPct - a.utilizationPct);
+
+  return {
+    vcenterServer,
+    vcenterVersion,
+    esxiVersions,
+    hostHardware,
+    cpuModels,
+    hostOvercommit,
+    datastoreUtilization,
+  };
 }
 
 // Re-export needed docx types for convenience

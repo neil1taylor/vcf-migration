@@ -19,3 +19,5 @@ export { buildNetworkDesignSection } from './networkDesign';
 export { buildPlatformSelectionSection } from './platformSelection';
 export { buildComplexityAssessment } from './complexityAssessment';
 export { buildOSCompatibilitySection } from './osCompatibility';
+export { buildWorkloadClassification } from './workloadClassification';
+export { buildPlatformRecommendation } from './platformRecommendation';

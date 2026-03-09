@@ -22,6 +22,8 @@ vi.mock('./sections', () => ({
   buildTimelineSection: vi.fn(() => []),
   buildComplexityAssessment: vi.fn(() => []),
   buildOSCompatibilitySection: vi.fn(() => []),
+  buildWorkloadClassification: vi.fn(() => []),
+  buildPlatformRecommendation: vi.fn(() => []),
 }));
 
 // Mock utility functions
@@ -131,6 +133,11 @@ import {
   buildComplexityAssessment,
   buildOSCompatibilitySection,
   buildAppendices,
+  buildWorkloadClassification,
+  buildPlatformRecommendation,
+  buildExecutiveSummary,
+  buildEnvironmentAnalysis,
+  buildMigrationStrategy,
 } from './sections';
 import type { RVToolsData } from '@/types/rvtools';
 
@@ -264,7 +271,7 @@ describe('generateDocxReport', () => {
     expect(blob).toBeInstanceOf(Blob);
   });
 
-  it('calls buildPlatformSelectionSection when platformSelection is provided', async () => {
+  it('calls buildPlatformRecommendation when platformSelection is provided', async () => {
     const platformSelection = {
       score: { vsiCount: 5, roksCount: 3, answeredCount: 12, leaning: 'vsi' as const },
       answers: { 'vsi-change-risk': 'yes' as const, 'roks-containerize': 'no' as const },
@@ -272,13 +279,23 @@ describe('generateDocxReport', () => {
 
     await generateDocxReport(mockRVToolsData, { platformSelection });
 
-    expect(buildPlatformSelectionSection).toHaveBeenCalledWith(platformSelection, expect.any(Number));
+    expect(buildPlatformRecommendation).toHaveBeenCalledWith(platformSelection, null, expect.any(Number));
   });
 
-  it('does not call buildPlatformSelectionSection when platformSelection is null', async () => {
-    await generateDocxReport(mockRVToolsData, { platformSelection: null });
+  it('does not call buildPlatformRecommendation when platformSelection and targetAssignments are null', async () => {
+    await generateDocxReport(mockRVToolsData, { platformSelection: null, targetAssignments: null });
 
-    expect(buildPlatformSelectionSection).not.toHaveBeenCalled();
+    expect(buildPlatformRecommendation).not.toHaveBeenCalled();
+  });
+
+  it('calls buildPlatformRecommendation when only targetAssignments is provided', async () => {
+    const targetAssignments = [
+      { vmName: 'vm-1', workloadType: 'Web Server', target: 'roks' as const, reason: 'Linux workload', isUserOverride: false },
+    ];
+
+    await generateDocxReport(mockRVToolsData, { targetAssignments });
+
+    expect(buildPlatformRecommendation).toHaveBeenCalledWith(null, targetAssignments, expect.any(Number));
   });
 
   it('passes rawData and wavePlanningPreference to buildROKSOverview', async () => {
@@ -321,7 +338,7 @@ describe('generateDocxReport', () => {
     );
   });
 
-  it('orders sections: ROKS before VSI before comparison before timeline before risk', async () => {
+  it('orders sections: platform recommendation before ROKS before VSI', async () => {
     const platformSelection = {
       score: { vsiCount: 3, roksCount: 3, answeredCount: 6, leaning: 'neutral' as const },
       answers: {},
@@ -335,17 +352,45 @@ describe('generateDocxReport', () => {
       riskAssessment: riskAssessment as any,
     });
 
-    // Verify call order: ROKS → VSI → Platform Selection → Timeline → Risk
+    // Verify call order: Platform Recommendation → ROKS → VSI → Strategy → Timeline → Risk
+    const platCall = (buildPlatformRecommendation as any).mock.invocationCallOrder[0];
     const roksCall = (buildROKSOverview as any).mock.invocationCallOrder[0];
     const vsiCall = (buildVSIOverview as any).mock.invocationCallOrder[0];
-    const platCall = (buildPlatformSelectionSection as any).mock.invocationCallOrder[0];
+    const stratCall = (buildMigrationStrategy as any).mock.invocationCallOrder[0];
     const timeCall = (buildTimelineSection as any).mock.invocationCallOrder[0];
     const riskCall = (buildRiskAssessmentSection as any).mock.invocationCallOrder[0];
 
+    expect(platCall).toBeLessThan(roksCall);
     expect(roksCall).toBeLessThan(vsiCall);
-    expect(vsiCall).toBeLessThan(platCall);
-    expect(platCall).toBeLessThan(timeCall);
+    expect(vsiCall).toBeLessThan(stratCall);
+    expect(stratCall).toBeLessThan(timeCall);
     expect(timeCall).toBeLessThan(riskCall);
+  });
+
+  it('orders VSI before ROKS when leaning is vsi', async () => {
+    const platformSelection = {
+      score: { vsiCount: 5, roksCount: 2, answeredCount: 7, leaning: 'vsi' as const },
+      answers: {},
+    };
+
+    await generateDocxReport(mockRVToolsData, { platformSelection });
+
+    const vsiCall = (buildVSIOverview as any).mock.invocationCallOrder[0];
+    const roksCall = (buildROKSOverview as any).mock.invocationCallOrder[0];
+    expect(vsiCall).toBeLessThan(roksCall);
+  });
+
+  it('orders ROKS before VSI when leaning is roks', async () => {
+    const platformSelection = {
+      score: { vsiCount: 2, roksCount: 5, answeredCount: 7, leaning: 'roks' as const },
+      answers: {},
+    };
+
+    await generateDocxReport(mockRVToolsData, { platformSelection });
+
+    const roksCall = (buildROKSOverview as any).mock.invocationCallOrder[0];
+    const vsiCall = (buildVSIOverview as any).mock.invocationCallOrder[0];
+    expect(roksCall).toBeLessThan(vsiCall);
   });
 
   it('calls buildComplexityAssessment with rawData and section number', async () => {
@@ -384,5 +429,61 @@ describe('generateDocxReport', () => {
       mockRVToolsData,
       false
     );
+  });
+
+  it('calls buildWorkloadClassification when workloadClassification is provided', async () => {
+    const workloadClassification = {
+      categories: [{ category: 'Web Server', count: 5, percentage: 50 }, { category: 'Database', count: 3, percentage: 30 }],
+      totalClassified: 8,
+    };
+
+    await generateDocxReport(mockRVToolsData, { workloadClassification });
+
+    expect(buildWorkloadClassification).toHaveBeenCalledWith(workloadClassification, expect.any(Number));
+  });
+
+  it('does not call buildWorkloadClassification when not provided', async () => {
+    await generateDocxReport(mockRVToolsData);
+
+    expect(buildWorkloadClassification).not.toHaveBeenCalled();
+  });
+
+  it('passes sourceEnvironment to buildEnvironmentAnalysis', async () => {
+    const sourceEnvironment = {
+      vcenterServer: 'vc01.example.com',
+      vcenterVersion: 'VMware vCenter Server 7.0.3',
+      esxiVersions: [{ version: '7.0.3', hostCount: 4 }],
+      hostHardware: [{ vendor: 'Dell', model: 'PowerEdge R740', count: 4 }],
+      cpuModels: [{ model: 'Intel Xeon Gold 6248R', count: 4 }],
+      hostOvercommit: [],
+      datastoreUtilization: [],
+    };
+
+    await generateDocxReport(mockRVToolsData, { sourceEnvironment });
+
+    expect(buildEnvironmentAnalysis).toHaveBeenCalledWith(
+      mockRVToolsData,
+      expect.any(Number),
+      sourceEnvironment,
+    );
+  });
+
+  it('passes platformSelection and workloadClassification to buildExecutiveSummary', async () => {
+    const platformSelection = {
+      score: { vsiCount: 5, roksCount: 3, answeredCount: 12, leaning: 'vsi' as const },
+      answers: {},
+    };
+    const workloadClassification = {
+      categories: [{ category: 'Web Server', count: 5, percentage: 50 }],
+      totalClassified: 5,
+    };
+
+    await generateDocxReport(mockRVToolsData, { platformSelection, workloadClassification });
+
+    const call = (buildExecutiveSummary as any).mock.calls[0];
+    expect(call[0]).toBe(mockRVToolsData);          // rawData
+    expect(call[3]).toEqual(expect.any(Number));     // sectionNum
+    expect(call[4]).toBe(platformSelection);          // platformSelection
+    expect(call[5]).toBe(workloadClassification);     // workloadClassification
   });
 });

@@ -1,5 +1,6 @@
 // Main DOCX Report Generator
 // This orchestrates the modular section builders to generate the full report
+// Section order: recommendation-led narrative (recommend → detail → execute)
 
 import {
   Document,
@@ -38,9 +39,10 @@ import {
   buildAppendices,
   buildRiskAssessmentSection,
   buildTimelineSection,
-  buildPlatformSelectionSection,
   buildComplexityAssessment,
   buildOSCompatibilitySection,
+  buildWorkloadClassification,
+  buildPlatformRecommendation,
 } from './sections';
 
 // Re-export types for consumers
@@ -71,6 +73,9 @@ export async function generateDocxReport(
     wavePlanningPreference: options.wavePlanningPreference ?? null,
     platformSelection: options.platformSelection ?? null,
     includeAppendices: options.includeAppendices ?? true,
+    targetAssignments: options.targetAssignments ?? null,
+    workloadClassification: options.workloadClassification ?? null,
+    sourceEnvironment: options.sourceEnvironment ?? null,
   };
 
   // Reset caption counters for fresh document
@@ -88,10 +93,16 @@ export async function generateDocxReport(
   const sec = createSectionCounter();
 
   // Build document sections (await async functions)
-  const execNum = sec.next(); // 1
-  const executiveSummary = await buildExecutiveSummary(rawData, readiness, aiInsights, execNum);
-  const envNum = sec.next(); // 2
-  const environmentAnalysis = await buildEnvironmentAnalysis(rawData, envNum);
+  // §1 Executive Summary (with recommendation banner when platform selection exists)
+  const execNum = sec.next();
+  const executiveSummary = await buildExecutiveSummary(
+    rawData, readiness, aiInsights, execNum,
+    finalOptions.platformSelection, finalOptions.workloadClassification,
+  );
+
+  // §2 Source Environment (enriched with vCenter, ESXi, overcommit, datastore details)
+  const envNum = sec.next();
+  const environmentAnalysis = await buildEnvironmentAnalysis(rawData, envNum, finalOptions.sourceEnvironment);
 
   // Build Table of Contents section
   const tableOfContents: DocumentContent[] = [
@@ -131,66 +142,98 @@ export async function generateDocxReport(
     new Paragraph({ children: [new PageBreak()] }),
   ];
 
-  // Build document sections in order with sequential numbering.
+  // Build document sections in recommendation-led order.
   // The counter auto-increments, so optional sections don't break numbering.
   const sections: DocumentContent[] = [
     ...buildCoverPage(finalOptions),
     ...tableOfContents,
-    ...executiveSummary,                                                    // sec 1 (already assigned above)
-    ...buildAssumptionsAndScope(execNum),                                   // sub-section of exec summary (1.1)
-    ...environmentAnalysis,                                                 // sec 2 (already assigned above)
-    ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()),
-    ...buildComplexityAssessment(rawData, sec.next()),
-    ...buildOSCompatibilitySection(rawData, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()),
-    ...buildMigrationOptions(sec.next()),
-    ...buildMigrationStrategy(rawData, aiInsights, finalOptions.wavePlanningPreference, finalOptions.includeROKS, finalOptions.includeVSI, sec.next()),
+    ...executiveSummary,                                                    // §1
+    ...buildAssumptionsAndScope(execNum),                                   // §1.1
+    ...environmentAnalysis,                                                 // §2 (enriched)
+    ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §3
+    ...buildComplexityAssessment(rawData, sec.next()),                      // §4
   ];
 
-  // ROKS/ROV section (with wave summary and migration considerations)
-  if (finalOptions.includeROKS) {
-    sections.push(...buildROKSOverview(
-      roksSizing,
-      rawData,
-      finalOptions.wavePlanningPreference,
+  // §5 Workload Classification (NEW — conditional)
+  if (finalOptions.workloadClassification) {
+    sections.push(...buildWorkloadClassification(finalOptions.workloadClassification, sec.next()));
+  }
+
+  sections.push(
+    ...buildOSCompatibilitySection(rawData, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §6
+    ...buildMigrationOptions(sec.next()),                                   // §7 (with PowerVS column)
+  );
+
+  // §8 Platform Recommendation (NEW — moved up, before platform deep-dives)
+  if (finalOptions.platformSelection || finalOptions.targetAssignments) {
+    sections.push(...buildPlatformRecommendation(
       finalOptions.platformSelection,
+      finalOptions.targetAssignments,
       sec.next(),
     ));
   }
 
-  // VSI section (with network design, wave summary, and migration considerations)
-  if (finalOptions.includeVSI) {
-    sections.push(...buildVSIOverview(
-      vsiMappings,
-      20,
-      rawData,
-      finalOptions.wavePlanningPreference,
-      finalOptions.vpcDesign,
-      sec.next(),
-    ));
+  // §9/§10 Platform deep-dives — recommended platform first, alternative second
+  const leaning = finalOptions.platformSelection?.score?.leaning;
+  if (leaning === 'vsi') {
+    // VSI recommended — show VSI first
+    if (finalOptions.includeVSI) {
+      sections.push(...buildVSIOverview(
+        vsiMappings, 20, rawData,
+        finalOptions.wavePlanningPreference, finalOptions.vpcDesign,
+        sec.next(),
+      ));
+    }
+    if (finalOptions.includeROKS) {
+      sections.push(...buildROKSOverview(
+        roksSizing, rawData,
+        finalOptions.wavePlanningPreference, finalOptions.platformSelection,
+        sec.next(),
+      ));
+    }
+  } else {
+    // Default: ROKS first (recommended or neutral)
+    if (finalOptions.includeROKS) {
+      sections.push(...buildROKSOverview(
+        roksSizing, rawData,
+        finalOptions.wavePlanningPreference, finalOptions.platformSelection,
+        sec.next(),
+      ));
+    }
+    if (finalOptions.includeVSI) {
+      sections.push(...buildVSIOverview(
+        vsiMappings, 20, rawData,
+        finalOptions.wavePlanningPreference, finalOptions.vpcDesign,
+        sec.next(),
+      ));
+    }
   }
 
-  // Comparison & Recommendations (platform selection + costs)
-  if (finalOptions.platformSelection) {
-    sections.push(...buildPlatformSelectionSection(finalOptions.platformSelection, sec.next()));
-  }
+  // §11 Migration Strategy
+  sections.push(...buildMigrationStrategy(rawData, aiInsights, finalOptions.wavePlanningPreference, finalOptions.includeROKS, finalOptions.includeVSI, sec.next()));
 
+  // §12 Cost Estimation
   if (finalOptions.includeCosts && (finalOptions.includeROKS || finalOptions.includeVSI)) {
     sections.push(...buildCostEstimation(roksSizing, vsiMappings, aiInsights, sec.next()));
   }
 
-  // Timeline and Risk (combined, after comparison)
+  // §13 Migration Timeline
   if (finalOptions.timelinePhases) {
     sections.push(...buildTimelineSection(finalOptions.timelinePhases, finalOptions.timelineStartDate, sec.next()));
   }
 
+  // §14 Risk Assessment
   if (finalOptions.riskAssessment) {
     sections.push(...buildRiskAssessmentSection(finalOptions.riskAssessment, sec.next()));
   }
 
+  // §15 Day 2 Operations
   sections.push(...buildDay2OperationsSection(sec.next()));
+
+  // §16 Next Steps
   sections.push(...buildNextSteps(finalOptions, aiInsights, sec.next()));
 
-  // Add appendices (overflow blockers/warnings + optional deep-dive sections)
+  // Appendices
   sections.push(...buildAppendices(readiness, finalOptions.maxIssueVMs, rawData, finalOptions.includeAppendices));
 
   // Create document with professional header/footer

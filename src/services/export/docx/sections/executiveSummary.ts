@@ -5,7 +5,7 @@ import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
 import { mibToTiB } from '@/utils/formatters';
 import reportTemplates from '@/data/reportTemplates.json';
-import { STYLES, CHART_COLORS, type DocumentContent, type VMReadiness, type ChartData } from '../types';
+import { STYLES, CHART_COLORS, type DocumentContent, type VMReadiness, type ChartData, type PlatformSelectionExport, type WorkloadClassificationExport } from '../types';
 import { createHeading, createParagraph, createBulletList, createStyledTable, createTableDescription, createTableLabel, createFigureDescription, createFigureLabel, createAISection } from '../utils/helpers';
 import { generatePieChart, createChartParagraph } from '../utils/charts';
 import { AlignmentType } from 'docx';
@@ -20,7 +20,9 @@ export async function buildExecutiveSummary(
   rawData: RVToolsData,
   readiness: VMReadiness[],
   aiInsights?: MigrationInsights | null,
-  sectionNum?: number
+  sectionNum?: number,
+  platformSelection?: PlatformSelectionExport | null,
+  workloadClassification?: WorkloadClassificationExport | null,
 ): Promise<DocumentContent[]> {
   const execTemplates = reportTemplates.executiveSummary;
   const vms = rawData.vInfo.filter((vm) => !vm.template);
@@ -86,11 +88,12 @@ export async function buildExecutiveSummary(
       bullet: { level: 0 },
       children: [
         new TextRun({
-          text: 'Recommended Platform: ROKS for organizations planning modernization; VSI for lift-and-shift with minimal change',
+          text: buildRecommendationBullet(platformSelection),
           size: STYLES.bodySize,
         }),
       ],
     }),
+    ...buildWorkloadSummaryBullet(workloadClassification),
     new Paragraph({
       spacing: { after: 200 },
       bullet: { level: 0 },
@@ -213,4 +216,45 @@ export async function buildExecutiveSummary(
   sections.push(new Paragraph({ children: [new PageBreak()] }));
 
   return sections;
+}
+
+/** Build data-driven recommendation bullet or fallback to generic text */
+function buildRecommendationBullet(platformSelection?: PlatformSelectionExport | null): string {
+  if (!platformSelection?.score) {
+    return 'Recommended Platform: ROKS for organizations planning modernization; VSI for lift-and-shift with minimal change';
+  }
+
+  const { leaning, roksVariant } = platformSelection.score;
+  if (leaning === 'roks') {
+    const variant = roksVariant === 'rov' ? 'ROV (Red Hat OpenShift Virtualization)' : 'ROKS (Red Hat OpenShift)';
+    return `Recommended Platform: ${variant} — based on platform selection assessment favouring modernisation and Kubernetes-based operations`;
+  }
+  if (leaning === 'vsi') {
+    return 'Recommended Platform: VPC Virtual Servers (VSI) — based on platform selection assessment favouring lift-and-shift with minimal operational change';
+  }
+  return 'Recommended Platform: Split approach — workload analysis indicates both ROKS and VSI targets are appropriate for different VM groups';
+}
+
+/** Build workload summary bullet if classification data is available */
+function buildWorkloadSummaryBullet(workloadClassification?: WorkloadClassificationExport | null): DocumentContent[] {
+  if (!workloadClassification || workloadClassification.categories.length === 0) return [];
+
+  const top = workloadClassification.categories
+    .filter(c => c.category !== 'Unclassified')
+    .slice(0, 4);
+  if (top.length === 0) return [];
+
+  const summary = top.map(c => `${c.category} (${c.percentage}%)`).join(', ');
+  return [
+    new Paragraph({
+      spacing: { after: 60 },
+      bullet: { level: 0 },
+      children: [
+        new TextRun({
+          text: `Workload Mix: ${summary}`,
+          size: STYLES.bodySize,
+        }),
+      ],
+    }),
+  ];
 }
