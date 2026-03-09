@@ -1,5 +1,5 @@
 // Cost Estimation Component
-import { useState, useMemo, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
 import {
   Tile,
   Select,
@@ -23,7 +23,7 @@ import { Download, Calculator } from '@carbon/icons-react';
 import { MetricCard } from '@/components/common';
 import { PricingRefresh } from '@/components/pricing';
 import { ProfilesRefresh } from '@/components/profiles';
-import { useDynamicPricing, useDynamicProfiles, useTargetLocation } from '@/hooks';
+import { useDynamicPricing, useDynamicProfiles, useTargetLocation, useCostSettings } from '@/hooks';
 import type { CostEstimate, RegionCode, DiscountType, ROKSSizingInput, VSISizingInput, NetworkingOptions, DataQuality } from '@/services/costEstimation';
 import {
   calculateROKSCost,
@@ -63,22 +63,11 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
   const validRegionCodes = getRegions().data.map(r => r.code);
   const initialRegion = targetMzr && validRegionCodes.includes(targetMzr as RegionCode)
     ? (targetMzr as RegionCode)
-    : 'us-south';
-  const [region, setRegion] = useState<RegionCode>(initialRegion);
-  const [discountType, setDiscountType] = useState<DiscountType>('onDemand');
-  const showDetails = true; // Always show details
+    : undefined;
 
-  // Networking options state (VSI only)
-  const [networkingOptions, setNetworkingOptions] = useState<NetworkingOptions>({
-    includeVPN: false,
-    vpnGatewayCount: 1,
-    includeTransitGateway: false,
-    transitGatewayLocalConnections: 1,
-    transitGatewayGlobalConnections: 0,
-    includePublicGateway: false,
-    publicGatewayCount: 1,
-    loadBalancerCount: 1,
-  });
+  // Persisted cost settings
+  const { region, setRegion, discountType, setDiscountType, networkingOptions, setNetworkingOptions } = useCostSettings(initialRegion);
+  const showDetails = true; // Always show details
 
   // Dynamic pricing hook
   const {

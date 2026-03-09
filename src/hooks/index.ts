@@ -26,6 +26,8 @@ export { useDynamicProfiles } from './useDynamicProfiles';
 export type { UseDynamicProfilesConfig, UseDynamicProfilesReturn } from './useDynamicProfiles';
 export { useCustomProfiles } from './useCustomProfiles';
 export type { CustomProfile, ProfileOverride, UseCustomProfilesReturn } from './useCustomProfiles';
+export { useCostSettings } from './useCostSettings';
+export type { CostSettings, UseCostSettingsReturn } from './useCostSettings';
 export { useSizingCalculator } from './useSizingCalculator';
 export type { BareMetalProfile, NodeCapacity, NodeRequirements, RedundancyValidation, VMFitValidation, ProfileItem, UseSizingCalculatorReturn } from './useSizingCalculator';
 

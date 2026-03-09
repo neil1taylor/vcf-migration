@@ -15,6 +15,8 @@ export const SETTINGS_KEYS = [
   'vcf-vpc-design',
   'vcf-wave-planning-mode',
   'vcf-workflow-progress',
+  'vcf-cost-settings',
+  'vcf-sizing-settings',
 ] as const;
 
 export function generateHandoverFile(

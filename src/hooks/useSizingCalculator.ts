@@ -15,6 +15,46 @@ import type { SizingResult } from '@/components/sizing/SizingCalculator';
 
 const logger = createLogger('SizingCalculator');
 
+const SIZING_STORAGE_KEY = 'vcf-sizing-settings';
+
+interface SizingSettings {
+  selectedProfileName: string | null;
+  cpuOvercommit: number;
+  memoryOvercommit: number;
+  htMultiplier: number;
+  useHyperthreading: boolean;
+  replicaFactor: number;
+  operationalCapacity: number;
+  cephOverhead: number;
+  nodeRedundancy: number;
+  evictionThreshold: number;
+  storageMetric: 'provisioned' | 'inUse' | 'diskCapacity';
+  annualGrowthRate: number;
+  planningHorizonYears: number;
+  virtOverhead: number;
+  odfTuningProfile: string;
+  includeRgw: boolean;
+  odfCpuUnitMode: string;
+}
+
+function loadSizingSettings(): SizingSettings | null {
+  try {
+    const stored = localStorage.getItem(SIZING_STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function saveSizingSettings(settings: SizingSettings): void {
+  try {
+    localStorage.setItem(SIZING_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // ignore
+  }
+}
+
 export interface BareMetalProfile {
   name: string;
   physicalCores: number;
@@ -278,9 +318,16 @@ export function useSizingCalculator({
     return fallback?.name || '';
   }, [bareMetalProfiles, pricing]);
 
+  // Load persisted sizing settings (once, via lazy initializer)
+  const storedSizingRef = useRef(loadSizingSettings());
+
   // Store only the profile NAME (string) to avoid object reference issues
-  const [selectedProfileName, setSelectedProfileName] = useState<string>(() => defaultProfileName);
-  const hasUserSelectedProfileRef = useRef(false);
+  const [selectedProfileName, setSelectedProfileName] = useState<string>(() => {
+    const stored = storedSizingRef.current;
+    if (stored?.selectedProfileName) return stored.selectedProfileName;
+    return defaultProfileName;
+  });
+  const hasUserSelectedProfileRef = useRef(storedSizingRef.current?.selectedProfileName != null);
 
 
   // Apply requested profile from parent (e.g., clicking a tile in Cost Estimation)
@@ -298,24 +345,25 @@ export function useSizingCalculator({
     return bareMetalProfiles.find(p => p.name === selectedProfileName) || bareMetalProfiles[0];
   }, [bareMetalProfiles, selectedProfileName]);
 
-  const [cpuOvercommit, setCpuOvercommit] = useState(defaults.cpuOvercommitRatio);
-  const [memoryOvercommit, setMemoryOvercommit] = useState(defaults.memoryOvercommitRatio);
-  const [htMultiplier, setHtMultiplier] = useState(1.25); // Default HT efficiency
-  const [useHyperthreading, setUseHyperthreading] = useState(true);
-  const [replicaFactor, setReplicaFactor] = useState(defaults.odfReplicationFactor);
-  const [operationalCapacity, setOperationalCapacity] = useState(defaults.odfOperationalCapacity * 100);
-  const [cephOverhead, setCephOverhead] = useState(defaults.odfCephOverhead * 100);
+  const ss = storedSizingRef.current; // shorthand for stored settings
+  const [cpuOvercommit, setCpuOvercommit] = useState(ss?.cpuOvercommit ?? defaults.cpuOvercommitRatio);
+  const [memoryOvercommit, setMemoryOvercommit] = useState(ss?.memoryOvercommit ?? defaults.memoryOvercommitRatio);
+  const [htMultiplier, setHtMultiplier] = useState(ss?.htMultiplier ?? 1.25);
+  const [useHyperthreading, setUseHyperthreading] = useState(ss?.useHyperthreading ?? true);
+  const [replicaFactor, setReplicaFactor] = useState(ss?.replicaFactor ?? defaults.odfReplicationFactor);
+  const [operationalCapacity, setOperationalCapacity] = useState(ss?.operationalCapacity ?? defaults.odfOperationalCapacity * 100);
+  const [cephOverhead, setCephOverhead] = useState(ss?.cephOverhead ?? defaults.odfCephOverhead * 100);
 
   // System reserved resources (fixed values - not exposed in UI as they rarely change)
   const systemReservedMemory = 4; // GiB for kubelet, monitoring, etc. (not ODF)
   const systemReservedCpu = 1; // Cores for OpenShift system processes
 
-  const [nodeRedundancy, setNodeRedundancy] = useState(defaults.nodeRedundancy);
-  const [evictionThreshold, setEvictionThreshold] = useState(96); // 96% = 4% buffer before eviction
-  const [storageMetric, setStorageMetric] = useState<'provisioned' | 'inUse' | 'diskCapacity'>('inUse');
-  const [annualGrowthRate, setAnnualGrowthRate] = useState(20); // 20% annual growth default
-  const [planningHorizonYears, setPlanningHorizonYears] = useState(2); // 2-year planning horizon
-  const [virtOverhead, setVirtOverhead] = useState(15); // 10-15% for OpenShift Virtualization (storage)
+  const [nodeRedundancy, setNodeRedundancy] = useState(ss?.nodeRedundancy ?? defaults.nodeRedundancy);
+  const [evictionThreshold, setEvictionThreshold] = useState(ss?.evictionThreshold ?? 96);
+  const [storageMetric, setStorageMetric] = useState<'provisioned' | 'inUse' | 'diskCapacity'>(ss?.storageMetric ?? 'inUse');
+  const [annualGrowthRate, setAnnualGrowthRate] = useState(ss?.annualGrowthRate ?? 20);
+  const [planningHorizonYears, setPlanningHorizonYears] = useState(ss?.planningHorizonYears ?? 2);
+  const [virtOverhead, setVirtOverhead] = useState(ss?.virtOverhead ?? 15);
 
   // Virtualization overhead values from config (not user-adjustable)
   const virtOverheadConfig = virtualizationOverhead;
@@ -325,9 +373,32 @@ export function useSizingCalculator({
   const memoryProportionalPercent = virtOverheadConfig.memoryOverhead.totalProportionalPercent; // 3%
 
   // ODF tuning profile state
-  const [odfTuningProfile, setOdfTuningProfile] = useState<OdfTuningProfile>('balanced');
-  const [includeRgw, setIncludeRgw] = useState(false);
-  const [odfCpuUnitMode, setOdfCpuUnitMode] = useState<OdfCpuUnitMode>('physical');
+  const [odfTuningProfile, setOdfTuningProfile] = useState<OdfTuningProfile>((ss?.odfTuningProfile as OdfTuningProfile) ?? 'balanced');
+  const [includeRgw, setIncludeRgw] = useState(ss?.includeRgw ?? false);
+  const [odfCpuUnitMode, setOdfCpuUnitMode] = useState<OdfCpuUnitMode>((ss?.odfCpuUnitMode as OdfCpuUnitMode) ?? 'physical');
+
+  // Persist sizing settings to localStorage
+  useEffect(() => {
+    saveSizingSettings({
+      selectedProfileName: hasUserSelectedProfileRef.current ? selectedProfileName : null,
+      cpuOvercommit,
+      memoryOvercommit,
+      htMultiplier,
+      useHyperthreading,
+      replicaFactor,
+      operationalCapacity,
+      cephOverhead,
+      nodeRedundancy,
+      evictionThreshold,
+      storageMetric,
+      annualGrowthRate,
+      planningHorizonYears,
+      virtOverhead,
+      odfTuningProfile,
+      includeRgw,
+      odfCpuUnitMode,
+    });
+  }, [selectedProfileName, cpuOvercommit, memoryOvercommit, htMultiplier, useHyperthreading, replicaFactor, operationalCapacity, cephOverhead, nodeRedundancy, evictionThreshold, storageMetric, annualGrowthRate, planningHorizonYears, virtOverhead, odfTuningProfile, includeRgw, odfCpuUnitMode]);
 
   // ODF resource reservations — two-pass calculation for cluster-wide distribution
   // Pass 1: estimate with minimum 3 nodes to get initial node count

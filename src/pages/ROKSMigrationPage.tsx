@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, UnorderedList, ListItem, Button, InlineNotification, Tooltip } from '@carbon/react';
 import { Download, Information, VirtualMachine } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
-import { useData, useAllVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides, useAutoExclusion } from '@/hooks';
+import { useData, useAllVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides, useAutoExclusion, useCostSettings } from '@/hooks';
 import { ROUTES, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS, HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED } from '@/utils/constants';
 import { formatNumber, mibToGiB } from '@/utils/formatters';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
@@ -33,8 +33,7 @@ export function ROKSMigrationPage() {
   const [calculatorSizing, setCalculatorSizing] = useState<SizingResult | null>(null);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [requestedProfile, setRequestedProfile] = useState<string | null>(null);
-  const [odfTier, setOdfTier] = useState<'advanced' | 'essentials'>('advanced');
-  const [includeAcm, setIncludeAcm] = useState(false);
+  const { odfTier, setOdfTier, includeAcm, setIncludeAcm } = useCostSettings();
 
   // VM overrides for exclusions
   const vmOverrides = useVMOverrides();

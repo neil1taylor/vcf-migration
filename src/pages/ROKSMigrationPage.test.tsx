@@ -36,6 +36,18 @@ vi.mock('@/hooks', () => ({
     autoExcludedCount: 0,
     autoExcludedBreakdown: { templates: 0, poweredOff: 0, vmwareInfrastructure: 0, windowsInfrastructure: 0 },
   })),
+  useCostSettings: vi.fn(() => ({
+    region: 'us-south',
+    setRegion: vi.fn(),
+    discountType: 'onDemand',
+    setDiscountType: vi.fn(),
+    networkingOptions: { includeVPN: false, vpnGatewayCount: 1, includeTransitGateway: false, transitGatewayLocalConnections: 1, transitGatewayGlobalConnections: 0, includePublicGateway: false, publicGatewayCount: 1, loadBalancerCount: 1 },
+    setNetworkingOptions: vi.fn(),
+    odfTier: 'advanced',
+    setOdfTier: vi.fn(),
+    includeAcm: false,
+    setIncludeAcm: vi.fn(),
+  })),
 }));
 
 // Mock services
