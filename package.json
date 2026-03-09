@@ -24,7 +24,8 @@
     "test:e2e:generate-fixture": "npx tsx e2e/fixtures/generate-fixture.ts",
     "convert:vinventory": "python3 scripts/convert_vinventory.py",
     "preview:pptx": "npx vite-node --config scripts/vite-preview.config.ts scripts/preview-pptx.ts",
-    "preview:docx": "npx vite-node --config scripts/vite-preview.config.ts scripts/preview-docx.ts"
+    "preview:docx": "npx vite-node --config scripts/vite-preview.config.ts scripts/preview-docx.ts",
+    "mcp:ai-proxy": "npx vite-node --config mcp/ai-proxy/vite-mcp.config.ts mcp/ai-proxy/index.ts"
   },
   "dependencies": {
     "@carbon/icons-react": "^11.71.0",
@@ -51,6 +52,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.1",

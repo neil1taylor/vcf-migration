@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "vcf-analyzer": {
+      "command": "npx",
+      "args": ["vite-node", "--config", "mcp/ai-proxy/vite-mcp.config.ts", "mcp/ai-proxy/index.ts"],
+      "cwd": "/Users/neiltaylor/Projects/vcf_migration"
+    }
+  }
+}
