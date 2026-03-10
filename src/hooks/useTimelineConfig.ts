@@ -89,7 +89,10 @@ export function useTimelineConfig(waveCount: number, waveVmCounts?: number[], wa
   }, [config]);
 
   const startDate = useMemo(() => {
-    return config.startDate ? new Date(config.startDate) : undefined;
+    if (config.startDate) return new Date(config.startDate);
+    const defaultDate = new Date();
+    defaultDate.setMonth(defaultDate.getMonth() + 2);
+    return defaultDate;
   }, [config.startDate]);
 
   const phases = useMemo(() => {
@@ -121,6 +124,7 @@ export function useTimelineConfig(waveCount: number, waveVmCounts?: number[], wa
     setConfig(prev => ({
       ...prev,
       phaseDurations: {},
+      startDate: undefined,
       modifiedAt: new Date().toISOString(),
     }));
   }, []);

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import {
   Grid, Column, Tabs, TabList, Tab, TabPanels, TabPanel,
   Button, NumberInput, Table, TableHead, TableRow, TableHeader,
-  TableBody, TableCell,
+  TableBody, TableCell, DatePicker, DatePickerInput,
 } from '@carbon/react';
 import { Reset } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
@@ -118,7 +118,7 @@ export function MigrationComparisonPage() {
   const waveVmCounts = useMemo(() => wavePlanning.waveResources.map(w => w.vmCount), [wavePlanning.waveResources]);
   const waveNames = useMemo(() => wavePlanning.waveResources.map(w => w.name), [wavePlanning.waveResources]);
   const waveStorageGiB = useMemo(() => wavePlanning.waveResources.map(w => w.storageGiB), [wavePlanning.waveResources]);
-  const { phases, totals, startDate, updatePhaseDuration, resetToDefaults } = useTimelineConfig(waveCount, waveVmCounts, waveNames, waveStorageGiB);
+  const { phases, totals, startDate, updatePhaseDuration, setStartDate, resetToDefaults } = useTimelineConfig(waveCount, waveVmCounts, waveNames, waveStorageGiB);
 
   // AI wave suggestion data
   const waveSuggestionData = useMemo<WaveSuggestionInput | null>(() => {
@@ -252,6 +252,23 @@ export function MigrationComparisonPage() {
                         Reset to Defaults
                       </Button>
                     </div>
+                  </Column>
+
+                  <Column sm={4} md={4} lg={4} style={{ marginBottom: '1rem' }}>
+                    <DatePicker
+                      datePickerType="single"
+                      value={startDate}
+                      onChange={(dates: Date[]) => {
+                        if (dates[0]) setStartDate(dates[0]);
+                      }}
+                    >
+                      <DatePickerInput
+                        id="migration-start-date"
+                        placeholder="mm/dd/yyyy"
+                        labelText="Migration Start Date"
+                        size="sm"
+                      />
+                    </DatePicker>
                   </Column>
 
                   <Column sm={4} md={2} lg={4} style={{ marginBottom: '1rem' }}>

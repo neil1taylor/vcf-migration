@@ -67,7 +67,7 @@ export function LandingPage() {
               Upload your RVTools Excel export to analyze your VMware infrastructure
               and assess migration readiness for IBM Cloud (ROKS + OpenShift Virtualization).
             </p>
-            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'center' }}>
               <Button
                 kind="tertiary"
                 size="sm"
