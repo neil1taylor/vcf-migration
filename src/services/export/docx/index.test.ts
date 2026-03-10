@@ -612,6 +612,7 @@ describe('generateDocxReport', () => {
         expect.any(Number), // sectionNum
         mockRoksCostEstimate,
         mockVsiCostEstimate,
+        undefined, // roksVariant
       );
     });
 
@@ -625,6 +626,7 @@ describe('generateDocxReport', () => {
         expect.any(Number),
         null,
         null,
+        undefined, // roksVariant
       );
     });
   });

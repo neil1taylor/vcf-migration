@@ -14,10 +14,12 @@ export function addCostEstimationSlide(
   options: PptxExportOptions,
   roksCostEstimate?: CostEstimate | null,
   vsiCostEstimate?: CostEstimate | null,
+  roksVariant?: 'full' | 'rov',
 ): void {
   const slide = pres.addSlide({ masterName: 'CONTENT' });
   addSlideTitle(slide, 'Cost Estimation');
 
+  const platformName = roksVariant === 'rov' ? 'ROV' : 'ROKS';
   const includeROKS = options.includeROKS !== false;
   const includeVSI = options.includeVSI !== false;
   const hasCachedRoks = includeROKS && !!roksCostEstimate;
@@ -84,9 +86,9 @@ export function addCostEstimationSlide(
   if (includeROKS && includeVSI) {
     // 4 KPIs: separate ROKS and VSI costs
     const kpiW = 6.0;
-    addKPINumber(slide, 'ROKS Monthly', fmtCurrency(roksMonthly), { x: 1.33, y: kpiY, w: kpiW });
+    addKPINumber(slide, `${platformName} Monthly`, fmtCurrency(roksMonthly), { x: 1.33, y: kpiY, w: kpiW });
     addKPINumber(slide, 'VSI Monthly', fmtCurrency(vsiMonthly), { x: 1.33 + kpiW, y: kpiY, w: kpiW });
-    addKPINumber(slide, 'ROKS Annual', fmtCurrency(roksMonthly * 12), { x: 1.33 + kpiW * 2, y: kpiY, w: kpiW });
+    addKPINumber(slide, `${platformName} Annual`, fmtCurrency(roksMonthly * 12), { x: 1.33 + kpiW * 2, y: kpiY, w: kpiW });
     addKPINumber(slide, 'VSI Annual', fmtCurrency(vsiMonthly * 12), { x: 1.33 + kpiW * 3, y: kpiY, w: kpiW });
   } else {
     // 3 KPIs: single platform
@@ -146,7 +148,7 @@ export function addCostEstimationSlide(
 
       // Subtotal
       rows.push([
-        { text: 'ROKS Subtotal', options: boldCellOpts },
+        { text: `${platformName} Subtotal`, options: boldCellOpts },
         { text: '', options: boldCellOpts },
         { text: '', options: boldRightOpts },
         { text: fmtCurrency(roksCostEstimate.totalMonthly), options: boldRightOpts },
@@ -163,7 +165,7 @@ export function addCostEstimationSlide(
         { text: fmtCurrency(roksAnnualCost), options: rightCellOpts },
       ]);
       rows.push([
-        { text: 'ROKS Subtotal', options: boldCellOpts },
+        { text: `${platformName} Subtotal`, options: boldCellOpts },
         { text: '', options: boldCellOpts },
         { text: String(roksSizing.workerNodes), options: boldRightOpts },
         { text: fmtCurrency(roksSizing.monthlyCost), options: boldRightOpts },
@@ -277,7 +279,7 @@ export function addCostEstimationSlide(
       } else {
         const roksAnnualCost = roksSizing.monthlyCost * 12;
         tableRows.push([
-          { text: 'ROKS Worker Nodes', options: cellOpts },
+          { text: `${platformName} Worker Nodes`, options: cellOpts },
           { text: roksSizing.profileName, options: cellOpts },
           { text: String(roksSizing.workerNodes), options: rightCellOpts },
           { text: fmtCurrency(roksSizing.monthlyCost), options: rightCellOpts },

@@ -20,6 +20,7 @@ export function buildCostEstimation(
   sectionNum?: number,
   roksCostEstimate?: CostEstimate | null,
   vsiCostEstimate?: CostEstimate | null,
+  roksVariant?: 'full' | 'rov',
 ): DocumentContent[] {
   const costTemplates = reportTemplates.costEstimation;
   const hasCachedRoks = !!roksCostEstimate;
@@ -44,7 +45,11 @@ export function buildCostEstimation(
 
   const s = sectionNum != null ? sectionNum : 8;
 
-  const roksLabel = hasCachedRoks ? 'ROKS (Full Platform)' : 'ROKS (Bare Metal)';
+  const isRov = roksVariant === 'rov';
+  const platformName = isRov ? 'ROV' : 'ROKS';
+  const roksLabel = hasCachedRoks
+    ? `${platformName} (Full Platform)`
+    : `${platformName} (Bare Metal)`;
 
   const sections: DocumentContent[] = [
     createHeading(`${s}. ` + costTemplates.title, HeadingLevel.HEADING_1),
@@ -103,7 +108,7 @@ export function buildCostEstimation(
   if (hasCachedRoks) {
     sections.push(
       new Paragraph({ spacing: { before: 200 } }),
-      ...createTableDescription('ROKS Platform Cost Breakdown', 'Detailed breakdown of ROKS platform costs including compute, licensing, storage, and platform services.'),
+      ...createTableDescription(`${platformName} Platform Cost Breakdown`, `Detailed breakdown of ${platformName} platform costs including compute, licensing, storage, and platform services.`),
       new Table({
         width: { size: 100, type: 'pct' as const },
         borders: {
@@ -153,7 +158,7 @@ export function buildCostEstimation(
           }),
         ],
       }),
-      createTableLabel('ROKS Platform Cost Breakdown'),
+      createTableLabel(`${platformName} Platform Cost Breakdown`),
     );
   }
 
@@ -298,14 +303,17 @@ export function buildCostEstimation(
           size: STYLES.bodySize,
         }),
         new TextRun({
-          text: `At list pricing, ROKS with OpenShift Virtualization is approximately ${costRatio}× higher cost than VPC VSI, representing an annual difference of $${Math.abs(Math.round(annualDifference)).toLocaleString()}.`,
+          text: `At list pricing, ${platformName} with OpenShift Virtualization is approximately ${costRatio}× higher cost than VPC VSI, representing an annual difference of $${Math.abs(Math.round(annualDifference)).toLocaleString()}.`,
           size: STYLES.bodySize,
         }),
       ],
     }),
 
     createParagraph('Platform Selection Guidance', { bold: true, spacing: { before: 200 } }),
-    ...createBulletList([
+    ...createBulletList(isRov ? [
+      'Choose ROV if: Your organization wants to run existing VM workloads on OpenShift Virtualization without containerization, benefiting from a modern platform at a lower cost than full ROKS.',
+      'Choose VSI if: Your primary goal is a straightforward lift-and-shift migration with minimal operational change.',
+    ] : [
       'Choose ROKS if: Your organization plans to modernize applications to containers, requires hybrid cloud portability, or wants a unified platform for VMs and containers.',
       'Choose VSI if: Your primary goal is a straightforward lift-and-shift migration with minimal operational change.',
     ]),

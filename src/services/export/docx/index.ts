@@ -220,7 +220,8 @@ export async function generateDocxReport(
 
   // §12 Cost Estimation
   if (finalOptions.includeCosts && (finalOptions.includeROKS || finalOptions.includeVSI)) {
-    sections.push(...buildCostEstimation(roksSizing, vsiMappings, aiInsights, sec.next(), finalOptions.roksCostEstimate, finalOptions.vsiCostEstimate));
+    const roksVariant = finalOptions.platformSelection?.score?.roksVariant;
+    sections.push(...buildCostEstimation(roksSizing, vsiMappings, aiInsights, sec.next(), finalOptions.roksCostEstimate, finalOptions.vsiCostEstimate, roksVariant));
   }
 
   // §13 Migration Timeline

@@ -380,6 +380,7 @@ describe('generatePptxReport', () => {
         expect.any(Object), // options
         mockRoksCostEstimate,
         null,
+        undefined, // roksVariant
       );
     });
 
@@ -393,6 +394,7 @@ describe('generatePptxReport', () => {
         expect.any(Object),
         null,
         null,
+        undefined, // roksVariant
       );
     });
   });

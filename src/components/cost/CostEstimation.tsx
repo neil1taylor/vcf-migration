@@ -55,9 +55,10 @@ interface CostEstimationProps {
   onEstimateChange?: (totalMonthly: number | null) => void;
   onOdfTierChange?: (tier: 'advanced' | 'essentials') => void;
   onIncludeAcmChange?: (include: boolean) => void;
+  roksVariant?: 'full' | 'rov';
 }
 
-export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true, onProfileSelect, onEstimateChange, onOdfTierChange, onIncludeAcmChange }: CostEstimationProps) {
+export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true, onProfileSelect, onEstimateChange, onOdfTierChange, onIncludeAcmChange, roksVariant = 'full' }: CostEstimationProps) {
   const { targetMzr } = useTargetLocation();
 
   // Initialize region from Discovery's MZR selection, validated against available regions
@@ -139,12 +140,13 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
     onEstimateChange?.(estimate?.totalMonthly ?? null);
   }, [estimate?.totalMonthly, onEstimateChange]);
 
-  // Cache BOM data for Export page
+  // Cache BOM data for Export page — use ROV estimate when platform selection indicates ROV
   useEffect(() => {
-    if (estimate) {
-      cacheBOMData(type, estimate, vmDetails, roksNodeDetails, region, discountType);
+    const estimateToCache = type === 'roks' && roksVariant === 'rov' && rovEstimate ? rovEstimate : estimate;
+    if (estimateToCache) {
+      cacheBOMData(type, estimateToCache, vmDetails, roksNodeDetails, region, discountType);
     }
-  }, [estimate, type, vmDetails, roksNodeDetails, region, discountType]);
+  }, [estimate, rovEstimate, roksVariant, type, vmDetails, roksNodeDetails, region, discountType]);
 
   // Calculate costs for all bare metal profiles (ROKS only)
   const allProfileCosts = useMemo(() => {

@@ -99,7 +99,8 @@ export async function generatePptxReport(
   addPlatformRecommendationSlide(pres, finalOptions);
 
   if (includeCosts) {
-    addCostEstimationSlide(pres, roksSizing, vsiMappings, finalOptions, finalOptions.roksCostEstimate, finalOptions.vsiCostEstimate);
+    const roksVariant = finalOptions.platformSelection?.score?.roksVariant;
+    addCostEstimationSlide(pres, roksSizing, vsiMappings, finalOptions, finalOptions.roksCostEstimate, finalOptions.vsiCostEstimate, roksVariant);
   }
 
   addWavePlanningSlide(pres, filteredRawData, finalOptions);

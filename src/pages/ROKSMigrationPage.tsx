@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, UnorderedList, ListItem, Button, InlineNotification, Tooltip } from '@carbon/react';
 import { Download, Information, VirtualMachine } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
-import { useData, useAllVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides, useAutoExclusion, useCostSettings } from '@/hooks';
+import { useData, useAllVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides, useAutoExclusion, useCostSettings, usePlatformSelection } from '@/hooks';
 import { ROUTES, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS, HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED } from '@/utils/constants';
 import { formatNumber, mibToGiB } from '@/utils/formatters';
 import { getVMWorkloadCategory, getCategoryDisplayName } from '@/utils/workloadClassification';
@@ -35,6 +35,7 @@ export function ROKSMigrationPage() {
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [requestedProfile, setRequestedProfile] = useState<string | null>(null);
   const { odfTier, setOdfTier, includeAcm, setIncludeAcm } = useCostSettings();
+  const { score: platformScore } = usePlatformSelection();
 
   // VM overrides for exclusions
   const vmOverrides = useVMOverrides();
@@ -564,7 +565,7 @@ export function ROKSMigrationPage() {
               <TabPanel>
                 <Grid className="migration-page__tab-content">
                   <Column lg={16} md={8} sm={4}>
-                    <CostEstimation type="roks" roksSizing={roksSizing} roksNodeDetails={roksNodeDetails} title="ROKS Cluster Cost Estimation" onProfileSelect={handleProfileSelect} onEstimateChange={handleRoksEstimateChange} onOdfTierChange={setOdfTier} onIncludeAcmChange={setIncludeAcm} />
+                    <CostEstimation type="roks" roksSizing={roksSizing} roksNodeDetails={roksNodeDetails} title="ROKS Cluster Cost Estimation" onProfileSelect={handleProfileSelect} onEstimateChange={handleRoksEstimateChange} onOdfTierChange={setOdfTier} onIncludeAcmChange={setIncludeAcm} roksVariant={platformScore.roksVariant} />
                   </Column>
                   <Column lg={16} md={8} sm={4}>
                     <Tile className="migration-page__cost-tile">

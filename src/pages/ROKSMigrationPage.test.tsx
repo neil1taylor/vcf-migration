@@ -48,6 +48,12 @@ vi.mock('@/hooks', () => ({
     includeAcm: false,
     setIncludeAcm: vi.fn(),
   })),
+  usePlatformSelection: vi.fn(() => ({
+    answers: {},
+    setAnswer: vi.fn(),
+    resetAll: vi.fn(),
+    score: { vsiCount: 0, roksCount: 0, answeredCount: 0, leaning: 'neutral', roksVariant: 'full' },
+  })),
 }));
 
 // Mock services
