@@ -2,7 +2,7 @@
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Grid, Column, Tile, Tag, Button, Modal } from '@carbon/react';
-import { WatsonHealthAiResults, Education } from '@carbon/icons-react';
+import { WatsonHealthAiResults, Education, Course } from '@carbon/icons-react';
 import { FileUpload } from '@/components/upload';
 import { GuidedTour } from '@/components/common/GuidedTour';
 import { useData } from '@/hooks';
@@ -67,15 +67,24 @@ export function LandingPage() {
               Upload your RVTools Excel export to analyze your VMware infrastructure
               and assess migration readiness for IBM Cloud (ROKS + OpenShift Virtualization).
             </p>
-            <Button
-              kind="tertiary"
-              size="sm"
-              renderIcon={Education}
-              onClick={tour.openTour}
-              style={{ marginTop: '1rem' }}
-            >
-              Take a Tour
-            </Button>
+            <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+              <Button
+                kind="tertiary"
+                size="sm"
+                renderIcon={Education}
+                onClick={tour.openTour}
+              >
+                Take a Tour
+              </Button>
+              <Button
+                kind="tertiary"
+                size="sm"
+                renderIcon={Course}
+                onClick={() => navigate(ROUTES.tutorial)}
+              >
+                Step-by-Step Tutorial
+              </Button>
+            </div>
           </div>
         </Column>
 
