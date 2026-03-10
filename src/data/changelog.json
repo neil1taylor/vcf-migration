@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "version": "2.1.5",
+      "date": "2026-03-10",
+      "sections": {
+        "added": [
+          "Migration start date picker on Migration Timeline tab for setting project kickoff date",
+          "Step-by-step tutorial link on landing page for new users"
+        ],
+        "changed": [
+          "DOCX/PPTX cost estimation sections now use ROV pricing and labels when platform selection indicates ROV variant",
+          "Landing page buttons centered for improved layout"
+        ]
+      }
+    },
+    {
       "version": "2.1.4",
       "date": "2026-03-09",
       "sections": {
