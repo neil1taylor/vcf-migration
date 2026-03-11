@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "2.1.6",
+      "date": "2026-03-11",
+      "sections": {
+        "fixed": [
+          "VSI boot storage now always costed even when VMs have no data disks (boot volume line item was silently skipped)",
+          "PPTX export fallback disclaimer now correctly states storage is included in cost estimates"
+        ]
+      }
+    },
+    {
       "version": "2.1.5",
       "date": "2026-03-10",
       "sections": {
