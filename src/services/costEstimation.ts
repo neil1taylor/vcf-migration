@@ -779,25 +779,24 @@ export function calculateVSICost(
     });
   }
 
-  // Block storage — per-tier breakdown when available
-  if (input.storageByTier && Object.keys(input.storageByTier).length > 0) {
-    // Boot volumes (always general-purpose)
-    if (input.bootStorageGiB && input.bootStorageGiB > 0) {
-      const gpTierData = pricingToUse.blockStorage?.['general-purpose'];
-      const costPerGB = (gpTierData?.costPerGBMonth || 0.10) * multiplier;
-      lineItems.push({
-        category: 'Storage - Block',
-        description: 'Boot Volumes (General Purpose)',
-        quantity: input.bootStorageGiB,
-        unit: 'GB',
-        unitCost: costPerGB,
-        monthlyCost: input.bootStorageGiB * costPerGB,
-        annualCost: input.bootStorageGiB * costPerGB * 12,
-        notes: '3 IOPS/GB boot volumes',
-      });
-    }
+  // Block storage — boot volumes (always general-purpose, independent of data storage)
+  if (input.bootStorageGiB && input.bootStorageGiB > 0) {
+    const gpTierData = pricingToUse.blockStorage?.['general-purpose'];
+    const costPerGB = (gpTierData?.costPerGBMonth || 0.10) * multiplier;
+    lineItems.push({
+      category: 'Storage - Block',
+      description: 'Boot Volumes (General Purpose)',
+      quantity: input.bootStorageGiB,
+      unit: 'GB',
+      unitCost: costPerGB,
+      monthlyCost: input.bootStorageGiB * costPerGB,
+      annualCost: input.bootStorageGiB * costPerGB * 12,
+      notes: '3 IOPS/GB boot volumes',
+    });
+  }
 
-    // Data volumes per tier
+  // Block storage — data volumes per-tier breakdown when available
+  if (input.storageByTier && Object.keys(input.storageByTier).length > 0) {
     for (const [tier, tiB] of Object.entries(input.storageByTier)) {
       if (tiB <= 0) continue;
       const storageTierData = pricingToUse.blockStorage?.[tier];

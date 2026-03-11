@@ -271,6 +271,22 @@ describe('Cost Estimation Service', () => {
       expect(storageItems.length).toBe(1);
       expect(storageItems[0].description).toContain('5 IOPS');
     });
+
+    it('should include boot storage even when storageByTier is empty (boot-only VMs)', () => {
+      const input: VSISizingInput = {
+        vmProfiles: [{ profile: 'bx2-4x16', count: 3 }],
+        storageTiB: 0,
+        bootStorageGiB: 300,
+        storageByTier: {},
+      };
+      const result = calculateVSICost(input, 'us-south', 'onDemand');
+
+      const storageItems = result.lineItems.filter(item => item.category === 'Storage - Block');
+      expect(storageItems.length).toBe(1);
+      expect(storageItems[0].description).toBe('Boot Volumes (General Purpose)');
+      expect(storageItems[0].quantity).toBe(300);
+      expect(storageItems[0].monthlyCost).toBeGreaterThan(0);
+    });
   });
 
   describe('calculateROKSCost', () => {

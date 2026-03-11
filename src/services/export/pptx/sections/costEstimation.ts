@@ -38,7 +38,7 @@ export function addCostEstimationSlide(
   // Explanatory paragraph
   const disclaimerText = hasCachedRoks || hasCachedVsi
     ? 'Based on current IBM Cloud list prices matching the Sizing Calculator configuration. Includes compute, licensing, storage, and platform services. A detailed pricing proposal will be provided at the next stage.'
-    : 'Based on current IBM Cloud US South region list prices. A detailed pricing proposal will be provided at the next stage. Costs do not include storage, networking, or support.';
+    : 'Based on current IBM Cloud US South region list prices. A detailed pricing proposal will be provided at the next stage. Includes compute and storage. Does not include networking or support.';
   slide.addText(disclaimerText, {
     x: 1.33, y: 2.05, w: 24.0, h: 1.07,
     fontSize: FONTS.smallSize, fontFace: FONTS.face,
