@@ -20,7 +20,7 @@ npm test             # Run tests with Vitest
 npm run test:ui      # Run tests with UI
 npm run test:coverage # Run tests with coverage
 npm run update-profiles # Update IBM Cloud profiles from APIs (requires API key)
-npm run update-pricing  # Update IBM Cloud pricing from Global Catalog (requires API key)
+npm run update-pricing  # Update IBM Cloud pricing from Global Catalog (no API key required)
 npm run update-all      # Update both profiles and pricing
 npm run test:e2e        # Run Playwright E2E tests (headless)
 npm run test:e2e:headed # Run E2E tests with visible browser
@@ -124,12 +124,12 @@ Without proxy URLs, the app uses static data from `src/data/ibmCloudConfig.json`
 ```bash
 export IBM_CLOUD_API_KEY=your-api-key
 npm run update-profiles  # VSI/bare metal specs, ROKS support detection
-npm run update-pricing   # Hourly/monthly rates from Global Catalog
+npm run update-pricing   # Per-region list prices from Global Catalog (unauthenticated)
 npm run update-all       # Both
 ```
 
 - **Profile script** (`scripts/update-profiles.ts`): Fetches VPC instance/bare metal profiles and ROKS machine types, auto-detects ROKS support by matching bare metal profiles against ROKS flavors API.
-- **Pricing script** (`scripts/update-pricing.ts`): Fetches pricing from Global Catalog, extracts hourly rates for us-south, calculates monthly (hourly × 730). Also fetches ROKS per-profile worker node rates (which differ from VPC rates by ~9%). `calculateROKSCost()` prefers ROKS worker rates when available, falling back to VPC rates via `??`.
+- **Pricing script** (`scripts/update-pricing.ts`): Fetches pricing unauthenticated from Global Catalog (list prices, no API key required), extracts per-region rates for all 10 IBM Cloud VPC regions, calculates monthly (hourly × 730). Writes `regionalPricing` section to config with actual rates per region. Also fetches ROKS per-profile worker node rates (which differ from VPC rates by ~9%). `calculateROKSCost()` prefers ROKS worker rates when available, falling back to VPC rates via `??`.
 - **ROKS fallback**: When proxy returns no ROKS data, `useDynamicProfiles` hook falls back to static JSON `roksSupported` values.
 - **Data source labels**: "Live API" (green) when proxy available or cached proxy data; "Cache" (gray) when using static data.
 
