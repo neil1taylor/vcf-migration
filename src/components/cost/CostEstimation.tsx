@@ -345,7 +345,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
               <SelectItem
                 key={r.code}
                 value={r.code}
-                text={`${r.name}${r.multiplier !== 1 ? ` (+${((r.multiplier - 1) * 100).toFixed(0)}%)` : ''}`}
+                text={r.name}
               />
             ))}
           </Select>

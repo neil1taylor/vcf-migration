@@ -631,7 +631,7 @@ export function DocumentationPage() {
                   <UnorderedList>
                     <ListItem><strong>Dynamic Pricing</strong> - Fetches live pricing from IBM Cloud Global Catalog API</ListItem>
                     <ListItem><strong>Static Fallback</strong> - Uses bundled pricing data when API is unavailable</ListItem>
-                    <ListItem><strong>Regional Pricing</strong> - Supports all IBM Cloud VPC regions with regional multipliers</ListItem>
+                    <ListItem><strong>Regional Pricing</strong> - Supports all IBM Cloud VPC regions with actual per-region rates from the Global Catalog</ListItem>
                     <ListItem><strong>Discount Options</strong> - On-demand, 1-year reserved, 3-year reserved pricing</ListItem>
                   </UnorderedList>
                 </Tile>
