@@ -5,14 +5,13 @@
  * Usage:
  *   npm run update-pricing
  *
- * Requires:
- *   - VITE_IBM_CLOUD_API_KEY environment variable (or IBM_CLOUD_API_KEY)
+ * No API key required — uses unauthenticated Global Catalog API calls (list prices).
  *
  * What it does:
- *   1. Fetches VSI profile pricing from Global Catalog API
- *   2. Fetches Bare Metal profile pricing from Global Catalog API
- *   3. Computes hourly/monthly rates for us-south region (vCPU rate × vCPUs + memory rate × GB)
- *   4. Updates pricing in src/data/ibmCloudConfig.json
+ *   1. Fetches VSI profile pricing from Global Catalog API for all regions
+ *   2. Fetches Bare Metal profile pricing from Global Catalog API for all regions
+ *   3. Computes hourly/monthly rates per region (vCPU rate × vCPUs + memory rate × GB)
+ *   4. Updates pricing in src/data/ibmCloudConfig.json (us-south for backward compat + per-region)
  *   5. Preserves all other configuration (profiles, storage tiers, networking, etc.)
  *
  * Pricing model:
@@ -32,8 +31,7 @@ const __dirname = path.dirname(__filename);
 
 // Configuration
 const GLOBAL_CATALOG_BASE_URL = 'https://globalcatalog.cloud.ibm.com/api/v1';
-const IAM_TOKEN_URL = 'https://iam.cloud.ibm.com/identity/token';
-const REGION = 'us-south';
+const DEFAULT_REGION = 'us-south';
 const HOURS_PER_MONTH = 730; // IBM Cloud uses 730 hours/month for pricing
 
 const CONFIG_PATH = path.join(__dirname, '..', 'src', 'data', 'ibmCloudConfig.json');
@@ -126,64 +124,23 @@ interface ProfileMeasures {
   memoryGB: number;
 }
 
-// Get API key from environment
-function getApiKey(): string {
-  const apiKey = process.env.VITE_IBM_CLOUD_API_KEY || process.env.IBM_CLOUD_API_KEY;
-  if (!apiKey) {
-    console.error('Error: No API key found.');
-    console.error('Set VITE_IBM_CLOUD_API_KEY or IBM_CLOUD_API_KEY environment variable.');
-    console.error('');
-    console.error('Example:');
-    console.error('  export IBM_CLOUD_API_KEY=your-api-key');
-    console.error('  npm run update-pricing');
-    process.exit(1);
-  }
-  return apiKey;
-}
-
-// Get IAM token
-async function getIamToken(apiKey: string): Promise<string> {
-  console.log('  Authenticating with IBM Cloud IAM...');
-
-  const response = await fetch(IAM_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Accept': 'application/json',
-    },
-    body: new URLSearchParams({
-      grant_type: 'urn:ibm:params:oauth:grant-type:apikey',
-      apikey: apiKey,
-    }),
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`IAM authentication failed: ${response.status} - ${text}`);
-  }
-
-  const data = await response.json();
-  console.log('  Authentication successful');
-  return data.access_token;
-}
-
 // Rate-limit delay helper
 function delay(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 // Fetch a catalog entry by ID with metadata
-async function fetchCatalogEntry(token: string, id: string): Promise<CatalogEntry | null> {
+async function fetchCatalogEntry(id: string): Promise<CatalogEntry | null> {
   const url = `${GLOBAL_CATALOG_BASE_URL}/${encodeURIComponent(id)}?include=metadata`;
   const response = await fetch(url, {
-    headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+    headers: { 'Accept': 'application/json' },
   });
   if (!response.ok) return null;
-  return response.json();
+  return response.json() as Promise<CatalogEntry>;
 }
 
 // Search the Global Catalog with metadata
-async function searchCatalogWithMetadata(token: string, query: string, limit = 200): Promise<CatalogSearchResponse> {
+async function searchCatalogWithMetadata(query: string, limit = 200): Promise<CatalogSearchResponse> {
   const params = new URLSearchParams({
     q: query,
     include: 'metadata',
@@ -191,18 +148,17 @@ async function searchCatalogWithMetadata(token: string, query: string, limit = 2
   });
   const url = `${GLOBAL_CATALOG_BASE_URL}?${params.toString()}`;
   const response = await fetch(url, {
-    headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+    headers: { 'Accept': 'application/json' },
   });
   if (!response.ok) {
     const text = await response.text();
     throw new Error(`Catalog search failed: ${response.status} - ${text}`);
   }
-  return response.json();
+  return response.json() as Promise<CatalogSearchResponse>;
 }
 
 // Fetch plan pricing deployments with pagination
 async function fetchPlanPricingDeployments(
-  token: string,
   planId: string
 ): Promise<PricingDeploymentEntry[]> {
   const allEntries: PricingDeploymentEntry[] = [];
@@ -212,11 +168,11 @@ async function fetchPlanPricingDeployments(
   while (true) {
     const url = `${GLOBAL_CATALOG_BASE_URL}/${encodeURIComponent(planId)}/pricing/deployment?_offset=${offset}&_limit=${limit}`;
     const response = await fetch(url, {
-      headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+      headers: { 'Accept': 'application/json' },
     });
     if (!response.ok) break;
 
-    const data: PricingDeploymentResponse = await response.json();
+    const data = await response.json() as PricingDeploymentResponse;
     allEntries.push(...(data.resources || []));
     if ((data.resources || []).length < limit) break;
     offset += limit;
@@ -225,60 +181,66 @@ async function fetchPlanPricingDeployments(
   return allEntries;
 }
 
-// Extract pricing from a plan's us-south deployment.
-// Returns either component-based rates (gen2: per-vCPU + per-GB) or flat rates (gen3+: per-instance-hour).
-function extractPlanPricing(deployments: PricingDeploymentEntry[]): { rates?: PlanRates; flatRate?: FlatRate } {
-  const usSouth = deployments.find(d =>
-    d.deployment_location === REGION || d.deployment_region === REGION
-  );
-  if (!usSouth?.metrics) return {};
+// Extract pricing from ALL deployments (all regions).
+// Returns a map of region → { rates?, flatRate? }
+function extractAllRegionPricing(
+  deployments: PricingDeploymentEntry[]
+): Record<string, { rates?: PlanRates; flatRate?: FlatRate }> {
+  const result: Record<string, { rates?: PlanRates; flatRate?: FlatRate }> = {};
 
-  let cpuPerHour = 0;
-  let memPerHour = 0;
-  let storagePerHour = 0;
-  let flatHourlyRate = 0;
+  for (const deployment of deployments) {
+    const region = deployment.deployment_location || deployment.deployment_region || '';
+    if (!region || !deployment.metrics) continue;
 
-  for (const metric of usSouth.metrics) {
-    const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
-    const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
-      ?? usdAmount?.prices?.[0]?.price;
-    if (price === undefined || price === null || price === 0) continue;
+    let cpuPerHour = 0;
+    let memPerHour = 0;
+    let storagePerHour = 0;
+    let flatHourlyRate = 0;
 
-    const qty = metric.charge_unit_quantity || 1;
-    const perUnit = price / qty;
+    for (const metric of deployment.metrics) {
+      const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
+      const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
+        ?? usdAmount?.prices?.[0]?.price;
+      if (price === undefined || price === null || price === 0) continue;
 
-    // Gen2 component-based pricing (VSI)
-    if (metric.metric_id === 'part-is.cpu-hours' || metric.charge_unit_name === 'VCPU_HOURS') {
-      cpuPerHour = perUnit;
-    } else if (metric.metric_id === 'part-is.ram-hours' || metric.charge_unit_name === 'MEMORY_HOURS') {
-      memPerHour = perUnit;
-    } else if (metric.metric_id === 'part-is.instance-storage-hours' || metric.charge_unit_name === 'IS_STORAGE_GIGABYTE_HOURS') {
-      storagePerHour = perUnit;
+      const qty = metric.charge_unit_quantity || 1;
+      const perUnit = price / qty;
+
+      // Gen2 component-based pricing (VSI)
+      if (metric.metric_id === 'part-is.cpu-hours' || metric.charge_unit_name === 'VCPU_HOURS') {
+        cpuPerHour = perUnit;
+      } else if (metric.metric_id === 'part-is.ram-hours' || metric.charge_unit_name === 'MEMORY_HOURS') {
+        memPerHour = perUnit;
+      } else if (metric.metric_id === 'part-is.instance-storage-hours' || metric.charge_unit_name === 'IS_STORAGE_GIGABYTE_HOURS') {
+        storagePerHour = perUnit;
+      }
+      // Z-series (LinuxONE) component-based pricing
+      else if (metric.charge_unit_name === 'SECUREEXECUTION_VCPU_HOURS' || metric.metric_id === 'part-is.zvsi.SE-cpu-hours') {
+        cpuPerHour = perUnit;
+      } else if (metric.charge_unit_name === 'SECUREEXECUTION_MEMORY_HOURS' || metric.metric_id === 'part-is.zvsi.SE-ram-hours') {
+        memPerHour = perUnit;
+      }
+      // Gen3+ flat per-profile pricing (metric_id like "part-is.instance-hours-bx3d-16x80")
+      else if (metric.charge_unit_name === 'INSTANCE_HOURS_MULTI_TENANT' ||
+               (metric.metric_id?.startsWith('part-is.instance-hours') && !metric.metric_id.includes('-dh-'))) {
+        flatHourlyRate = price;
+      }
+      // Bare metal flat per-server pricing
+      else if (metric.charge_unit_name === 'BARE_METAL_SERVER_HOURS') {
+        flatHourlyRate = price;
+      }
     }
-    // Z-series (LinuxONE) component-based pricing
-    else if (metric.charge_unit_name === 'SECUREEXECUTION_VCPU_HOURS' || metric.metric_id === 'part-is.zvsi.SE-cpu-hours') {
-      cpuPerHour = perUnit;
-    } else if (metric.charge_unit_name === 'SECUREEXECUTION_MEMORY_HOURS' || metric.metric_id === 'part-is.zvsi.SE-ram-hours') {
-      memPerHour = perUnit;
-    }
-    // Gen3+ flat per-profile pricing (metric_id like "part-is.instance-hours-bx3d-16x80")
-    else if (metric.charge_unit_name === 'INSTANCE_HOURS_MULTI_TENANT' ||
-             (metric.metric_id?.startsWith('part-is.instance-hours') && !metric.metric_id.includes('-dh-'))) {
-      flatHourlyRate = price;
-    }
-    // Bare metal flat per-server pricing
-    else if (metric.charge_unit_name === 'BARE_METAL_SERVER_HOURS') {
-      flatHourlyRate = price;
-    }
-  }
 
-  const result: { rates?: PlanRates; flatRate?: FlatRate } = {};
-
-  if (cpuPerHour > 0 && memPerHour > 0) {
-    result.rates = { cpuPerHour, memPerHour, storagePerHour };
-  }
-  if (flatHourlyRate > 0) {
-    result.flatRate = { hourlyRate: flatHourlyRate };
+    const entry: { rates?: PlanRates; flatRate?: FlatRate } = {};
+    if (cpuPerHour > 0 && memPerHour > 0) {
+      entry.rates = { cpuPerHour, memPerHour, storagePerHour };
+    }
+    if (flatHourlyRate > 0) {
+      entry.flatRate = { hourlyRate: flatHourlyRate };
+    }
+    if (entry.rates || entry.flatRate) {
+      result[region] = entry;
+    }
   }
 
   return result;
@@ -321,18 +283,24 @@ function computeHourlyRate(rates: PlanRates, vcpus: number, memoryGB: number): n
   return rates.cpuPerHour * vcpus + rates.memPerHour * memoryGB;
 }
 
+// Result type for fetchComponentPricing — includes both us-south (backward compat) and all-region data
+interface ComponentPricingResult {
+  pricing: Map<string, { hourlyRate: number; monthlyRate: number }>;  // us-south rates
+  regionalPricing: Map<string, Record<string, { hourlyRate: number; monthlyRate: number }>>; // profile → region → rates
+}
+
 // Fetch pricing for a set of profiles using the component-based pricing model
 async function fetchComponentPricing(
-  token: string,
   serviceQuery: string,
   profileKind: string,
   configProfileNames: string[]
-): Promise<Map<string, { hourlyRate: number; monthlyRate: number }>> {
+): Promise<ComponentPricingResult> {
   const pricing = new Map<string, { hourlyRate: number; monthlyRate: number }>();
+  const regionalPricing = new Map<string, Record<string, { hourlyRate: number; monthlyRate: number }>>();
 
   // Step 1: Fetch all catalog profile entries to get plan IDs and vCPU/memory specs
   console.log('  Step 1: Fetching profile metadata from catalog...');
-  const catalogResponse = await searchCatalogWithMetadata(token, serviceQuery);
+  const catalogResponse = await searchCatalogWithMetadata(serviceQuery);
   const catalogProfiles = catalogResponse.resources.filter(
     r => r.active && !r.disabled && r.kind === profileKind
   );
@@ -357,12 +325,12 @@ async function fetchComponentPricing(
       const name = missingFromBulk[i];
 
       // Try direct lookup first (works for VSI profiles)
-      const entry = await fetchCatalogEntry(token, name);
+      const entry = await fetchCatalogEntry(name);
       let measures = entry ? extractProfileMeasures(entry) : null;
 
       // If direct lookup didn't get measures, try search (needed for bare metal)
       if (!measures) {
-        const searchResult = await searchCatalogWithMetadata(token, name, 5);
+        const searchResult = await searchCatalogWithMetadata(name, 5);
         const match = searchResult.resources.find(r => r.name === name && r.active && !r.disabled);
         if (match) {
           measures = extractProfileMeasures(match);
@@ -384,8 +352,8 @@ async function fetchComponentPricing(
     console.log('  Step 2: All config profiles found in bulk search');
   }
 
-  // Step 3: Collect unique plan IDs and fetch their pricing
-  console.log('  Step 3: Fetching plan pricing rates...');
+  // Step 3: Collect unique plan IDs and fetch their pricing (all regions)
+  console.log('  Step 3: Fetching plan pricing rates (all regions)...');
   const uniquePlanIds = new Set<string>();
   for (const name of configProfileNames) {
     const measures = profileMeasuresMap.get(name);
@@ -393,20 +361,16 @@ async function fetchComponentPricing(
   }
   console.log(`    ${uniquePlanIds.size} unique plans to fetch pricing for`);
 
-  const planRatesMap = new Map<string, PlanRates>();
-  const planFlatRateMap = new Map<string, FlatRate>();
+  // planId → region → { rates?, flatRate? }
+  const planRegionalRatesMap = new Map<string, Record<string, { rates?: PlanRates; flatRate?: FlatRate }>>();
   let plansFetched = 0;
   let plansWithPricing = 0;
   for (const planId of uniquePlanIds) {
-    const deployments = await fetchPlanPricingDeployments(token, planId);
-    const { rates, flatRate } = extractPlanPricing(deployments);
-    if (rates) {
-      planRatesMap.set(planId, rates);
+    const deployments = await fetchPlanPricingDeployments(planId);
+    const allRegionRates = extractAllRegionPricing(deployments);
+    if (Object.keys(allRegionRates).length > 0) {
+      planRegionalRatesMap.set(planId, allRegionRates);
       plansWithPricing++;
-    }
-    if (flatRate) {
-      planFlatRateMap.set(planId, flatRate);
-      if (!rates) plansWithPricing++;
     }
     plansFetched++;
     if (plansFetched % 20 === 0) {
@@ -414,48 +378,61 @@ async function fetchComponentPricing(
     }
     await delay(50);
   }
-  console.log(`    ${plansWithPricing} plans with valid us-south pricing (${planRatesMap.size} component-based, ${planFlatRateMap.size} flat-rate)`);
+  console.log(`    ${plansWithPricing} plans with valid pricing across regions`);
 
-  // Step 4: Compute per-profile pricing
-  console.log('  Step 4: Computing per-profile pricing...');
+  // Step 4: Compute per-profile pricing for ALL regions
+  console.log('  Step 4: Computing per-profile pricing (all regions)...');
   for (const name of configProfileNames) {
     const measures = profileMeasuresMap.get(name);
     if (!measures) continue;
 
-    // Prefer flat rate (gen3+), fall back to component-based (gen2)
-    const flatRate = planFlatRateMap.get(measures.planId);
-    if (flatRate) {
-      pricing.set(name, {
-        hourlyRate: Math.round(flatRate.hourlyRate * 10000) / 10000,
-        monthlyRate: Math.round(flatRate.hourlyRate * HOURS_PER_MONTH * 100) / 100,
-      });
-      continue;
+    const regionRates = planRegionalRatesMap.get(measures.planId);
+    if (!regionRates) continue;
+
+    const profileRegionalPricing: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
+
+    for (const [region, { rates, flatRate }] of Object.entries(regionRates)) {
+      let hourlyRate = 0;
+
+      // Prefer flat rate (gen3+), fall back to component-based (gen2)
+      if (flatRate) {
+        hourlyRate = flatRate.hourlyRate;
+      } else if (rates) {
+        hourlyRate = computeHourlyRate(rates, measures.vcpus, measures.memoryGB);
+      }
+
+      if (hourlyRate > 0) {
+        const rounded = {
+          hourlyRate: Math.round(hourlyRate * 10000) / 10000,
+          monthlyRate: Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100,
+        };
+        profileRegionalPricing[region] = rounded;
+
+        // Store us-south in the backward-compat pricing map
+        if (region === DEFAULT_REGION) {
+          pricing.set(name, rounded);
+        }
+      }
     }
 
-    const rates = planRatesMap.get(measures.planId);
-    if (!rates) continue;
-
-    const hourlyRate = computeHourlyRate(rates, measures.vcpus, measures.memoryGB);
-    if (hourlyRate > 0) {
-      pricing.set(name, {
-        hourlyRate: Math.round(hourlyRate * 10000) / 10000,
-        monthlyRate: Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100,
-      });
+    if (Object.keys(profileRegionalPricing).length > 0) {
+      regionalPricing.set(name, profileRegionalPricing);
     }
   }
 
-  // Step 5: For any profiles still missing, try to use component rates from the same family
+  // Step 5: For any profiles still missing us-south pricing, try to use component rates from the same family
   const stillMissing = configProfileNames.filter(name => !pricing.has(name));
   if (stillMissing.length > 0) {
     console.log(`  Step 5: Fallback estimation for ${stillMissing.length} profiles without plan pricing...`);
-    // Group component rates by family prefix (e.g., "bx2", "cx3d")
+    // Group component rates by family prefix (e.g., "bx2", "cx3d") — us-south only for fallback
     const familyRates = new Map<string, PlanRates>();
     for (const [name, measures] of profileMeasuresMap) {
-      const rates = planRatesMap.get(measures.planId);
-      if (!rates) continue;
+      const regionRates = planRegionalRatesMap.get(measures.planId);
+      const usSouthRates = regionRates?.[DEFAULT_REGION]?.rates;
+      if (!usSouthRates) continue;
       const familyMatch = name.match(/^([a-z]+\d+[a-z]*)/);
       if (familyMatch) {
-        familyRates.set(familyMatch[1], rates);
+        familyRates.set(familyMatch[1], usSouthRates);
       }
     }
 
@@ -484,28 +461,35 @@ async function fetchComponentPricing(
     }
   }
 
-  console.log(`  Total: ${pricing.size}/${configProfileNames.length} profiles with pricing`);
-  return pricing;
+  // Count regions found
+  const allRegions = new Set<string>();
+  for (const regionMap of regionalPricing.values()) {
+    for (const region of Object.keys(regionMap)) {
+      allRegions.add(region);
+    }
+  }
+
+  console.log(`  Total: ${pricing.size}/${configProfileNames.length} profiles with us-south pricing`);
+  console.log(`  Regional: ${regionalPricing.size} profiles with pricing across ${allRegions.size} regions`);
+  return { pricing, regionalPricing };
 }
 
 // Fetch VSI pricing
 async function fetchVSIPricing(
-  token: string,
   configProfileNames: string[]
-): Promise<Map<string, { hourlyRate: number; monthlyRate: number }>> {
+): Promise<ComponentPricingResult> {
   console.log('');
   console.log('--- VSI Pricing ---');
-  return fetchComponentPricing(token, 'is.instance', 'instance.profile', configProfileNames);
+  return fetchComponentPricing('is.instance', 'instance.profile', configProfileNames);
 }
 
 // Fetch Bare Metal pricing
 async function fetchBareMetalPricing(
-  token: string,
   configProfileNames: string[]
-): Promise<Map<string, { hourlyRate: number; monthlyRate: number }>> {
+): Promise<ComponentPricingResult> {
   console.log('');
   console.log('--- Bare Metal Pricing ---');
-  return fetchComponentPricing(token, 'is.bare-metal-server', 'bare_metal_server.profile', configProfileNames);
+  return fetchComponentPricing('is.bare-metal-server', 'bare_metal_server.profile', configProfileNames);
 }
 
 // ROKS pricing rates
@@ -537,24 +521,31 @@ interface ROKSPricingRates {
   };
 }
 
+// Per-region ROKS worker rates
+interface RegionalROKSWorkerRates {
+  bareMetal: Record<string, { hourlyRate: number; monthlyRate: number }>;
+  vsi: Record<string, { hourlyRate: number; monthlyRate: number }>;
+}
+
 // Fetch ROKS per-profile worker node compute rates from Global Catalog
 // ROKS workers have separate pricing plans that differ from standalone VPC VSI/bare metal rates.
 // Plan pattern: containers.kubernetes.vpc.{profile-with-dots}.roks
 // Metric: part-roks.vpc.{profile} (INSTANCE_HOURS)
-async function fetchROKSWorkerRates(
-  token: string
-): Promise<{ bareMetal: Record<string, { hourlyRate: number; monthlyRate: number }>; vsi: Record<string, { hourlyRate: number; monthlyRate: number }> }> {
+async function fetchROKSWorkerRates(): Promise<{
+  usSouth: RegionalROKSWorkerRates;
+  regional: Record<string, RegionalROKSWorkerRates>;
+}> {
   console.log('');
   console.log('--- ROKS Worker Node Rates ---');
 
-  const bareMetal: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
-  const vsi: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
+  const usSouth: RegionalROKSWorkerRates = { bareMetal: {}, vsi: {} };
+  const regional: Record<string, RegionalROKSWorkerRates> = {};
 
   try {
     // Paginate through all containers-kubernetes catalog entries
     let offset = 0;
     const limit = 200;
-    let allPlans: CatalogEntry[] = [];
+    const allPlans: CatalogEntry[] = [];
 
     while (true) {
       const params = new URLSearchParams({
@@ -565,11 +556,11 @@ async function fetchROKSWorkerRates(
       });
       const url = `${GLOBAL_CATALOG_BASE_URL}?${params.toString()}`;
       const response = await fetch(url, {
-        headers: { 'Accept': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 'Accept': 'application/json' },
       });
       if (!response.ok) break;
 
-      const data: CatalogSearchResponse = await response.json();
+      const data = await response.json() as CatalogSearchResponse;
       const plans = (data.resources || []).filter(
         r => r.active && !r.disabled && r.kind === 'plan' && r.name?.includes('roks')
       );
@@ -600,66 +591,94 @@ async function fetchROKSWorkerRates(
 
     let fetchedCount = 0;
     for (const plan of workerPlans) {
-      const deployments = await fetchPlanPricingDeployments(token, plan.id);
-      const usSouth = deployments.find(d =>
-        d.deployment_location === REGION || d.deployment_region === REGION
-      );
-      if (!usSouth?.metrics) {
-        await delay(50);
-        continue;
-      }
+      const deployments = await fetchPlanPricingDeployments(plan.id);
 
-      for (const metric of usSouth.metrics) {
-        // Look for the instance-hours metric: part-roks.vpc.{profile}
-        if (!metric.metric_id?.startsWith('part-roks.vpc.')) continue;
-        if (metric.metric_id?.includes('ocp') || metric.metric_id?.includes('disk') || metric.metric_id?.includes('rhoai')) continue;
+      for (const deployment of deployments) {
+        const region = deployment.deployment_location || deployment.deployment_region || '';
+        if (!region || !deployment.metrics) continue;
 
-        const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
-        const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
-          ?? usdAmount?.prices?.[0]?.price;
-        if (!price || price === 0) continue;
+        for (const metric of deployment.metrics) {
+          // Look for the instance-hours metric: part-roks.vpc.{profile}
+          if (!metric.metric_id?.startsWith('part-roks.vpc.')) continue;
+          if (metric.metric_id?.includes('ocp') || metric.metric_id?.includes('disk') || metric.metric_id?.includes('rhoai')) continue;
 
-        const qty = metric.charge_unit_quantity || 1;
-        const hourlyRate = Math.round((price / qty) * 100000) / 100000;
-        const monthlyRate = Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100;
+          const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
+          const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
+            ?? usdAmount?.prices?.[0]?.price;
+          if (!price || price === 0) continue;
 
-        // Extract profile name from metric_id: part-roks.vpc.{profile-with-dots}
-        // Convert dots to hyphens: bx3d.16x80 → bx3d-16x80
-        const profileDotted = metric.metric_id.replace('part-roks.vpc.', '');
-        const profileName = profileDotted.replace(/\./g, '-');
+          const qty = metric.charge_unit_quantity || 1;
+          const hourlyRate = Math.round((price / qty) * 100000) / 100000;
+          const monthlyRate = Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100;
 
-        if (profileName.includes('metal')) {
-          bareMetal[profileName] = { hourlyRate, monthlyRate };
-        } else {
-          vsi[profileName] = { hourlyRate, monthlyRate };
+          // Extract profile name from metric_id: part-roks.vpc.{profile-with-dots}
+          // Convert dots to hyphens: bx3d.16x80 → bx3d-16x80
+          const profileDotted = metric.metric_id.replace('part-roks.vpc.', '');
+          const profileName = profileDotted.replace(/\./g, '-');
+
+          const isBM = profileName.includes('metal');
+
+          // Store in us-south backward-compat map
+          if (region === DEFAULT_REGION) {
+            if (isBM) {
+              usSouth.bareMetal[profileName] = { hourlyRate, monthlyRate };
+            } else {
+              usSouth.vsi[profileName] = { hourlyRate, monthlyRate };
+            }
+          }
+
+          // Store in regional map
+          if (!regional[region]) {
+            regional[region] = { bareMetal: {}, vsi: {} };
+          }
+          if (isBM) {
+            regional[region].bareMetal[profileName] = { hourlyRate, monthlyRate };
+          } else {
+            regional[region].vsi[profileName] = { hourlyRate, monthlyRate };
+          }
+
+          fetchedCount++;
         }
-        fetchedCount++;
       }
       await delay(50);
     }
 
-    console.log(`  Fetched rates for ${fetchedCount} profiles (${Object.keys(bareMetal).length} bare metal, ${Object.keys(vsi).length} VSI)`);
-    if (Object.keys(vsi).length > 0) {
-      const sample = Object.entries(vsi)[0];
-      console.log(`  Sample VSI rate: ${sample[0]} = $${sample[1].hourlyRate}/hr ($${sample[1].monthlyRate}/mo)`);
+    const regionCount = Object.keys(regional).length;
+    console.log(`  Fetched rates for ${fetchedCount} profile-region combinations across ${regionCount} regions`);
+    console.log(`  us-south: ${Object.keys(usSouth.bareMetal).length} bare metal, ${Object.keys(usSouth.vsi).length} VSI`);
+    if (Object.keys(usSouth.vsi).length > 0) {
+      const sample = Object.entries(usSouth.vsi)[0];
+      console.log(`  Sample VSI rate (us-south): ${sample[0]} = $${sample[1].hourlyRate}/hr ($${sample[1].monthlyRate}/mo)`);
     }
-    if (Object.keys(bareMetal).length > 0) {
-      const sample = Object.entries(bareMetal)[0];
-      console.log(`  Sample BM rate: ${sample[0]} = $${sample[1].hourlyRate}/hr ($${sample[1].monthlyRate}/mo)`);
+    if (Object.keys(usSouth.bareMetal).length > 0) {
+      const sample = Object.entries(usSouth.bareMetal)[0];
+      console.log(`  Sample BM rate (us-south): ${sample[0]} = $${sample[1].hourlyRate}/hr ($${sample[1].monthlyRate}/mo)`);
     }
   } catch (error) {
     console.warn('  Warning: Failed to fetch ROKS worker rates, continuing without them');
     console.warn('  Error:', error instanceof Error ? error.message : error);
   }
 
-  return { bareMetal, vsi };
+  return { usSouth, regional };
+}
+
+// Per-region ROKS pricing (OCP license + ODF)
+interface RegionalROKSRates {
+  ocpLicense?: { perVCPUHourly: number; perVCPUMonthly: number };
+  odf?: {
+    advanced?: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number };
+    essentials?: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number };
+  };
 }
 
 // Fetch ROKS pricing (OCP license + ODF) from Global Catalog
 // NOTE: ACM (Red Hat Advanced Cluster Management) pricing is NOT in Global Catalog.
 // ACM rates are manually maintained in ibmCloudConfig.json under roks.acm.
 // Current rates derived from CDW reseller pricing (~$0.0298/vCPU-hr premium).
-async function fetchROKSPricing(token: string): Promise<ROKSPricingRates | null> {
+async function fetchROKSPricing(): Promise<{
+  usSouth: ROKSPricingRates;
+  regional: Record<string, RegionalROKSRates>;
+} | null> {
   console.log('');
   console.log('--- ROKS Pricing (OCP License + ODF) ---');
 
@@ -687,43 +706,54 @@ async function fetchROKSPricing(token: string): Promise<ROKSPricingRates | null>
     },
   };
 
+  const regional: Record<string, RegionalROKSRates> = {};
+
   try {
     // Fetch OCP license rate from containers-kubernetes ROKS plan
-    console.log('  Fetching OCP license rate...');
-    const roksSearch = await searchCatalogWithMetadata(token, 'containers-kubernetes', 50);
+    console.log('  Fetching OCP license rate (all regions)...');
+    const roksSearch = await searchCatalogWithMetadata('containers-kubernetes', 50);
     const roksPlans = roksSearch.resources.filter(
       r => r.active && !r.disabled && r.kind === 'plan' && r.name?.includes('roks')
     );
 
     for (const plan of roksPlans) {
-      const deployments = await fetchPlanPricingDeployments(token, plan.id);
-      const usSouth = deployments.find(d =>
-        d.deployment_location === REGION || d.deployment_region === REGION
-      );
-      if (!usSouth?.metrics) continue;
+      const deployments = await fetchPlanPricingDeployments(plan.id);
 
-      for (const metric of usSouth.metrics) {
-        const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
-        const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
-          ?? usdAmount?.prices?.[0]?.price;
-        if (!price || price === 0) continue;
+      for (const deployment of deployments) {
+        const region = deployment.deployment_location || deployment.deployment_region || '';
+        if (!region || !deployment.metrics) continue;
 
-        const qty = metric.charge_unit_quantity || 1;
-        const perUnit = price / qty;
+        for (const metric of deployment.metrics) {
+          const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
+          const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
+            ?? usdAmount?.prices?.[0]?.price;
+          if (!price || price === 0) continue;
 
-        // OCP license per vCPU-hour
-        if (metric.metric_id?.includes('ocp') && metric.metric_id?.includes('vcpu')) {
-          result.ocpLicense.perVCPUHourly = Math.round(perUnit * 100000) / 100000;
-          result.ocpLicense.perVCPUMonthly = Math.round(perUnit * HOURS_PER_MONTH * 100) / 100;
-          console.log(`    OCP license: $${result.ocpLicense.perVCPUHourly}/vCPU-hr ($${result.ocpLicense.perVCPUMonthly}/vCPU/mo)`);
+          const qty = metric.charge_unit_quantity || 1;
+          const perUnit = price / qty;
+
+          // OCP license per vCPU-hour
+          if (metric.metric_id?.includes('ocp') && metric.metric_id?.includes('vcpu')) {
+            const hourly = Math.round(perUnit * 100000) / 100000;
+            const monthly = Math.round(perUnit * HOURS_PER_MONTH * 100) / 100;
+
+            if (region === DEFAULT_REGION) {
+              result.ocpLicense.perVCPUHourly = hourly;
+              result.ocpLicense.perVCPUMonthly = monthly;
+              console.log(`    OCP license (us-south): $${hourly}/vCPU-hr ($${monthly}/vCPU/mo)`);
+            }
+
+            if (!regional[region]) regional[region] = {};
+            regional[region].ocpLicense = { perVCPUHourly: hourly, perVCPUMonthly: monthly };
+          }
         }
       }
       await delay(50);
     }
 
     // Fetch ODF pricing
-    console.log('  Fetching ODF pricing...');
-    const odfSearch = await searchCatalogWithMetadata(token, 'roks odf', 50);
+    console.log('  Fetching ODF pricing (all regions)...');
+    const odfSearch = await searchCatalogWithMetadata('roks odf', 50);
     const odfPlans = odfSearch.resources.filter(
       r => r.active && !r.disabled && r.kind === 'plan' && r.name?.includes('odf')
     );
@@ -734,41 +764,61 @@ async function fetchROKSPricing(token: string): Promise<ROKSPricingRates | null>
       if (!isAdvanced && !isEssentials) continue;
 
       const tier = isAdvanced ? 'advanced' : 'essentials';
-      const deployments = await fetchPlanPricingDeployments(token, plan.id);
-      const usSouth = deployments.find(d =>
-        d.deployment_location === REGION || d.deployment_region === REGION
-      );
-      if (!usSouth?.metrics) continue;
+      const deployments = await fetchPlanPricingDeployments(plan.id);
 
-      for (const metric of usSouth.metrics) {
-        const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
-        const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
-          ?? usdAmount?.prices?.[0]?.price;
-        if (!price || price === 0) continue;
+      for (const deployment of deployments) {
+        const region = deployment.deployment_location || deployment.deployment_region || '';
+        if (!region || !deployment.metrics) continue;
 
-        const qty = metric.charge_unit_quantity || 1;
-        const perUnit = price / qty;
+        for (const metric of deployment.metrics) {
+          const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
+          const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
+            ?? usdAmount?.prices?.[0]?.price;
+          if (!price || price === 0) continue;
 
-        // Bare metal per-node monthly
-        if (metric.metric_id?.includes('bm') || metric.charge_unit_name?.includes('BARE_METAL')) {
-          result.odf[tier].bareMetalPerNodeMonthly = Math.round(perUnit * 1000) / 1000;
-          console.log(`    ODF ${tier} bare metal: $${result.odf[tier].bareMetalPerNodeMonthly}/node/mo`);
-        }
-        // VSI per-vCPU-hour
-        else if (metric.metric_id?.includes('vcpu') || metric.charge_unit_name?.includes('VCPU')) {
-          result.odf[tier].vsiPerVCPUHourly = Math.round(perUnit * 100000) / 100000;
-          console.log(`    ODF ${tier} VSI: $${result.odf[tier].vsiPerVCPUHourly}/vCPU-hr`);
+          const qty = metric.charge_unit_quantity || 1;
+          const perUnit = price / qty;
+
+          // Bare metal per-node monthly
+          if (metric.metric_id?.includes('bm') || metric.charge_unit_name?.includes('BARE_METAL')) {
+            const val = Math.round(perUnit * 1000) / 1000;
+            if (region === DEFAULT_REGION) {
+              result.odf[tier].bareMetalPerNodeMonthly = val;
+              console.log(`    ODF ${tier} bare metal (us-south): $${val}/node/mo`);
+            }
+            if (!regional[region]) regional[region] = {};
+            if (!regional[region].odf) regional[region].odf = {};
+            if (!regional[region].odf![tier]) {
+              regional[region].odf![tier] = { bareMetalPerNodeMonthly: 0, vsiPerVCPUHourly: 0 };
+            }
+            regional[region].odf![tier]!.bareMetalPerNodeMonthly = val;
+          }
+          // VSI per-vCPU-hour
+          else if (metric.metric_id?.includes('vcpu') || metric.charge_unit_name?.includes('VCPU')) {
+            const val = Math.round(perUnit * 100000) / 100000;
+            if (region === DEFAULT_REGION) {
+              result.odf[tier].vsiPerVCPUHourly = val;
+              console.log(`    ODF ${tier} VSI (us-south): $${val}/vCPU-hr`);
+            }
+            if (!regional[region]) regional[region] = {};
+            if (!regional[region].odf) regional[region].odf = {};
+            if (!regional[region].odf![tier]) {
+              regional[region].odf![tier] = { bareMetalPerNodeMonthly: 0, vsiPerVCPUHourly: 0 };
+            }
+            regional[region].odf![tier]!.vsiPerVCPUHourly = val;
+          }
         }
       }
       await delay(50);
     }
 
-    console.log('  ROKS pricing fetch complete');
-    return result;
+    const regionCount = Object.keys(regional).length;
+    console.log(`  ROKS pricing fetch complete (${regionCount} regions)`);
+    return { usSouth: result, regional };
   } catch (error) {
     console.warn('  Warning: Failed to fetch ROKS pricing from catalog, using defaults');
     console.warn('  Error:', error instanceof Error ? error.message : error);
-    return result;
+    return { usSouth: result, regional };
   }
 }
 
@@ -779,6 +829,8 @@ interface IBMCloudConfig {
   vsiProfiles?: Record<string, Array<{ name: string; hourlyRate?: number; monthlyRate?: number }>>;
   bareMetalProfiles?: Record<string, Array<{ name: string; hourlyRate?: number; monthlyRate?: number }>>;
   roks?: ROKSPricingRates;
+  regions?: Record<string, { name: string; code: string; multiplier?: number; availabilityZones: number }>;
+  regionalPricing?: Record<string, unknown>;
   version?: string;
   [key: string]: unknown;
 }
@@ -787,11 +839,15 @@ interface IBMCloudConfig {
 function updateConfigWithPricing(
   existingConfig: IBMCloudConfig,
   vsiPricing: Map<string, { hourlyRate: number; monthlyRate: number }>,
-  bareMetalPricing: Map<string, { hourlyRate: number; monthlyRate: number }>
+  bareMetalPricing: Map<string, { hourlyRate: number; monthlyRate: number }>,
+  vsiRegionalPricing: Map<string, Record<string, { hourlyRate: number; monthlyRate: number }>>,
+  bmRegionalPricing: Map<string, Record<string, { hourlyRate: number; monthlyRate: number }>>,
+  roksRegionalRates: Record<string, RegionalROKSRates>,
+  roksWorkerRegional: Record<string, RegionalROKSWorkerRates>
 ): IBMCloudConfig {
   const newConfig = { ...existingConfig };
 
-  // Update VSI pricing section
+  // Update VSI pricing section (us-south backward compat)
   const newVsiPricing: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
   if (existingConfig.vsiPricing) {
     Object.assign(newVsiPricing, existingConfig.vsiPricing);
@@ -801,7 +857,7 @@ function updateConfigWithPricing(
   }
   newConfig.vsiPricing = newVsiPricing;
 
-  // Update bare metal pricing section
+  // Update bare metal pricing section (us-south backward compat)
   const newBareMetalPricing: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
   if (existingConfig.bareMetalPricing) {
     Object.assign(newBareMetalPricing, existingConfig.bareMetalPricing);
@@ -837,6 +893,88 @@ function updateConfigWithPricing(
     }
   }
 
+  // Remove multiplier from regions
+  if (newConfig.regions) {
+    for (const regionKey of Object.keys(newConfig.regions)) {
+      const region = newConfig.regions[regionKey];
+      delete region.multiplier;
+    }
+  }
+
+  // Build regionalPricing section
+  // Collect all regions from VSI, BM, ROKS data
+  const allRegions = new Set<string>();
+  for (const regionMap of vsiRegionalPricing.values()) {
+    for (const region of Object.keys(regionMap)) allRegions.add(region);
+  }
+  for (const regionMap of bmRegionalPricing.values()) {
+    for (const region of Object.keys(regionMap)) allRegions.add(region);
+  }
+  for (const region of Object.keys(roksRegionalRates)) allRegions.add(region);
+  for (const region of Object.keys(roksWorkerRegional)) allRegions.add(region);
+
+  // Get existing block storage and networking rates from config to use as static values for all regions
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existingBlockStorage = (existingConfig as any).blockStorage;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existingNetworking = (existingConfig as any).networking;
+
+  const regionalPricingData: Record<string, Record<string, unknown>> = {};
+
+  for (const region of allRegions) {
+    const regionData: Record<string, unknown> = {};
+
+    // VSI rates for this region
+    const vsiRates: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
+    for (const [profile, regionMap] of vsiRegionalPricing) {
+      if (regionMap[region]) {
+        vsiRates[profile] = regionMap[region];
+      }
+    }
+    if (Object.keys(vsiRates).length > 0) {
+      regionData.vsiPricing = vsiRates;
+    }
+
+    // Bare metal rates for this region
+    const bmRates: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
+    for (const [profile, regionMap] of bmRegionalPricing) {
+      if (regionMap[region]) {
+        bmRates[profile] = regionMap[region];
+      }
+    }
+    if (Object.keys(bmRates).length > 0) {
+      regionData.bareMetalPricing = bmRates;
+    }
+
+    // Block storage rates (static — same for all regions for now)
+    if (existingBlockStorage) {
+      regionData.blockStorage = existingBlockStorage;
+    }
+
+    // Networking rates (static — same for all regions for now)
+    if (existingNetworking) {
+      regionData.networking = existingNetworking;
+    }
+
+    // ROKS rates for this region
+    const roksRates = roksRegionalRates[region];
+    if (roksRates) {
+      regionData.roks = roksRates;
+    }
+
+    // ROKS worker rates for this region
+    const workerRates = roksWorkerRegional[region];
+    if (workerRates && (Object.keys(workerRates.bareMetal).length > 0 || Object.keys(workerRates.vsi).length > 0)) {
+      regionData.roksWorkerRates = workerRates;
+    }
+
+    if (Object.keys(regionData).length > 0) {
+      regionalPricingData[region] = regionData;
+    }
+  }
+
+  newConfig.regionalPricing = regionalPricingData;
+
   // Update version
   newConfig.version = new Date().toISOString().split('T')[0];
 
@@ -846,12 +984,9 @@ function updateConfigWithPricing(
 // Main function
 async function main() {
   console.log('='.repeat(60));
-  console.log('IBM Cloud Pricing Update Script');
+  console.log('IBM Cloud Pricing Update Script (unauthenticated)');
   console.log('='.repeat(60));
   console.log('');
-
-  // Get API key
-  const apiKey = getApiKey();
 
   // Load existing config
   console.log('Loading existing configuration...');
@@ -867,11 +1002,6 @@ async function main() {
   }
 
   try {
-    // Get IAM token
-    console.log('');
-    console.log('Step 1: Authentication');
-    const token = await getIamToken(apiKey);
-
     // Collect profile names from config
     const vsiProfileNames = Object.values(existingConfig.vsiProfiles || {})
       .flat()
@@ -884,31 +1014,40 @@ async function main() {
 
     // Fetch pricing
     console.log('');
-    console.log('Step 2: Fetching pricing from Global Catalog');
+    console.log('Step 1: Fetching pricing from Global Catalog (unauthenticated — list prices)');
 
-    const vsiPricing = await fetchVSIPricing(token, vsiProfileNames);
-    const bareMetalPricing = await fetchBareMetalPricing(token, bmProfileNames);
-    const roksPricing = await fetchROKSPricing(token);
-    const roksWorkerRates = await fetchROKSWorkerRates(token);
+    const vsiResult = await fetchVSIPricing(vsiProfileNames);
+    const bareMetalResult = await fetchBareMetalPricing(bmProfileNames);
+    const roksResult = await fetchROKSPricing();
+    const roksWorkerResult = await fetchROKSWorkerRates();
 
     // Update config
     console.log('');
-    console.log('Step 3: Updating configuration');
+    console.log('Step 2: Updating configuration');
 
-    const newConfig = updateConfigWithPricing(existingConfig, vsiPricing, bareMetalPricing);
+    const newConfig = updateConfigWithPricing(
+      existingConfig,
+      vsiResult.pricing,
+      bareMetalResult.pricing,
+      vsiResult.regionalPricing,
+      bareMetalResult.regionalPricing,
+      roksResult?.regional || {},
+      roksWorkerResult.regional
+    );
 
-    // Update ROKS pricing section
-    if (roksPricing) {
-      // Attach per-profile worker rates if any were found
-      if (Object.keys(roksWorkerRates.bareMetal).length > 0 || Object.keys(roksWorkerRates.vsi).length > 0) {
-        roksPricing.workerRates = roksWorkerRates;
+    // Update ROKS pricing section (us-south backward compat)
+    if (roksResult) {
+      const roksPricing = roksResult.usSouth;
+      // Attach per-profile worker rates if any were found (us-south)
+      if (Object.keys(roksWorkerResult.usSouth.bareMetal).length > 0 || Object.keys(roksWorkerResult.usSouth.vsi).length > 0) {
+        roksPricing.workerRates = roksWorkerResult.usSouth;
       }
       newConfig.roks = roksPricing;
     }
 
     // Write new config
     console.log('');
-    console.log('Step 4: Writing updated configuration');
+    console.log('Step 3: Writing updated configuration');
 
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(newConfig, null, 2) + '\n');
     console.log(`  Written to ${CONFIG_PATH}`);
@@ -921,14 +1060,17 @@ async function main() {
     console.log('');
     console.log('Summary:');
     console.log(`  - VSI profiles in config: ${vsiProfileNames.length}`);
-    console.log(`  - VSI profiles with pricing: ${vsiPricing.size}`);
+    console.log(`  - VSI profiles with us-south pricing: ${vsiResult.pricing.size}`);
+    console.log(`  - VSI profiles with regional pricing: ${vsiResult.regionalPricing.size}`);
     console.log(`  - Bare Metal profiles in config: ${bmProfileNames.length}`);
-    console.log(`  - Bare Metal profiles with pricing: ${bareMetalPricing.size}`);
+    console.log(`  - Bare Metal profiles with us-south pricing: ${bareMetalResult.pricing.size}`);
+    console.log(`  - Bare Metal profiles with regional pricing: ${bareMetalResult.regionalPricing.size}`);
+    console.log(`  - Regional pricing: ${Object.keys(newConfig.regionalPricing || {}).length} regions`);
     console.log(`  - Config version: ${newConfig.version}`);
 
     // Report missing profiles
-    const missingVsi = vsiProfileNames.filter(n => !vsiPricing.has(n));
-    const missingBm = bmProfileNames.filter(n => !bareMetalPricing.has(n));
+    const missingVsi = vsiProfileNames.filter(n => !vsiResult.pricing.has(n));
+    const missingBm = bmProfileNames.filter(n => !bareMetalResult.pricing.has(n));
 
     if (missingVsi.length > 0) {
       console.log('');
@@ -952,8 +1094,9 @@ async function main() {
     }
 
     console.log('');
-    console.log('Note: Pricing is computed from per-vCPU and per-GB rates for us-south region.');
-    console.log('Regional multipliers are applied at runtime for other regions.');
+    console.log('Note: Pricing uses unauthenticated list prices for all regions.');
+    console.log('      us-south rates in top-level vsiPricing/bareMetalPricing for backward compatibility.');
+    console.log('      Per-region rates in regionalPricing section.');
 
   } catch (error) {
     console.error('');
