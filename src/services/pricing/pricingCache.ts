@@ -314,6 +314,7 @@ export function getStaticPricing(): IBMCloudPricing {
       objectStorage: { standardPerGBMonth: number; vaultPerGBMonth: number; description: string };
     };
     regions: Record<string, RegionPricing>;
+    regionalPricing?: Record<string, RegionalPricingData>;
     discounts: Record<string, DiscountOption>;
     roks: {
       ocpLicense: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
@@ -430,6 +431,7 @@ export function getStaticPricing(): IBMCloudPricing {
     networking: config.networking,
     storageAddons: config.storageAddons,
     regions: config.regions,
+    regionalPricing: config.regionalPricing,
     discounts: config.discounts,
     odfWorkloadProfiles: config.odfWorkloadProfiles,
   };
