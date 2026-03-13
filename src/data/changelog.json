@@ -1,13 +1,19 @@
 {
   "releases": [
     {
-      "version": "2.1.6",
-      "date": "2026-03-11",
+      "version": "2.2.0",
+      "date": "2026-03-13",
       "sections": {
         "changed": [
           "Pricing now uses unauthenticated IBM Cloud Global Catalog API for accurate list prices across all regions (no API key required)",
           "Regional pricing uses actual per-region rates instead of hardcoded multipliers from us-south base"
-        ],
+        ]
+      }
+    },
+    {
+      "version": "2.1.6",
+      "date": "2026-03-11",
+      "sections": {
         "fixed": [
           "VSI boot storage now always costed even when VMs have no data disks (boot volume line item was silently skipped)",
           "PPTX export fallback disclaimer now correctly states storage is included in cost estimates"

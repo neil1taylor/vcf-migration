@@ -405,9 +405,11 @@ describe('Cost Estimation Service', () => {
     it('should use regional pricing for OCP and ODF line items', () => {
       const usSouthResult = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
       const euDeResult = calculateROKSCost(basicROKSInput, 'eu-de', 'onDemand');
-      const usSouthOcp = usSouthResult.lineItems.find(item => item.category === 'OCP License');
-      const euDeOcp = euDeResult.lineItems.find(item => item.category === 'OCP License');
-      expect(euDeOcp?.monthlyCost).toBe(usSouthOcp?.monthlyCost);
+      const usSouthLicensing = usSouthResult.lineItems.find(item => item.category === 'Licensing');
+      const euDeLicensing = euDeResult.lineItems.find(item => item.category === 'Licensing');
+      expect(usSouthLicensing).toBeDefined();
+      expect(euDeLicensing).toBeDefined();
+      expect(euDeLicensing?.monthlyCost).toBe(usSouthLicensing?.monthlyCost);
     });
 
     it('should apply discounts to OCP and ODF line items', () => {

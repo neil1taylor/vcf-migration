@@ -932,7 +932,7 @@ function updateConfigWithPricing(
       }
     }
     if (Object.keys(vsiRates).length > 0) {
-      regionData.vsiPricing = vsiRates;
+      regionData.vsi = vsiRates;
     }
 
     // Bare metal rates for this region
@@ -943,12 +943,18 @@ function updateConfigWithPricing(
       }
     }
     if (Object.keys(bmRates).length > 0) {
-      regionData.bareMetalPricing = bmRates;
+      regionData.bareMetal = bmRates;
     }
 
     // Block storage rates (static — same for all regions for now)
+    // Normalize keys to camelCase to match RegionalPricingData convention
     if (existingBlockStorage) {
-      regionData.blockStorage = existingBlockStorage;
+      const normalized: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(existingBlockStorage)) {
+        const camelKey = key === 'general-purpose' ? 'generalPurpose' : key;
+        normalized[camelKey] = value;
+      }
+      regionData.blockStorage = normalized;
     }
 
     // Networking rates (static — same for all regions for now)
@@ -962,10 +968,13 @@ function updateConfigWithPricing(
       regionData.roks = roksRates;
     }
 
-    // ROKS worker rates for this region
+    // ROKS worker rates for this region — nest under roks.workerRates
     const workerRates = roksWorkerRegional[region];
     if (workerRates && (Object.keys(workerRates.bareMetal).length > 0 || Object.keys(workerRates.vsi).length > 0)) {
-      regionData.roksWorkerRates = workerRates;
+      if (!regionData.roks) {
+        regionData.roks = {};
+      }
+      (regionData.roks as Record<string, unknown>).workerRates = workerRates;
     }
 
     if (Object.keys(regionData).length > 0) {
