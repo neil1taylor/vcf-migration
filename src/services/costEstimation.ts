@@ -363,13 +363,13 @@ function getPricingQuality(pricing?: IBMCloudPricing): DataQuality {
 /**
  * Get list of available regions
  */
-export function getRegions(pricing?: IBMCloudPricing): PricingResult<{ code: string; name: string; multiplier: number }[]> {
+export function getRegions(pricing?: IBMCloudPricing): PricingResult<{ code: string; name: string; availabilityZones: number }[]> {
   const data = pricing || getActivePricing();
   const quality = getPricingQuality(pricing);
   if (!data.regions) {
     logger.warn('[getRegions] regions is undefined, returning defaults');
     return {
-      data: [{ code: 'us-south', name: 'Dallas', multiplier: 1.0 }],
+      data: [{ code: 'us-south', name: 'Dallas', availabilityZones: 3 }],
       quality: 'fallback',
       warnings: ['Region data unavailable — using default (us-south/Dallas)'],
     };
@@ -378,7 +378,7 @@ export function getRegions(pricing?: IBMCloudPricing): PricingResult<{ code: str
     data: Object.entries(data.regions).map(([code, region]) => ({
       code,
       name: region.name,
-      multiplier: region.multiplier,
+      availabilityZones: region.availabilityZones,
     })),
     quality,
     warnings: [],
@@ -739,9 +739,9 @@ export function calculateVSICost(
   const lineItems: CostLineItem[] = [];
 
   // Defensive checks for required pricing data
-  const regionData = pricingToUse.regions?.[region] || { name: 'Dallas', multiplier: 1.0, availabilityZones: 3 };
+  const regionData = pricingToUse.regions?.[region] || { name: 'Dallas', availabilityZones: 3 };
   const discountData = pricingToUse.discounts?.[discountType] || { name: 'On-Demand', discountPct: 0, description: 'Pay-as-you-go' };
-  const multiplier = regionData.multiplier;
+  const regional = getRegionalPricing(pricingToUse, region);
 
   // Group VSI profiles
   const profileCounts: Record<string, { count: number; profile: VSIProfile; estimated: boolean }> = {};
@@ -770,7 +770,7 @@ export function calculateVSICost(
 
   // Add VSI line items
   for (const [profileName, data] of Object.entries(profileCounts)) {
-    const monthlyRate = data.profile.monthlyRate * multiplier;
+    const monthlyRate = regional.vsi[profileName]?.monthlyRate ?? data.profile.monthlyRate;
     lineItems.push({
       category: 'Compute - VSI',
       description: `VSI - ${profileName}`,
@@ -788,7 +788,7 @@ export function calculateVSICost(
   // Block storage — boot volumes (always general-purpose, independent of data storage)
   if (input.bootStorageGiB && input.bootStorageGiB > 0) {
     const gpTierData = pricingToUse.blockStorage?.['general-purpose'];
-    const costPerGB = (gpTierData?.costPerGBMonth || 0.10) * multiplier;
+    const costPerGB = regional.blockStorage['generalPurpose']?.costPerGBMonth ?? regional.blockStorage['general-purpose']?.costPerGBMonth ?? gpTierData?.costPerGBMonth ?? 0.10;
     lineItems.push({
       category: 'Storage - Block',
       description: 'Boot Volumes (General Purpose)',
@@ -807,7 +807,7 @@ export function calculateVSICost(
       if (tiB <= 0) continue;
       const storageTierData = pricingToUse.blockStorage?.[tier];
       const storageGB = tiB * 1024;
-      const costPerGB = (storageTierData?.costPerGBMonth || 0.10) * multiplier;
+      const costPerGB = regional.blockStorage[tier]?.costPerGBMonth ?? storageTierData?.costPerGBMonth ?? 0.10;
       lineItems.push({
         category: 'Storage - Block',
         description: `Data Storage - ${storageTierData?.tierName || tier}`,
@@ -824,7 +824,7 @@ export function calculateVSICost(
     const tier = input.storageTier || '10iops';
     const storageTierData = pricingToUse.blockStorage?.[tier];
     const storageGB = input.storageTiB * 1024;
-    const costPerGB = (storageTierData?.costPerGBMonth || 0.10) * multiplier;
+    const costPerGB = regional.blockStorage[tier]?.costPerGBMonth ?? storageTierData?.costPerGBMonth ?? 0.10;
 
     lineItems.push({
       category: 'Storage - Block',
@@ -845,7 +845,7 @@ export function calculateVSICost(
 
   // Load Balancer(s)
   if (loadBalancerCount > 0) {
-    const lbCost = (networking.loadBalancer?.perLBMonthly ?? 21.60) * multiplier;
+    const lbCost = regional.networking.loadBalancer?.perLBMonthly ?? networking.loadBalancer?.perLBMonthly ?? 21.60;
     lineItems.push({
       category: 'Networking',
       description: 'Application Load Balancer',
@@ -861,7 +861,7 @@ export function calculateVSICost(
   // VPN Gateway
   if (netOpts.includeVPN) {
     const vpnCount = netOpts.vpnGatewayCount || 1;
-    const vpnCost = (networking.vpnGateway?.perGatewayMonthly ?? 99) * multiplier;
+    const vpnCost = regional.networking.vpnGateway?.perGatewayMonthly ?? networking.vpnGateway?.perGatewayMonthly ?? 99;
     lineItems.push({
       category: 'Networking',
       description: 'VPN Gateway',
@@ -882,7 +882,7 @@ export function calculateVSICost(
 
     // Local connections
     if (localConns > 0) {
-      const localConnCost = (transitGw.localConnectionMonthly ?? 50) * multiplier;
+      const localConnCost = regional.networking.transitGateway?.localConnectionMonthly ?? transitGw.localConnectionMonthly ?? 50;
       lineItems.push({
         category: 'Networking',
         description: 'Transit Gateway - Local Connection',
@@ -897,7 +897,7 @@ export function calculateVSICost(
 
     // Global connections
     if (globalConns > 0) {
-      const globalConnCost = (transitGw.globalConnectionMonthly ?? 100) * multiplier;
+      const globalConnCost = regional.networking.transitGateway?.globalConnectionMonthly ?? transitGw.globalConnectionMonthly ?? 100;
       lineItems.push({
         category: 'Networking',
         description: 'Transit Gateway - Global Connection',
@@ -914,7 +914,7 @@ export function calculateVSICost(
   // Public Gateway
   if (netOpts.includePublicGateway) {
     const pgwCount = netOpts.publicGatewayCount || 1;
-    const pgwCost = (networking.publicGateway?.perGatewayMonthly ?? 5) * multiplier;
+    const pgwCost = regional.networking.publicGateway?.perGatewayMonthly ?? networking.publicGateway?.perGatewayMonthly ?? 5;
     lineItems.push({
       category: 'Networking',
       description: 'Public Gateway',
