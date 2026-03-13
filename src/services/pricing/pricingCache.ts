@@ -62,8 +62,57 @@ export interface NetworkPricing {
 export interface RegionPricing {
   name: string;
   code: string;
-  multiplier: number;
+  multiplier?: number;
   availabilityZones: number;
+}
+
+export interface RegionalPricingData {
+  vsi: Record<string, { hourlyRate: number; monthlyRate: number }>;
+  bareMetal: Record<string, { hourlyRate: number; monthlyRate: number }>;
+  blockStorage: Record<string, {
+    costPerGBMonth: number;
+    iopsPerGB?: number;
+    costPerIOPSMonth?: number;
+  }>;
+  networking: {
+    loadBalancer: { perLBMonthly: number; perGBProcessed: number };
+    vpnGateway: { perGatewayMonthly: number; perConnectionMonthly: number };
+    publicGateway: { perGatewayMonthly: number };
+    transitGateway: {
+      perGatewayMonthly: number;
+      localConnectionMonthly: number;
+      globalConnectionMonthly: number;
+      perGBLocal: number;
+      perGBGlobal: number;
+    };
+    floatingIP: { perIPMonthly: number };
+  };
+  roks: {
+    ocpLicense: { perVCPUHourly: number; perVCPUMonthly: number };
+    odf: {
+      advanced: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number };
+      essentials: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number };
+    };
+    clusterManagement: { perClusterMonthly: number };
+    acm?: { perVCPUHourly: number; perVCPUMonthly: number };
+    workerRates?: {
+      bareMetal?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+      vsi?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+    };
+  };
+  ove?: {
+    ocpLicense: { perVCPUHourly: number; perVCPUMonthly: number };
+    odf: {
+      advanced: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number };
+      essentials: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number };
+    };
+    clusterManagement: { perClusterMonthly: number };
+    acm?: { perVCPUHourly: number; perVCPUMonthly: number };
+    workerRates?: {
+      bareMetal?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+      vsi?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+    };
+  };
 }
 
 export interface DiscountOption {
@@ -111,6 +160,7 @@ export interface IBMCloudPricing {
     objectStorage: { standardPerGBMonth: number; vaultPerGBMonth: number; description: string };
   };
   regions: Record<string, RegionPricing>;
+  regionalPricing?: Record<string, RegionalPricingData>;
   discounts: Record<string, DiscountOption>;
   odfWorkloadProfiles: Record<string, {
     name: string;
