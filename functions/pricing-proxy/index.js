@@ -1,11 +1,12 @@
 /**
  * IBM Code Engine - Pricing Proxy
  *
- * This service proxies requests to the IBM Cloud Global Catalog API,
- * caching results to reduce API calls and keeping credentials server-side.
+ * This service fetches pricing from the IBM Cloud Global Catalog API
+ * (unauthenticated, list prices) and caches results to reduce API calls.
+ *
+ * No API key is required — Global Catalog list prices are publicly accessible.
  *
  * Environment Variables:
- *   - IBM_CLOUD_API_KEY: Your IBM Cloud API key
  *   - PORT: Server port (default: 8080)
  *
  * Query Parameters:
@@ -20,6 +21,11 @@ const PORT = process.env.PORT || 8080;
 
 const CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour cache
 const GLOBAL_CATALOG_BASE = 'https://globalcatalog.cloud.ibm.com/api/v1';
+const HOURS_PER_MONTH = 730;
+const ALL_REGIONS = [
+  'us-south', 'us-east', 'eu-gb', 'eu-de', 'eu-es',
+  'jp-tok', 'jp-osa', 'au-syd', 'ca-tor', 'br-sao',
+];
 
 // In-memory cache
 let pricingCache = {
@@ -81,35 +87,11 @@ app.get('/ready', (req, res) => {
 });
 
 /**
- * Get IAM access token from API key
+ * Fetch from Global Catalog (unauthenticated)
  */
-async function getAccessToken(apiKey) {
-  const response = await fetch('https://iam.cloud.ibm.com/identity/token', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json',
-    },
-    body: `grant_type=urn:ibm:params:oauth:grant-type:apikey&apikey=${apiKey}`,
-  });
-
-  if (!response.ok) {
-    throw new Error(`IAM token request failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.access_token;
-}
-
-/**
- * Fetch pricing data from Global Catalog
- */
-async function fetchFromCatalog(endpoint, token) {
+async function fetchFromCatalog(endpoint) {
   const response = await fetch(`${GLOBAL_CATALOG_BASE}${endpoint}`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/json',
-    },
+    headers: { Accept: 'application/json' },
   });
 
   if (!response.ok) {
@@ -120,22 +102,335 @@ async function fetchFromCatalog(endpoint, token) {
 }
 
 /**
- * Fetch and aggregate all pricing data
+ * Fetch plan pricing deployments with pagination
  */
-async function fetchAllPricing(apiKey) {
-  const token = await getAccessToken(apiKey);
+async function fetchPlanDeployments(planId) {
+  const allEntries = [];
+  let offset = 0;
+  const limit = 200;
 
-  // Fetch pricing data in parallel
-  const [vsiData, storageData] = await Promise.all([
-    fetchFromCatalog('?q=kind:iaas%20tag:is.instance', token).catch(() => ({
-      resources: [],
-    })),
-    fetchFromCatalog('?q=kind:iaas%20tag:is.volume', token).catch(() => ({
-      resources: [],
-    })),
+  while (true) {
+    const url = `${GLOBAL_CATALOG_BASE}/${encodeURIComponent(planId)}/pricing/deployment?_offset=${offset}&_limit=${limit}`;
+    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!response.ok) break;
+
+    const data = await response.json();
+    allEntries.push(...(data.resources || []));
+    if ((data.resources || []).length < limit) break;
+    offset += limit;
+  }
+
+  return allEntries;
+}
+
+/**
+ * Extract per-region pricing from plan deployments.
+ * Returns Record<region, { rates?, flatRate? }>
+ */
+function extractAllRegionPricing(deployments) {
+  const result = {};
+
+  for (const deployment of deployments) {
+    const region = deployment.deployment_location || deployment.deployment_region || '';
+    if (!region || !deployment.metrics) continue;
+
+    let cpuPerHour = 0, memPerHour = 0, flatHourlyRate = 0;
+
+    for (const metric of deployment.metrics) {
+      const usdAmount = (metric.amounts || []).find(a => a.country === 'USA' && a.currency === 'USD');
+      const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
+        ?? usdAmount?.prices?.[0]?.price;
+      if (!price || price === 0) continue;
+
+      const qty = metric.charge_unit_quantity || 1;
+      const perUnit = price / qty;
+
+      if (metric.metric_id === 'part-is.cpu-hours' || metric.charge_unit_name === 'VCPU_HOURS') {
+        cpuPerHour = perUnit;
+      } else if (metric.metric_id === 'part-is.ram-hours' || metric.charge_unit_name === 'MEMORY_HOURS') {
+        memPerHour = perUnit;
+      } else if (metric.charge_unit_name === 'SECUREEXECUTION_VCPU_HOURS' || metric.metric_id === 'part-is.zvsi.SE-cpu-hours') {
+        cpuPerHour = perUnit;
+      } else if (metric.charge_unit_name === 'SECUREEXECUTION_MEMORY_HOURS' || metric.metric_id === 'part-is.zvsi.SE-ram-hours') {
+        memPerHour = perUnit;
+      } else if (metric.charge_unit_name === 'INSTANCE_HOURS_MULTI_TENANT' ||
+                 (metric.metric_id?.startsWith('part-is.instance-hours') && !metric.metric_id.includes('-dh-'))) {
+        flatHourlyRate = price;
+      } else if (metric.charge_unit_name === 'BARE_METAL_SERVER_HOURS') {
+        flatHourlyRate = price;
+      }
+    }
+
+    const entry = {};
+    if (cpuPerHour > 0 && memPerHour > 0) {
+      entry.rates = { cpuPerHour, memPerHour };
+    }
+    if (flatHourlyRate > 0) {
+      entry.flatRate = { hourlyRate: flatHourlyRate };
+    }
+    if (entry.rates || entry.flatRate) {
+      result[region] = entry;
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Extract profile measures (plan ID, vCPUs, memory) from catalog metadata
+ */
+function extractProfileMeasures(entry) {
+  const measures = entry.metadata?.other?.profile?.measures;
+  if (!measures) return null;
+
+  // VSI profiles use component 'instance', bare metal uses 'BareMetalServer'
+  const instanceMeasure = measures.find(m => m.component === 'instance')
+    || measures.find(m => m.component === 'BareMetalServer');
+  if (!instanceMeasure?.deployments) return null;
+
+  // VSI: prefer multi-tenant; Bare metal: use single-tenant
+  const deployment = instanceMeasure.deployments.find(d => d.type === 'multi-tenant')
+    || instanceMeasure.deployments.find(d => d.type === 'single-tenant')
+    || instanceMeasure.deployments[0];
+  if (!deployment?.plan) return null;
+
+  const meters = deployment.meters || [];
+  const vcpus = parseInt(meters.find(m => m.unit === 'VCPU')?.quantity || '0', 10);
+  const memoryGB = parseInt(meters.find(m => m.unit === 'MEMORY')?.quantity || '0', 10);
+
+  return { planId: deployment.plan, vcpus, memoryGB };
+}
+
+/**
+ * Parse vCPUs and memory from profile name (e.g., "bx2-16x64" -> 16 vCPUs, 64 GB)
+ */
+function parseProfileName(name) {
+  const match = name.match(/(\d+)x(\d+)(?:x\d+)?$/);
+  if (!match) return null;
+  return { vcpus: parseInt(match[1], 10), memoryGB: parseInt(match[2], 10) };
+}
+
+/**
+ * Compute hourly rate for a profile given component rates and profile specs
+ */
+function computeHourlyRate(rates, vcpus, memoryGB) {
+  return rates.cpuPerHour * vcpus + rates.memPerHour * memoryGB;
+}
+
+/**
+ * Small delay helper to rate-limit catalog fetches
+ */
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Static rates (same for all regions)
+const STATIC_BLOCK_STORAGE = {
+  generalPurpose: { costPerGBMonth: 0.10 },
+  '3iops': { costPerGBMonth: 0.08 },
+  '5iops': { costPerGBMonth: 0.13 },
+  '10iops': { costPerGBMonth: 0.25 },
+};
+
+const STATIC_NETWORKING = {
+  loadBalancer: { perLBMonthly: 21.60, perGBProcessed: 0.008 },
+  vpnGateway: { perGatewayMonthly: 99, perConnectionMonthly: 0.04 },
+  publicGateway: { perGatewayMonthly: 5 },
+  transitGateway: { perGatewayMonthly: 0, localConnectionMonthly: 50, globalConnectionMonthly: 100, perGBLocal: 0.02, perGBGlobal: 0.04 },
+  floatingIP: { perIPMonthly: 5 },
+};
+
+const STATIC_ROKS = {
+  ocpLicense: { perVCPUHourly: 0.04275, perVCPUMonthly: 31.21 },
+  odf: {
+    advanced: { bareMetalPerNodeMonthly: 681.818, vsiPerVCPUHourly: 0.00725 },
+    essentials: { bareMetalPerNodeMonthly: 545.455, vsiPerVCPUHourly: 0.00575 },
+  },
+  clusterManagement: { perClusterMonthly: 0 },
+};
+
+/**
+ * Fetch and aggregate all pricing data from Global Catalog (unauthenticated)
+ */
+async function fetchAllPricing() {
+  console.log('Fetching pricing from Global Catalog (unauthenticated)...');
+
+  // Step 1: Search for VSI profile entries
+  console.log('  Step 1: Fetching VSI and bare metal profiles from catalog...');
+  const [vsiSearch, bmSearch] = await Promise.all([
+    fetchFromCatalog('?q=is.instance&include=metadata&_limit=200'),
+    fetchFromCatalog('?q=is.bare-metal-server&include=metadata&_limit=200'),
   ]);
 
-  // Build pricing structure matching frontend expectations
+  const vsiProfiles = (vsiSearch.resources || []).filter(
+    r => r.active && !r.disabled && r.kind === 'instance.profile'
+  );
+  const bmProfiles = (bmSearch.resources || []).filter(
+    r => r.active && !r.disabled && r.kind === 'bare_metal_server.profile'
+  );
+  console.log(`    Found ${vsiProfiles.length} VSI profiles, ${bmProfiles.length} bare metal profiles`);
+
+  // Step 2: Extract plan IDs from profile metadata
+  console.log('  Step 2: Extracting plan metadata...');
+  const vsiMeasuresMap = new Map(); // name -> { planId, vcpus, memoryGB }
+  for (const entry of vsiProfiles) {
+    const measures = extractProfileMeasures(entry);
+    if (measures) {
+      // If meters don't have vcpus/memory, parse from name
+      if (measures.vcpus === 0 || measures.memoryGB === 0) {
+        const parsed = parseProfileName(entry.name);
+        if (parsed) {
+          measures.vcpus = measures.vcpus || parsed.vcpus;
+          measures.memoryGB = measures.memoryGB || parsed.memoryGB;
+        }
+      }
+      vsiMeasuresMap.set(entry.name, measures);
+    }
+  }
+
+  const bmMeasuresMap = new Map();
+  for (const entry of bmProfiles) {
+    const measures = extractProfileMeasures(entry);
+    if (measures) {
+      if (measures.vcpus === 0 || measures.memoryGB === 0) {
+        const parsed = parseProfileName(entry.name);
+        if (parsed) {
+          measures.vcpus = measures.vcpus || parsed.vcpus;
+          measures.memoryGB = measures.memoryGB || parsed.memoryGB;
+        }
+      }
+      bmMeasuresMap.set(entry.name, measures);
+    }
+  }
+  console.log(`    ${vsiMeasuresMap.size} VSI profiles with plan metadata, ${bmMeasuresMap.size} bare metal`);
+
+  // Step 3: Collect unique plan IDs and fetch their pricing (all regions)
+  console.log('  Step 3: Fetching plan pricing rates (all regions)...');
+  const uniquePlanIds = new Set();
+  for (const measures of vsiMeasuresMap.values()) uniquePlanIds.add(measures.planId);
+  for (const measures of bmMeasuresMap.values()) uniquePlanIds.add(measures.planId);
+  console.log(`    ${uniquePlanIds.size} unique plans to fetch pricing for`);
+
+  // planId -> region -> { rates?, flatRate? }
+  const planRegionalRatesMap = new Map();
+  let plansFetched = 0;
+  let plansWithPricing = 0;
+
+  for (const planId of uniquePlanIds) {
+    try {
+      const deployments = await fetchPlanDeployments(planId);
+      const allRegionRates = extractAllRegionPricing(deployments);
+      if (Object.keys(allRegionRates).length > 0) {
+        planRegionalRatesMap.set(planId, allRegionRates);
+        plansWithPricing++;
+      }
+    } catch (err) {
+      console.warn(`    Failed to fetch plan ${planId}: ${err.message}`);
+    }
+    plansFetched++;
+    if (plansFetched % 20 === 0) {
+      console.log(`    Fetched ${plansFetched}/${uniquePlanIds.size} plan prices...`);
+    }
+    await delay(50);
+  }
+  console.log(`    ${plansWithPricing} plans with valid pricing across regions`);
+
+  // Step 4: Compute per-profile pricing for all regions
+  console.log('  Step 4: Computing per-profile pricing (all regions)...');
+
+  // Helper to build per-region rates for a set of profiles
+  function buildProfileRegionalPricing(measuresMap) {
+    // profileName -> region -> { hourlyRate, monthlyRate, vcpus, memoryGiB }
+    const result = {};
+    for (const [name, measures] of measuresMap) {
+      const regionRates = planRegionalRatesMap.get(measures.planId);
+      if (!regionRates) continue;
+
+      const profileRegional = {};
+      for (const [region, rateData] of Object.entries(regionRates)) {
+        let hourlyRate = 0;
+
+        // Prefer flat rate (gen3+), fall back to component-based (gen2)
+        if (rateData.flatRate) {
+          hourlyRate = rateData.flatRate.hourlyRate;
+        } else if (rateData.rates && measures.vcpus > 0 && measures.memoryGB > 0) {
+          hourlyRate = computeHourlyRate(rateData.rates, measures.vcpus, measures.memoryGB);
+        }
+
+        if (hourlyRate > 0) {
+          profileRegional[region] = {
+            vcpus: measures.vcpus,
+            memoryGiB: measures.memoryGB,
+            hourlyRate: Math.round(hourlyRate * 10000) / 10000,
+            monthlyRate: Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100,
+          };
+        }
+      }
+
+      if (Object.keys(profileRegional).length > 0) {
+        result[name] = profileRegional;
+      }
+    }
+    return result;
+  }
+
+  const vsiRegionalPricing = buildProfileRegionalPricing(vsiMeasuresMap);
+  const bmRegionalPricing = buildProfileRegionalPricing(bmMeasuresMap);
+
+  console.log(`    ${Object.keys(vsiRegionalPricing).length} VSI profiles with pricing, ${Object.keys(bmRegionalPricing).length} bare metal`);
+
+  // Step 5: Build regionalPricing section
+  console.log('  Step 5: Building regional pricing structure...');
+  const regionalPricing = {};
+
+  for (const region of ALL_REGIONS) {
+    const regionVsi = {};
+    for (const [name, regionMap] of Object.entries(vsiRegionalPricing)) {
+      if (regionMap[region]) {
+        regionVsi[name] = regionMap[region];
+      }
+    }
+
+    const regionBm = {};
+    for (const [name, regionMap] of Object.entries(bmRegionalPricing)) {
+      if (regionMap[region]) {
+        regionBm[name] = regionMap[region];
+      }
+    }
+
+    regionalPricing[region] = {
+      vsi: regionVsi,
+      bareMetal: regionBm,
+      blockStorage: STATIC_BLOCK_STORAGE,
+      networking: STATIC_NETWORKING,
+      roks: STATIC_ROKS,
+    };
+  }
+
+  // Step 6: Build backward-compat top-level pricing from us-south data
+  console.log('  Step 6: Building backward-compatible top-level pricing...');
+  const usSouthVsi = regionalPricing['us-south']?.vsi || {};
+  const usSouthBm = regionalPricing['us-south']?.bareMetal || {};
+
+  // Convert to the legacy format (without memoryGiB in top-level for VSI, with it for bareMetal)
+  const topLevelVsi = {};
+  for (const [name, data] of Object.entries(usSouthVsi)) {
+    topLevelVsi[name] = {
+      vcpus: data.vcpus,
+      memoryGiB: data.memoryGiB,
+      hourlyRate: data.hourlyRate,
+    };
+  }
+
+  const topLevelBm = {};
+  for (const [name, data] of Object.entries(usSouthBm)) {
+    topLevelBm[name] = {
+      vcpus: data.vcpus,
+      memoryGiB: data.memoryGiB,
+      monthlyRate: data.monthlyRate,
+    };
+  }
+
   const pricing = {
     version: new Date().toISOString().split('T')[0],
     lastUpdated: new Date().toISOString(),
@@ -160,52 +455,12 @@ async function fetchAllPricing(apiKey) {
       threeYear: { name: '3-Year Reserved', discountPct: 40 },
     },
 
-    // VSI Profile pricing (hourly rates in USD)
-    vsiProfiles: {
-      // Balanced (bx2)
-      'bx2-2x8': { vcpus: 2, memoryGiB: 8, hourlyRate: 0.099 },
-      'bx2-4x16': { vcpus: 4, memoryGiB: 16, hourlyRate: 0.198 },
-      'bx2-8x32': { vcpus: 8, memoryGiB: 32, hourlyRate: 0.396 },
-      'bx2-16x64': { vcpus: 16, memoryGiB: 64, hourlyRate: 0.792 },
-      'bx2-32x128': { vcpus: 32, memoryGiB: 128, hourlyRate: 1.584 },
-      'bx2-48x192': { vcpus: 48, memoryGiB: 192, hourlyRate: 2.376 },
-      'bx2-64x256': { vcpus: 64, memoryGiB: 256, hourlyRate: 3.168 },
-      'bx2-96x384': { vcpus: 96, memoryGiB: 384, hourlyRate: 4.752 },
-      'bx2-128x512': { vcpus: 128, memoryGiB: 512, hourlyRate: 6.336 },
+    vsiProfiles: topLevelVsi,
+    bareMetal: topLevelBm,
 
-      // Compute (cx2)
-      'cx2-2x4': { vcpus: 2, memoryGiB: 4, hourlyRate: 0.083 },
-      'cx2-4x8': { vcpus: 4, memoryGiB: 8, hourlyRate: 0.166 },
-      'cx2-8x16': { vcpus: 8, memoryGiB: 16, hourlyRate: 0.332 },
-      'cx2-16x32': { vcpus: 16, memoryGiB: 32, hourlyRate: 0.664 },
-      'cx2-32x64': { vcpus: 32, memoryGiB: 64, hourlyRate: 1.328 },
-      'cx2-48x96': { vcpus: 48, memoryGiB: 96, hourlyRate: 1.992 },
-      'cx2-64x128': { vcpus: 64, memoryGiB: 128, hourlyRate: 2.656 },
-      'cx2-96x192': { vcpus: 96, memoryGiB: 192, hourlyRate: 3.984 },
-      'cx2-128x256': { vcpus: 128, memoryGiB: 256, hourlyRate: 5.312 },
-
-      // Memory (mx2)
-      'mx2-2x16': { vcpus: 2, memoryGiB: 16, hourlyRate: 0.125 },
-      'mx2-4x32': { vcpus: 4, memoryGiB: 32, hourlyRate: 0.25 },
-      'mx2-8x64': { vcpus: 8, memoryGiB: 64, hourlyRate: 0.5 },
-      'mx2-16x128': { vcpus: 16, memoryGiB: 128, hourlyRate: 1.0 },
-      'mx2-32x256': { vcpus: 32, memoryGiB: 256, hourlyRate: 2.0 },
-      'mx2-48x384': { vcpus: 48, memoryGiB: 384, hourlyRate: 3.0 },
-      'mx2-64x512': { vcpus: 64, memoryGiB: 512, hourlyRate: 4.0 },
-      'mx2-96x768': { vcpus: 96, memoryGiB: 768, hourlyRate: 6.0 },
-      'mx2-128x1024': { vcpus: 128, memoryGiB: 1024, hourlyRate: 8.0 },
-    },
-
-    // Block storage pricing
     blockStorage: {
-      generalPurpose: {
-        costPerGBMonth: 0.08,
-        iopsPerGB: 3,
-      },
-      custom: {
-        costPerGBMonth: 0.1,
-        costPerIOPS: 0.07,
-      },
+      generalPurpose: { costPerGBMonth: 0.10, iopsPerGB: 3 },
+      custom: { costPerGBMonth: 0.10, costPerIOPS: 0.07 },
       tiers: {
         '3iops': { costPerGBMonth: 0.08, iopsPerGB: 3 },
         '5iops': { costPerGBMonth: 0.13, iopsPerGB: 5 },
@@ -213,62 +468,87 @@ async function fetchAllPricing(apiKey) {
       },
     },
 
-    // Bare metal pricing for ROKS
-    bareMetal: {
-      'bx2d-metal-96x384': {
-        vcpus: 96,
-        memoryGiB: 384,
-        storageGiB: 1600,
-        monthlyRate: 2850,
-      },
-      'bx2d-metal-192x768': {
-        vcpus: 192,
-        memoryGiB: 768,
-        storageGiB: 3200,
-        monthlyRate: 5700,
-      },
-      'mx2d-metal-96x768': {
-        vcpus: 96,
-        memoryGiB: 768,
-        storageGiB: 1600,
-        monthlyRate: 3420,
-      },
-    },
+    roks: { clusterManagementFee: 0, workerNodeMarkup: 0 },
+    odf: { perTBMonth: 60, minimumTB: 0.5 },
 
-    // ROKS cluster pricing
-    roks: {
-      clusterManagementFee: 0, // Free for VPC clusters
-      workerNodeMarkup: 0, // No markup on worker nodes
-    },
-
-    // ODF storage pricing
-    odf: {
-      perTBMonth: 60,
-      minimumTB: 0.5,
-    },
-
-    // Networking
     networking: {
-      loadBalancer: {
-        perLBMonthly: 35,
-        perGBProcessed: 0.008,
-      },
-      floatingIP: {
-        monthlyRate: 4,
-      },
-      vpnGateway: {
-        monthlyRate: 75,
-      },
+      loadBalancer: { perLBMonthly: 21.60, perGBProcessed: 0.008 },
+      vpnGateway: { perGatewayMonthly: 99, perConnectionMonthly: 0.04 },
+      publicGateway: { perGatewayMonthly: 5 },
+      transitGateway: { perGatewayMonthly: 0, localConnectionMonthly: 50, globalConnectionMonthly: 100, perGBLocal: 0.02, perGBGlobal: 0.04 },
+      floatingIP: { perIPMonthly: 5 },
     },
+
+    regionalPricing,
   };
 
+  console.log('  Done fetching pricing.');
   return pricing;
 }
 
 /**
- * Get default pricing data (used when API key is not available)
+ * Get default pricing data (used when catalog fetch fails)
  */
 function getDefaultPricing() {
+  // Build regionalPricing from hardcoded rates for all regions
+  const defaultVsi = {
+    'bx2-2x8': { vcpus: 2, memoryGiB: 8, hourlyRate: 0.099, monthlyRate: 72.27 },
+    'bx2-4x16': { vcpus: 4, memoryGiB: 16, hourlyRate: 0.198, monthlyRate: 144.54 },
+    'bx2-8x32': { vcpus: 8, memoryGiB: 32, hourlyRate: 0.396, monthlyRate: 289.08 },
+    'bx2-16x64': { vcpus: 16, memoryGiB: 64, hourlyRate: 0.792, monthlyRate: 578.16 },
+    'bx2-32x128': { vcpus: 32, memoryGiB: 128, hourlyRate: 1.584, monthlyRate: 1156.32 },
+    'bx2-48x192': { vcpus: 48, memoryGiB: 192, hourlyRate: 2.376, monthlyRate: 1734.48 },
+    'bx2-64x256': { vcpus: 64, memoryGiB: 256, hourlyRate: 3.168, monthlyRate: 2312.64 },
+    'bx2-96x384': { vcpus: 96, memoryGiB: 384, hourlyRate: 4.752, monthlyRate: 3468.96 },
+    'bx2-128x512': { vcpus: 128, memoryGiB: 512, hourlyRate: 6.336, monthlyRate: 4625.28 },
+    'cx2-2x4': { vcpus: 2, memoryGiB: 4, hourlyRate: 0.083, monthlyRate: 60.59 },
+    'cx2-4x8': { vcpus: 4, memoryGiB: 8, hourlyRate: 0.166, monthlyRate: 121.18 },
+    'cx2-8x16': { vcpus: 8, memoryGiB: 16, hourlyRate: 0.332, monthlyRate: 242.36 },
+    'cx2-16x32': { vcpus: 16, memoryGiB: 32, hourlyRate: 0.664, monthlyRate: 484.72 },
+    'cx2-32x64': { vcpus: 32, memoryGiB: 64, hourlyRate: 1.328, monthlyRate: 969.44 },
+    'cx2-48x96': { vcpus: 48, memoryGiB: 96, hourlyRate: 1.992, monthlyRate: 1454.16 },
+    'cx2-64x128': { vcpus: 64, memoryGiB: 128, hourlyRate: 2.656, monthlyRate: 1938.88 },
+    'cx2-96x192': { vcpus: 96, memoryGiB: 192, hourlyRate: 3.984, monthlyRate: 2908.32 },
+    'cx2-128x256': { vcpus: 128, memoryGiB: 256, hourlyRate: 5.312, monthlyRate: 3877.76 },
+    'mx2-2x16': { vcpus: 2, memoryGiB: 16, hourlyRate: 0.125, monthlyRate: 91.25 },
+    'mx2-4x32': { vcpus: 4, memoryGiB: 32, hourlyRate: 0.25, monthlyRate: 182.50 },
+    'mx2-8x64': { vcpus: 8, memoryGiB: 64, hourlyRate: 0.5, monthlyRate: 365.00 },
+    'mx2-16x128': { vcpus: 16, memoryGiB: 128, hourlyRate: 1.0, monthlyRate: 730.00 },
+    'mx2-32x256': { vcpus: 32, memoryGiB: 256, hourlyRate: 2.0, monthlyRate: 1460.00 },
+    'mx2-48x384': { vcpus: 48, memoryGiB: 384, hourlyRate: 3.0, monthlyRate: 2190.00 },
+    'mx2-64x512': { vcpus: 64, memoryGiB: 512, hourlyRate: 4.0, monthlyRate: 2920.00 },
+    'mx2-96x768': { vcpus: 96, memoryGiB: 768, hourlyRate: 6.0, monthlyRate: 4380.00 },
+    'mx2-128x1024': { vcpus: 128, memoryGiB: 1024, hourlyRate: 8.0, monthlyRate: 5840.00 },
+  };
+
+  const defaultBm = {
+    'bx2d-metal-96x384': { vcpus: 96, memoryGiB: 384, hourlyRate: 3.904, monthlyRate: 2850 },
+    'bx2d-metal-192x768': { vcpus: 192, memoryGiB: 768, hourlyRate: 7.808, monthlyRate: 5700 },
+    'mx2d-metal-96x768': { vcpus: 96, memoryGiB: 768, hourlyRate: 4.685, monthlyRate: 3420 },
+  };
+
+  const regionalPricing = {};
+  for (const region of ALL_REGIONS) {
+    regionalPricing[region] = {
+      vsi: defaultVsi,
+      bareMetal: defaultBm,
+      blockStorage: STATIC_BLOCK_STORAGE,
+      networking: STATIC_NETWORKING,
+      roks: STATIC_ROKS,
+    };
+  }
+
+  // Top-level VSI (legacy format without monthlyRate)
+  const topLevelVsi = {};
+  for (const [name, data] of Object.entries(defaultVsi)) {
+    topLevelVsi[name] = { vcpus: data.vcpus, memoryGiB: data.memoryGiB, hourlyRate: data.hourlyRate };
+  }
+
+  const topLevelBm = {};
+  for (const [name, data] of Object.entries(defaultBm)) {
+    topLevelBm[name] = { vcpus: data.vcpus, memoryGiB: data.memoryGiB, monthlyRate: data.monthlyRate };
+  }
+
   return {
     version: new Date().toISOString().split('T')[0],
     lastUpdated: new Date().toISOString(),
@@ -293,18 +573,12 @@ function getDefaultPricing() {
       threeYear: { name: '3-Year Reserved', discountPct: 40 },
     },
 
-    vsiProfiles: {
-      'bx2-2x8': { vcpus: 2, memoryGiB: 8, hourlyRate: 0.099 },
-      'bx2-4x16': { vcpus: 4, memoryGiB: 16, hourlyRate: 0.198 },
-      'bx2-8x32': { vcpus: 8, memoryGiB: 32, hourlyRate: 0.396 },
-      'cx2-2x4': { vcpus: 2, memoryGiB: 4, hourlyRate: 0.083 },
-      'cx2-4x8': { vcpus: 4, memoryGiB: 8, hourlyRate: 0.166 },
-      'mx2-2x16': { vcpus: 2, memoryGiB: 16, hourlyRate: 0.125 },
-      'mx2-4x32': { vcpus: 4, memoryGiB: 32, hourlyRate: 0.25 },
-    },
+    vsiProfiles: topLevelVsi,
+    bareMetal: topLevelBm,
 
     blockStorage: {
-      generalPurpose: { costPerGBMonth: 0.08, iopsPerGB: 3 },
+      generalPurpose: { costPerGBMonth: 0.10, iopsPerGB: 3 },
+      custom: { costPerGBMonth: 0.10, costPerIOPS: 0.07 },
       tiers: {
         '3iops': { costPerGBMonth: 0.08, iopsPerGB: 3 },
         '5iops': { costPerGBMonth: 0.13, iopsPerGB: 5 },
@@ -312,32 +586,27 @@ function getDefaultPricing() {
       },
     },
 
-    bareMetal: {
-      'bx2d-metal-96x384': {
-        vcpus: 96,
-        memoryGiB: 384,
-        monthlyRate: 2850,
-      },
-    },
-
     roks: { clusterManagementFee: 0, workerNodeMarkup: 0 },
     odf: { perTBMonth: 60, minimumTB: 0.5 },
+
     networking: {
-      loadBalancer: { perLBMonthly: 35, perGBProcessed: 0.008 },
-      floatingIP: { monthlyRate: 4 },
-      vpnGateway: { monthlyRate: 75 },
+      loadBalancer: { perLBMonthly: 21.60, perGBProcessed: 0.008 },
+      vpnGateway: { perGatewayMonthly: 99, perConnectionMonthly: 0.04 },
+      publicGateway: { perGatewayMonthly: 5 },
+      transitGateway: { perGatewayMonthly: 0, localConnectionMonthly: 50, globalConnectionMonthly: 100, perGBLocal: 0.02, perGBGlobal: 0.04 },
+      floatingIP: { perIPMonthly: 5 },
     },
+
+    regionalPricing,
   };
 }
 
 // Main pricing endpoint
 app.get('/', rateLimit, async (req, res) => {
   try {
-    const apiKey = process.env.IBM_CLOUD_API_KEY;
     const forceRefresh = req.query.refresh === 'true';
     const now = Date.now();
 
-    // Check cache validity
     const cacheValid =
       pricingCache.lastUpdated && now - pricingCache.lastUpdated < CACHE_TTL_MS;
 
@@ -349,25 +618,16 @@ app.get('/', rateLimit, async (req, res) => {
       });
     }
 
-    // Fetch fresh pricing data
     let pricing;
-    if (apiKey) {
-      pricing = await fetchAllPricing(apiKey);
-    } else {
-      console.log('No API key configured, returning default pricing');
+    try {
+      pricing = await fetchAllPricing();
+    } catch (fetchError) {
+      console.error('Catalog fetch failed, using defaults:', fetchError.message);
       pricing = getDefaultPricing();
     }
 
-    // Update cache
-    pricingCache = {
-      data: pricing,
-      lastUpdated: now,
-    };
-
-    return res.json({
-      ...pricing,
-      cached: false,
-    });
+    pricingCache = { data: pricing, lastUpdated: now };
+    return res.json({ ...pricing, cached: false });
   } catch (error) {
     console.error('Pricing proxy error:', error);
 
@@ -393,7 +653,4 @@ app.get('/', rateLimit, async (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`Pricing proxy server listening on port ${PORT}`);
-  console.log(
-    `API key configured: ${process.env.IBM_CLOUD_API_KEY ? 'Yes' : 'No'}`
-  );
 });
