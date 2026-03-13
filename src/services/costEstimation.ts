@@ -3,6 +3,7 @@ import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import { createLogger } from '@/utils/logger';
 import type { IBMCloudPricing, BareMetalProfile, VSIProfile } from '@/services/pricing/pricingCache';
 import { getCurrentPricing, getStaticPricing } from '@/services/pricing/pricingCache';
+import { getRegionalPricing } from '@/services/pricing/regionalPricingResolver';
 
 const logger = createLogger('CostEstimation');
 
@@ -498,9 +499,11 @@ export function calculateROKSCost(
   const lineItems: CostLineItem[] = [];
 
   // Defensive checks for required pricing data
-  const regionData = pricingToUse.regions?.[region] || { name: 'Dallas', multiplier: 1.0, availabilityZones: 3 };
+  const regionData = pricingToUse.regions?.[region] || { name: 'Dallas', availabilityZones: 3 };
   const discountData = pricingToUse.discounts?.[discountType] || { name: 'On-Demand', discountPct: 0, description: 'Pay-as-you-go' };
-  const multiplier = regionData.multiplier;
+  const regional = getRegionalPricing(pricingToUse, region);
+  // When ROV variant, prefer OVE regional rates for licenses
+  const regionalLicense = roksVariant === 'rov' && regional.ove ? regional.ove : regional.roks;
 
   // Compute nodes (bare metal)
   const computeProfile = pricingToUse.bareMetal[input.computeProfile as keyof typeof pricingToUse.bareMetal];
@@ -509,7 +512,7 @@ export function calculateROKSCost(
     const roksComputeRate = pricingToUse.roks?.workerRates?.bareMetal?.[input.computeProfile];
     const monthlyRate = (isCustomNoPricing || !Number.isFinite(computeProfile.monthlyRate))
       ? 0
-      : (roksComputeRate?.monthlyRate ?? computeProfile.monthlyRate) * multiplier;
+      : regional.roks.workerRates?.bareMetal?.[input.computeProfile]?.monthlyRate ?? roksComputeRate?.monthlyRate ?? computeProfile.monthlyRate;
     lineItems.push({
       category: 'Compute',
       description: `Bare Metal - ${input.computeProfile}`,
@@ -546,7 +549,7 @@ export function calculateROKSCost(
       const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
       if (storageVSI) {
         const roksStorageRate = pricingToUse.roks?.workerRates?.vsi?.[input.storageProfile!];
-        const monthlyRate = (roksStorageRate?.monthlyRate ?? storageVSI.monthlyRate) * multiplier;
+        const monthlyRate = regional.roks.workerRates?.vsi?.[input.storageProfile!]?.monthlyRate ?? roksStorageRate?.monthlyRate ?? storageVSI.monthlyRate;
         lineItems.push({
           category: 'Storage - VSI',
           description: `VSI - ${input.storageProfile}`,
@@ -565,7 +568,7 @@ export function calculateROKSCost(
       const tier = input.storageTier || '10iops';
       const storageTierData = pricingToUse.blockStorage?.[tier];
       const storageGB = input.storageTiB * 1024;
-      const costPerGB = (storageTierData?.costPerGBMonth || 0.10) * multiplier;
+      const costPerGB = regional.blockStorage[tier]?.costPerGBMonth ?? storageTierData?.costPerGBMonth ?? 0.10;
 
       lineItems.push({
         category: 'Storage - Block',
@@ -593,13 +596,14 @@ export function calculateROKSCost(
         totalOCPvCPUs += storageVSI.vcpus * input.storageNodes;
       }
     }
-    const ocpMonthlyCost = totalOCPvCPUs * ocpHourlyRate * 730 * multiplier;
+    const regionalOcpHourly = regionalLicense.ocpLicense?.perVCPUHourly ?? ocpHourlyRate;
+    const ocpMonthlyCost = totalOCPvCPUs * regionalOcpHourly * 730;
     lineItems.push({
       category: 'Licensing',
       description: ocpLicenseLabel,
       quantity: totalOCPvCPUs,
       unit: 'vCPUs',
-      unitCost: ocpHourlyRate * 730 * multiplier,
+      unitCost: regionalOcpHourly * 730,
       monthlyCost: ocpMonthlyCost,
       annualCost: ocpMonthlyCost * 12,
       notes: isRov ? 'OVE reduced license fee per vCPU-hour' : 'OCP entitlement fee per vCPU-hour',
@@ -613,14 +617,14 @@ export function calculateROKSCost(
   const odfTierLabel = selectedOdfTier === 'essentials' ? 'Essentials' : 'Advanced';
   if (input.useNvme && computeProfile?.hasNvme) {
     // Converged: per-node monthly rate
-    const odfPerNode = odfTierData?.bareMetalPerNodeMonthly ?? 681.818;
-    const odfMonthlyCost = odfPerNode * input.computeNodes * multiplier;
+    const odfPerNode = regionalLicense.odf?.[selectedOdfTier]?.bareMetalPerNodeMonthly ?? odfTierData?.bareMetalPerNodeMonthly ?? 681.818;
+    const odfMonthlyCost = odfPerNode * input.computeNodes;
     lineItems.push({
       category: 'Storage - ODF',
       description: `OpenShift Data Foundation ${odfTierLabel}`,
       quantity: input.computeNodes,
       unit: 'nodes',
-      unitCost: odfPerNode * multiplier,
+      unitCost: odfPerNode,
       monthlyCost: odfMonthlyCost,
       annualCost: odfMonthlyCost * 12,
       notes: `ODF ${odfTierLabel} license for converged bare metal nodes`,
@@ -629,15 +633,15 @@ export function calculateROKSCost(
     // Hybrid: per-vCPU-hour rate on storage VSIs
     const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
     if (storageVSI) {
-      const odfVCPUHourly = odfTierData?.vsiPerVCPUHourly ?? 0.00725;
+      const odfVCPUHourly = regionalLicense.odf?.[selectedOdfTier]?.vsiPerVCPUHourly ?? odfTierData?.vsiPerVCPUHourly ?? 0.00725;
       const storageVCPUs = storageVSI.vcpus * input.storageNodes;
-      const odfMonthlyCost = storageVCPUs * odfVCPUHourly * 730 * multiplier;
+      const odfMonthlyCost = storageVCPUs * odfVCPUHourly * 730;
       lineItems.push({
         category: 'Storage - ODF',
         description: `OpenShift Data Foundation ${odfTierLabel}`,
         quantity: storageVCPUs,
         unit: 'vCPUs',
-        unitCost: odfVCPUHourly * 730 * multiplier,
+        unitCost: odfVCPUHourly * 730,
         monthlyCost: odfMonthlyCost,
         annualCost: odfMonthlyCost * 12,
         notes: `ODF ${odfTierLabel} license for VSI storage workers`,
@@ -659,13 +663,14 @@ export function calculateROKSCost(
         totalACMvCPUs += storageVSI.vcpus * input.storageNodes;
       }
     }
-    const acmMonthlyCost = totalACMvCPUs * acmPerVCPUHourly * 730 * multiplier;
+    const regionalAcmHourly = regionalLicense.acm?.perVCPUHourly ?? acmPerVCPUHourly;
+    const acmMonthlyCost = totalACMvCPUs * regionalAcmHourly * 730;
     lineItems.push({
       category: 'Licensing',
       description: 'Red Hat Advanced Cluster Management',
       quantity: totalACMvCPUs,
       unit: 'vCPUs',
-      unitCost: acmPerVCPUHourly * 730 * multiplier,
+      unitCost: regionalAcmHourly * 730,
       monthlyCost: acmMonthlyCost,
       annualCost: acmMonthlyCost * 12,
       notes: 'ACM license per vCPU-hour (estimated — not in IBM Cloud catalog)',
@@ -674,13 +679,14 @@ export function calculateROKSCost(
 
   // Networking (basic setup)
   const lbCostPerMonth = pricingToUse.networking?.loadBalancer?.perLBMonthly ?? 21.60;
-  const networkingCost = lbCostPerMonth * multiplier * 2; // 2 LBs
+  const regionalLbCost = regional.networking.loadBalancer?.perLBMonthly ?? lbCostPerMonth;
+  const networkingCost = regionalLbCost * 2; // 2 LBs
   lineItems.push({
     category: 'Networking',
     description: 'Load Balancers (2x)',
     quantity: 2,
     unit: 'LBs',
-    unitCost: lbCostPerMonth * multiplier,
+    unitCost: regionalLbCost,
     monthlyCost: networkingCost,
     annualCost: networkingCost * 12,
     notes: 'Application Load Balancers for ingress',
