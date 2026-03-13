@@ -70,7 +70,8 @@ export interface RegionalPricingData {
   vsi: Record<string, { hourlyRate: number; monthlyRate: number }>;
   bareMetal: Record<string, { hourlyRate: number; monthlyRate: number }>;
   blockStorage: Record<string, {
-    costPerGBMonth: number;
+    costPerGBMonth?: number;
+    baseCostPerGBMonth?: number;
     iopsPerGB?: number;
     costPerIOPSMonth?: number;
   }>;
@@ -87,7 +88,7 @@ export interface RegionalPricingData {
     };
     floatingIP: { perIPMonthly: number };
   };
-  roks: {
+  roks?: {
     ocpLicense: { perVCPUHourly: number; perVCPUMonthly: number };
     odf: {
       advanced: { bareMetalPerNodeMonthly: number; vsiPerVCPUHourly: number };

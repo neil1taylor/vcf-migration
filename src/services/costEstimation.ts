@@ -512,7 +512,7 @@ export function calculateROKSCost(
     const roksComputeRate = pricingToUse.roks?.workerRates?.bareMetal?.[input.computeProfile];
     const monthlyRate = (isCustomNoPricing || !Number.isFinite(computeProfile.monthlyRate))
       ? 0
-      : regional.roks.workerRates?.bareMetal?.[input.computeProfile]?.monthlyRate ?? roksComputeRate?.monthlyRate ?? computeProfile.monthlyRate;
+      : regional.roks?.workerRates?.bareMetal?.[input.computeProfile]?.monthlyRate ?? roksComputeRate?.monthlyRate ?? computeProfile.monthlyRate;
     lineItems.push({
       category: 'Compute',
       description: `Bare Metal - ${input.computeProfile}`,
@@ -549,7 +549,7 @@ export function calculateROKSCost(
       const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
       if (storageVSI) {
         const roksStorageRate = pricingToUse.roks?.workerRates?.vsi?.[input.storageProfile!];
-        const monthlyRate = regional.roks.workerRates?.vsi?.[input.storageProfile!]?.monthlyRate ?? roksStorageRate?.monthlyRate ?? storageVSI.monthlyRate;
+        const monthlyRate = regional.roks?.workerRates?.vsi?.[input.storageProfile!]?.monthlyRate ?? roksStorageRate?.monthlyRate ?? storageVSI.monthlyRate;
         lineItems.push({
           category: 'Storage - VSI',
           description: `VSI - ${input.storageProfile}`,
@@ -596,7 +596,7 @@ export function calculateROKSCost(
         totalOCPvCPUs += storageVSI.vcpus * input.storageNodes;
       }
     }
-    const regionalOcpHourly = regionalLicense.ocpLicense?.perVCPUHourly ?? ocpHourlyRate;
+    const regionalOcpHourly = regionalLicense?.ocpLicense?.perVCPUHourly ?? ocpHourlyRate;
     const ocpMonthlyCost = totalOCPvCPUs * regionalOcpHourly * 730;
     lineItems.push({
       category: 'Licensing',
@@ -617,7 +617,7 @@ export function calculateROKSCost(
   const odfTierLabel = selectedOdfTier === 'essentials' ? 'Essentials' : 'Advanced';
   if (input.useNvme && computeProfile?.hasNvme) {
     // Converged: per-node monthly rate
-    const odfPerNode = regionalLicense.odf?.[selectedOdfTier]?.bareMetalPerNodeMonthly ?? odfTierData?.bareMetalPerNodeMonthly ?? 681.818;
+    const odfPerNode = regionalLicense?.odf?.[selectedOdfTier]?.bareMetalPerNodeMonthly ?? odfTierData?.bareMetalPerNodeMonthly ?? 681.818;
     const odfMonthlyCost = odfPerNode * input.computeNodes;
     lineItems.push({
       category: 'Storage - ODF',
@@ -633,7 +633,7 @@ export function calculateROKSCost(
     // Hybrid: per-vCPU-hour rate on storage VSIs
     const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
     if (storageVSI) {
-      const odfVCPUHourly = regionalLicense.odf?.[selectedOdfTier]?.vsiPerVCPUHourly ?? odfTierData?.vsiPerVCPUHourly ?? 0.00725;
+      const odfVCPUHourly = regionalLicense?.odf?.[selectedOdfTier]?.vsiPerVCPUHourly ?? odfTierData?.vsiPerVCPUHourly ?? 0.00725;
       const storageVCPUs = storageVSI.vcpus * input.storageNodes;
       const odfMonthlyCost = storageVCPUs * odfVCPUHourly * 730;
       lineItems.push({
@@ -663,7 +663,7 @@ export function calculateROKSCost(
         totalACMvCPUs += storageVSI.vcpus * input.storageNodes;
       }
     }
-    const regionalAcmHourly = regionalLicense.acm?.perVCPUHourly ?? acmPerVCPUHourly;
+    const regionalAcmHourly = regionalLicense?.acm?.perVCPUHourly ?? acmPerVCPUHourly;
     const acmMonthlyCost = totalACMvCPUs * regionalAcmHourly * 730;
     lineItems.push({
       category: 'Licensing',
