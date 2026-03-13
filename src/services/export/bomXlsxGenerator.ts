@@ -4,6 +4,7 @@ import type { CostEstimate, RegionCode, DiscountType } from '../costEstimation';
 import type { MigrationInsights } from '@/services/ai/types';
 import type { IBMCloudPricing } from '../pricing/pricingCache';
 import { getCurrentPricing } from '../pricing/pricingCache';
+import { getRegionalPricing } from '@/services/pricing/regionalPricingResolver';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 
 // Helper to get active pricing data
@@ -134,8 +135,8 @@ export async function generateVSIBOMExcel(
 
   const pricing = getActivePricing();
   const regionData = pricing.regions[region];
-  const multiplier = regionData?.multiplier || 1.0;
-  const storageCostPerGB = (pricing.blockStorage.generalPurpose.costPerGBMonth || 0.08) * multiplier;
+  const regional = getRegionalPricing(pricing, region);
+  const storageCostPerGB = regional.blockStorage['generalPurpose']?.costPerGBMonth ?? regional.blockStorage['general-purpose']?.costPerGBMonth ?? 0.08;
 
   // === BOM Sheet ===
   const bomSheet = workbook.addWorksheet('VPC VSI BOM');
@@ -165,10 +166,6 @@ export async function generateVSIBOMExcel(
   bomSheet.getRow(currentRow).getCell(2).value = storageCostPerGB;
   bomSheet.getRow(currentRow).getCell(2).numFmt = '"$"#,##0.0000';
   const storageCostCell = `B${currentRow}`;
-  currentRow++;
-
-  bomSheet.getRow(currentRow).getCell(1).value = 'Region Multiplier';
-  bomSheet.getRow(currentRow).getCell(2).value = multiplier;
   currentRow++;
 
   currentRow++; // Empty row
@@ -253,8 +250,7 @@ export async function generateVSIBOMExcel(
     const displayOS = formatOS(vm.guestOS);
 
     // Get VSI pricing
-    const vsiProfile = pricing.vsi[vm.profile as keyof typeof pricing.vsi];
-    const vsiMonthlyCost = vsiProfile ? vsiProfile.monthlyRate * multiplier : 0;
+    const vsiMonthlyCost = regional.vsi[vm.profile]?.monthlyRate ?? 0;
 
     // Boot volume size
     const bootVolumeSize = vm.bootVolumeGiB || (vm.guestOS.toLowerCase().includes('windows') ? 120 : 100);
@@ -348,8 +344,7 @@ export async function generateVSIBOMExcel(
 
   let detailRowNum = 2;
   for (const vm of vmDetails) {
-    const vsiProfile = pricing.vsi[vm.profile as keyof typeof pricing.vsi];
-    const vsiCost = vsiProfile ? vsiProfile.monthlyRate * multiplier : 0;
+    const vsiCost = regional.vsi[vm.profile]?.monthlyRate ?? 0;
     const bootSize = vm.bootVolumeGiB || (vm.guestOS.toLowerCase().includes('windows') ? 120 : 100);
     const dataStorageTotal = vm.dataVolumes.reduce((s, v) => s + v.sizeGiB, 0);
 
@@ -459,7 +454,7 @@ export async function generateROKSBOMExcel(
 
   const pricing = getActivePricing();
   const regionData = pricing.regions[region];
-  const multiplier = regionData?.multiplier || 1.0;
+  const regional = getRegionalPricing(pricing, region);
 
   // === BOM Sheet ===
   const bomSheet = workbook.addWorksheet('ROKS BOM');
@@ -513,8 +508,7 @@ export async function generateROKSBOMExcel(
 
   const computeItemRows: number[] = [];
   Object.entries(computeByProfile).forEach(([profile, count]) => {
-    const bmProfile = pricing.bareMetal[profile as keyof typeof pricing.bareMetal];
-    const monthlyCost = bmProfile ? bmProfile.monthlyRate * multiplier : 0;
+    const monthlyCost = regional.roks?.workerRates?.bareMetal?.[profile]?.monthlyRate ?? regional.bareMetal[profile]?.monthlyRate ?? 0;
 
     computeItemRows.push(currentRow);
     const row = bomSheet.getRow(currentRow);
@@ -550,8 +544,7 @@ export async function generateROKSBOMExcel(
 
     const storageItemRows: number[] = [];
     Object.entries(storageByProfile).forEach(([profile, count]) => {
-      const vsiProfile = pricing.vsi[profile as keyof typeof pricing.vsi];
-      const monthlyCost = vsiProfile ? vsiProfile.monthlyRate * multiplier : 0;
+      const monthlyCost = regional.vsi[profile]?.monthlyRate ?? 0;
 
       storageItemRows.push(currentRow);
       const row = bomSheet.getRow(currentRow);
@@ -579,7 +572,7 @@ export async function generateROKSBOMExcel(
   currentRow++;
 
   // Load Balancers (2x for ingress)
-  const lbCost = (pricing.networking?.loadBalancer?.perLBMonthly || 35) * multiplier;
+  const lbCost = regional.networking.loadBalancer?.perLBMonthly ?? 35;
   const lbRowNum = currentRow;
   const lbRow = bomSheet.getRow(currentRow);
   lbRow.getCell(1).value = 'Application Load Balancer (Ingress)';
