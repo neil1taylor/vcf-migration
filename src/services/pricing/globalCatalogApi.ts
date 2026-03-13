@@ -53,7 +53,7 @@ export interface ProxyPricingResponse {
   cacheAge?: number;
   stale?: boolean;
   error?: string;
-  regions: Record<string, { name: string; multiplier: number }>;
+  regions: Record<string, { name: string; multiplier?: number; availabilityZones?: number }>;
   discountOptions: Record<string, { name: string; discountPct: number }>;
   vsiProfiles: Record<string, { vcpus: number; memoryGiB: number; hourlyRate: number }>;
   blockStorage: {
@@ -69,6 +69,19 @@ export interface ProxyPricingResponse {
     floatingIP: { monthlyRate: number };
     vpnGateway: { monthlyRate: number };
   };
+  regionalPricing?: Record<string, {
+    vsi?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+    bareMetal?: Record<string, { hourlyRate: number; monthlyRate: number }>;
+    blockStorage?: Record<string, { costPerGBMonth: number }>;
+    networking?: {
+      loadBalancer?: { perLBMonthly: number };
+      vpnGateway?: { perGatewayMonthly: number };
+      publicGateway?: { perGatewayMonthly: number };
+      transitGateway?: { localConnectionMonthly: number; globalConnectionMonthly: number };
+      floatingIP?: { perIPMonthly: number };
+    };
+    roks?: Record<string, unknown>;
+  }>;
 }
 
 // ===== PROXY FUNCTIONS =====

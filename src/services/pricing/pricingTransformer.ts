@@ -168,5 +168,6 @@ export function transformProxyToAppPricing(proxyData: ProxyPricingResponse): IBM
       publicGateway: staticPricing.networking.publicGateway,
       transitGateway: staticPricing.networking.transitGateway,
     } : staticPricing.networking,
+    regionalPricing: proxyData.regionalPricing as IBMCloudPricing['regionalPricing'],
   };
 }

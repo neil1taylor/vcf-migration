@@ -142,16 +142,16 @@ async function fetchAllPricing(apiKey) {
     source: 'ibm-code-engine-proxy',
 
     regions: {
-      'us-south': { name: 'Dallas', multiplier: 1.0 },
-      'us-east': { name: 'Washington DC', multiplier: 1.0 },
-      'eu-gb': { name: 'London', multiplier: 1.05 },
-      'eu-de': { name: 'Frankfurt', multiplier: 1.05 },
-      'eu-es': { name: 'Madrid', multiplier: 1.05 },
-      'jp-tok': { name: 'Tokyo', multiplier: 1.08 },
-      'jp-osa': { name: 'Osaka', multiplier: 1.08 },
-      'au-syd': { name: 'Sydney', multiplier: 1.08 },
-      'ca-tor': { name: 'Toronto', multiplier: 1.02 },
-      'br-sao': { name: 'São Paulo', multiplier: 1.1 },
+      'us-south': { name: 'Dallas', availabilityZones: 3 },
+      'us-east': { name: 'Washington DC', availabilityZones: 3 },
+      'eu-gb': { name: 'London', availabilityZones: 3 },
+      'eu-de': { name: 'Frankfurt', availabilityZones: 3 },
+      'eu-es': { name: 'Madrid', availabilityZones: 3 },
+      'jp-tok': { name: 'Tokyo', availabilityZones: 3 },
+      'jp-osa': { name: 'Osaka', availabilityZones: 3 },
+      'au-syd': { name: 'Sydney', availabilityZones: 3 },
+      'ca-tor': { name: 'Toronto', availabilityZones: 3 },
+      'br-sao': { name: 'São Paulo', availabilityZones: 3 },
     },
 
     discountOptions: {
@@ -275,16 +275,16 @@ function getDefaultPricing() {
     source: 'ibm-code-engine-proxy-defaults',
 
     regions: {
-      'us-south': { name: 'Dallas', multiplier: 1.0 },
-      'us-east': { name: 'Washington DC', multiplier: 1.0 },
-      'eu-gb': { name: 'London', multiplier: 1.05 },
-      'eu-de': { name: 'Frankfurt', multiplier: 1.05 },
-      'eu-es': { name: 'Madrid', multiplier: 1.05 },
-      'jp-tok': { name: 'Tokyo', multiplier: 1.08 },
-      'jp-osa': { name: 'Osaka', multiplier: 1.08 },
-      'au-syd': { name: 'Sydney', multiplier: 1.08 },
-      'ca-tor': { name: 'Toronto', multiplier: 1.02 },
-      'br-sao': { name: 'São Paulo', multiplier: 1.1 },
+      'us-south': { name: 'Dallas', availabilityZones: 3 },
+      'us-east': { name: 'Washington DC', availabilityZones: 3 },
+      'eu-gb': { name: 'London', availabilityZones: 3 },
+      'eu-de': { name: 'Frankfurt', availabilityZones: 3 },
+      'eu-es': { name: 'Madrid', availabilityZones: 3 },
+      'jp-tok': { name: 'Tokyo', availabilityZones: 3 },
+      'jp-osa': { name: 'Osaka', availabilityZones: 3 },
+      'au-syd': { name: 'Sydney', availabilityZones: 3 },
+      'ca-tor': { name: 'Toronto', availabilityZones: 3 },
+      'br-sao': { name: 'São Paulo', availabilityZones: 3 },
     },
 
     discountOptions: {
