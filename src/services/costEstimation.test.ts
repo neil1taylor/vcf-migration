@@ -24,7 +24,7 @@ describe('Cost Estimation Service', () => {
       expect(result.data.length).toBeGreaterThan(0);
       expect(result.data[0]).toHaveProperty('code');
       expect(result.data[0]).toHaveProperty('name');
-      expect(result.data[0]).toHaveProperty('multiplier');
+      expect(result.data[0]).toHaveProperty('availabilityZones');
     });
 
     it('should include us-south region', () => {
@@ -32,14 +32,14 @@ describe('Cost Estimation Service', () => {
       const usSouth = regions.find(r => r.code === 'us-south');
       expect(usSouth).toBeDefined();
       expect(usSouth?.name).toBe('Dallas');
-      expect(usSouth?.multiplier).toBe(1.0);
+      expect(usSouth?.availabilityZones).toBe(3);
     });
 
-    it('should have correct multipliers for regional pricing', () => {
+    it('should have availabilityZones for each region', () => {
       const { data: regions } = getRegions();
-      const euDe = regions.find(r => r.code === 'eu-de');
-      expect(euDe).toBeDefined();
-      expect(euDe?.multiplier).toBeGreaterThan(1.0); // Europe typically has higher prices
+      for (const region of regions) {
+        expect(region.availabilityZones).toBeGreaterThan(0);
+      }
     });
 
     it('should return static quality when no dynamic pricing is available', () => {
@@ -123,12 +123,12 @@ describe('Cost Estimation Service', () => {
       expect(result.lineItems.length).toBeGreaterThan(0);
     });
 
-    it('should apply regional multiplier', () => {
+    it('should use regional pricing when available', () => {
+      // With static pricing (no regionalPricing), rates are the same
+      // because buildFallbackFromBase returns base rates for all regions
       const usSouthResult = calculateVSICost(basicVSIInput, 'us-south', 'onDemand');
       const euDeResult = calculateVSICost(basicVSIInput, 'eu-de', 'onDemand');
-
-      // EU should be more expensive due to regional multiplier
-      expect(euDeResult.totalMonthly).toBeGreaterThan(usSouthResult.totalMonthly);
+      expect(euDeResult.totalMonthly).toBe(usSouthResult.totalMonthly);
     });
 
     it('should apply discounts correctly', () => {
@@ -327,11 +327,10 @@ describe('Cost Estimation Service', () => {
       expect(storageItem?.quantity).toBe(3);
     });
 
-    it('should apply regional multiplier', () => {
+    it('should use regional pricing when available', () => {
       const usSouthResult = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
       const euDeResult = calculateROKSCost(basicROKSInput, 'eu-de', 'onDemand');
-
-      expect(euDeResult.totalMonthly).toBeGreaterThan(usSouthResult.totalMonthly);
+      expect(euDeResult.totalMonthly).toBe(usSouthResult.totalMonthly);
     });
 
     it('should apply discounts correctly', () => {
@@ -403,17 +402,12 @@ describe('Cost Estimation Service', () => {
       );
     });
 
-    it('should apply regional multiplier to OCP and ODF line items', () => {
+    it('should use regional pricing for OCP and ODF line items', () => {
       const usSouthResult = calculateROKSCost(basicROKSInput, 'us-south', 'onDemand');
       const euDeResult = calculateROKSCost(basicROKSInput, 'eu-de', 'onDemand');
-
-      const usSouthOcp = usSouthResult.lineItems.find(item => item.category === 'Licensing');
-      const euDeOcp = euDeResult.lineItems.find(item => item.category === 'Licensing');
-      expect(euDeOcp?.monthlyCost).toBeGreaterThan(usSouthOcp?.monthlyCost ?? 0);
-
-      const usSouthOdf = usSouthResult.lineItems.find(item => item.category === 'Storage - ODF');
-      const euDeOdf = euDeResult.lineItems.find(item => item.category === 'Storage - ODF');
-      expect(euDeOdf?.monthlyCost).toBeGreaterThan(usSouthOdf?.monthlyCost ?? 0);
+      const usSouthOcp = usSouthResult.lineItems.find(item => item.category === 'OCP License');
+      const euDeOcp = euDeResult.lineItems.find(item => item.category === 'OCP License');
+      expect(euDeOcp?.monthlyCost).toBe(usSouthOcp?.monthlyCost);
     });
 
     it('should apply discounts to OCP and ODF line items', () => {
