@@ -125,16 +125,22 @@ async function fetchPlanDeployments(planId) {
 
 /**
  * Extract per-region pricing from plan deployments.
- * Returns Record<region, { rates?, flatRate? }>
+ * Returns Record<region, { rawEntries?, flatRate? }>
+ *
+ * Shared plans (gen2) have many deployment entries per region — one per profile
+ * size/family. Each qty=1 entry's cpu-hours and ram-hours prices are TOTAL costs
+ * for that specific profile, not per-unit rates. We store all raw entries so that
+ * buildProfileRegionalPricing can match them to specific profiles by vCPU/memory.
  */
 function extractAllRegionPricing(deployments) {
-  const result = {};
+  const regionCollector = {};
 
   for (const deployment of deployments) {
     const region = deployment.deployment_location || deployment.deployment_region || '';
     if (!region || !deployment.metrics) continue;
 
-    let cpuPerHour = 0, memPerHour = 0, flatHourlyRate = 0;
+    let cpuPrice = 0, memPrice = 0, cpuQty = 0;
+    let flatHourlyRate = 0;
 
     for (const metric of deployment.metrics) {
       const usdAmount = (metric.amounts || []).find(a => a.country === 'USA' && a.currency === 'USD');
@@ -143,16 +149,15 @@ function extractAllRegionPricing(deployments) {
       if (!price || price === 0) continue;
 
       const qty = metric.charge_unit_quantity || 1;
-      const perUnit = price / qty;
 
       if (metric.metric_id === 'part-is.cpu-hours' || metric.charge_unit_name === 'VCPU_HOURS') {
-        cpuPerHour = perUnit;
+        cpuPrice = price; cpuQty = qty;
       } else if (metric.metric_id === 'part-is.ram-hours' || metric.charge_unit_name === 'MEMORY_HOURS') {
-        memPerHour = perUnit;
+        memPrice = price;
       } else if (metric.charge_unit_name === 'SECUREEXECUTION_VCPU_HOURS' || metric.metric_id === 'part-is.zvsi.SE-cpu-hours') {
-        cpuPerHour = perUnit;
+        cpuPrice = price; cpuQty = qty;
       } else if (metric.charge_unit_name === 'SECUREEXECUTION_MEMORY_HOURS' || metric.metric_id === 'part-is.zvsi.SE-ram-hours') {
-        memPerHour = perUnit;
+        memPrice = price;
       } else if (metric.charge_unit_name === 'INSTANCE_HOURS_MULTI_TENANT' ||
                  (metric.metric_id?.startsWith('part-is.instance-hours') && !metric.metric_id.includes('-dh-'))) {
         flatHourlyRate = price;
@@ -161,14 +166,27 @@ function extractAllRegionPricing(deployments) {
       }
     }
 
+    if (!regionCollector[region]) regionCollector[region] = { rawEntries: [], flatRate: null };
+
+    // Only keep qty=1 entries (profile-specific totals, not base rate aggregates)
+    if (cpuPrice > 0 && memPrice > 0 && cpuQty === 1) {
+      regionCollector[region].rawEntries.push({ cpuPrice, memPrice });
+    }
+    if (flatHourlyRate > 0 && !regionCollector[region].flatRate) {
+      regionCollector[region].flatRate = { hourlyRate: flatHourlyRate };
+    }
+  }
+
+  const result = {};
+  for (const [region, data] of Object.entries(regionCollector)) {
     const entry = {};
-    if (cpuPerHour > 0 && memPerHour > 0) {
-      entry.rates = { cpuPerHour, memPerHour };
+    if (data.rawEntries.length > 0) {
+      entry.rawEntries = data.rawEntries;
     }
-    if (flatHourlyRate > 0) {
-      entry.flatRate = { hourlyRate: flatHourlyRate };
+    if (data.flatRate) {
+      entry.flatRate = data.flatRate;
     }
-    if (entry.rates || entry.flatRate) {
+    if (entry.rawEntries || entry.flatRate) {
       result[region] = entry;
     }
   }
@@ -338,39 +356,101 @@ async function fetchAllPricing() {
   // Step 4: Compute per-profile pricing for all regions
   console.log('  Step 4: Computing per-profile pricing (all regions)...');
 
+  /**
+   * Match raw deployment entries to profiles within a shared plan.
+   *
+   * In shared plans (gen2), each entry's cpuPrice is proportional to vCPUs
+   * (same per-vCPU rate across all families). memPrice differs by family
+   * because per-GB rates vary, but higher memGB always means higher memPrice.
+   *
+   * Algorithm:
+   * 1. Derive per-vCPU rate from smallest cpuPrice / 2 (min VPC profile)
+   * 2. Group entries and profiles by vCPU level
+   * 3. Within each level, sort unique memPrices and memGBs ascending
+   * 4. Match positionally: smallest memGB → smallest memPrice
+   */
+  function matchEntriesToProfiles(rawEntries, profiles, region, result) {
+    if (rawEntries.length === 0 || profiles.length === 0) return;
+
+    const minCpu = Math.min(...rawEntries.map(e => e.cpuPrice));
+    const perVCPU = minCpu / 2; // Smallest VPC profile is 2 vCPUs
+
+    const uniqueVCPUs = [...new Set(profiles.map(p => p.vcpus))].sort((a, b) => a - b);
+
+    for (const vcpus of uniqueVCPUs) {
+      const expectedCpu = perVCPU * vcpus;
+      const entriesAtLevel = rawEntries.filter(e => Math.abs(e.cpuPrice - expectedCpu) < 0.002);
+      const profilesAtLevel = profiles.filter(p => p.vcpus === vcpus);
+
+      if (entriesAtLevel.length === 0 || profilesAtLevel.length === 0) continue;
+
+      // Dedupe and sort memPrices ascending
+      const uniqueMemPrices = [...new Set(entriesAtLevel.map(e =>
+        Math.round(e.memPrice * 100000) / 100000
+      ))].sort((a, b) => a - b);
+
+      // Unique memGB values sorted ascending
+      const uniqueMemGBs = [...new Set(profilesAtLevel.map(p => p.memoryGB))].sort((a, b) => a - b);
+
+      // Positional mapping: smallest memGB → smallest memPrice
+      const memGBtoPrice = {};
+      for (let i = 0; i < Math.min(uniqueMemGBs.length, uniqueMemPrices.length); i++) {
+        memGBtoPrice[uniqueMemGBs[i]] = uniqueMemPrices[i];
+      }
+
+      for (const profile of profilesAtLevel) {
+        const memPrice = memGBtoPrice[profile.memoryGB];
+        if (memPrice === undefined) continue;
+
+        const hourlyRate = expectedCpu + memPrice;
+        if (!result[profile.name]) result[profile.name] = {};
+        result[profile.name][region] = {
+          vcpus: profile.vcpus,
+          memoryGiB: profile.memoryGB,
+          hourlyRate: Math.round(hourlyRate * 10000) / 10000,
+          monthlyRate: Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100,
+        };
+      }
+    }
+  }
+
   // Helper to build per-region rates for a set of profiles
   function buildProfileRegionalPricing(measuresMap) {
     // profileName -> region -> { hourlyRate, monthlyRate, vcpus, memoryGiB }
     const result = {};
+
+    // Group profiles by planId for matching shared-plan entries
+    const profilesByPlan = new Map();
     for (const [name, measures] of measuresMap) {
-      const regionRates = planRegionalRatesMap.get(measures.planId);
+      if (!profilesByPlan.has(measures.planId)) {
+        profilesByPlan.set(measures.planId, []);
+      }
+      profilesByPlan.get(measures.planId).push({ name, vcpus: measures.vcpus, memoryGB: measures.memoryGB });
+    }
+
+    for (const [planId, profiles] of profilesByPlan) {
+      const regionRates = planRegionalRatesMap.get(planId);
       if (!regionRates) continue;
 
-      const profileRegional = {};
       for (const [region, rateData] of Object.entries(regionRates)) {
-        let hourlyRate = 0;
-
-        // Prefer flat rate (gen3+), fall back to component-based (gen2)
         if (rateData.flatRate) {
-          hourlyRate = rateData.flatRate.hourlyRate;
-        } else if (rateData.rates && measures.vcpus > 0 && measures.memoryGB > 0) {
-          hourlyRate = computeHourlyRate(rateData.rates, measures.vcpus, measures.memoryGB);
+          // Flat-rate plan (gen3+, bare metal): one profile per plan per region
+          for (const profile of profiles) {
+            if (!result[profile.name]) result[profile.name] = {};
+            result[profile.name][region] = {
+              vcpus: profile.vcpus,
+              memoryGiB: profile.memoryGB,
+              hourlyRate: Math.round(rateData.flatRate.hourlyRate * 10000) / 10000,
+              monthlyRate: Math.round(rateData.flatRate.hourlyRate * HOURS_PER_MONTH * 100) / 100,
+            };
+          }
+        } else if (rateData.rawEntries && rateData.rawEntries.length > 0) {
+          // Shared plan (gen2): match entries to profiles by vCPU/memory
+          matchEntriesToProfiles(rateData.rawEntries, profiles, region, result);
         }
-
-        if (hourlyRate > 0) {
-          profileRegional[region] = {
-            vcpus: measures.vcpus,
-            memoryGiB: measures.memoryGB,
-            hourlyRate: Math.round(hourlyRate * 10000) / 10000,
-            monthlyRate: Math.round(hourlyRate * HOURS_PER_MONTH * 100) / 100,
-          };
-        }
-      }
-
-      if (Object.keys(profileRegional).length > 0) {
-        result[name] = profileRegional;
       }
     }
+
     return result;
   }
 

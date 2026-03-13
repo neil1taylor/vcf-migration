@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "2.1.7",
+      "date": "2026-03-13",
+      "sections": {
+        "fixed": [
+          "Corrected per-region VSI pricing — shared gen2 plan entries now matched to specific profiles instead of using incorrect per-unit rate derivation"
+        ]
+      }
+    },
+    {
       "version": "2.2.0",
       "date": "2026-03-13",
       "sections": {
