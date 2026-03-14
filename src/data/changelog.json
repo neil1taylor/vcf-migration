@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "version": "2.3.0",
+      "date": "2026-03-14",
+      "sections": {
+        "added": [
+          "Per-VM GPU required toggle in Discovery VM table — selects gx-family profiles for ML/AI/CUDA workloads",
+          "Per-VM bandwidth sensitive toggle in Discovery VM table — sizes up profile one step for network-throughput-bound workloads",
+          "Clickable workload type tags in Discovery VM table — click to edit directly instead of using overflow menu"
+        ],
+        "changed": [
+          "GPU (gx/gp) profiles now fetched from VPC API and included in profile selection"
+        ]
+      }
+    },
+    {
       "version": "2.2.0",
       "date": "2026-03-14",
       "sections": {
