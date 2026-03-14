@@ -287,9 +287,9 @@ export function DiscoveryVMTable({
   function renderCategoryCell(row: VMRow) {
     if (row.categoryKey === '_unclassified') {
       return (
-        <span className="discovery-vm-table__unclassified">
+        <Tag type="gray" size="sm" onClick={() => handleEditWorkload(row)} style={{ cursor: 'pointer' }}>
           Unclassified
-        </span>
+        </Tag>
       );
     }
 
@@ -301,7 +301,7 @@ export function DiscoveryVMTable({
 
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
-        <Tag type="blue" size="sm">{row.categoryName}</Tag>
+        <Tag type="blue" size="sm" onClick={() => handleEditWorkload(row)} style={{ cursor: 'pointer' }}>{row.categoryName}</Tag>
         {isAISource && hasAI && (
           <Tooltip label={aiResult.reasoning || 'AI-classified workload'} align="bottom">
             <button type="button" style={{ all: 'unset', cursor: 'help' }}>
