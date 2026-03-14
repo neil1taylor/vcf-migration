@@ -66,6 +66,22 @@ export function VSIMigrationPage() {
     return vmOverrides.isInstanceStoragePreferred(vmId);
   }, [allVmsRaw, vmOverrides]);
 
+  // Build vmName → vmId lookup for GPU required
+  const isGpuRequiredByName = useCallback((vmName: string): boolean => {
+    const vm = allVmsRaw.find(v => v.vmName === vmName);
+    if (!vm) return false;
+    const vmId = getVMIdentifier(vm);
+    return vmOverrides.isGpuRequired(vmId);
+  }, [allVmsRaw, vmOverrides]);
+
+  // Build vmName → vmId lookup for bandwidth sensitive
+  const isBandwidthSensitiveByName = useCallback((vmName: string): boolean => {
+    const vm = allVmsRaw.find(v => v.vmName === vmName);
+    if (!vm) return false;
+    const vmId = getVMIdentifier(vm);
+    return vmOverrides.isBandwidthSensitive(vmId);
+  }, [allVmsRaw, vmOverrides]);
+
   // Filter out excluded VMs using unified three-tier exclusion
   const vms = useMemo(() => {
     return allVmsRaw.filter(vm => {
@@ -110,7 +126,7 @@ export function VSIMigrationPage() {
 
   const aiProfileSummaries = useMemo(() => {
     const profiles = getVSIProfiles();
-    const all = [...profiles.balanced, ...profiles.compute, ...profiles.memory];
+    const all = [...profiles.balanced, ...profiles.compute, ...profiles.memory, ...(profiles.gpu || [])];
     return all.map(p => ({
       name: p.name,
       vcpus: p.vcpus,
@@ -209,6 +225,8 @@ export function VSIMigrationPage() {
     hasStorageTierOverride,
     isBurstableCandidate: isBurstableCandidateByName,
     isInstanceStoragePreferred: isInstanceStoragePreferredByName,
+    isGpuRequired: isGpuRequiredByName,
+    isBandwidthSensitive: isBandwidthSensitiveByName,
     complexityScores,
     blockerCount,
     warningCount,

@@ -55,6 +55,10 @@ export interface VMRow {
   burstable: boolean;
   // Instance storage (NVMe)
   instanceStorage: boolean;
+  // GPU required
+  gpuRequired: boolean;
+  // Bandwidth sensitive
+  bandwidthSensitive: boolean;
   // Sortable derived values
   status: string;
   actions: string;

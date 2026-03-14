@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { mibToGiB } from '@/utils/formatters';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
-import { mapVMToVSIProfile, getVSIProfiles, classifyVMForBurstable, findBurstableProfile, findInstanceStorageVariant, getProfileFamilyFromName } from '@/services/migration';
+import { mapVMToVSIProfile, getVSIProfiles, classifyVMForBurstable, findBurstableProfile, findInstanceStorageVariant, findGpuProfile, findBandwidthUpgrade, getProfileFamilyFromName } from '@/services/migration';
 import type { VSIProfile, VMProfileMapping, VMClassification } from '@/services/migration';
 import type { VSISizingInput } from '@/services/costEstimation';
 import type { VMDetail } from '@/services/export';
@@ -33,6 +33,8 @@ export interface UseVSIPageDataConfig {
   hasStorageTierOverride: (vmName: string) => boolean;
   isBurstableCandidate?: (vmName: string) => boolean;
   isInstanceStoragePreferred?: (vmName: string) => boolean;
+  isGpuRequired?: (vmName: string) => boolean;
+  isBandwidthSensitive?: (vmName: string) => boolean;
   complexityScores: ComplexityScore[];
   blockerCount: number;
   warningCount: number;
@@ -79,6 +81,8 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
     hasStorageTierOverride,
     isBurstableCandidate,
     isInstanceStoragePreferred,
+    isGpuRequired,
+    isBandwidthSensitive,
     complexityScores,
     blockerCount,
     warningCount,
@@ -120,6 +124,19 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
         autoProfile = findInstanceStorageVariant(autoProfile);
       }
 
+      // GPU workload → gx family (diagram step 1)
+      const needsGpu = isGpuRequired?.(vm.vmName) ?? false;
+      if (needsGpu) {
+        const gpuProfile = findGpuProfile(vm.cpus, memoryGiB);
+        if (gpuProfile) autoProfile = gpuProfile;
+      }
+
+      // Bandwidth-sensitive → size up one step (diagram step 6)
+      const needsBandwidth = isBandwidthSensitive?.(vm.vmName) ?? false;
+      if (needsBandwidth) {
+        autoProfile = findBandwidthUpgrade(autoProfile);
+      }
+
       const effectiveProfileName = getEffectiveProfile(vm.vmName, autoProfile.name);
       const isOverridden = hasOverride(vm.vmName);
 
@@ -136,7 +153,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
             monthlyRate: 0,
           };
         } else {
-          const allProfiles = [...vsiProfiles.balanced, ...vsiProfiles.compute, ...vsiProfiles.memory];
+          const allProfiles = [...vsiProfiles.balanced, ...vsiProfiles.compute, ...vsiProfiles.memory, ...(vsiProfiles.gpu || [])];
           const matchedProfile = allProfiles.find(p => p.name === effectiveProfileName);
           if (matchedProfile) effectiveProfile = matchedProfile;
         }
@@ -172,9 +189,11 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
         workloadCategory,
         provisionedStorageGiB,
         inUseStorageGiB,
+        gpuRequired: needsGpu,
+        bandwidthSensitive: needsBandwidth,
       };
     });
-  }, [poweredOnVMs, customProfiles, getEffectiveProfile, hasOverride, getEffectiveStorageTier, hasStorageTierOverride, isBurstableCandidate, isInstanceStoragePreferred, vsiProfiles, disks]);
+  }, [poweredOnVMs, customProfiles, getEffectiveProfile, hasOverride, getEffectiveStorageTier, hasStorageTierOverride, isBurstableCandidate, isInstanceStoragePreferred, isGpuRequired, isBandwidthSensitive, vsiProfiles, disks]);
 
   // ===== PROFILE COUNTS & CHART DATA =====
   const profileCounts = useMemo(() => vmProfileMappings.reduce((acc, mapping) => {

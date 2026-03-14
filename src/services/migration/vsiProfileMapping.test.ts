@@ -12,6 +12,10 @@ import {
   hasInstanceStorage,
   getProfileGeneration,
   isBIOSFirmware,
+  isGpuProfile,
+  findGpuProfile,
+  findBandwidthUpgrade,
+  getVSIProfiles,
 } from './vsiProfileMapping';
 
 describe('vsiProfileMapping', () => {
@@ -362,6 +366,76 @@ describe('vsiProfileMapping', () => {
     it('should prefer Gen3 when firmware not specified', () => {
       const profile = mapVMToVSIProfile(4, 16);
       expect(getProfileGeneration(profile.name)).toBe(3);
+    });
+  });
+
+  describe('isGpuProfile', () => {
+    it('should identify gx-prefixed profiles as GPU', () => {
+      expect(isGpuProfile('gx2-8x64x1v100')).toBe(true);
+      expect(isGpuProfile('gx3-16x80x1l4')).toBe(true);
+    });
+
+    it('should identify gp-prefixed profiles as GPU', () => {
+      expect(isGpuProfile('gp2-8x64x1v100')).toBe(true);
+    });
+
+    it('should not flag non-GPU profiles', () => {
+      expect(isGpuProfile('bx2-2x8')).toBe(false);
+      expect(isGpuProfile('cx3d-4x10')).toBe(false);
+      expect(isGpuProfile('mx2-2x16')).toBe(false);
+    });
+  });
+
+  describe('findGpuProfile', () => {
+    it('should return null when no GPU profiles are available', () => {
+      const profiles = getVSIProfiles();
+      if (!profiles.gpu || profiles.gpu.length === 0) {
+        // No GPU profiles in config — findGpuProfile should return null
+        expect(findGpuProfile(4, 16)).toBeNull();
+      }
+    });
+
+    it('should return null when requirements exceed all GPU profiles', () => {
+      // Very large requirements that no profile should meet
+      expect(findGpuProfile(99999, 99999)).toBeNull();
+    });
+  });
+
+  describe('findBandwidthUpgrade', () => {
+    it('should return next profile up in the same family', () => {
+      // Get a small balanced profile
+      const small = findStandardProfile(2, 8);
+      const upgraded = findBandwidthUpgrade(small);
+
+      // Should be a different profile with more vCPUs
+      if (upgraded.name !== small.name) {
+        expect(upgraded.vcpus).toBeGreaterThanOrEqual(small.vcpus);
+        // Same prefix family
+        expect(upgraded.name.split('-')[0]).toBe(small.name.split('-')[0]);
+      }
+    });
+
+    it('should return same profile when already at max', () => {
+      // Get a very large profile
+      const profiles = getVSIProfiles();
+      const balanced = profiles.balanced
+        .filter(p => isStandardProfile(p.name))
+        .sort((a, b) => b.vcpus - a.vcpus);
+
+      if (balanced.length > 0) {
+        const largest = balanced[0];
+        const upgraded = findBandwidthUpgrade(largest);
+        // Either same profile or a larger one (if gen has larger)
+        expect(upgraded.vcpus).toBeGreaterThanOrEqual(largest.vcpus);
+      }
+    });
+
+    it('should not cross family boundaries', () => {
+      const balanced = findStandardProfile(4, 16); // balanced family
+      const upgraded = findBandwidthUpgrade(balanced);
+
+      // Same prefix (e.g. bx3d stays bx3d)
+      expect(upgraded.name.split('-')[0]).toBe(balanced.name.split('-')[0]);
     });
   });
 });

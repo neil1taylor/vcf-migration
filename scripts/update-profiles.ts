@@ -238,6 +238,7 @@ function transformVPCProfiles(profiles: VPCInstanceProfile[], existingConfig: IB
     memory: [],
     veryHighMemory: [],
     ultraHighMemory: [],
+    gpu: [],
   };
 
   // Build lookup of existing pricing
@@ -253,7 +254,7 @@ function transformVPCProfiles(profiles: VPCInstanceProfile[], existingConfig: IB
 
   for (const profile of profiles) {
     const family = getFamilyFromName(profile.name);
-    if (!grouped[family]) continue; // Skip gpu, other
+    if (!grouped[family]) continue; // Skip 'other' family
 
     const existing = existingPricing[profile.name];
 

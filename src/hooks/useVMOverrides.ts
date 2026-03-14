@@ -23,6 +23,8 @@ export interface VMOverride {
   workloadType?: string;
   burstableCandidate?: boolean;
   instanceStorage?: boolean;
+  gpuRequired?: boolean;
+  bandwidthSensitive?: boolean;
   notes?: string;
   modifiedAt: string;
 }
@@ -43,6 +45,8 @@ export interface UseVMOverridesReturn {
   setWorkloadType: (vmId: string, vmName: string, type: string | undefined) => void;
   setBurstableCandidate: (vmId: string, vmName: string, value: boolean) => void;
   setInstanceStorage: (vmId: string, vmName: string, value: boolean) => void;
+  setGpuRequired: (vmId: string, vmName: string, value: boolean) => void;
+  setBandwidthSensitive: (vmId: string, vmName: string, value: boolean) => void;
   setNotes: (vmId: string, vmName: string, notes: string | undefined) => void;
   removeOverride: (vmId: string) => void;
   clearAllOverrides: () => void;
@@ -61,6 +65,8 @@ export interface UseVMOverridesReturn {
   getWorkloadType: (vmId: string) => string | undefined;
   isBurstableCandidate: (vmId: string) => boolean;
   isInstanceStoragePreferred: (vmId: string) => boolean;
+  isGpuRequired: (vmId: string) => boolean;
+  isBandwidthSensitive: (vmId: string) => boolean;
   getNotes: (vmId: string) => string | undefined;
   hasOverride: (vmId: string) => boolean;
 
@@ -70,6 +76,8 @@ export interface UseVMOverridesReturn {
   bulkSetWorkloadType: (vms: Array<{ vmId: string; vmName: string }>, workloadType: string | undefined) => void;
   bulkSetBurstableCandidate: (vms: Array<{ vmId: string; vmName: string }>, value: boolean) => void;
   bulkSetInstanceStorage: (vms: Array<{ vmId: string; vmName: string }>, value: boolean) => void;
+  bulkSetGpuRequired: (vms: Array<{ vmId: string; vmName: string }>, value: boolean) => void;
+  bulkSetBandwidthSensitive: (vms: Array<{ vmId: string; vmName: string }>, value: boolean) => void;
   bulkSetNotes: (vms: Array<{ vmId: string; vmName: string }>, notes: string | undefined) => void;
 
   // Stats
@@ -232,12 +240,14 @@ export function useVMOverrides(): UseVMOverridesReturn {
         workloadType: 'workloadType' in updates ? updates.workloadType : existing?.workloadType,
         burstableCandidate: 'burstableCandidate' in updates ? updates.burstableCandidate : existing?.burstableCandidate,
         instanceStorage: 'instanceStorage' in updates ? updates.instanceStorage : existing?.instanceStorage,
+        gpuRequired: 'gpuRequired' in updates ? updates.gpuRequired : existing?.gpuRequired,
+        bandwidthSensitive: 'bandwidthSensitive' in updates ? updates.bandwidthSensitive : existing?.bandwidthSensitive,
         notes: 'notes' in updates ? updates.notes : existing?.notes,
         modifiedAt: now,
       };
 
       // If all values are default, remove the override
-      const isDefault = !override.excluded && !override.forceIncluded && !override.workloadType && !override.burstableCandidate && !override.instanceStorage && !override.notes;
+      const isDefault = !override.excluded && !override.forceIncluded && !override.workloadType && !override.burstableCandidate && !override.instanceStorage && !override.gpuRequired && !override.bandwidthSensitive && !override.notes;
       if (isDefault && existing) {
         const { [vmId]: _removed, ...rest } = prev.overrides;
         void _removed; // Silence unused variable warning
@@ -281,6 +291,14 @@ export function useVMOverrides(): UseVMOverridesReturn {
 
   const setInstanceStorage = useCallback((vmId: string, vmName: string, value: boolean) => {
     updateOverride(vmId, vmName, { instanceStorage: value || undefined });
+  }, [updateOverride]);
+
+  const setGpuRequired = useCallback((vmId: string, vmName: string, value: boolean) => {
+    updateOverride(vmId, vmName, { gpuRequired: value || undefined });
+  }, [updateOverride]);
+
+  const setBandwidthSensitive = useCallback((vmId: string, vmName: string, value: boolean) => {
+    updateOverride(vmId, vmName, { bandwidthSensitive: value || undefined });
   }, [updateOverride]);
 
   const setNotes = useCallback((vmId: string, vmName: string, notes: string | undefined) => {
@@ -341,6 +359,14 @@ export function useVMOverrides(): UseVMOverridesReturn {
     return data.overrides[vmId]?.instanceStorage ?? false;
   }, [data.overrides]);
 
+  const isGpuRequired = useCallback((vmId: string): boolean => {
+    return data.overrides[vmId]?.gpuRequired ?? false;
+  }, [data.overrides]);
+
+  const isBandwidthSensitive = useCallback((vmId: string): boolean => {
+    return data.overrides[vmId]?.bandwidthSensitive ?? false;
+  }, [data.overrides]);
+
   const getNotes = useCallback((vmId: string): string | undefined => {
     return data.overrides[vmId]?.notes;
   }, [data.overrides]);
@@ -381,7 +407,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
               modifiedAt: now,
             };
             // Remove if no other overrides
-            if (!updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.notes) {
+            if (!updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
               delete newOverrides[vmId];
             } else {
               newOverrides[vmId] = updated;
@@ -460,7 +486,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
         if (existing) {
           const updated = { ...existing, workloadType: type, modifiedAt: now };
           // Remove if no other overrides remain
-          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.notes) {
+          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
             delete newOverrides[vmId];
           } else {
             newOverrides[vmId] = updated;
@@ -499,7 +525,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
         } else {
           if (existing) {
             const updated = { ...existing, burstableCandidate: undefined, modifiedAt: now };
-            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.notes) {
+            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
               delete newOverrides[vmId];
             } else {
               newOverrides[vmId] = updated;
@@ -538,7 +564,89 @@ export function useVMOverrides(): UseVMOverridesReturn {
         } else {
           if (existing) {
             const updated = { ...existing, instanceStorage: undefined, modifiedAt: now };
-            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.notes) {
+            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
+              delete newOverrides[vmId];
+            } else {
+              newOverrides[vmId] = updated;
+            }
+          }
+        }
+      }
+
+      return { ...prev, overrides: newOverrides, modifiedAt: now };
+    });
+  }, []);
+
+  const bulkSetGpuRequired = useCallback((
+    vms: Array<{ vmId: string; vmName: string }>,
+    value: boolean
+  ) => {
+    setData(prev => {
+      const now = new Date().toISOString();
+      const newOverrides = { ...prev.overrides };
+
+      for (const { vmId, vmName } of vms) {
+        const existing = newOverrides[vmId];
+
+        if (value) {
+          newOverrides[vmId] = {
+            vmId,
+            vmName,
+            excluded: existing?.excluded ?? false,
+            forceIncluded: existing?.forceIncluded,
+            workloadType: existing?.workloadType,
+            burstableCandidate: existing?.burstableCandidate,
+            instanceStorage: existing?.instanceStorage,
+            gpuRequired: true,
+            bandwidthSensitive: existing?.bandwidthSensitive,
+            notes: existing?.notes,
+            modifiedAt: now,
+          };
+        } else {
+          if (existing) {
+            const updated = { ...existing, gpuRequired: undefined, modifiedAt: now };
+            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
+              delete newOverrides[vmId];
+            } else {
+              newOverrides[vmId] = updated;
+            }
+          }
+        }
+      }
+
+      return { ...prev, overrides: newOverrides, modifiedAt: now };
+    });
+  }, []);
+
+  const bulkSetBandwidthSensitive = useCallback((
+    vms: Array<{ vmId: string; vmName: string }>,
+    value: boolean
+  ) => {
+    setData(prev => {
+      const now = new Date().toISOString();
+      const newOverrides = { ...prev.overrides };
+
+      for (const { vmId, vmName } of vms) {
+        const existing = newOverrides[vmId];
+
+        if (value) {
+          newOverrides[vmId] = {
+            vmId,
+            vmName,
+            excluded: existing?.excluded ?? false,
+            forceIncluded: existing?.forceIncluded,
+            workloadType: existing?.workloadType,
+            burstableCandidate: existing?.burstableCandidate,
+            instanceStorage: existing?.instanceStorage,
+            gpuRequired: existing?.gpuRequired,
+            bandwidthSensitive: true,
+            notes: existing?.notes,
+            modifiedAt: now,
+          };
+        } else {
+          if (existing) {
+            const updated = { ...existing, bandwidthSensitive: undefined, modifiedAt: now };
+            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
               delete newOverrides[vmId];
             } else {
               newOverrides[vmId] = updated;
@@ -564,7 +672,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
 
         if (existing) {
           const updated = { ...existing, notes: notes || undefined, modifiedAt: now };
-          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.notes) {
+          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
             delete newOverrides[vmId];
           } else {
             newOverrides[vmId] = updated;
@@ -661,6 +769,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
     setWorkloadType,
     setBurstableCandidate,
     setInstanceStorage,
+    setGpuRequired,
+    setBandwidthSensitive,
     setNotes,
     removeOverride,
     clearAllOverrides,
@@ -672,6 +782,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
     getWorkloadType,
     isBurstableCandidate,
     isInstanceStoragePreferred,
+    isGpuRequired,
+    isBandwidthSensitive,
     getNotes,
     hasOverride,
 
@@ -681,6 +793,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
     bulkSetWorkloadType,
     bulkSetBurstableCandidate,
     bulkSetInstanceStorage,
+    bulkSetGpuRequired,
+    bulkSetBandwidthSensitive,
     bulkSetNotes,
 
     // Stats
@@ -699,9 +813,9 @@ export function useVMOverrides(): UseVMOverridesReturn {
     storedEnvironmentFingerprint,
   }), [
     data.overrides,
-    setExcluded, setForceIncluded, setWorkloadType, setBurstableCandidate, setInstanceStorage, setNotes, removeOverride, clearAllOverrides,
-    isExcluded, isForceIncluded, isEffectivelyExcluded, getWorkloadType, isBurstableCandidate, isInstanceStoragePreferred, getNotes, hasOverride,
-    bulkSetExcluded, bulkSetForceIncluded, bulkSetWorkloadType, bulkSetBurstableCandidate, bulkSetInstanceStorage, bulkSetNotes,
+    setExcluded, setForceIncluded, setWorkloadType, setBurstableCandidate, setInstanceStorage, setGpuRequired, setBandwidthSensitive, setNotes, removeOverride, clearAllOverrides,
+    isExcluded, isForceIncluded, isEffectivelyExcluded, getWorkloadType, isBurstableCandidate, isInstanceStoragePreferred, isGpuRequired, isBandwidthSensitive, getNotes, hasOverride,
+    bulkSetExcluded, bulkSetForceIncluded, bulkSetWorkloadType, bulkSetBurstableCandidate, bulkSetInstanceStorage, bulkSetGpuRequired, bulkSetBandwidthSensitive, bulkSetNotes,
     excludedCount, forceIncludedCount, overrideCount,
     exportSettings, importSettings,
     environmentMismatch, applyMismatchedOverrides, clearAndReset, storedEnvironmentFingerprint,

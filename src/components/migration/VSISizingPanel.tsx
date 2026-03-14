@@ -9,7 +9,7 @@ import { DoughnutChart, HorizontalBarChart } from '@/components/charts';
 import { EnhancedDataTable } from '@/components/tables';
 import { MetricCard, RedHatDocLink } from '@/components/common';
 import { ProfileSelector, StorageTierSelector } from '@/components/sizing';
-import { isBurstableProfile, hasInstanceStorage, getProfileGeneration, isBIOSFirmware } from '@/services/migration';
+import { isBurstableProfile, hasInstanceStorage, getProfileGeneration, isBIOSFirmware, isGpuProfile } from '@/services/migration';
 import { ROUTES } from '@/utils/constants';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { VMProfileMapping } from '@/services/migration';
@@ -172,6 +172,18 @@ export function VSISizingPanel({
             />
             <Tag type={gen === 3 ? 'green' : 'gray'} size="sm">Gen{gen}</Tag>
             {nvme && <Tag type="teal" size="sm">NVMe</Tag>}
+            {row.original.gpuRequired && (
+              isGpuProfile(profileName)
+                ? <Tag type="purple" size="sm">GPU</Tag>
+                : <Tooltip label="GPU requested but no gx profile fits these requirements. Select a profile manually." align="bottom">
+                    <button type="button" className="tooltip-trigger">
+                      <Tag type="red" size="sm">GPU — no fit</Tag>
+                    </button>
+                  </Tooltip>
+            )}
+            {row.original.bandwidthSensitive && (
+              <Tag type="cyan" size="sm">High BW</Tag>
+            )}
             {firmwareBIOS && (
               <Tooltip label="This VM uses BIOS firmware. Gen 3 profiles require UEFI boot mode. Convert to UEFI before migrating to Gen 3." align="bottom">
                 <button type="button" className="tooltip-trigger">
@@ -331,6 +343,10 @@ export function VSISizingPanel({
             <div className="migration-page__recommendation-item">
               <span className="migration-page__recommendation-key">Ultra High Memory (ux2d)</span>
               <span className="migration-page__recommendation-value">1:28 vCPU:Memory ratio — Largest SAP configurations</span>
+            </div>
+            <div className="migration-page__recommendation-item">
+              <span className="migration-page__recommendation-key">GPU (gx2, gx3)</span>
+              <span className="migration-page__recommendation-value">GPU-accelerated — ML/AI inference, CUDA workloads, video transcoding</span>
             </div>
             <div className="migration-page__recommendation-item">
               <span className="migration-page__recommendation-key">Burstable (bxf, cxf, mxf)</span>

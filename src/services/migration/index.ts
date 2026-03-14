@@ -93,4 +93,8 @@ export {
   findInstanceStorageVariant,
   getProfileGeneration,
   isBIOSFirmware,
+  // GPU and bandwidth support
+  isGpuProfile,
+  findGpuProfile,
+  findBandwidthUpgrade,
 } from './vsiProfileMapping';

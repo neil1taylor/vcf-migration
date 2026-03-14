@@ -47,9 +47,11 @@ export interface VMProfileMapping {
   workloadCategory: string | null;
   provisionedStorageGiB: number;
   inUseStorageGiB: number;
+  gpuRequired: boolean;
+  bandwidthSensitive: boolean;
 }
 
-export type ProfileFamily = 'balanced' | 'compute' | 'memory';
+export type ProfileFamily = 'balanced' | 'compute' | 'memory' | 'gpu';
 
 // Patterns to detect network appliances (case-insensitive)
 const NETWORK_APPLIANCE_PATTERNS = [
@@ -147,7 +149,13 @@ export function classifyVMForBurstable(
  * Get all VSI profiles from config
  */
 export function getVSIProfiles(): Record<ProfileFamily, VSIProfile[]> {
-  return ibmCloudConfig.vsiProfiles as Record<ProfileFamily, VSIProfile[]>;
+  const profiles = ibmCloudConfig.vsiProfiles as Record<string, VSIProfile[]>;
+  return {
+    balanced: profiles.balanced || [],
+    compute: profiles.compute || [],
+    memory: profiles.memory || [],
+    gpu: profiles.gpu || [],
+  };
 }
 
 /**
@@ -243,6 +251,58 @@ export function findInstanceStorageVariant(profile: VSIProfile): VSIProfile {
 }
 
 /**
+ * Check if a profile is a GPU (gx/gp) profile
+ */
+export function isGpuProfile(profileName: string): boolean {
+  const prefix = profileName.split('-')[0];
+  return prefix.startsWith('gx') || prefix.startsWith('gp');
+}
+
+/**
+ * Find the best-fit GPU (gx-family) profile for given requirements.
+ * Returns null if no GPU profiles are available or none can fit.
+ */
+export function findGpuProfile(vcpus: number, memoryGiB: number): VSIProfile | null {
+  const vsiProfiles = getVSIProfiles();
+  const gpuProfiles = vsiProfiles.gpu || [];
+  if (gpuProfiles.length === 0) return null;
+
+  // Filter to gx-prefixed, sort by vCPUs then memory
+  const sorted = [...gpuProfiles]
+    .filter(p => isGpuProfile(p.name))
+    .sort((a, b) => a.vcpus - b.vcpus || a.memoryGiB - b.memoryGiB);
+
+  return sorted.find(p => p.vcpus >= vcpus && p.memoryGiB >= memoryGiB) || null;
+}
+
+/**
+ * Find a bandwidth upgrade by stepping up one profile size within the same family + generation.
+ * If already at max, returns the same profile.
+ */
+export function findBandwidthUpgrade(profile: VSIProfile): VSIProfile {
+  const vsiProfiles = getVSIProfiles();
+  const prefix = profile.name.split('-')[0]; // e.g. "bx3d", "cx2"
+
+  // Collect all profiles with the same prefix (family + generation)
+  const allFamilies = [
+    ...vsiProfiles.balanced,
+    ...vsiProfiles.compute,
+    ...vsiProfiles.memory,
+    ...(vsiProfiles.gpu || []),
+  ];
+  const samePrefix = allFamilies
+    .filter(p => p.name.split('-')[0] === prefix)
+    .sort((a, b) => a.vcpus - b.vcpus || a.memoryGiB - b.memoryGiB);
+
+  const currentIndex = samePrefix.findIndex(p => p.name === profile.name);
+  if (currentIndex < 0 || currentIndex >= samePrefix.length - 1) {
+    return profile; // Not found or already at max
+  }
+
+  return samePrefix[currentIndex + 1];
+}
+
+/**
  * Find the best-fit standard (non-burstable) profile for given requirements.
  * Prefers gen3 (Sapphire Rapids) over gen2 (Cascade Lake).
  * Falls back to gen2 only when no gen3 profile can fit the requirements.
@@ -303,6 +363,7 @@ export function findProfileByName(name: string): VSIProfile | undefined {
     ...vsiProfiles.balanced,
     ...vsiProfiles.compute,
     ...vsiProfiles.memory,
+    ...(vsiProfiles.gpu || []),
   ];
   return allProfiles.find(p => p.name === name);
 }
@@ -323,6 +384,10 @@ export function getProfileFamilyFromName(profileName: string): string {
   // Handle all memory variants: mx2, mx2d, mx3d, mxf, mz2, etc.
   if (prefix.startsWith('mx') || prefix.startsWith('mz')) {
     return 'Memory';
+  }
+  // Handle GPU variants: gx2, gx3, gp2, etc.
+  if (prefix.startsWith('gx') || prefix.startsWith('gp')) {
+    return 'GPU';
   }
   return 'Other';
 }
@@ -434,6 +499,8 @@ export function createVMProfileMappings(
       workloadCategory: null,
       provisionedStorageGiB: 0,
       inUseStorageGiB: 0,
+      gpuRequired: false,
+      bandwidthSensitive: false,
     };
   });
 }

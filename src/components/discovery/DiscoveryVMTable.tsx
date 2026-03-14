@@ -50,6 +50,8 @@ import {
   NotebookReference,
   Flash,
   Subtract,
+  Chip,
+  DataVis_1,
 } from '@carbon/icons-react';
 import { NO_AUTO_EXCLUSION } from '@/utils/autoExclusion';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
@@ -162,6 +164,8 @@ export function DiscoveryVMTable({
         notes,
         burstable: vmOverrides.isBurstableCandidate(vmId),
         instanceStorage: vmOverrides.isInstanceStoragePreferred(vmId),
+        gpuRequired: vmOverrides.isGpuRequired(vmId),
+        bandwidthSensitive: vmOverrides.isBandwidthSensitive(vmId),
         status,
         actions: '',
       };
@@ -332,6 +336,8 @@ export function DiscoveryVMTable({
     { key: 'category', header: 'Workload Type' },
     { key: 'burstable', header: 'Burstable' },
     { key: 'instanceStorage', header: 'Instance Storage' },
+    { key: 'gpuRequired', header: 'GPU' },
+    { key: 'bandwidthSensitive', header: 'Bandwidth' },
     { key: 'status', header: 'Status' },
     { key: 'notes', header: 'Notes' },
     { key: 'actions', header: '' },
@@ -407,7 +413,16 @@ export function DiscoveryVMTable({
             <TableContainer
               {...getTableContainerProps()}
               title="Virtual Machines"
-              description="Review each VM by clicking on the VM Name for more info. Ensure Workload Type is correct, change as needed. Set the instance to Burstable if you think the workload is suitable for a burstable VSI. Set Instance Storage to NVMe if the workload needs fast local I/O (e.g. DB scratch, Kafka). Set the Status as needed, to exclude VMs not in scope for migration."
+              description={
+                  <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                    <li>Click VM Name for details. Ensure Workload Type is correct.</li>
+                    <li><strong>Burstable</strong> — set for workloads suitable for shared-CPU VSIs.</li>
+                    <li><strong>Instance Storage</strong> — set to NVMe for fast local I/O (e.g. DB scratch, Kafka).</li>
+                    <li><strong>GPU</strong> — set for workloads requiring GPU acceleration (ML/AI, CUDA).</li>
+                    <li><strong>Bandwidth</strong> — set to High BW for network-throughput-bound workloads.</li>
+                    <li><strong>Status</strong> — exclude VMs not in scope for migration.</li>
+                  </ul>
+                }
             >
               <TableToolbar>
                 <TableBatchActions {...batchActionProps}>
@@ -457,6 +472,32 @@ export function DiscoveryVMTable({
                     }}
                   >
                     Mark as Standard
+                  </TableBatchAction>
+                  <TableBatchAction
+                    tabIndex={batchActionProps.shouldShowBatchActions ? 0 : -1}
+                    renderIcon={Chip}
+                    onClick={() => {
+                      const selected = selectedRows.map(r => {
+                        const orig = paginatedRows.find(pr => pr.id === r.id);
+                        return orig ? { vmId: orig.id, vmName: orig.vmName } : null;
+                      }).filter(Boolean) as Array<{ vmId: string; vmName: string }>;
+                      vmOverrides.bulkSetGpuRequired(selected, true);
+                    }}
+                  >
+                    Mark as GPU Required
+                  </TableBatchAction>
+                  <TableBatchAction
+                    tabIndex={batchActionProps.shouldShowBatchActions ? 0 : -1}
+                    renderIcon={DataVis_1}
+                    onClick={() => {
+                      const selected = selectedRows.map(r => {
+                        const orig = paginatedRows.find(pr => pr.id === r.id);
+                        return orig ? { vmId: orig.id, vmName: orig.vmName } : null;
+                      }).filter(Boolean) as Array<{ vmId: string; vmName: string }>;
+                      vmOverrides.bulkSetBandwidthSensitive(selected, true);
+                    }}
+                  >
+                    Mark as Bandwidth Sensitive
                   </TableBatchAction>
                   <TableBatchAction
                     tabIndex={batchActionProps.shouldShowBatchActions ? 0 : -1}
@@ -562,6 +603,26 @@ export function DiscoveryVMTable({
                             style={{ cursor: 'pointer' }}
                           >
                             {originalRow.instanceStorage ? 'NVMe' : 'Block'}
+                          </Tag>
+                        </TableCell>
+                        <TableCell>
+                          <Tag
+                            type={originalRow.gpuRequired ? 'purple' : 'gray'}
+                            size="sm"
+                            onClick={() => vmOverrides.setGpuRequired(originalRow.id, originalRow.vmName, !originalRow.gpuRequired)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {originalRow.gpuRequired ? 'GPU' : 'Standard'}
+                          </Tag>
+                        </TableCell>
+                        <TableCell>
+                          <Tag
+                            type={originalRow.bandwidthSensitive ? 'cyan' : 'gray'}
+                            size="sm"
+                            onClick={() => vmOverrides.setBandwidthSensitive(originalRow.id, originalRow.vmName, !originalRow.bandwidthSensitive)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {originalRow.bandwidthSensitive ? 'High BW' : 'Standard'}
                           </Tag>
                         </TableCell>
                         <TableCell>
