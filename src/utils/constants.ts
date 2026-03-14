@@ -150,6 +150,7 @@ export const ROUTES = {
   vsiMigrationMethods: '/vsi-migration-methods',
   mtvDocumentation: '/mtv-documentation',
   overheadReference: '/overhead-reference',
+  vsiProfileGuide: '/vsi-profile-guide',
   export: '/export',
   settings: '/settings',
   about: '/about',

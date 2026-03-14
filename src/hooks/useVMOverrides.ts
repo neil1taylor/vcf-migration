@@ -21,6 +21,8 @@ export interface VMOverride {
   excluded: boolean;
   forceIncluded?: boolean;
   workloadType?: string;
+  burstableCandidate?: boolean;
+  instanceStorage?: boolean;
   notes?: string;
   modifiedAt: string;
 }
@@ -39,6 +41,8 @@ export interface UseVMOverridesReturn {
   setExcluded: (vmId: string, vmName: string, excluded: boolean) => void;
   setForceIncluded: (vmId: string, vmName: string, forceIncluded: boolean) => void;
   setWorkloadType: (vmId: string, vmName: string, type: string | undefined) => void;
+  setBurstableCandidate: (vmId: string, vmName: string, value: boolean) => void;
+  setInstanceStorage: (vmId: string, vmName: string, value: boolean) => void;
   setNotes: (vmId: string, vmName: string, notes: string | undefined) => void;
   removeOverride: (vmId: string) => void;
   clearAllOverrides: () => void;
@@ -55,6 +59,8 @@ export interface UseVMOverridesReturn {
    */
   isEffectivelyExcluded: (vmId: string, isAutoExcluded: boolean) => boolean;
   getWorkloadType: (vmId: string) => string | undefined;
+  isBurstableCandidate: (vmId: string) => boolean;
+  isInstanceStoragePreferred: (vmId: string) => boolean;
   getNotes: (vmId: string) => string | undefined;
   hasOverride: (vmId: string) => boolean;
 
@@ -62,6 +68,8 @@ export interface UseVMOverridesReturn {
   bulkSetExcluded: (vmIds: Array<{ vmId: string; vmName: string }>, excluded: boolean) => void;
   bulkSetForceIncluded: (vmIds: Array<{ vmId: string; vmName: string }>, forceIncluded: boolean) => void;
   bulkSetWorkloadType: (vms: Array<{ vmId: string; vmName: string }>, workloadType: string | undefined) => void;
+  bulkSetBurstableCandidate: (vms: Array<{ vmId: string; vmName: string }>, value: boolean) => void;
+  bulkSetInstanceStorage: (vms: Array<{ vmId: string; vmName: string }>, value: boolean) => void;
   bulkSetNotes: (vms: Array<{ vmId: string; vmName: string }>, notes: string | undefined) => void;
 
   // Stats
@@ -222,12 +230,14 @@ export function useVMOverrides(): UseVMOverridesReturn {
         excluded: updates.excluded ?? existing?.excluded ?? false,
         forceIncluded: 'forceIncluded' in updates ? updates.forceIncluded : existing?.forceIncluded,
         workloadType: 'workloadType' in updates ? updates.workloadType : existing?.workloadType,
+        burstableCandidate: 'burstableCandidate' in updates ? updates.burstableCandidate : existing?.burstableCandidate,
+        instanceStorage: 'instanceStorage' in updates ? updates.instanceStorage : existing?.instanceStorage,
         notes: 'notes' in updates ? updates.notes : existing?.notes,
         modifiedAt: now,
       };
 
       // If all values are default, remove the override
-      const isDefault = !override.excluded && !override.forceIncluded && !override.workloadType && !override.notes;
+      const isDefault = !override.excluded && !override.forceIncluded && !override.workloadType && !override.burstableCandidate && !override.instanceStorage && !override.notes;
       if (isDefault && existing) {
         const { [vmId]: _removed, ...rest } = prev.overrides;
         void _removed; // Silence unused variable warning
@@ -263,6 +273,14 @@ export function useVMOverrides(): UseVMOverridesReturn {
 
   const setWorkloadType = useCallback((vmId: string, vmName: string, type: string | undefined) => {
     updateOverride(vmId, vmName, { workloadType: type || undefined });
+  }, [updateOverride]);
+
+  const setBurstableCandidate = useCallback((vmId: string, vmName: string, value: boolean) => {
+    updateOverride(vmId, vmName, { burstableCandidate: value || undefined });
+  }, [updateOverride]);
+
+  const setInstanceStorage = useCallback((vmId: string, vmName: string, value: boolean) => {
+    updateOverride(vmId, vmName, { instanceStorage: value || undefined });
   }, [updateOverride]);
 
   const setNotes = useCallback((vmId: string, vmName: string, notes: string | undefined) => {
@@ -315,6 +333,14 @@ export function useVMOverrides(): UseVMOverridesReturn {
     return data.overrides[vmId]?.workloadType;
   }, [data.overrides]);
 
+  const isBurstableCandidate = useCallback((vmId: string): boolean => {
+    return data.overrides[vmId]?.burstableCandidate ?? false;
+  }, [data.overrides]);
+
+  const isInstanceStoragePreferred = useCallback((vmId: string): boolean => {
+    return data.overrides[vmId]?.instanceStorage ?? false;
+  }, [data.overrides]);
+
   const getNotes = useCallback((vmId: string): string | undefined => {
     return data.overrides[vmId]?.notes;
   }, [data.overrides]);
@@ -355,7 +381,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
               modifiedAt: now,
             };
             // Remove if no other overrides
-            if (!updated.workloadType && !updated.notes) {
+            if (!updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.notes) {
               delete newOverrides[vmId];
             } else {
               newOverrides[vmId] = updated;
@@ -402,7 +428,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
               modifiedAt: now,
             };
             // Remove if no other overrides
-            if (!updated.excluded && !updated.workloadType && !updated.notes) {
+            if (!updated.excluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.notes) {
               delete newOverrides[vmId];
             } else {
               newOverrides[vmId] = updated;
@@ -434,13 +460,90 @@ export function useVMOverrides(): UseVMOverridesReturn {
         if (existing) {
           const updated = { ...existing, workloadType: type, modifiedAt: now };
           // Remove if no other overrides remain
-          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.notes) {
+          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.notes) {
             delete newOverrides[vmId];
           } else {
             newOverrides[vmId] = updated;
           }
         } else if (type) {
           newOverrides[vmId] = { vmId, vmName, excluded: false, workloadType: type, modifiedAt: now };
+        }
+      }
+
+      return { ...prev, overrides: newOverrides, modifiedAt: now };
+    });
+  }, []);
+
+  const bulkSetBurstableCandidate = useCallback((
+    vms: Array<{ vmId: string; vmName: string }>,
+    value: boolean
+  ) => {
+    setData(prev => {
+      const now = new Date().toISOString();
+      const newOverrides = { ...prev.overrides };
+
+      for (const { vmId, vmName } of vms) {
+        const existing = newOverrides[vmId];
+
+        if (value) {
+          newOverrides[vmId] = {
+            vmId,
+            vmName,
+            excluded: existing?.excluded ?? false,
+            forceIncluded: existing?.forceIncluded,
+            workloadType: existing?.workloadType,
+            burstableCandidate: true,
+            notes: existing?.notes,
+            modifiedAt: now,
+          };
+        } else {
+          if (existing) {
+            const updated = { ...existing, burstableCandidate: undefined, modifiedAt: now };
+            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.notes) {
+              delete newOverrides[vmId];
+            } else {
+              newOverrides[vmId] = updated;
+            }
+          }
+        }
+      }
+
+      return { ...prev, overrides: newOverrides, modifiedAt: now };
+    });
+  }, []);
+
+  const bulkSetInstanceStorage = useCallback((
+    vms: Array<{ vmId: string; vmName: string }>,
+    value: boolean
+  ) => {
+    setData(prev => {
+      const now = new Date().toISOString();
+      const newOverrides = { ...prev.overrides };
+
+      for (const { vmId, vmName } of vms) {
+        const existing = newOverrides[vmId];
+
+        if (value) {
+          newOverrides[vmId] = {
+            vmId,
+            vmName,
+            excluded: existing?.excluded ?? false,
+            forceIncluded: existing?.forceIncluded,
+            workloadType: existing?.workloadType,
+            burstableCandidate: existing?.burstableCandidate,
+            instanceStorage: true,
+            notes: existing?.notes,
+            modifiedAt: now,
+          };
+        } else {
+          if (existing) {
+            const updated = { ...existing, instanceStorage: undefined, modifiedAt: now };
+            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.notes) {
+              delete newOverrides[vmId];
+            } else {
+              newOverrides[vmId] = updated;
+            }
+          }
         }
       }
 
@@ -461,7 +564,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
 
         if (existing) {
           const updated = { ...existing, notes: notes || undefined, modifiedAt: now };
-          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.notes) {
+          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.notes) {
             delete newOverrides[vmId];
           } else {
             newOverrides[vmId] = updated;
@@ -556,6 +659,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
     setExcluded,
     setForceIncluded,
     setWorkloadType,
+    setBurstableCandidate,
+    setInstanceStorage,
     setNotes,
     removeOverride,
     clearAllOverrides,
@@ -565,6 +670,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
     isForceIncluded,
     isEffectivelyExcluded,
     getWorkloadType,
+    isBurstableCandidate,
+    isInstanceStoragePreferred,
     getNotes,
     hasOverride,
 
@@ -572,6 +679,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
     bulkSetExcluded,
     bulkSetForceIncluded,
     bulkSetWorkloadType,
+    bulkSetBurstableCandidate,
+    bulkSetInstanceStorage,
     bulkSetNotes,
 
     // Stats
@@ -590,9 +699,9 @@ export function useVMOverrides(): UseVMOverridesReturn {
     storedEnvironmentFingerprint,
   }), [
     data.overrides,
-    setExcluded, setForceIncluded, setWorkloadType, setNotes, removeOverride, clearAllOverrides,
-    isExcluded, isForceIncluded, isEffectivelyExcluded, getWorkloadType, getNotes, hasOverride,
-    bulkSetExcluded, bulkSetForceIncluded, bulkSetWorkloadType, bulkSetNotes,
+    setExcluded, setForceIncluded, setWorkloadType, setBurstableCandidate, setInstanceStorage, setNotes, removeOverride, clearAllOverrides,
+    isExcluded, isForceIncluded, isEffectivelyExcluded, getWorkloadType, isBurstableCandidate, isInstanceStoragePreferred, getNotes, hasOverride,
+    bulkSetExcluded, bulkSetForceIncluded, bulkSetWorkloadType, bulkSetBurstableCandidate, bulkSetInstanceStorage, bulkSetNotes,
     excludedCount, forceIncludedCount, overrideCount,
     exportSettings, importSettings,
     environmentMismatch, applyMismatchedOverrides, clearAndReset, storedEnvironmentFingerprint,

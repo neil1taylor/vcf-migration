@@ -94,8 +94,37 @@ function KeyValueList({ rows }: { rows: KVRow[] }) {
   );
 }
 
-function buildGeneralRows(vm: VirtualMachine): KVRow[] {
-  return [
+function buildStorageBreakdown(
+  vm: VirtualMachine,
+  disks: VDiskInfo[],
+  snapshots: VSnapshotInfo[],
+): string {
+  const diskSumMiB = disks.reduce((sum, d) => sum + d.capacityMiB, 0);
+  const overheadMiB = vm.provisionedMiB - diskSumMiB;
+  if (overheadMiB <= 1) return '';
+
+  const swapMiB = vm.memory; // VMware .vswp file equals VM memory
+  const snapshotMiB = snapshots.reduce((sum, s) => sum + s.sizeTotalMiB, 0);
+  const otherMiB = Math.max(0, overheadMiB - swapMiB - snapshotMiB);
+
+  const parts: string[] = [];
+  if (swapMiB > 0) parts.push(`Swap: ${formatMiB(swapMiB)}`);
+  if (snapshotMiB > 0) parts.push(`Snapshots: ${formatMiB(snapshotMiB)}`);
+  if (otherMiB > 1) parts.push(`Config/logs: ${formatMiB(otherMiB)}`);
+
+  return parts.length > 0 ? parts.join(', ') : `${formatMiB(overheadMiB)}`;
+}
+
+function buildGeneralRows(vm: VirtualMachine, disks: VDiskInfo[], snapshots: VSnapshotInfo[]): KVRow[] {
+  // Use vDisk sum when available for consistency with Storage tab.
+  // vInfo provisionedMiB includes swap/snapshot/config file overhead.
+  const diskSumMiB = disks.length > 0
+    ? disks.reduce((sum, d) => sum + d.capacityMiB, 0)
+    : null;
+  const provisionedMiB = diskSumMiB ?? vm.provisionedMiB;
+  const hasOverhead = diskSumMiB !== null && Math.abs(vm.provisionedMiB - diskSumMiB) > 1;
+
+  const rows: KVRow[] = [
     { label: 'VM Name', value: vm.vmName },
     { label: 'Power State', value: formatPowerState(vm.powerState) },
     { label: 'Template', value: formatBoolean(vm.template) },
@@ -107,8 +136,19 @@ function buildGeneralRows(vm: VirtualMachine): KVRow[] {
     { label: 'Memory', value: formatMiB(vm.memory) },
     { label: 'NICs', value: formatNumber(vm.nics) },
     { label: 'Disks', value: formatNumber(vm.disks) },
-    { label: 'Provisioned Storage', value: formatMiB(vm.provisionedMiB) },
+    { label: 'Provisioned Storage', value: formatMiB(provisionedMiB) },
     { label: 'In Use Storage', value: formatMiB(vm.inUseMiB) },
+  ];
+
+  if (hasOverhead) {
+    const breakdown = buildStorageBreakdown(vm, disks, snapshots);
+    rows.push({
+      label: 'VMware Overhead',
+      value: `${formatMiB(vm.provisionedMiB - diskSumMiB!)} (${breakdown})`,
+    });
+  }
+
+  rows.push(
     { label: 'Hardware Version', value: formatHardwareVersion(vm.hardwareVersion) },
     { label: 'Firmware', value: formatValue(vm.firmwareType) },
     { label: 'Datacenter', value: vm.datacenter },
@@ -126,7 +166,9 @@ function buildGeneralRows(vm: VirtualMachine): KVRow[] {
     { label: 'Power On Date', value: formatDateTime(vm.powerOnDate) },
     { label: 'Creation Date', value: formatDateTime(vm.creationDate) },
     { label: 'Annotation', value: formatValue(vm.annotation) },
-  ];
+  );
+
+  return rows;
 }
 
 function buildCPURows(cpu: VCPUInfo): KVRow[] {
@@ -476,7 +518,7 @@ export function VMDetailModal({ vmName, onClose }: VMDetailModalProps) {
     // General — always shown
     result.push({
       label: 'General',
-      content: <KeyValueList rows={buildGeneralRows(vm)} />,
+      content: <KeyValueList rows={buildGeneralRows(vm, disks, snapshots)} />,
     });
 
     if (cpuInfo) {

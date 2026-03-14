@@ -51,6 +51,10 @@ export interface VMRow {
   exclusionSource: 'auto' | 'manual' | 'none';
   hasNotes: boolean;
   notes: string;
+  // Burstable candidate
+  burstable: boolean;
+  // Instance storage (NVMe)
+  instanceStorage: boolean;
   // Sortable derived values
   status: string;
   actions: string;

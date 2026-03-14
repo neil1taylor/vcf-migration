@@ -35,6 +35,7 @@ const migrationRoutes = [
 const referenceRoutes = [
   ROUTES.tutorial, ROUTES.userGuide, ROUTES.info, ROUTES.documentation,
   ROUTES.vsiMigrationMethods, ROUTES.mtvDocumentation, ROUTES.overheadReference,
+  ROUTES.vsiProfileGuide,
 ];
 
 interface SideNavProps {
@@ -283,6 +284,13 @@ export function SideNav({ isExpanded = true }: SideNavProps) {
             isActive={isActive(ROUTES.overheadReference)}
           >
             Overhead Reference
+          </SideNavMenuItem>
+          <SideNavMenuItem
+            href="#"
+            onClick={(e: React.MouseEvent) => handleNavClick(e, ROUTES.vsiProfileGuide)}
+            isActive={isActive(ROUTES.vsiProfileGuide)}
+          >
+            VSI Profile Guide
           </SideNavMenuItem>
         </SideNavMenu>
 

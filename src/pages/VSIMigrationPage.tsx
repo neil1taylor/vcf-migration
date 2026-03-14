@@ -50,6 +50,22 @@ export function VSIMigrationPage() {
     hasStorageTierOverride,
   } = useCustomProfiles();
 
+  // Build vmName → vmId lookup for burstable candidate resolution
+  const isBurstableCandidateByName = useCallback((vmName: string): boolean => {
+    const vm = allVmsRaw.find(v => v.vmName === vmName);
+    if (!vm) return false;
+    const vmId = getVMIdentifier(vm);
+    return vmOverrides.isBurstableCandidate(vmId);
+  }, [allVmsRaw, vmOverrides]);
+
+  // Build vmName → vmId lookup for instance storage preference
+  const isInstanceStoragePreferredByName = useCallback((vmName: string): boolean => {
+    const vm = allVmsRaw.find(v => v.vmName === vmName);
+    if (!vm) return false;
+    const vmId = getVMIdentifier(vm);
+    return vmOverrides.isInstanceStoragePreferred(vmId);
+  }, [allVmsRaw, vmOverrides]);
+
   // Filter out excluded VMs using unified three-tier exclusion
   const vms = useMemo(() => {
     return allVmsRaw.filter(vm => {
@@ -191,6 +207,8 @@ export function VSIMigrationPage() {
     hasOverride,
     getEffectiveStorageTier,
     hasStorageTierOverride,
+    isBurstableCandidate: isBurstableCandidateByName,
+    isInstanceStoragePreferred: isInstanceStoragePreferredByName,
     complexityScores,
     blockerCount,
     warningCount,

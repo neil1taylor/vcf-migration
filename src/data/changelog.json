@@ -1,6 +1,18 @@
 {
   "releases": [
     {
+      "version": "2.2.1",
+      "date": "2026-03-14",
+      "sections": {
+        "added": [
+          "Per-VM instance storage toggle in Discovery VM table — select NVMe (d-suffix) profiles for workloads needing fast local I/O (DB scratch, Kafka)"
+        ],
+        "fixed": [
+          "VSI profile selection now prefers non-instance-storage profiles by default, avoiding unnecessary ephemeral NVMe disks"
+        ]
+      }
+    },
+    {
       "version": "2.1.7",
       "date": "2026-03-13",
       "sections": {

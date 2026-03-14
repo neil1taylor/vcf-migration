@@ -334,6 +334,12 @@ Navigate to **Workload Discovery** > **VMs** tab.
 2. Select from predefined categories or type a custom value
 3. Custom workload types appear in the "Custom" tab
 
+#### Set Burstable / Instance Storage
+
+1. In the VM table, click the **Burstable** tag to toggle between `Standard` and `Burstable` (shared CPU, lower cost)
+2. Click the **Instance Storage** tag to toggle between `Block` (persistent, tiered) and `NVMe` (fast local I/O, ephemeral — suitable for DB scratch, Kafka)
+3. These selections drive VSI profile mapping on the VSI Migration page
+
 #### Add Notes
 
 1. Click the notes icon for any VM
@@ -345,6 +351,7 @@ Navigate to **Workload Discovery** > **VMs** tab.
 All VM customizations are saved to browser localStorage:
 - Exclusions persist across sessions
 - Workload overrides are remembered
+- Burstable and instance storage selections are remembered
 - Notes are preserved
 
 ### Export/Import Settings
@@ -587,13 +594,17 @@ VSI-specific checks include:
 
 Navigate to **VSI Migration** > **Sizing** tab.
 
-1. VMs are automatically mapped to VSI profiles
+1. VMs are automatically mapped to VSI profiles based on vCPU/memory ratio
 2. Profile families:
    - **Balanced (bx2)** - Equal vCPU-to-memory ratio
    - **Compute (cx2)** - Higher vCPU ratio
    - **Memory (mx2)** - Higher memory ratio
-3. Click the edit icon to override the auto-selected profile
-4. Define custom profiles for specific requirements
+3. Profile selection follows the decision tree in `public/vpc_vsi_profile_selection.svg`:
+   - **Burstable** toggle (set in Discovery VM table) → selects flex (f-suffix) profiles for variable workloads
+   - **Instance Storage** toggle (set in Discovery VM table) → selects NVMe (d-suffix) profiles for workloads needing fast local I/O (e.g., DB scratch, Kafka)
+   - Gen3 profiles (Sapphire Rapids) are preferred; BIOS firmware VMs fall back to Gen2
+4. Click the edit icon to override the auto-selected profile
+5. Define custom profiles for specific requirements
 
 #### VM-to-Profile Mapping
 

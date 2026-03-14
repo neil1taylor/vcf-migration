@@ -89,7 +89,7 @@ React 19 + TypeScript + Vite application for VMware Cloud Foundation migration p
 - **Data Flow**: RVTools Excel parsed client-side (SheetJS `xlsx`) → `DataContext` (React Context + useReducer) → all components. Types in `src/types/rvtools.ts`. Only vInfo is required; all other sheets default to `[]` when missing.
 - **Sheet Availability**: `src/hooks/useAvailableSheets.ts` derives boolean flags (`hasVDisk`, `hasVDatastore`, `hasVNetwork`, `hasVHost`, `hasVCluster`, `hasVSnapshot`, `hasVTools`) from `rawData` array lengths. SideNav greys out items for pages missing required sheets; pages show empty state tiles.
 - **State Management**: `src/context/DataContext.tsx` (global state), `src/context/dataReducer.ts` (reducer), hooks in `src/hooks/` (complex logic).
-- **VM Management**: `src/hooks/useVMOverrides.ts` (exclusions/overrides with localStorage), `src/utils/vmIdentifier.ts` (VM ID and environment fingerprinting).
+- **VM Management**: `src/hooks/useVMOverrides.ts` (exclusions/overrides/burstable/instance storage with localStorage), `src/utils/vmIdentifier.ts` (VM ID and environment fingerprinting).
 - **IBM Cloud Integration**: `src/services/pricing/globalCatalogApi.ts` and `src/services/ibmCloudProfilesApi.ts` fetch via Code Engine proxies. Fallback to `src/data/ibmCloudConfig.json`.
 - **Export Pipeline**: `src/services/export/` — `bomXlsxGenerator.ts` (ExcelJS), `pdfGenerator.ts` (jsPDF), `excelGenerator.ts`, `docxGenerator.ts`, `pptxGenerator.ts` (pptxgenjs), `yamlGenerator.ts`, `handoverExporter.ts` (bundles RVTools file + localStorage settings into a single download for colleague handoff). **Import**: `src/services/settingsExtractor.ts` extracts settings from a handover file without full parsing; `src/services/settingsRestore.ts` writes them to localStorage. Available on Settings and Export pages.
 
@@ -285,7 +285,7 @@ All rules configured in `src/data/workloadPatterns.json` under `autoExclusionRul
 
 ### VM Overrides
 
-Stored in localStorage (`vcf-vm-overrides`), version 2. Environment fingerprinting (`server::instanceUuid::clusters`) enables override reuse across exports from the same vCenter.
+Stored in localStorage (`vcf-vm-overrides`), version 2. Environment fingerprinting (`server::instanceUuid::clusters`) enables override reuse across exports from the same vCenter. Per-VM fields: `excluded`, `forceIncluded`, `workloadType`, `burstableCandidate`, `instanceStorage`, `notes`. The `burstableCandidate` flag selects burstable (flex) VSI profiles; `instanceStorage` selects the NVMe instance storage (d-suffix) variant of the profile.
 
 ### Migration Page Integration
 
@@ -325,7 +325,7 @@ Classification and auto-exclusion are independent. Each VM has exactly one workl
 | File | Purpose |
 |------|---------|
 | `src/pages/DiscoveryPage.tsx` | Tabbed layout (Infrastructure + Workload + Networks) |
-| `src/components/discovery/DiscoveryVMTable.tsx` | Unified VM table |
+| `src/components/discovery/DiscoveryVMTable.tsx` | Unified VM table with burstable/instance storage toggles |
 | `src/components/network/NetworkSummaryTable.tsx` | Network table with editable subnets |
 | `src/data/workloadPatterns.json` | Workload types, authoritative classifications, auto-exclusion rules |
 

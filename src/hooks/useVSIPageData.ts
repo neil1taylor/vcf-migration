@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { mibToGiB } from '@/utils/formatters';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
-import { mapVMToVSIProfile, getVSIProfiles, classifyVMForBurstable, findBurstableProfile } from '@/services/migration';
+import { mapVMToVSIProfile, getVSIProfiles, classifyVMForBurstable, findBurstableProfile, findInstanceStorageVariant, getProfileFamilyFromName } from '@/services/migration';
 import type { VSIProfile, VMProfileMapping, VMClassification } from '@/services/migration';
 import type { VSISizingInput } from '@/services/costEstimation';
 import type { VMDetail } from '@/services/export';
@@ -31,6 +31,8 @@ export interface UseVSIPageDataConfig {
   hasOverride: (vmName: string) => boolean;
   getEffectiveStorageTier: (vmName: string, autoTier: StorageTierType) => StorageTierType;
   hasStorageTierOverride: (vmName: string) => boolean;
+  isBurstableCandidate?: (vmName: string) => boolean;
+  isInstanceStoragePreferred?: (vmName: string) => boolean;
   complexityScores: ComplexityScore[];
   blockerCount: number;
   warningCount: number;
@@ -75,6 +77,8 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
     hasOverride,
     getEffectiveStorageTier,
     hasStorageTierOverride,
+    isBurstableCandidate,
+    isInstanceStoragePreferred,
     complexityScores,
     blockerCount,
     warningCount,
@@ -97,17 +101,24 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
     return poweredOnVMs.map(vm => {
       const memoryGiB = mibToGiB(vm.memory);
 
-      // Classify VM for burstable eligibility
-      const classification: VMClassification = classifyVMForBurstable(vm.vmName, vm.guestOS, vm.nics);
+      // Classify VM for burstable eligibility (kept for transparency in tooltips)
+      const classification: VMClassification = classifyVMForBurstable(vm.vmName, vm.nics);
 
-      // Get both standard and burstable profiles
-      const standardProfile: VSIProfile = mapVMToVSIProfile(vm.cpus, memoryGiB);
+      // Get both standard and burstable profiles (firmware-aware: BIOS → Gen2)
+      const standardProfile: VSIProfile = mapVMToVSIProfile(vm.cpus, memoryGiB, vm.firmwareType);
       const burstableProfile = findBurstableProfile(vm.cpus, memoryGiB);
 
-      // Default auto profile based on classification
-      const autoProfile = classification.recommendation === 'burstable' && burstableProfile
+      // User's explicit burstable selection drives the profile default
+      const isBurstable = isBurstableCandidate?.(vm.vmName) ?? false;
+      let autoProfile = isBurstable && burstableProfile
         ? burstableProfile
         : standardProfile;
+
+      // User's explicit instance storage selection: switch to d-suffix variant
+      const wantsInstanceStorage = isInstanceStoragePreferred?.(vm.vmName) ?? false;
+      if (wantsInstanceStorage) {
+        autoProfile = findInstanceStorageVariant(autoProfile);
+      }
 
       const effectiveProfileName = getEffectiveProfile(vm.vmName, autoProfile.name);
       const isOverridden = hasOverride(vm.vmName);
@@ -148,6 +159,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
         memoryGiB: Math.round(memoryGiB),
         nics: vm.nics,
         guestOS: vm.guestOS,
+        firmwareType: vm.firmwareType,
         autoProfile,
         burstableProfile,
         profile: effectiveProfile,
@@ -162,7 +174,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
         inUseStorageGiB,
       };
     });
-  }, [poweredOnVMs, customProfiles, getEffectiveProfile, hasOverride, getEffectiveStorageTier, hasStorageTierOverride, vsiProfiles, disks]);
+  }, [poweredOnVMs, customProfiles, getEffectiveProfile, hasOverride, getEffectiveStorageTier, hasStorageTierOverride, isBurstableCandidate, isInstanceStoragePreferred, vsiProfiles, disks]);
 
   // ===== PROFILE COUNTS & CHART DATA =====
   const profileCounts = useMemo(() => vmProfileMappings.reduce((acc, mapping) => {
@@ -176,8 +188,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
     .slice(0, 10), [profileCounts]);
 
   const familyCounts = useMemo(() => vmProfileMappings.reduce((acc, mapping) => {
-    const prefix = mapping.profile.name.split('-')[0];
-    const familyName = prefix === 'bx2' ? 'Balanced' : prefix === 'cx2' ? 'Compute' : prefix === 'mx2' ? 'Memory' : 'Other';
+    const familyName = getProfileFamilyFromName(mapping.profile.name);
     acc[familyName] = (acc[familyName] || 0) + 1;
     return acc;
   }, {} as Record<string, number>), [vmProfileMappings]);

@@ -59,6 +59,7 @@ const VSIMigrationMethodsPage = lazyWithRetry(() => import('@/pages/VSIMigration
 const MTVDocumentationPage = lazyWithRetry(() => import('@/pages/MTVDocumentationPage').then(m => ({ default: m.MTVDocumentationPage as ComponentType<unknown> })));
 const AboutPage = lazyWithRetry(() => import('@/pages/AboutPage').then(m => ({ default: m.AboutPage as ComponentType<unknown> })));
 const OverheadReferencePage = lazyWithRetry(() => import('@/pages/OverheadReferencePage').then(m => ({ default: m.OverheadReferencePage as ComponentType<unknown> })));
+const VSIProfileGuidePage = lazyWithRetry(() => import('@/pages/VSIProfileGuidePage').then(m => ({ default: m.VSIProfileGuidePage as ComponentType<unknown> })));
 const TutorialPage = lazyWithRetry(() => import('@/pages/TutorialPage').then(m => ({ default: m.TutorialPage as ComponentType<unknown> })));
 const ChatPage = lazyWithRetry(() => import('@/pages/ChatPage').then(m => ({ default: m.ChatPage as ComponentType<unknown> })));
 const ExportPage = lazyWithRetry(() => import('@/pages/ExportPage').then(m => ({ default: m.ExportPage as ComponentType<unknown> })));
@@ -173,6 +174,10 @@ export const router = createBrowserRouter([
       {
         path: ROUTES.overheadReference.slice(1),
         element: <PageLoader><OverheadReferencePage /></PageLoader>,
+      },
+      {
+        path: ROUTES.vsiProfileGuide.slice(1),
+        element: <PageLoader><VSIProfileGuidePage /></PageLoader>,
       },
       {
         path: ROUTES.export.slice(1),

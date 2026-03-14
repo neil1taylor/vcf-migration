@@ -89,4 +89,8 @@ export {
   isStandardProfile,
   findBurstableProfile,
   findStandardProfile,
+  hasInstanceStorage,
+  findInstanceStorageVariant,
+  getProfileGeneration,
+  isBIOSFirmware,
 } from './vsiProfileMapping';

@@ -1,14 +1,16 @@
 // VSI Sizing tab panel content - extracted from VSIMigrationPage
 
-import { Tile, Tag, Button, InlineNotification, Tooltip } from '@carbon/react';
+import { Tile, Tag, Button, InlineNotification, Tooltip, Toggletip, ToggletipButton, ToggletipContent } from '@carbon/react';
 import { Grid, Column } from '@carbon/react';
 import { Settings, Reset, ArrowUp, ArrowDown } from '@carbon/icons-react';
+import { Link as RouterLink } from 'react-router-dom';
 import { formatNumber } from '@/utils/formatters';
 import { DoughnutChart, HorizontalBarChart } from '@/components/charts';
 import { EnhancedDataTable } from '@/components/tables';
 import { MetricCard, RedHatDocLink } from '@/components/common';
 import { ProfileSelector, StorageTierSelector } from '@/components/sizing';
-import { isBurstableProfile } from '@/services/migration';
+import { isBurstableProfile, hasInstanceStorage, getProfileGeneration, isBIOSFirmware } from '@/services/migration';
+import { ROUTES } from '@/utils/constants';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { VMProfileMapping } from '@/services/migration';
 import type { CustomProfile } from '@/hooks/useCustomProfiles';
@@ -64,27 +66,69 @@ export function VSISizingPanel({
       id: 'recommendation',
       header: 'Recommendation',
       enableSorting: true,
-      accessorFn: (row) => row.classification.recommendation,
+      accessorFn: (row) => isBurstableProfile(row.profile.name) ? 'burstable' : 'standard',
       cell: ({ row }) => {
-        const { recommendation, reasons } = row.original.classification;
-        const isBurstable = recommendation === 'burstable';
+        const { recommendation: heuristicRecommendation, reasons } = row.original.classification;
+        // User's burstable selection (from Discovery) is the primary indicator
         const currentIsBurstable = isBurstableProfile(row.original.profile.name);
+        const isBurstable = currentIsBurstable;
+
+        const reasonExplanations: Record<string, string> = {
+          'Network appliance': 'VM name indicates a network device (firewall, load balancer, etc.) requiring consistent CPU',
+          'Enterprise app': 'VM name indicates an enterprise application (SAP, Oracle, SQL Server, etc.) needing guaranteed CPU',
+        };
+
+        const getReasonExplanation = (reason: string): string => {
+          if (reason.startsWith('Multiple NICs')) {
+            const nicCount = reason.match(/\((\d+)\)/)?.[1] || '?';
+            return `Has ${nicCount} network interfaces, suggesting a complex networking role requiring steady CPU`;
+          }
+          return reasonExplanations[reason] || reason;
+        };
+
         return (
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
-            <Tag
-              type={isBurstable ? 'cyan' : 'purple'}
-              size="sm"
-              title={row.original.classification.note}
-            >
-              {isBurstable ? 'Burstable' : 'Standard'}
-            </Tag>
+            <Toggletip align="bottom" autoAlign>
+              <ToggletipButton label={isBurstable ? 'Burstable' : 'Standard'}>
+                <Tag
+                  type={isBurstable ? 'cyan' : 'purple'}
+                  size="sm"
+                >
+                  {isBurstable ? 'Burstable' : 'Standard'}
+                </Tag>
+              </ToggletipButton>
+              <ToggletipContent>
+                <div>
+                  <p style={{ margin: '0 0 0.5rem 0' }}>
+                    <strong>{isBurstable ? 'Burstable' : 'Standard'}</strong>
+                    {' — '}
+                    {isBurstable
+                      ? 'Shared CPU, lower cost for variable workloads'
+                      : 'Dedicated CPU for sustained workloads'}
+                  </p>
+                  <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+                    Heuristic: {heuristicRecommendation === 'burstable' ? 'Burstable' : 'Standard'}
+                    {reasons.length > 0 && ` (${reasons.join(', ')})`}
+                  </p>
+                  {!isBurstable && reasons.length > 0 && (
+                    <ul style={{ margin: 0, paddingLeft: '1rem' }}>
+                      {reasons.map((reason, i) => (
+                        <li key={i} style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>
+                          <strong>{reason}</strong>: {getReasonExplanation(reason)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </ToggletipContent>
+            </Toggletip>
+            {isBurstable && (
+              <Tag type="cyan" size="sm">User</Tag>
+            )}
             {!isBurstable && reasons.length > 0 && (
-              <Tag type="gray" size="sm" title={reasons.join(', ')}>
+              <Tag type="gray" size="sm">
                 {reasons[0]}
               </Tag>
-            )}
-            {currentIsBurstable !== isBurstable && row.original.isOverridden && (
-              <Tag type="teal" size="sm">Override</Tag>
             )}
             {aiRecommendations[row.original.vmName]?.source === 'ai' && (() => {
               const aiRec = aiRecommendations[row.original.vmName];
@@ -109,18 +153,35 @@ export function VSISizingPanel({
     {
       id: 'profile', header: 'Target Profile', enableSorting: true,
       accessorFn: (row) => row.profile.name,
-      cell: ({ row }) => (
-        <ProfileSelector
-          vmName={row.original.vmName}
-          autoMappedProfile={row.original.autoProfile.name}
-          currentProfile={row.original.profile.name}
-          isOverridden={row.original.isOverridden}
-          customProfiles={customProfiles}
-          onProfileChange={(vmName, newProfile, originalProfile) => setProfileOverride(vmName, newProfile, originalProfile)}
-          onResetToAuto={removeProfileOverride}
-          compact
-        />
-      ),
+      cell: ({ row }) => {
+        const profileName = row.original.profile.name;
+        const gen = getProfileGeneration(profileName);
+        const nvme = hasInstanceStorage(profileName);
+        const firmwareBIOS = isBIOSFirmware(row.original.firmwareType);
+        return (
+          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+            <ProfileSelector
+              vmName={row.original.vmName}
+              autoMappedProfile={row.original.autoProfile.name}
+              currentProfile={profileName}
+              isOverridden={row.original.isOverridden}
+              customProfiles={customProfiles}
+              onProfileChange={(vmName, newProfile, originalProfile) => setProfileOverride(vmName, newProfile, originalProfile)}
+              onResetToAuto={removeProfileOverride}
+              compact
+            />
+            <Tag type={gen === 3 ? 'green' : 'gray'} size="sm">Gen{gen}</Tag>
+            {nvme && <Tag type="teal" size="sm">NVMe</Tag>}
+            {firmwareBIOS && (
+              <Tooltip label="This VM uses BIOS firmware. Gen 3 profiles require UEFI boot mode. Convert to UEFI before migrating to Gen 3." align="bottom">
+                <button type="button" className="tooltip-trigger">
+                  <Tag type="warm-gray" size="sm">BIOS</Tag>
+                </button>
+              </Tooltip>
+            )}
+          </span>
+        );
+      },
     },
     {
       id: 'profileVcpus',
@@ -252,21 +313,39 @@ export function VSISizingPanel({
           <h4>Profile Family Descriptions</h4>
           <div className="migration-page__recommendation-grid">
             <div className="migration-page__recommendation-item">
-              <span className="migration-page__recommendation-key">Balanced (bx2)</span>
-              <span className="migration-page__recommendation-value">1:4 vCPU:Memory ratio - General purpose workloads</span>
+              <span className="migration-page__recommendation-key">Balanced (bx2, bx3d)</span>
+              <span className="migration-page__recommendation-value">1:4 to 1:5 vCPU:Memory ratio — General purpose: web servers, middleware, app tiers</span>
             </div>
             <div className="migration-page__recommendation-item">
-              <span className="migration-page__recommendation-key">Compute (cx2)</span>
-              <span className="migration-page__recommendation-value">1:2 vCPU:Memory ratio - CPU-intensive workloads</span>
+              <span className="migration-page__recommendation-key">Compute (cx2, cx3d)</span>
+              <span className="migration-page__recommendation-value">1:2 to 1:2.5 vCPU:Memory ratio — CPU-bound: batch processing, analytics, CI/CD workers</span>
             </div>
             <div className="migration-page__recommendation-item">
-              <span className="migration-page__recommendation-key">Memory (mx2)</span>
-              <span className="migration-page__recommendation-value">1:8 vCPU:Memory ratio - Memory-intensive workloads</span>
+              <span className="migration-page__recommendation-key">Memory (mx2, mx3d)</span>
+              <span className="migration-page__recommendation-value">1:8 to 1:10 vCPU:Memory ratio — Databases, in-memory caches, JVM-heavy apps</span>
+            </div>
+            <div className="migration-page__recommendation-item">
+              <span className="migration-page__recommendation-key">Very High Memory (vx2d)</span>
+              <span className="migration-page__recommendation-value">1:14 vCPU:Memory ratio — SAP HANA, large in-memory analytics</span>
+            </div>
+            <div className="migration-page__recommendation-item">
+              <span className="migration-page__recommendation-key">Ultra High Memory (ux2d)</span>
+              <span className="migration-page__recommendation-value">1:28 vCPU:Memory ratio — Largest SAP configurations</span>
             </div>
             <div className="migration-page__recommendation-item">
               <span className="migration-page__recommendation-key">Burstable (bxf, cxf, mxf)</span>
-              <span className="migration-page__recommendation-value">Flex profiles with burstable CPU - Cost-effective for variable workloads that don't require sustained high CPU performance. Not recommended for enterprise apps, network appliances, or VMs with multiple NICs.</span>
+              <span className="migration-page__recommendation-value">Flex profiles with burstable CPU — Cost-effective for variable workloads without sustained high CPU demand</span>
             </div>
+          </div>
+          <div style={{ marginTop: '1rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
+            <p style={{ marginBottom: '0.25rem' }}><strong>Generation preference:</strong> Gen3 (bx3d/cx3d/mx3d) preferred — better price-performance, NVMe included. Gen3 requires UEFI boot; BIOS VMs default to Gen2.</p>
+            <p style={{ marginBottom: '0.25rem' }}><strong>NVMe d-suffix:</strong> Local NVMe for high IOPS (DB scratch, Kafka), but ephemeral on stop/start.</p>
+            <p style={{ marginBottom: '0.25rem' }}><strong>Network bandwidth:</strong> Scales with vCPU count — size up for network-throughput-bound workloads.</p>
+            <p style={{ marginTop: '0.5rem' }}>
+              <RouterLink to={ROUTES.vsiProfileGuide} style={{ color: 'var(--cds-link-primary)' }}>
+                View the full VSI Profile Selection Guide →
+              </RouterLink>
+            </p>
           </div>
         </Tile>
       </Column>

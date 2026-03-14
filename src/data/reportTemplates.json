@@ -275,19 +275,34 @@
       "description": "VSI profiles are organized into families optimized for different use cases:",
       "families": [
         {
-          "name": "Balanced (bx2)",
-          "ratio": "1:4",
-          "useCase": "General purpose workloads with balanced CPU and memory"
+          "name": "Balanced (bx2, bx3d)",
+          "ratio": "1:4 to 1:5",
+          "useCase": "General purpose workloads: web servers, middleware, application tiers"
         },
         {
-          "name": "Compute (cx2)",
-          "ratio": "1:2",
-          "useCase": "CPU-intensive applications, web servers, batch processing"
+          "name": "Compute (cx2, cx3d)",
+          "ratio": "1:2 to 1:2.5",
+          "useCase": "CPU-bound workloads: batch processing, analytics, CI/CD workers"
         },
         {
-          "name": "Memory (mx2)",
-          "ratio": "1:8",
-          "useCase": "Memory-intensive databases, caching, analytics"
+          "name": "Memory (mx2, mx3d)",
+          "ratio": "1:8 to 1:10",
+          "useCase": "Memory-intensive workloads: databases, in-memory caches, JVM-heavy apps"
+        },
+        {
+          "name": "Very High Memory (vx2d)",
+          "ratio": "1:14",
+          "useCase": "SAP HANA, large in-memory analytics requiring very high memory-to-CPU ratio"
+        },
+        {
+          "name": "Ultra High Memory (ux2d)",
+          "ratio": "1:28",
+          "useCase": "Largest SAP configurations and extreme in-memory workloads"
+        },
+        {
+          "name": "Burstable (bxf, cxf, mxf)",
+          "ratio": "Varies",
+          "useCase": "Flex profiles with burstable CPU for variable workloads without sustained high CPU demand"
         }
       ]
     },
@@ -328,7 +343,7 @@
     "sizing": {
       "title": "VM to VSI Profile Mapping",
       "description": "Each source VM has been mapped to an appropriate IBM Cloud VSI profile based on its compute and memory requirements.",
-      "methodology": "Profile selection considers the VM's vCPU count, memory allocation, and memory-to-CPU ratio to determine the optimal profile family (Balanced, Compute, or Memory)."
+      "methodology": "Profile selection considers the VM's vCPU count, memory allocation, and memory-to-CPU ratio to determine the optimal profile family (Balanced, Compute, Memory, Very High Memory, or Ultra High Memory). Gen3 profiles (bx3d, cx3d, mx3d) are preferred for better price-performance and included NVMe instance storage. Profiles with NVMe (d-suffix) provide high IOPS local storage suitable for database scratch space and temporary data, though this storage is ephemeral on stop/start."
     }
   },
   "costEstimation": {

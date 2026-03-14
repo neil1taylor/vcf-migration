@@ -1,0 +1,176 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/27.0.9 Chrome/134.0.6998.205 Electron/35.4.0 Safari/537.36" version="27.0.9">
+  <diagram id="8FSOnOeh0AyExo4Ielsz" name="Page-1">
+    <mxGraphModel dx="2037" dy="1220" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="workload" value="What is my workload?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="350" y="90" width="220" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_workload_mlq" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="workload" target="mlcuda" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_yes1" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="e_workload_mlq" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mlcuda" value="ML / CUDA?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="650" y="90" width="160" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="gx" value="gx family" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="650" y="170" width="160" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ml_gx" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="mlcuda" target="gx" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_workload_ratio" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="workload" target="ratio" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_no1" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="e_workload_ratio" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ratio" value="CPU-heavy or RAM-heavy?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="321" y="220" width="280" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="cx" value="cx family&#xa;1:2 vCPU:RAM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="121" y="310" width="150" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ratio_cx" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="ratio" target="cx" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_cpu" value="CPU" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="e_ratio_cx" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="bx" value="bx family&#xa;1:4 vCPU:RAM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="386" y="310" width="150" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ratio_bx" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="ratio" target="bx" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_balanced" value="balanced" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="e_ratio_bx" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="mx" value="mx family&#xa;1:8+ vCPU:RAM" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="651" y="310" width="150" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e_ratio_mx" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="ratio" target="mx" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_ram" value="RAM" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="e_ratio_mx" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="burst_q" value="Mostly idle with occasional CPU spikes?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="301" y="420" width="320" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_cx_burst" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="cx" target="burst_q" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_bx_burst" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="bx" target="burst_q" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_mx_burst" style="edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" parent="1" source="mx" target="burst_q" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="burstable" value="Add f suffix (burstable)&#xa;bxf / cxf / mxf" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="141" y="520" width="200" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e_burst_yes" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="burst_q" target="burstable" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_yes2" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="e_burst_yes" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sustained" value="Sustained CPU" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="601" y="520" width="200" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e_burst_no" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="burst_q" target="sustained" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_no2" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="e_burst_no" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="gen3" value="Prefer gen 3 (current silicon)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="336" y="640" width="270" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_burst_gen3" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="burstable" target="gen3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sust_gen3" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="sustained" target="gen3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nvme_q" value="Need fast local I/O? (DB scratch, Kafka)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="311" y="740" width="320" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_gen3_nvme" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="gen3" target="nvme_q" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="nvme" value="Add d suffix&#xa;NVMe, ephemeral" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="176" y="840" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e_nvme_yes" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="nvme_q" target="nvme" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_yes3" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="e_nvme_yes" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="block" value="Block storage&#xa;Tiered, persistent" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="586" y="840" width="180" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="e_nvme_no" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="nvme_q" target="block" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_no3" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="e_nvme_no" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="net_q" value="Network bandwidth enough?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="336" y="960" width="280" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_nvme_net" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="nvme" target="net_q" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_block_net" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="block" target="net_q" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sizeup" value="Size up profile" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=13;" parent="1" vertex="1">
+          <mxGeometry x="176" y="1060" width="150" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_net_no" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="net_q" target="sizeup" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_no4" value="no" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="e_net_no" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="done" value="Profile selected" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="626" y="1060" width="180" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="e_net_yes" style="edgeStyle=orthogonalEdgeStyle;" parent="1" source="net_q" target="done" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l_yes4" value="yes" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="e_net_yes" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

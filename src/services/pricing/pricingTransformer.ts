@@ -145,8 +145,10 @@ export function transformProxyToAppPricing(proxyData: ProxyPricingResponse): IBM
     ...staticPricing,
     pricingVersion: proxyData.version || new Date().toISOString().split('T')[0],
     notes: `Pricing from Code Engine proxy (${proxyData.source || 'proxy'})`,
-    vsi: Object.keys(vsiProfiles).length > 0 ? vsiProfiles : staticPricing.vsi,
-    bareMetal: Object.keys(bareMetalProfiles).length > 0 ? bareMetalProfiles : staticPricing.bareMetal,
+    // Merge proxy profiles with static — proxy overrides static rates, but static profiles
+    // not present in proxy data are preserved (e.g. gen2 profiles missing from proxy)
+    vsi: Object.keys(vsiProfiles).length > 0 ? { ...staticPricing.vsi, ...vsiProfiles } : staticPricing.vsi,
+    bareMetal: Object.keys(bareMetalProfiles).length > 0 ? { ...staticPricing.bareMetal, ...bareMetalProfiles } : staticPricing.bareMetal,
     blockStorage: Object.keys(blockStorageTiers).length > 0 ? blockStorageTiers : staticPricing.blockStorage,
     // Update networking from proxy if available
     networking: proxyData.networking ? {

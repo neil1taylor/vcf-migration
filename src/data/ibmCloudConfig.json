@@ -94,8 +94,8 @@
         "vcpus": 4,
         "memoryGiB": 16,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.2,
-        "monthlyRate": 146
+        "hourlyRate": 0.201,
+        "monthlyRate": 146.73
       },
       {
         "name": "bx3dc-4x20",
@@ -110,8 +110,8 @@
         "vcpus": 4,
         "memoryGiB": 16,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.2,
-        "monthlyRate": 146
+        "hourlyRate": 0.201,
+        "monthlyRate": 146.73
       },
       {
         "name": "bxf-4x16",
@@ -166,16 +166,16 @@
         "vcpus": 8,
         "memoryGiB": 32,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0.4,
-        "monthlyRate": 292
+        "hourlyRate": 0.402,
+        "monthlyRate": 293.46
       },
       {
         "name": "bx2d-8x32",
         "vcpus": 8,
         "memoryGiB": 32,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0.4,
-        "monthlyRate": 292
+        "hourlyRate": 0.402,
+        "monthlyRate": 293.46
       },
       {
         "name": "bz2e-8x32",
@@ -198,8 +198,8 @@
         "vcpus": 16,
         "memoryGiB": 64,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0.8,
-        "monthlyRate": 584
+        "hourlyRate": 0.803,
+        "monthlyRate": 586.19
       },
       {
         "name": "bx3dc-16x80",
@@ -214,8 +214,8 @@
         "vcpus": 16,
         "memoryGiB": 64,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0.8,
-        "monthlyRate": 584
+        "hourlyRate": 0.803,
+        "monthlyRate": 586.19
       },
       {
         "name": "bx3d-16x80",
@@ -286,8 +286,8 @@
         "vcpus": 32,
         "memoryGiB": 128,
         "bandwidthGbps": 64000,
-        "hourlyRate": 1.6,
-        "monthlyRate": 1168
+        "hourlyRate": 1.605,
+        "monthlyRate": 1171.65
       },
       {
         "name": "bx3d-32x160",
@@ -302,8 +302,8 @@
         "vcpus": 32,
         "memoryGiB": 128,
         "bandwidthGbps": 64000,
-        "hourlyRate": 1.6,
-        "monthlyRate": 1168
+        "hourlyRate": 1.605,
+        "monthlyRate": 1171.65
       },
       {
         "name": "bx3dc-32x160",
@@ -318,8 +318,8 @@
         "vcpus": 48,
         "memoryGiB": 192,
         "bandwidthGbps": 80000,
-        "hourlyRate": 2.4,
-        "monthlyRate": 1752
+        "hourlyRate": 2.409,
+        "monthlyRate": 1758.57
       },
       {
         "name": "bx3dc-48x240",
@@ -334,8 +334,8 @@
         "vcpus": 48,
         "memoryGiB": 192,
         "bandwidthGbps": 80000,
-        "hourlyRate": 2.4,
-        "monthlyRate": 1752
+        "hourlyRate": 2.409,
+        "monthlyRate": 1758.57
       },
       {
         "name": "bx3d-48x240",
@@ -366,8 +366,8 @@
         "vcpus": 64,
         "memoryGiB": 256,
         "bandwidthGbps": 80000,
-        "hourlyRate": 3.2,
-        "monthlyRate": 2336
+        "hourlyRate": 3.211,
+        "monthlyRate": 2344.03
       },
       {
         "name": "bx3dc-64x320",
@@ -382,8 +382,8 @@
         "vcpus": 64,
         "memoryGiB": 256,
         "bandwidthGbps": 80000,
-        "hourlyRate": 3.2,
-        "monthlyRate": 2336
+        "hourlyRate": 3.211,
+        "monthlyRate": 2344.03
       },
       {
         "name": "bxf-64x256",
@@ -414,16 +414,16 @@
         "vcpus": 96,
         "memoryGiB": 384,
         "bandwidthGbps": 80000,
-        "hourlyRate": 4.8,
-        "monthlyRate": 3504
+        "hourlyRate": 4.817,
+        "monthlyRate": 3516.41
       },
       {
         "name": "bx2d-96x384",
         "vcpus": 96,
         "memoryGiB": 384,
         "bandwidthGbps": 80000,
-        "hourlyRate": 4.8,
-        "monthlyRate": 3504
+        "hourlyRate": 4.817,
+        "monthlyRate": 3516.41
       },
       {
         "name": "bx3d-128x640",
@@ -438,16 +438,16 @@
         "vcpus": 128,
         "memoryGiB": 512,
         "bandwidthGbps": 80000,
-        "hourlyRate": 6.4,
-        "monthlyRate": 4672
+        "hourlyRate": 6.423,
+        "monthlyRate": 4688.79
       },
       {
         "name": "bx2d-128x512",
         "vcpus": 128,
         "memoryGiB": 512,
         "bandwidthGbps": 80000,
-        "hourlyRate": 6.4,
-        "monthlyRate": 4672
+        "hourlyRate": 6.423,
+        "monthlyRate": 4688.79
       },
       {
         "name": "bx3d-176x880",
@@ -520,8 +520,8 @@
         "vcpus": 4,
         "memoryGiB": 8,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.177,
-        "monthlyRate": 129.21
+        "hourlyRate": 0.178,
+        "monthlyRate": 129.94
       },
       {
         "name": "cx3d-4x10",
@@ -552,8 +552,8 @@
         "vcpus": 4,
         "memoryGiB": 8,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.177,
-        "monthlyRate": 129.21
+        "hourlyRate": 0.178,
+        "monthlyRate": 129.94
       },
       {
         "name": "cz2-4x8",
@@ -584,8 +584,8 @@
         "vcpus": 8,
         "memoryGiB": 16,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0.354,
-        "monthlyRate": 258.42
+        "hourlyRate": 0.356,
+        "monthlyRate": 259.88
       },
       {
         "name": "cx3d-8x20",
@@ -600,8 +600,8 @@
         "vcpus": 8,
         "memoryGiB": 16,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0.354,
-        "monthlyRate": 258.42
+        "hourlyRate": 0.356,
+        "monthlyRate": 259.88
       },
       {
         "name": "cx3dc-8x20",
@@ -632,16 +632,16 @@
         "vcpus": 16,
         "memoryGiB": 32,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0.708,
-        "monthlyRate": 516.84
+        "hourlyRate": 0.711,
+        "monthlyRate": 519.03
       },
       {
         "name": "cx2-16x32",
         "vcpus": 16,
         "memoryGiB": 32,
         "bandwidthGbps": 32000,
-        "hourlyRate": 0.708,
-        "monthlyRate": 516.84
+        "hourlyRate": 0.711,
+        "monthlyRate": 519.03
       },
       {
         "name": "cx3dc-16x40",
@@ -720,8 +720,8 @@
         "vcpus": 32,
         "memoryGiB": 64,
         "bandwidthGbps": 64000,
-        "hourlyRate": 1.416,
-        "monthlyRate": 1033.68
+        "hourlyRate": 1.421,
+        "monthlyRate": 1037.33
       },
       {
         "name": "cx3d-32x80",
@@ -736,8 +736,8 @@
         "vcpus": 32,
         "memoryGiB": 64,
         "bandwidthGbps": 64000,
-        "hourlyRate": 1.416,
-        "monthlyRate": 1033.68
+        "hourlyRate": 1.421,
+        "monthlyRate": 1037.33
       },
       {
         "name": "cx3dc-32x80",
@@ -768,8 +768,8 @@
         "vcpus": 48,
         "memoryGiB": 96,
         "bandwidthGbps": 80000,
-        "hourlyRate": 2.124,
-        "monthlyRate": 1550.52
+        "hourlyRate": 2.133,
+        "monthlyRate": 1557.09
       },
       {
         "name": "cx3dc-48x120",
@@ -784,8 +784,8 @@
         "vcpus": 48,
         "memoryGiB": 96,
         "bandwidthGbps": 80000,
-        "hourlyRate": 2.124,
-        "monthlyRate": 1550.52
+        "hourlyRate": 2.133,
+        "monthlyRate": 1557.09
       },
       {
         "name": "cxf-64x128",
@@ -800,16 +800,16 @@
         "vcpus": 64,
         "memoryGiB": 128,
         "bandwidthGbps": 80000,
-        "hourlyRate": 2.832,
-        "monthlyRate": 2067.36
+        "hourlyRate": 2.843,
+        "monthlyRate": 2075.39
       },
       {
         "name": "cx2-64x128",
         "vcpus": 64,
         "memoryGiB": 128,
         "bandwidthGbps": 80000,
-        "hourlyRate": 2.832,
-        "monthlyRate": 2067.36
+        "hourlyRate": 2.843,
+        "monthlyRate": 2075.39
       },
       {
         "name": "cx3dc-64x160",
@@ -832,8 +832,8 @@
         "vcpus": 96,
         "memoryGiB": 192,
         "bandwidthGbps": 80000,
-        "hourlyRate": 4.248,
-        "monthlyRate": 3101.04
+        "hourlyRate": 4.264,
+        "monthlyRate": 3112.72
       },
       {
         "name": "cx3dc-96x240",
@@ -848,8 +848,8 @@
         "vcpus": 96,
         "memoryGiB": 192,
         "bandwidthGbps": 80000,
-        "hourlyRate": 4.248,
-        "monthlyRate": 3101.04
+        "hourlyRate": 4.264,
+        "monthlyRate": 3112.72
       },
       {
         "name": "cx3d-96x240",
@@ -864,8 +864,8 @@
         "vcpus": 128,
         "memoryGiB": 256,
         "bandwidthGbps": 80000,
-        "hourlyRate": 5.664,
-        "monthlyRate": 4134.72
+        "hourlyRate": 5.686,
+        "monthlyRate": 4150.78
       },
       {
         "name": "cx3d-128x320",
@@ -888,8 +888,8 @@
         "vcpus": 128,
         "memoryGiB": 256,
         "bandwidthGbps": 80000,
-        "hourlyRate": 5.664,
-        "monthlyRate": 4134.72
+        "hourlyRate": 5.686,
+        "monthlyRate": 4150.78
       },
       {
         "name": "cx3d-176x440",
@@ -906,16 +906,16 @@
         "vcpus": 2,
         "memoryGiB": 16,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0.187,
-        "monthlyRate": 136.51
+        "hourlyRate": 0.13,
+        "monthlyRate": 94.9
       },
       {
         "name": "mx2d-2x16",
         "vcpus": 2,
         "memoryGiB": 16,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0.187,
-        "monthlyRate": 136.51
+        "hourlyRate": 0.13,
+        "monthlyRate": 94.9
       },
       {
         "name": "mx3d-2x20",
@@ -962,8 +962,8 @@
         "vcpus": 4,
         "memoryGiB": 32,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.374,
-        "monthlyRate": 273.02
+        "hourlyRate": 0.259,
+        "monthlyRate": 189.07
       },
       {
         "name": "mx3d-4x40",
@@ -978,8 +978,8 @@
         "vcpus": 4,
         "memoryGiB": 32,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.374,
-        "monthlyRate": 273.02
+        "hourlyRate": 0.259,
+        "monthlyRate": 189.07
       },
       {
         "name": "mz2e-4x32",
@@ -1018,16 +1018,16 @@
         "vcpus": 8,
         "memoryGiB": 64,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0.748,
-        "monthlyRate": 546.04
+        "hourlyRate": 0.519,
+        "monthlyRate": 378.87
       },
       {
         "name": "mx2-8x64",
         "vcpus": 8,
         "memoryGiB": 64,
         "bandwidthGbps": 16000,
-        "hourlyRate": 0.748,
-        "monthlyRate": 546.04
+        "hourlyRate": 0.519,
+        "monthlyRate": 378.87
       },
       {
         "name": "mz2-8x64",
@@ -1050,8 +1050,8 @@
         "vcpus": 16,
         "memoryGiB": 128,
         "bandwidthGbps": 32000,
-        "hourlyRate": 1.496,
-        "monthlyRate": 1092.08
+        "hourlyRate": 1.039,
+        "monthlyRate": 758.47
       },
       {
         "name": "mxf-16x128",
@@ -1066,8 +1066,8 @@
         "vcpus": 16,
         "memoryGiB": 128,
         "bandwidthGbps": 32000,
-        "hourlyRate": 1.496,
-        "monthlyRate": 1092.08
+        "hourlyRate": 1.039,
+        "monthlyRate": 758.47
       },
       {
         "name": "mx3d-16x160",
@@ -1114,8 +1114,8 @@
         "vcpus": 32,
         "memoryGiB": 256,
         "bandwidthGbps": 64000,
-        "hourlyRate": 2.992,
-        "monthlyRate": 2184.16
+        "hourlyRate": 2.077,
+        "monthlyRate": 1516.21
       },
       {
         "name": "mxf-32x256",
@@ -1138,16 +1138,16 @@
         "vcpus": 32,
         "memoryGiB": 256,
         "bandwidthGbps": 64000,
-        "hourlyRate": 2.992,
-        "monthlyRate": 2184.16
+        "hourlyRate": 2.077,
+        "monthlyRate": 1516.21
       },
       {
         "name": "mx2-48x384",
         "vcpus": 48,
         "memoryGiB": 384,
         "bandwidthGbps": 80000,
-        "hourlyRate": 4.488,
-        "monthlyRate": 3276.24
+        "hourlyRate": 3.115,
+        "monthlyRate": 2273.95
       },
       {
         "name": "mx3d-48x480",
@@ -1170,16 +1170,16 @@
         "vcpus": 48,
         "memoryGiB": 384,
         "bandwidthGbps": 80000,
-        "hourlyRate": 4.488,
-        "monthlyRate": 3276.24
+        "hourlyRate": 3.115,
+        "monthlyRate": 2273.95
       },
       {
         "name": "mx2d-64x512",
         "vcpus": 64,
         "memoryGiB": 512,
         "bandwidthGbps": 80000,
-        "hourlyRate": 5.984,
-        "monthlyRate": 4368.32
+        "hourlyRate": 4.153,
+        "monthlyRate": 3031.69
       },
       {
         "name": "mxf-64x512",
@@ -1202,16 +1202,16 @@
         "vcpus": 64,
         "memoryGiB": 512,
         "bandwidthGbps": 80000,
-        "hourlyRate": 5.984,
-        "monthlyRate": 4368.32
+        "hourlyRate": 4.153,
+        "monthlyRate": 3031.69
       },
       {
         "name": "mx2-96x768",
         "vcpus": 96,
         "memoryGiB": 768,
         "bandwidthGbps": 80000,
-        "hourlyRate": 8.976,
-        "monthlyRate": 6552.48
+        "hourlyRate": 6.23,
+        "monthlyRate": 4547.9
       },
       {
         "name": "mx3d-96x960",
@@ -1226,16 +1226,16 @@
         "vcpus": 96,
         "memoryGiB": 768,
         "bandwidthGbps": 80000,
-        "hourlyRate": 8.976,
-        "monthlyRate": 6552.48
+        "hourlyRate": 6.23,
+        "monthlyRate": 4547.9
       },
       {
         "name": "mx2d-128x1024",
         "vcpus": 128,
         "memoryGiB": 1024,
         "bandwidthGbps": 80000,
-        "hourlyRate": 11.968,
-        "monthlyRate": 8736.64
+        "hourlyRate": 8.306,
+        "monthlyRate": 6063.38
       },
       {
         "name": "mx3d-128x1280",
@@ -1250,8 +1250,8 @@
         "vcpus": 128,
         "memoryGiB": 1024,
         "bandwidthGbps": 80000,
-        "hourlyRate": 11.968,
-        "monthlyRate": 8736.64
+        "hourlyRate": 8.306,
+        "monthlyRate": 6063.38
       },
       {
         "name": "mx3d-176x1760",
@@ -1268,64 +1268,64 @@
         "vcpus": 2,
         "memoryGiB": 28,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0.286,
-        "monthlyRate": 208.78
+        "hourlyRate": 0.21,
+        "monthlyRate": 153.3
       },
       {
         "name": "vx2d-4x56",
         "vcpus": 4,
         "memoryGiB": 56,
         "bandwidthGbps": 8000,
-        "hourlyRate": 0.572,
-        "monthlyRate": 417.56
+        "hourlyRate": 0.418,
+        "monthlyRate": 305.14
       },
       {
         "name": "vx2d-8x112",
         "vcpus": 8,
         "memoryGiB": 112,
         "bandwidthGbps": 16000,
-        "hourlyRate": 1.144,
-        "monthlyRate": 835.12
+        "hourlyRate": 0.837,
+        "monthlyRate": 611.01
       },
       {
         "name": "vx2d-16x224",
         "vcpus": 16,
         "memoryGiB": 224,
         "bandwidthGbps": 32000,
-        "hourlyRate": 2.288,
-        "monthlyRate": 1670.24
+        "hourlyRate": 1.674,
+        "monthlyRate": 1222.02
       },
       {
         "name": "vx2d-44x616",
         "vcpus": 44,
         "memoryGiB": 616,
         "bandwidthGbps": 80000,
-        "hourlyRate": 6.292,
-        "monthlyRate": 4593.16
+        "hourlyRate": 4.604,
+        "monthlyRate": 3360.92
       },
       {
         "name": "vx2d-88x1232",
         "vcpus": 88,
         "memoryGiB": 1232,
         "bandwidthGbps": 80000,
-        "hourlyRate": 12.584,
-        "monthlyRate": 9186.32
+        "hourlyRate": 9.208,
+        "monthlyRate": 6721.84
       },
       {
         "name": "vx2d-144x2016",
         "vcpus": 144,
         "memoryGiB": 2016,
         "bandwidthGbps": 80000,
-        "hourlyRate": 20.592,
-        "monthlyRate": 15032.16
+        "hourlyRate": 15.067,
+        "monthlyRate": 10998.91
       },
       {
         "name": "vx2d-176x2464",
         "vcpus": 176,
         "memoryGiB": 2464,
         "bandwidthGbps": 80000,
-        "hourlyRate": 25.168,
-        "monthlyRate": 18372.64
+        "hourlyRate": 18.415,
+        "monthlyRate": 13442.95
       }
     ],
     "ultraHighMemory": [
@@ -1334,72 +1334,72 @@
         "vcpus": 2,
         "memoryGiB": 56,
         "bandwidthGbps": 4000,
-        "hourlyRate": 0.517,
-        "monthlyRate": 377.41
+        "hourlyRate": 0.395,
+        "monthlyRate": 288.35
       },
       {
         "name": "ux2d-4x112",
         "vcpus": 4,
         "memoryGiB": 112,
         "bandwidthGbps": 8000,
-        "hourlyRate": 1.034,
-        "monthlyRate": 754.82
+        "hourlyRate": 0.789,
+        "monthlyRate": 575.97
       },
       {
         "name": "ux2d-8x224",
         "vcpus": 8,
         "memoryGiB": 224,
         "bandwidthGbps": 16000,
-        "hourlyRate": 2.068,
-        "monthlyRate": 1509.64
+        "hourlyRate": 1.578,
+        "monthlyRate": 1151.94
       },
       {
         "name": "ux2d-16x448",
         "vcpus": 16,
         "memoryGiB": 448,
         "bandwidthGbps": 32000,
-        "hourlyRate": 4.136,
-        "monthlyRate": 3019.28
+        "hourlyRate": 3.158,
+        "monthlyRate": 2305.34
       },
       {
         "name": "ux2d-36x1008",
         "vcpus": 36,
         "memoryGiB": 1008,
         "bandwidthGbps": 72000,
-        "hourlyRate": 9.306,
-        "monthlyRate": 6793.38
+        "hourlyRate": 7.105,
+        "monthlyRate": 5186.65
       },
       {
         "name": "ux2d-48x1344",
         "vcpus": 48,
         "memoryGiB": 1344,
         "bandwidthGbps": 80000,
-        "hourlyRate": 12.408,
-        "monthlyRate": 9057.84
+        "hourlyRate": 9.473,
+        "monthlyRate": 6915.29
       },
       {
         "name": "ux2d-72x2016",
         "vcpus": 72,
         "memoryGiB": 2016,
         "bandwidthGbps": 80000,
-        "hourlyRate": 18.612,
-        "monthlyRate": 13586.76
+        "hourlyRate": 14.209,
+        "monthlyRate": 10372.57
       },
       {
         "name": "ux2d-100x2800",
         "vcpus": 100,
         "memoryGiB": 2800,
         "bandwidthGbps": 80000,
-        "hourlyRate": 25.85,
-        "monthlyRate": 18870.5
+        "hourlyRate": 19.735,
+        "monthlyRate": 14406.55
       },
       {
         "name": "ux2d-200x5600",
         "vcpus": 200,
         "memoryGiB": 5600,
         "bandwidthGbps": 80000,
-        "hourlyRate": 51.7,
-        "monthlyRate": 37741
+        "hourlyRate": 39.469,
+        "monthlyRate": 28812.37
       }
     ]
   },
@@ -1835,16 +1835,16 @@
       "monthlyRate": 165.71
     },
     "bx2d-4x16": {
-      "hourlyRate": 0.2,
-      "monthlyRate": 146
+      "hourlyRate": 0.201,
+      "monthlyRate": 146.73
     },
     "bx3dc-4x20": {
       "hourlyRate": 0.2525,
       "monthlyRate": 184.33
     },
     "bx2-4x16": {
-      "hourlyRate": 0.2,
-      "monthlyRate": 146
+      "hourlyRate": 0.201,
+      "monthlyRate": 146.73
     },
     "bxf-4x16": {
       "hourlyRate": 0.193,
@@ -1871,12 +1871,12 @@
       "monthlyRate": 330.69
     },
     "bx2-8x32": {
-      "hourlyRate": 0.4,
-      "monthlyRate": 292
+      "hourlyRate": 0.402,
+      "monthlyRate": 293.46
     },
     "bx2d-8x32": {
-      "hourlyRate": 0.4,
-      "monthlyRate": 292
+      "hourlyRate": 0.402,
+      "monthlyRate": 293.46
     },
     "bz2e-8x32": {
       "hourlyRate": 25.808,
@@ -1887,16 +1887,16 @@
       "monthlyRate": 20848.8
     },
     "bx2d-16x64": {
-      "hourlyRate": 0.8,
-      "monthlyRate": 584
+      "hourlyRate": 0.803,
+      "monthlyRate": 586.19
     },
     "bx3dc-16x80": {
       "hourlyRate": 0.1818,
       "monthlyRate": 132.71
     },
     "bx2-16x64": {
-      "hourlyRate": 0.8,
-      "monthlyRate": 584
+      "hourlyRate": 0.803,
+      "monthlyRate": 586.19
     },
     "bx3d-16x80": {
       "hourlyRate": 0.907,
@@ -1931,32 +1931,32 @@
       "monthlyRate": 1124.93
     },
     "bx2d-32x128": {
-      "hourlyRate": 1.6,
-      "monthlyRate": 1168
+      "hourlyRate": 1.605,
+      "monthlyRate": 1171.65
     },
     "bx3d-32x160": {
       "hourlyRate": 1.813,
       "monthlyRate": 1323.49
     },
     "bx2-32x128": {
-      "hourlyRate": 1.6,
-      "monthlyRate": 1168
+      "hourlyRate": 1.605,
+      "monthlyRate": 1171.65
     },
     "bx3dc-32x160": {
       "hourlyRate": 1.991,
       "monthlyRate": 1453.43
     },
     "bx2-48x192": {
-      "hourlyRate": 2.4,
-      "monthlyRate": 1752
+      "hourlyRate": 2.409,
+      "monthlyRate": 1758.57
     },
     "bx3dc-48x240": {
       "hourlyRate": 0.544,
       "monthlyRate": 397.12
     },
     "bx2d-48x192": {
-      "hourlyRate": 2.4,
-      "monthlyRate": 1752
+      "hourlyRate": 2.409,
+      "monthlyRate": 1758.57
     },
     "bx3d-48x240": {
       "hourlyRate": 2.72,
@@ -1971,16 +1971,16 @@
       "monthlyRate": 2647.71
     },
     "bx2d-64x256": {
-      "hourlyRate": 3.2,
-      "monthlyRate": 2336
+      "hourlyRate": 3.211,
+      "monthlyRate": 2344.03
     },
     "bx3dc-64x320": {
       "hourlyRate": 3.986,
       "monthlyRate": 2909.78
     },
     "bx2-64x256": {
-      "hourlyRate": 3.2,
-      "monthlyRate": 2336
+      "hourlyRate": 3.211,
+      "monthlyRate": 2344.03
     },
     "bxf-64x256": {
       "hourlyRate": 3.083,
@@ -1995,24 +1995,24 @@
       "monthlyRate": 794.24
     },
     "bx2-96x384": {
-      "hourlyRate": 4.8,
-      "monthlyRate": 3504
+      "hourlyRate": 4.817,
+      "monthlyRate": 3516.41
     },
     "bx2d-96x384": {
-      "hourlyRate": 4.8,
-      "monthlyRate": 3504
+      "hourlyRate": 4.817,
+      "monthlyRate": 3516.41
     },
     "bx3d-128x640": {
       "hourlyRate": 7.253,
       "monthlyRate": 5294.69
     },
     "bx2-128x512": {
-      "hourlyRate": 6.4,
-      "monthlyRate": 4672
+      "hourlyRate": 6.423,
+      "monthlyRate": 4688.79
     },
     "bx2d-128x512": {
-      "hourlyRate": 6.4,
-      "monthlyRate": 4672
+      "hourlyRate": 6.423,
+      "monthlyRate": 4688.79
     },
     "bx3d-176x880": {
       "hourlyRate": 9.066,
@@ -2047,8 +2047,8 @@
       "monthlyRate": 3136.08
     },
     "cx2-4x8": {
-      "hourlyRate": 0.177,
-      "monthlyRate": 129.21
+      "hourlyRate": 0.178,
+      "monthlyRate": 129.94
     },
     "cx3d-4x10": {
       "hourlyRate": 0.203,
@@ -2063,8 +2063,8 @@
       "monthlyRate": 91.98
     },
     "cx2d-4x8": {
-      "hourlyRate": 0.177,
-      "monthlyRate": 129.21
+      "hourlyRate": 0.178,
+      "monthlyRate": 129.94
     },
     "cz2-4x8": {
       "hourlyRate": 8.592,
@@ -2079,16 +2079,16 @@
       "monthlyRate": 248.2
     },
     "cx2-8x16": {
-      "hourlyRate": 0.354,
-      "monthlyRate": 258.42
+      "hourlyRate": 0.356,
+      "monthlyRate": 259.88
     },
     "cx3d-8x20": {
       "hourlyRate": 0.406,
       "monthlyRate": 296.38
     },
     "cx2d-8x16": {
-      "hourlyRate": 0.354,
-      "monthlyRate": 258.42
+      "hourlyRate": 0.356,
+      "monthlyRate": 259.88
     },
     "cx3dc-8x20": {
       "hourlyRate": 0.0808,
@@ -2103,12 +2103,12 @@
       "monthlyRate": 12415.84
     },
     "cx2d-16x32": {
-      "hourlyRate": 0.708,
-      "monthlyRate": 516.84
+      "hourlyRate": 0.711,
+      "monthlyRate": 519.03
     },
     "cx2-16x32": {
-      "hourlyRate": 0.708,
-      "monthlyRate": 516.84
+      "hourlyRate": 0.711,
+      "monthlyRate": 519.03
     },
     "cx3dc-16x40": {
       "hourlyRate": 0.81,
@@ -2147,16 +2147,16 @@
       "monthlyRate": 992.8
     },
     "cx2-32x64": {
-      "hourlyRate": 1.416,
-      "monthlyRate": 1033.68
+      "hourlyRate": 1.421,
+      "monthlyRate": 1037.33
     },
     "cx3d-32x80": {
       "hourlyRate": 1.622,
       "monthlyRate": 1184.06
     },
     "cx2d-32x64": {
-      "hourlyRate": 1.416,
-      "monthlyRate": 1033.68
+      "hourlyRate": 1.421,
+      "monthlyRate": 1037.33
     },
     "cx3dc-32x80": {
       "hourlyRate": 0.324,
@@ -2171,28 +2171,28 @@
       "monthlyRate": 1492.85
     },
     "cx2-48x96": {
-      "hourlyRate": 2.124,
-      "monthlyRate": 1550.52
+      "hourlyRate": 2.133,
+      "monthlyRate": 1557.09
     },
     "cx3dc-48x120": {
       "hourlyRate": 1.492,
       "monthlyRate": 1089.16
     },
     "cx2d-48x96": {
-      "hourlyRate": 2.124,
-      "monthlyRate": 1550.52
+      "hourlyRate": 2.133,
+      "monthlyRate": 1557.09
     },
     "cxf-64x128": {
       "hourlyRate": 2.727,
       "monthlyRate": 1990.71
     },
     "cx2d-64x128": {
-      "hourlyRate": 2.832,
-      "monthlyRate": 2067.36
+      "hourlyRate": 2.843,
+      "monthlyRate": 2075.39
     },
     "cx2-64x128": {
-      "hourlyRate": 2.832,
-      "monthlyRate": 2067.36
+      "hourlyRate": 2.843,
+      "monthlyRate": 2075.39
     },
     "cx3dc-64x160": {
       "hourlyRate": 0.648,
@@ -2203,24 +2203,24 @@
       "monthlyRate": 2368.12
     },
     "cx2-96x192": {
-      "hourlyRate": 4.248,
-      "monthlyRate": 3101.04
+      "hourlyRate": 4.264,
+      "monthlyRate": 3112.72
     },
     "cx3dc-96x240": {
       "hourlyRate": 4.865,
       "monthlyRate": 3551.45
     },
     "cx2d-96x192": {
-      "hourlyRate": 4.248,
-      "monthlyRate": 3101.04
+      "hourlyRate": 4.264,
+      "monthlyRate": 3112.72
     },
     "cx3d-96x240": {
       "hourlyRate": 4.865,
       "monthlyRate": 3551.45
     },
     "cx2d-128x256": {
-      "hourlyRate": 5.664,
-      "monthlyRate": 4134.72
+      "hourlyRate": 5.686,
+      "monthlyRate": 4150.78
     },
     "cx3d-128x320": {
       "hourlyRate": 6.487,
@@ -2231,20 +2231,20 @@
       "monthlyRate": 4735.51
     },
     "cx2-128x256": {
-      "hourlyRate": 5.664,
-      "monthlyRate": 4134.72
+      "hourlyRate": 5.686,
+      "monthlyRate": 4150.78
     },
     "cx3d-176x440": {
       "hourlyRate": 8.109,
       "monthlyRate": 5919.57
     },
     "mx2-2x16": {
-      "hourlyRate": 0.187,
-      "monthlyRate": 136.51
+      "hourlyRate": 0.13,
+      "monthlyRate": 94.9
     },
     "mx2d-2x16": {
-      "hourlyRate": 0.187,
-      "monthlyRate": 136.51
+      "hourlyRate": 0.13,
+      "monthlyRate": 94.9
     },
     "mx3d-2x20": {
       "hourlyRate": 0.137,
@@ -2267,16 +2267,16 @@
       "monthlyRate": 181.77
     },
     "mx2d-4x32": {
-      "hourlyRate": 0.374,
-      "monthlyRate": 273.02
+      "hourlyRate": 0.259,
+      "monthlyRate": 189.07
     },
     "mx3d-4x40": {
       "hourlyRate": 0.276,
       "monthlyRate": 201.48
     },
     "mx2-4x32": {
-      "hourlyRate": 0.374,
-      "monthlyRate": 273.02
+      "hourlyRate": 0.259,
+      "monthlyRate": 189.07
     },
     "mz2e-4x32": {
       "hourlyRate": 21.704,
@@ -2295,12 +2295,12 @@
       "monthlyRate": 363.54
     },
     "mx2d-8x64": {
-      "hourlyRate": 0.748,
-      "monthlyRate": 546.04
+      "hourlyRate": 0.519,
+      "monthlyRate": 378.87
     },
     "mx2-8x64": {
-      "hourlyRate": 0.748,
-      "monthlyRate": 546.04
+      "hourlyRate": 0.519,
+      "monthlyRate": 378.87
     },
     "mz2-8x64": {
       "hourlyRate": 51.312,
@@ -2311,16 +2311,16 @@
       "monthlyRate": 31687.84
     },
     "mx2d-16x128": {
-      "hourlyRate": 1.496,
-      "monthlyRate": 1092.08
+      "hourlyRate": 1.039,
+      "monthlyRate": 758.47
     },
     "mxf-16x128": {
       "hourlyRate": 0.996,
       "monthlyRate": 727.08
     },
     "mx2-16x128": {
-      "hourlyRate": 1.496,
-      "monthlyRate": 1092.08
+      "hourlyRate": 1.039,
+      "monthlyRate": 758.47
     },
     "mx3d-16x160": {
       "hourlyRate": 1.102,
@@ -2343,8 +2343,8 @@
       "monthlyRate": 1087.7
     },
     "mx2-32x256": {
-      "hourlyRate": 2.992,
-      "monthlyRate": 2184.16
+      "hourlyRate": 2.077,
+      "monthlyRate": 1516.21
     },
     "mxf-32x256": {
       "hourlyRate": 1.993,
@@ -2355,12 +2355,12 @@
       "monthlyRate": 2413.38
     },
     "mx2d-32x256": {
-      "hourlyRate": 2.992,
-      "monthlyRate": 2184.16
+      "hourlyRate": 2.077,
+      "monthlyRate": 1516.21
     },
     "mx2-48x384": {
-      "hourlyRate": 4.488,
-      "monthlyRate": 3276.24
+      "hourlyRate": 3.115,
+      "monthlyRate": 2273.95
     },
     "mx3d-48x480": {
       "hourlyRate": 4.408,
@@ -2371,12 +2371,12 @@
       "monthlyRate": 2181.97
     },
     "mx2d-48x384": {
-      "hourlyRate": 4.488,
-      "monthlyRate": 3276.24
+      "hourlyRate": 3.115,
+      "monthlyRate": 2273.95
     },
     "mx2d-64x512": {
-      "hourlyRate": 5.984,
-      "monthlyRate": 4368.32
+      "hourlyRate": 4.153,
+      "monthlyRate": 3031.69
     },
     "mxf-64x512": {
       "hourlyRate": 3.985,
@@ -2387,104 +2387,104 @@
       "monthlyRate": 3363.11
     },
     "mx2-64x512": {
-      "hourlyRate": 5.984,
-      "monthlyRate": 4368.32
+      "hourlyRate": 4.153,
+      "monthlyRate": 3031.69
     },
     "mx2-96x768": {
-      "hourlyRate": 8.976,
-      "monthlyRate": 6552.48
+      "hourlyRate": 6.23,
+      "monthlyRate": 4547.9
     },
     "mx3d-96x960": {
       "hourlyRate": 6.909,
       "monthlyRate": 5043.57
     },
     "mx2d-96x768": {
-      "hourlyRate": 8.976,
-      "monthlyRate": 6552.48
+      "hourlyRate": 6.23,
+      "monthlyRate": 4547.9
     },
     "mx2d-128x1024": {
-      "hourlyRate": 11.968,
-      "monthlyRate": 8736.64
+      "hourlyRate": 8.306,
+      "monthlyRate": 6063.38
     },
     "mx3d-128x1280": {
       "hourlyRate": 9.213,
       "monthlyRate": 6725.49
     },
     "mx2-128x1024": {
-      "hourlyRate": 11.968,
-      "monthlyRate": 8736.64
+      "hourlyRate": 8.306,
+      "monthlyRate": 6063.38
     },
     "mx3d-176x1760": {
       "hourlyRate": 11.516,
       "monthlyRate": 8406.68
     },
     "vx2d-2x28": {
-      "hourlyRate": 0.286,
-      "monthlyRate": 208.78
+      "hourlyRate": 0.21,
+      "monthlyRate": 153.3
     },
     "vx2d-4x56": {
-      "hourlyRate": 0.572,
-      "monthlyRate": 417.56
+      "hourlyRate": 0.418,
+      "monthlyRate": 305.14
     },
     "vx2d-8x112": {
-      "hourlyRate": 1.144,
-      "monthlyRate": 835.12
+      "hourlyRate": 0.837,
+      "monthlyRate": 611.01
     },
     "vx2d-16x224": {
-      "hourlyRate": 2.288,
-      "monthlyRate": 1670.24
+      "hourlyRate": 1.674,
+      "monthlyRate": 1222.02
     },
     "vx2d-44x616": {
-      "hourlyRate": 6.292,
-      "monthlyRate": 4593.16
+      "hourlyRate": 4.604,
+      "monthlyRate": 3360.92
     },
     "vx2d-88x1232": {
-      "hourlyRate": 12.584,
-      "monthlyRate": 9186.32
+      "hourlyRate": 9.208,
+      "monthlyRate": 6721.84
     },
     "vx2d-144x2016": {
-      "hourlyRate": 20.592,
-      "monthlyRate": 15032.16
+      "hourlyRate": 15.067,
+      "monthlyRate": 10998.91
     },
     "vx2d-176x2464": {
-      "hourlyRate": 25.168,
-      "monthlyRate": 18372.64
+      "hourlyRate": 18.415,
+      "monthlyRate": 13442.95
     },
     "ux2d-2x56": {
-      "hourlyRate": 0.517,
-      "monthlyRate": 377.41
+      "hourlyRate": 0.395,
+      "monthlyRate": 288.35
     },
     "ux2d-4x112": {
-      "hourlyRate": 1.034,
-      "monthlyRate": 754.82
+      "hourlyRate": 0.789,
+      "monthlyRate": 575.97
     },
     "ux2d-8x224": {
-      "hourlyRate": 2.068,
-      "monthlyRate": 1509.64
+      "hourlyRate": 1.578,
+      "monthlyRate": 1151.94
     },
     "ux2d-16x448": {
-      "hourlyRate": 4.136,
-      "monthlyRate": 3019.28
+      "hourlyRate": 3.158,
+      "monthlyRate": 2305.34
     },
     "ux2d-36x1008": {
-      "hourlyRate": 9.306,
-      "monthlyRate": 6793.38
+      "hourlyRate": 7.105,
+      "monthlyRate": 5186.65
     },
     "ux2d-48x1344": {
-      "hourlyRate": 12.408,
-      "monthlyRate": 9057.84
+      "hourlyRate": 9.473,
+      "monthlyRate": 6915.29
     },
     "ux2d-72x2016": {
-      "hourlyRate": 18.612,
-      "monthlyRate": 13586.76
+      "hourlyRate": 14.209,
+      "monthlyRate": 10372.57
     },
     "ux2d-100x2800": {
-      "hourlyRate": 25.85,
-      "monthlyRate": 18870.5
+      "hourlyRate": 19.735,
+      "monthlyRate": 14406.55
     },
     "ux2d-200x5600": {
-      "hourlyRate": 51.7,
-      "monthlyRate": 37741
+      "hourlyRate": 39.469,
+      "monthlyRate": 28812.37
     }
   },
   "bareMetalPricing": {
@@ -3201,37 +3201,289 @@
           "hourlyRate": 0.117,
           "monthlyRate": 85.41
         },
+        "bx2-128x512": {
+          "hourlyRate": 7.707,
+          "monthlyRate": 5626.11
+        },
+        "bx2-16x64": {
+          "hourlyRate": 0.964,
+          "monthlyRate": 703.72
+        },
         "bx2-2x8": {
           "hourlyRate": 0.12,
           "monthlyRate": 87.6
+        },
+        "bx2-32x128": {
+          "hourlyRate": 1.927,
+          "monthlyRate": 1406.71
+        },
+        "bx2-48x192": {
+          "hourlyRate": 2.891,
+          "monthlyRate": 2110.43
+        },
+        "bx2-4x16": {
+          "hourlyRate": 0.241,
+          "monthlyRate": 175.93
+        },
+        "bx2-64x256": {
+          "hourlyRate": 3.853,
+          "monthlyRate": 2812.69
+        },
+        "bx2-8x32": {
+          "hourlyRate": 0.482,
+          "monthlyRate": 351.86
+        },
+        "bx2-96x384": {
+          "hourlyRate": 5.78,
+          "monthlyRate": 4219.4
+        },
+        "bx2d-128x512": {
+          "hourlyRate": 7.707,
+          "monthlyRate": 5626.11
+        },
+        "bx2d-16x64": {
+          "hourlyRate": 0.964,
+          "monthlyRate": 703.72
         },
         "bx2d-2x8": {
           "hourlyRate": 0.12,
           "monthlyRate": 87.6
         },
-        "cx2d-2x4": {
-          "hourlyRate": 0.106,
-          "monthlyRate": 77.38
+        "bx2d-32x128": {
+          "hourlyRate": 1.927,
+          "monthlyRate": 1406.71
+        },
+        "bx2d-48x192": {
+          "hourlyRate": 2.891,
+          "monthlyRate": 2110.43
+        },
+        "bx2d-4x16": {
+          "hourlyRate": 0.241,
+          "monthlyRate": 175.93
+        },
+        "bx2d-64x256": {
+          "hourlyRate": 3.853,
+          "monthlyRate": 2812.69
+        },
+        "bx2d-8x32": {
+          "hourlyRate": 0.482,
+          "monthlyRate": 351.86
+        },
+        "bx2d-96x384": {
+          "hourlyRate": 5.78,
+          "monthlyRate": 4219.4
+        },
+        "cx2-128x256": {
+          "hourlyRate": 6.823,
+          "monthlyRate": 4980.79
+        },
+        "cx2-16x32": {
+          "hourlyRate": 0.853,
+          "monthlyRate": 622.69
         },
         "cx2-2x4": {
           "hourlyRate": 0.106,
           "monthlyRate": 77.38
         },
-        "bx2d-4x16": {
-          "hourlyRate": 0.24,
-          "monthlyRate": 175.2
+        "cx2-32x64": {
+          "hourlyRate": 1.706,
+          "monthlyRate": 1245.38
         },
-        "bx2-4x16": {
-          "hourlyRate": 0.24,
-          "monthlyRate": 175.2
+        "cx2-48x96": {
+          "hourlyRate": 2.559,
+          "monthlyRate": 1868.07
         },
         "cx2-4x8": {
-          "hourlyRate": 0.212,
-          "monthlyRate": 154.76
+          "hourlyRate": 0.213,
+          "monthlyRate": 155.49
+        },
+        "cx2-64x128": {
+          "hourlyRate": 3.411,
+          "monthlyRate": 2490.03
+        },
+        "cx2-8x16": {
+          "hourlyRate": 0.427,
+          "monthlyRate": 311.71
+        },
+        "cx2-96x192": {
+          "hourlyRate": 5.117,
+          "monthlyRate": 3735.41
+        },
+        "cx2d-128x256": {
+          "hourlyRate": 6.823,
+          "monthlyRate": 4980.79
+        },
+        "cx2d-16x32": {
+          "hourlyRate": 0.853,
+          "monthlyRate": 622.69
+        },
+        "cx2d-2x4": {
+          "hourlyRate": 0.106,
+          "monthlyRate": 77.38
+        },
+        "cx2d-32x64": {
+          "hourlyRate": 1.706,
+          "monthlyRate": 1245.38
+        },
+        "cx2d-48x96": {
+          "hourlyRate": 2.559,
+          "monthlyRate": 1868.07
         },
         "cx2d-4x8": {
-          "hourlyRate": 0.212,
-          "monthlyRate": 154.76
+          "hourlyRate": 0.213,
+          "monthlyRate": 155.49
+        },
+        "cx2d-64x128": {
+          "hourlyRate": 3.411,
+          "monthlyRate": 2490.03
+        },
+        "cx2d-8x16": {
+          "hourlyRate": 0.427,
+          "monthlyRate": 311.71
+        },
+        "cx2d-96x192": {
+          "hourlyRate": 5.117,
+          "monthlyRate": 3735.41
+        },
+        "mx2-128x1024": {
+          "hourlyRate": 9.968,
+          "monthlyRate": 7276.64
+        },
+        "mx2-16x128": {
+          "hourlyRate": 1.246,
+          "monthlyRate": 909.58
+        },
+        "mx2-2x16": {
+          "hourlyRate": 0.156,
+          "monthlyRate": 113.88
+        },
+        "mx2-32x256": {
+          "hourlyRate": 2.491,
+          "monthlyRate": 1818.43
+        },
+        "mx2-48x384": {
+          "hourlyRate": 3.738,
+          "monthlyRate": 2728.74
+        },
+        "mx2-4x32": {
+          "hourlyRate": 0.311,
+          "monthlyRate": 227.03
+        },
+        "mx2-64x512": {
+          "hourlyRate": 4.984,
+          "monthlyRate": 3638.32
+        },
+        "mx2-8x64": {
+          "hourlyRate": 0.623,
+          "monthlyRate": 454.79
+        },
+        "mx2-96x768": {
+          "hourlyRate": 7.475,
+          "monthlyRate": 5456.75
+        },
+        "mx2d-128x1024": {
+          "hourlyRate": 9.968,
+          "monthlyRate": 7276.64
+        },
+        "mx2d-16x128": {
+          "hourlyRate": 1.246,
+          "monthlyRate": 909.58
+        },
+        "mx2d-2x16": {
+          "hourlyRate": 0.156,
+          "monthlyRate": 113.88
+        },
+        "mx2d-32x256": {
+          "hourlyRate": 2.491,
+          "monthlyRate": 1818.43
+        },
+        "mx2d-48x384": {
+          "hourlyRate": 3.738,
+          "monthlyRate": 2728.74
+        },
+        "mx2d-4x32": {
+          "hourlyRate": 0.311,
+          "monthlyRate": 227.03
+        },
+        "mx2d-64x512": {
+          "hourlyRate": 4.984,
+          "monthlyRate": 3638.32
+        },
+        "mx2d-8x64": {
+          "hourlyRate": 0.623,
+          "monthlyRate": 454.79
+        },
+        "mx2d-96x768": {
+          "hourlyRate": 7.475,
+          "monthlyRate": 5456.75
+        },
+        "ux2d-100x2800": {
+          "hourlyRate": 23.682,
+          "monthlyRate": 17287.86
+        },
+        "ux2d-16x448": {
+          "hourlyRate": 3.789,
+          "monthlyRate": 2765.97
+        },
+        "ux2d-200x5600": {
+          "hourlyRate": 47.363,
+          "monthlyRate": 34574.99
+        },
+        "ux2d-2x56": {
+          "hourlyRate": 0.474,
+          "monthlyRate": 346.02
+        },
+        "ux2d-36x1008": {
+          "hourlyRate": 8.525,
+          "monthlyRate": 6223.25
+        },
+        "ux2d-48x1344": {
+          "hourlyRate": 11.367,
+          "monthlyRate": 8297.91
+        },
+        "ux2d-4x112": {
+          "hourlyRate": 0.947,
+          "monthlyRate": 691.31
+        },
+        "ux2d-72x2016": {
+          "hourlyRate": 17.051,
+          "monthlyRate": 12447.23
+        },
+        "ux2d-8x224": {
+          "hourlyRate": 1.895,
+          "monthlyRate": 1383.35
+        },
+        "vx2d-144x2016": {
+          "hourlyRate": 18.08,
+          "monthlyRate": 13198.4
+        },
+        "vx2d-16x224": {
+          "hourlyRate": 2.009,
+          "monthlyRate": 1466.57
+        },
+        "vx2d-176x2464": {
+          "hourlyRate": 22.098,
+          "monthlyRate": 16131.54
+        },
+        "vx2d-2x28": {
+          "hourlyRate": 0.251,
+          "monthlyRate": 183.23
+        },
+        "vx2d-44x616": {
+          "hourlyRate": 5.525,
+          "monthlyRate": 4033.25
+        },
+        "vx2d-4x56": {
+          "hourlyRate": 0.503,
+          "monthlyRate": 367.19
+        },
+        "vx2d-88x1232": {
+          "hourlyRate": 11.049,
+          "monthlyRate": 8065.77
+        },
+        "vx2d-8x112": {
+          "hourlyRate": 1.004,
+          "monthlyRate": 732.92
         },
         "bx3dc-2x10": {
           "hourlyRate": 0.027,
@@ -3611,37 +3863,289 @@
           "hourlyRate": 0.133,
           "monthlyRate": 97.09
         },
+        "bx2-128x512": {
+          "hourlyRate": 8.285,
+          "monthlyRate": 6048.05
+        },
+        "bx2-16x64": {
+          "hourlyRate": 1.036,
+          "monthlyRate": 756.28
+        },
         "bx2-2x8": {
           "hourlyRate": 0.129,
           "monthlyRate": 94.17
+        },
+        "bx2-32x128": {
+          "hourlyRate": 2.071,
+          "monthlyRate": 1511.83
+        },
+        "bx2-48x192": {
+          "hourlyRate": 3.107,
+          "monthlyRate": 2268.11
+        },
+        "bx2-4x16": {
+          "hourlyRate": 0.259,
+          "monthlyRate": 189.07
+        },
+        "bx2-64x256": {
+          "hourlyRate": 4.143,
+          "monthlyRate": 3024.39
+        },
+        "bx2-8x32": {
+          "hourlyRate": 0.518,
+          "monthlyRate": 378.14
+        },
+        "bx2-96x384": {
+          "hourlyRate": 6.213,
+          "monthlyRate": 4535.49
+        },
+        "bx2d-128x512": {
+          "hourlyRate": 8.285,
+          "monthlyRate": 6048.05
+        },
+        "bx2d-16x64": {
+          "hourlyRate": 1.036,
+          "monthlyRate": 756.28
         },
         "bx2d-2x8": {
           "hourlyRate": 0.129,
           "monthlyRate": 94.17
         },
-        "cx2d-2x4": {
-          "hourlyRate": 0.114,
-          "monthlyRate": 83.22
+        "bx2d-32x128": {
+          "hourlyRate": 2.071,
+          "monthlyRate": 1511.83
+        },
+        "bx2d-48x192": {
+          "hourlyRate": 3.107,
+          "monthlyRate": 2268.11
+        },
+        "bx2d-4x16": {
+          "hourlyRate": 0.259,
+          "monthlyRate": 189.07
+        },
+        "bx2d-64x256": {
+          "hourlyRate": 4.143,
+          "monthlyRate": 3024.39
+        },
+        "bx2d-8x32": {
+          "hourlyRate": 0.518,
+          "monthlyRate": 378.14
+        },
+        "bx2d-96x384": {
+          "hourlyRate": 6.213,
+          "monthlyRate": 4535.49
+        },
+        "cx2-128x256": {
+          "hourlyRate": 7.335,
+          "monthlyRate": 5354.55
+        },
+        "cx2-16x32": {
+          "hourlyRate": 0.917,
+          "monthlyRate": 669.41
         },
         "cx2-2x4": {
           "hourlyRate": 0.114,
           "monthlyRate": 83.22
         },
-        "bx2d-4x16": {
-          "hourlyRate": 0.258,
-          "monthlyRate": 188.34
+        "cx2-32x64": {
+          "hourlyRate": 1.833,
+          "monthlyRate": 1338.09
         },
-        "bx2-4x16": {
-          "hourlyRate": 0.258,
-          "monthlyRate": 188.34
+        "cx2-48x96": {
+          "hourlyRate": 2.75,
+          "monthlyRate": 2007.5
         },
         "cx2-4x8": {
-          "hourlyRate": 0.228,
-          "monthlyRate": 166.44
+          "hourlyRate": 0.229,
+          "monthlyRate": 167.17
+        },
+        "cx2-64x128": {
+          "hourlyRate": 3.667,
+          "monthlyRate": 2676.91
+        },
+        "cx2-8x16": {
+          "hourlyRate": 0.459,
+          "monthlyRate": 335.07
+        },
+        "cx2-96x192": {
+          "hourlyRate": 5.501,
+          "monthlyRate": 4015.73
+        },
+        "cx2d-128x256": {
+          "hourlyRate": 7.335,
+          "monthlyRate": 5354.55
+        },
+        "cx2d-16x32": {
+          "hourlyRate": 0.917,
+          "monthlyRate": 669.41
+        },
+        "cx2d-2x4": {
+          "hourlyRate": 0.114,
+          "monthlyRate": 83.22
+        },
+        "cx2d-32x64": {
+          "hourlyRate": 1.833,
+          "monthlyRate": 1338.09
+        },
+        "cx2d-48x96": {
+          "hourlyRate": 2.75,
+          "monthlyRate": 2007.5
         },
         "cx2d-4x8": {
-          "hourlyRate": 0.228,
-          "monthlyRate": 166.44
+          "hourlyRate": 0.229,
+          "monthlyRate": 167.17
+        },
+        "cx2d-64x128": {
+          "hourlyRate": 3.667,
+          "monthlyRate": 2676.91
+        },
+        "cx2d-8x16": {
+          "hourlyRate": 0.459,
+          "monthlyRate": 335.07
+        },
+        "cx2d-96x192": {
+          "hourlyRate": 5.501,
+          "monthlyRate": 4015.73
+        },
+        "mx2-128x1024": {
+          "hourlyRate": 10.715,
+          "monthlyRate": 7821.95
+        },
+        "mx2-16x128": {
+          "hourlyRate": 1.34,
+          "monthlyRate": 978.2
+        },
+        "mx2-2x16": {
+          "hourlyRate": 0.167,
+          "monthlyRate": 121.91
+        },
+        "mx2-32x256": {
+          "hourlyRate": 2.679,
+          "monthlyRate": 1955.67
+        },
+        "mx2-48x384": {
+          "hourlyRate": 4.019,
+          "monthlyRate": 2933.87
+        },
+        "mx2-4x32": {
+          "hourlyRate": 0.335,
+          "monthlyRate": 244.55
+        },
+        "mx2-64x512": {
+          "hourlyRate": 5.357,
+          "monthlyRate": 3910.61
+        },
+        "mx2-8x64": {
+          "hourlyRate": 0.669,
+          "monthlyRate": 488.37
+        },
+        "mx2-96x768": {
+          "hourlyRate": 8.036,
+          "monthlyRate": 5866.28
+        },
+        "mx2d-128x1024": {
+          "hourlyRate": 10.715,
+          "monthlyRate": 7821.95
+        },
+        "mx2d-16x128": {
+          "hourlyRate": 1.34,
+          "monthlyRate": 978.2
+        },
+        "mx2d-2x16": {
+          "hourlyRate": 0.167,
+          "monthlyRate": 121.91
+        },
+        "mx2d-32x256": {
+          "hourlyRate": 2.679,
+          "monthlyRate": 1955.67
+        },
+        "mx2d-48x384": {
+          "hourlyRate": 4.019,
+          "monthlyRate": 2933.87
+        },
+        "mx2d-4x32": {
+          "hourlyRate": 0.335,
+          "monthlyRate": 244.55
+        },
+        "mx2d-64x512": {
+          "hourlyRate": 5.357,
+          "monthlyRate": 3910.61
+        },
+        "mx2d-8x64": {
+          "hourlyRate": 0.669,
+          "monthlyRate": 488.37
+        },
+        "mx2d-96x768": {
+          "hourlyRate": 8.036,
+          "monthlyRate": 5866.28
+        },
+        "ux2d-100x2800": {
+          "hourlyRate": 25.458,
+          "monthlyRate": 18584.34
+        },
+        "ux2d-16x448": {
+          "hourlyRate": 4.073,
+          "monthlyRate": 2973.29
+        },
+        "ux2d-200x5600": {
+          "hourlyRate": 50.916,
+          "monthlyRate": 37168.68
+        },
+        "ux2d-2x56": {
+          "hourlyRate": 0.509,
+          "monthlyRate": 371.57
+        },
+        "ux2d-36x1008": {
+          "hourlyRate": 9.165,
+          "monthlyRate": 6690.45
+        },
+        "ux2d-48x1344": {
+          "hourlyRate": 12.22,
+          "monthlyRate": 8920.6
+        },
+        "ux2d-4x112": {
+          "hourlyRate": 1.018,
+          "monthlyRate": 743.14
+        },
+        "ux2d-72x2016": {
+          "hourlyRate": 18.33,
+          "monthlyRate": 13380.9
+        },
+        "ux2d-8x224": {
+          "hourlyRate": 2.037,
+          "monthlyRate": 1487.01
+        },
+        "vx2d-144x2016": {
+          "hourlyRate": 19.436,
+          "monthlyRate": 14188.28
+        },
+        "vx2d-16x224": {
+          "hourlyRate": 2.16,
+          "monthlyRate": 1576.8
+        },
+        "vx2d-176x2464": {
+          "hourlyRate": 23.756,
+          "monthlyRate": 17341.88
+        },
+        "vx2d-2x28": {
+          "hourlyRate": 0.27,
+          "monthlyRate": 197.1
+        },
+        "vx2d-44x616": {
+          "hourlyRate": 5.939,
+          "monthlyRate": 4335.47
+        },
+        "vx2d-4x56": {
+          "hourlyRate": 0.54,
+          "monthlyRate": 394.2
+        },
+        "vx2d-88x1232": {
+          "hourlyRate": 11.877,
+          "monthlyRate": 8670.21
+        },
+        "vx2d-8x112": {
+          "hourlyRate": 1.079,
+          "monthlyRate": 787.67
         },
         "bx3dc-2x10": {
           "hourlyRate": 0.031,
@@ -4367,53 +4871,289 @@
           "hourlyRate": 0.102,
           "monthlyRate": 74.46
         },
+        "bx2-128x512": {
+          "hourlyRate": 6.811,
+          "monthlyRate": 4972.03
+        },
+        "bx2-16x64": {
+          "hourlyRate": 0.851,
+          "monthlyRate": 621.23
+        },
         "bx2-2x8": {
           "hourlyRate": 0.107,
           "monthlyRate": 78.11
         },
-        "bx2d-2x8": {
-          "hourlyRate": 0.107,
-          "monthlyRate": 78.11
+        "bx2-32x128": {
+          "hourlyRate": 1.703,
+          "monthlyRate": 1243.19
         },
-        "cx2d-2x4": {
-          "hourlyRate": 0.094,
-          "monthlyRate": 68.62
-        },
-        "cx2-2x4": {
-          "hourlyRate": 0.094,
-          "monthlyRate": 68.62
-        },
-        "bx2d-4x16": {
-          "hourlyRate": 0.213,
-          "monthlyRate": 155.49
+        "bx2-48x192": {
+          "hourlyRate": 2.554,
+          "monthlyRate": 1864.42
         },
         "bx2-4x16": {
           "hourlyRate": 0.213,
           "monthlyRate": 155.49
         },
+        "bx2-64x256": {
+          "hourlyRate": 3.405,
+          "monthlyRate": 2485.65
+        },
+        "bx2-8x32": {
+          "hourlyRate": 0.426,
+          "monthlyRate": 310.98
+        },
+        "bx2-96x384": {
+          "hourlyRate": 5.108,
+          "monthlyRate": 3728.84
+        },
+        "bx2d-128x512": {
+          "hourlyRate": 6.811,
+          "monthlyRate": 4972.03
+        },
+        "bx2d-16x64": {
+          "hourlyRate": 0.851,
+          "monthlyRate": 621.23
+        },
+        "bx2d-2x8": {
+          "hourlyRate": 0.107,
+          "monthlyRate": 78.11
+        },
+        "bx2d-32x128": {
+          "hourlyRate": 1.703,
+          "monthlyRate": 1243.19
+        },
+        "bx2d-48x192": {
+          "hourlyRate": 2.554,
+          "monthlyRate": 1864.42
+        },
+        "bx2d-4x16": {
+          "hourlyRate": 0.213,
+          "monthlyRate": 155.49
+        },
+        "bx2d-64x256": {
+          "hourlyRate": 3.405,
+          "monthlyRate": 2485.65
+        },
+        "bx2d-8x32": {
+          "hourlyRate": 0.426,
+          "monthlyRate": 310.98
+        },
+        "bx2d-96x384": {
+          "hourlyRate": 5.108,
+          "monthlyRate": 3728.84
+        },
+        "cx2-128x256": {
+          "hourlyRate": 6.03,
+          "monthlyRate": 4401.9
+        },
+        "cx2-16x32": {
+          "hourlyRate": 0.754,
+          "monthlyRate": 550.42
+        },
+        "cx2-2x4": {
+          "hourlyRate": 0.094,
+          "monthlyRate": 68.62
+        },
+        "cx2-32x64": {
+          "hourlyRate": 1.507,
+          "monthlyRate": 1100.11
+        },
+        "cx2-48x96": {
+          "hourlyRate": 2.261,
+          "monthlyRate": 1650.53
+        },
         "cx2-4x8": {
           "hourlyRate": 0.189,
           "monthlyRate": 137.97
+        },
+        "cx2-64x128": {
+          "hourlyRate": 3.015,
+          "monthlyRate": 2200.95
+        },
+        "cx2-8x16": {
+          "hourlyRate": 0.377,
+          "monthlyRate": 275.21
+        },
+        "cx2-96x192": {
+          "hourlyRate": 4.522,
+          "monthlyRate": 3301.06
+        },
+        "cx2d-128x256": {
+          "hourlyRate": 6.03,
+          "monthlyRate": 4401.9
+        },
+        "cx2d-16x32": {
+          "hourlyRate": 0.754,
+          "monthlyRate": 550.42
+        },
+        "cx2d-2x4": {
+          "hourlyRate": 0.094,
+          "monthlyRate": 68.62
+        },
+        "cx2d-32x64": {
+          "hourlyRate": 1.507,
+          "monthlyRate": 1100.11
+        },
+        "cx2d-48x96": {
+          "hourlyRate": 2.261,
+          "monthlyRate": 1650.53
         },
         "cx2d-4x8": {
           "hourlyRate": 0.189,
           "monthlyRate": 137.97
         },
-        "bx2-8x32": {
-          "hourlyRate": 0.427,
-          "monthlyRate": 311.71
-        },
-        "bx2d-8x32": {
-          "hourlyRate": 0.427,
-          "monthlyRate": 311.71
-        },
-        "cx2-8x16": {
-          "hourlyRate": 0.378,
-          "monthlyRate": 275.94
+        "cx2d-64x128": {
+          "hourlyRate": 3.015,
+          "monthlyRate": 2200.95
         },
         "cx2d-8x16": {
-          "hourlyRate": 0.378,
-          "monthlyRate": 275.94
+          "hourlyRate": 0.377,
+          "monthlyRate": 275.21
+        },
+        "cx2d-96x192": {
+          "hourlyRate": 4.522,
+          "monthlyRate": 3301.06
+        },
+        "mx2-128x1024": {
+          "hourlyRate": 8.808,
+          "monthlyRate": 6429.84
+        },
+        "mx2-16x128": {
+          "hourlyRate": 1.101,
+          "monthlyRate": 803.73
+        },
+        "mx2-2x16": {
+          "hourlyRate": 0.138,
+          "monthlyRate": 100.74
+        },
+        "mx2-32x256": {
+          "hourlyRate": 2.202,
+          "monthlyRate": 1607.46
+        },
+        "mx2-48x384": {
+          "hourlyRate": 3.303,
+          "monthlyRate": 2411.19
+        },
+        "mx2-4x32": {
+          "hourlyRate": 0.276,
+          "monthlyRate": 201.48
+        },
+        "mx2-64x512": {
+          "hourlyRate": 4.405,
+          "monthlyRate": 3215.65
+        },
+        "mx2-8x64": {
+          "hourlyRate": 0.55,
+          "monthlyRate": 401.5
+        },
+        "mx2-96x768": {
+          "hourlyRate": 6.606,
+          "monthlyRate": 4822.38
+        },
+        "mx2d-128x1024": {
+          "hourlyRate": 8.808,
+          "monthlyRate": 6429.84
+        },
+        "mx2d-16x128": {
+          "hourlyRate": 1.101,
+          "monthlyRate": 803.73
+        },
+        "mx2d-2x16": {
+          "hourlyRate": 0.138,
+          "monthlyRate": 100.74
+        },
+        "mx2d-32x256": {
+          "hourlyRate": 2.202,
+          "monthlyRate": 1607.46
+        },
+        "mx2d-48x384": {
+          "hourlyRate": 3.303,
+          "monthlyRate": 2411.19
+        },
+        "mx2d-4x32": {
+          "hourlyRate": 0.276,
+          "monthlyRate": 201.48
+        },
+        "mx2d-64x512": {
+          "hourlyRate": 4.405,
+          "monthlyRate": 3215.65
+        },
+        "mx2d-8x64": {
+          "hourlyRate": 0.55,
+          "monthlyRate": 401.5
+        },
+        "mx2d-96x768": {
+          "hourlyRate": 6.606,
+          "monthlyRate": 4822.38
+        },
+        "ux2d-100x2800": {
+          "hourlyRate": 20.928,
+          "monthlyRate": 15277.44
+        },
+        "ux2d-16x448": {
+          "hourlyRate": 3.348,
+          "monthlyRate": 2444.04
+        },
+        "ux2d-200x5600": {
+          "hourlyRate": 41.855,
+          "monthlyRate": 30554.15
+        },
+        "ux2d-2x56": {
+          "hourlyRate": 0.419,
+          "monthlyRate": 305.87
+        },
+        "ux2d-36x1008": {
+          "hourlyRate": 7.534,
+          "monthlyRate": 5499.82
+        },
+        "ux2d-48x1344": {
+          "hourlyRate": 10.045,
+          "monthlyRate": 7332.85
+        },
+        "ux2d-4x112": {
+          "hourlyRate": 0.837,
+          "monthlyRate": 611.01
+        },
+        "ux2d-72x2016": {
+          "hourlyRate": 15.068,
+          "monthlyRate": 10999.64
+        },
+        "ux2d-8x224": {
+          "hourlyRate": 1.674,
+          "monthlyRate": 1222.02
+        },
+        "vx2d-144x2016": {
+          "hourlyRate": 15.978,
+          "monthlyRate": 11663.94
+        },
+        "vx2d-16x224": {
+          "hourlyRate": 1.775,
+          "monthlyRate": 1295.75
+        },
+        "vx2d-176x2464": {
+          "hourlyRate": 19.528,
+          "monthlyRate": 14255.44
+        },
+        "vx2d-2x28": {
+          "hourlyRate": 0.222,
+          "monthlyRate": 162.06
+        },
+        "vx2d-44x616": {
+          "hourlyRate": 4.882,
+          "monthlyRate": 3563.86
+        },
+        "vx2d-4x56": {
+          "hourlyRate": 0.444,
+          "monthlyRate": 324.12
+        },
+        "vx2d-88x1232": {
+          "hourlyRate": 9.764,
+          "monthlyRate": 7127.72
+        },
+        "vx2d-8x112": {
+          "hourlyRate": 0.888,
+          "monthlyRate": 648.24
         },
         "bx3dc-2x10": {
           "hourlyRate": 0.0232,
@@ -4873,53 +5613,289 @@
           "hourlyRate": 0.112,
           "monthlyRate": 81.76
         },
+        "bx2-128x512": {
+          "hourlyRate": 7.444,
+          "monthlyRate": 5434.12
+        },
+        "bx2-16x64": {
+          "hourlyRate": 0.931,
+          "monthlyRate": 679.63
+        },
         "bx2-2x8": {
           "hourlyRate": 0.116,
           "monthlyRate": 84.68
         },
-        "bx2d-2x8": {
-          "hourlyRate": 0.116,
-          "monthlyRate": 84.68
+        "bx2-32x128": {
+          "hourlyRate": 1.861,
+          "monthlyRate": 1358.53
         },
-        "cx2d-2x4": {
-          "hourlyRate": 0.103,
-          "monthlyRate": 75.19
-        },
-        "cx2-2x4": {
-          "hourlyRate": 0.103,
-          "monthlyRate": 75.19
-        },
-        "bx2d-4x16": {
-          "hourlyRate": 0.232,
-          "monthlyRate": 169.36
+        "bx2-48x192": {
+          "hourlyRate": 2.791,
+          "monthlyRate": 2037.43
         },
         "bx2-4x16": {
           "hourlyRate": 0.232,
           "monthlyRate": 169.36
         },
+        "bx2-64x256": {
+          "hourlyRate": 3.722,
+          "monthlyRate": 2717.06
+        },
+        "bx2-8x32": {
+          "hourlyRate": 0.465,
+          "monthlyRate": 339.45
+        },
+        "bx2-96x384": {
+          "hourlyRate": 5.583,
+          "monthlyRate": 4075.59
+        },
+        "bx2d-128x512": {
+          "hourlyRate": 7.444,
+          "monthlyRate": 5434.12
+        },
+        "bx2d-16x64": {
+          "hourlyRate": 0.931,
+          "monthlyRate": 679.63
+        },
+        "bx2d-2x8": {
+          "hourlyRate": 0.116,
+          "monthlyRate": 84.68
+        },
+        "bx2d-32x128": {
+          "hourlyRate": 1.861,
+          "monthlyRate": 1358.53
+        },
+        "bx2d-48x192": {
+          "hourlyRate": 2.791,
+          "monthlyRate": 2037.43
+        },
+        "bx2d-4x16": {
+          "hourlyRate": 0.232,
+          "monthlyRate": 169.36
+        },
+        "bx2d-64x256": {
+          "hourlyRate": 3.722,
+          "monthlyRate": 2717.06
+        },
+        "bx2d-8x32": {
+          "hourlyRate": 0.465,
+          "monthlyRate": 339.45
+        },
+        "bx2d-96x384": {
+          "hourlyRate": 5.583,
+          "monthlyRate": 4075.59
+        },
+        "cx2-128x256": {
+          "hourlyRate": 6.591,
+          "monthlyRate": 4811.43
+        },
+        "cx2-16x32": {
+          "hourlyRate": 0.824,
+          "monthlyRate": 601.52
+        },
+        "cx2-2x4": {
+          "hourlyRate": 0.103,
+          "monthlyRate": 75.19
+        },
+        "cx2-32x64": {
+          "hourlyRate": 1.647,
+          "monthlyRate": 1202.31
+        },
+        "cx2-48x96": {
+          "hourlyRate": 2.471,
+          "monthlyRate": 1803.83
+        },
         "cx2-4x8": {
           "hourlyRate": 0.206,
           "monthlyRate": 150.38
+        },
+        "cx2-64x128": {
+          "hourlyRate": 3.295,
+          "monthlyRate": 2405.35
+        },
+        "cx2-8x16": {
+          "hourlyRate": 0.412,
+          "monthlyRate": 300.76
+        },
+        "cx2-96x192": {
+          "hourlyRate": 4.943,
+          "monthlyRate": 3608.39
+        },
+        "cx2d-128x256": {
+          "hourlyRate": 6.591,
+          "monthlyRate": 4811.43
+        },
+        "cx2d-16x32": {
+          "hourlyRate": 0.824,
+          "monthlyRate": 601.52
+        },
+        "cx2d-2x4": {
+          "hourlyRate": 0.103,
+          "monthlyRate": 75.19
+        },
+        "cx2d-32x64": {
+          "hourlyRate": 1.647,
+          "monthlyRate": 1202.31
+        },
+        "cx2d-48x96": {
+          "hourlyRate": 2.471,
+          "monthlyRate": 1803.83
         },
         "cx2d-4x8": {
           "hourlyRate": 0.206,
           "monthlyRate": 150.38
         },
-        "bx2-8x32": {
-          "hourlyRate": 0.464,
-          "monthlyRate": 338.72
-        },
-        "bx2d-8x32": {
-          "hourlyRate": 0.464,
-          "monthlyRate": 338.72
-        },
-        "cx2-8x16": {
-          "hourlyRate": 0.411,
-          "monthlyRate": 300.03
+        "cx2d-64x128": {
+          "hourlyRate": 3.295,
+          "monthlyRate": 2405.35
         },
         "cx2d-8x16": {
-          "hourlyRate": 0.411,
-          "monthlyRate": 300.03
+          "hourlyRate": 0.412,
+          "monthlyRate": 300.76
+        },
+        "cx2d-96x192": {
+          "hourlyRate": 4.943,
+          "monthlyRate": 3608.39
+        },
+        "mx2-128x1024": {
+          "hourlyRate": 9.628,
+          "monthlyRate": 7028.44
+        },
+        "mx2-16x128": {
+          "hourlyRate": 1.204,
+          "monthlyRate": 878.92
+        },
+        "mx2-2x16": {
+          "hourlyRate": 0.151,
+          "monthlyRate": 110.23
+        },
+        "mx2-32x256": {
+          "hourlyRate": 2.407,
+          "monthlyRate": 1757.11
+        },
+        "mx2-48x384": {
+          "hourlyRate": 3.611,
+          "monthlyRate": 2636.03
+        },
+        "mx2-4x32": {
+          "hourlyRate": 0.301,
+          "monthlyRate": 219.73
+        },
+        "mx2-64x512": {
+          "hourlyRate": 4.813,
+          "monthlyRate": 3513.49
+        },
+        "mx2-8x64": {
+          "hourlyRate": 0.601,
+          "monthlyRate": 438.73
+        },
+        "mx2-96x768": {
+          "hourlyRate": 7.221,
+          "monthlyRate": 5271.33
+        },
+        "mx2d-128x1024": {
+          "hourlyRate": 9.628,
+          "monthlyRate": 7028.44
+        },
+        "mx2d-16x128": {
+          "hourlyRate": 1.204,
+          "monthlyRate": 878.92
+        },
+        "mx2d-2x16": {
+          "hourlyRate": 0.151,
+          "monthlyRate": 110.23
+        },
+        "mx2d-32x256": {
+          "hourlyRate": 2.407,
+          "monthlyRate": 1757.11
+        },
+        "mx2d-48x384": {
+          "hourlyRate": 3.611,
+          "monthlyRate": 2636.03
+        },
+        "mx2d-4x32": {
+          "hourlyRate": 0.301,
+          "monthlyRate": 219.73
+        },
+        "mx2d-64x512": {
+          "hourlyRate": 4.813,
+          "monthlyRate": 3513.49
+        },
+        "mx2d-8x64": {
+          "hourlyRate": 0.601,
+          "monthlyRate": 438.73
+        },
+        "mx2d-96x768": {
+          "hourlyRate": 7.221,
+          "monthlyRate": 5271.33
+        },
+        "ux2d-100x2800": {
+          "hourlyRate": 22.874,
+          "monthlyRate": 16698.02
+        },
+        "ux2d-16x448": {
+          "hourlyRate": 3.66,
+          "monthlyRate": 2671.8
+        },
+        "ux2d-200x5600": {
+          "hourlyRate": 45.748,
+          "monthlyRate": 33396.04
+        },
+        "ux2d-2x56": {
+          "hourlyRate": 0.457,
+          "monthlyRate": 333.61
+        },
+        "ux2d-36x1008": {
+          "hourlyRate": 8.235,
+          "monthlyRate": 6011.55
+        },
+        "ux2d-48x1344": {
+          "hourlyRate": 10.979,
+          "monthlyRate": 8014.67
+        },
+        "ux2d-4x112": {
+          "hourlyRate": 0.915,
+          "monthlyRate": 667.95
+        },
+        "ux2d-72x2016": {
+          "hourlyRate": 16.469,
+          "monthlyRate": 12022.37
+        },
+        "ux2d-8x224": {
+          "hourlyRate": 1.83,
+          "monthlyRate": 1335.9
+        },
+        "vx2d-144x2016": {
+          "hourlyRate": 17.463,
+          "monthlyRate": 12747.99
+        },
+        "vx2d-16x224": {
+          "hourlyRate": 1.941,
+          "monthlyRate": 1416.93
+        },
+        "vx2d-176x2464": {
+          "hourlyRate": 21.344,
+          "monthlyRate": 15581.12
+        },
+        "vx2d-2x28": {
+          "hourlyRate": 0.242,
+          "monthlyRate": 176.66
+        },
+        "vx2d-44x616": {
+          "hourlyRate": 5.336,
+          "monthlyRate": 3895.28
+        },
+        "vx2d-4x56": {
+          "hourlyRate": 0.485,
+          "monthlyRate": 354.05
+        },
+        "vx2d-88x1232": {
+          "hourlyRate": 10.673,
+          "monthlyRate": 7791.29
+        },
+        "vx2d-8x112": {
+          "hourlyRate": 0.97,
+          "monthlyRate": 708.1
         },
         "bx3dc-2x10": {
           "hourlyRate": 0.0263,
@@ -5391,53 +6367,289 @@
           "hourlyRate": 0.112,
           "monthlyRate": 81.76
         },
+        "bx2-128x512": {
+          "hourlyRate": 7.444,
+          "monthlyRate": 5434.12
+        },
+        "bx2-16x64": {
+          "hourlyRate": 0.931,
+          "monthlyRate": 679.63
+        },
         "bx2-2x8": {
           "hourlyRate": 0.116,
           "monthlyRate": 84.68
         },
-        "bx2d-2x8": {
-          "hourlyRate": 0.116,
-          "monthlyRate": 84.68
+        "bx2-32x128": {
+          "hourlyRate": 1.861,
+          "monthlyRate": 1358.53
         },
-        "cx2d-2x4": {
-          "hourlyRate": 0.103,
-          "monthlyRate": 75.19
-        },
-        "cx2-2x4": {
-          "hourlyRate": 0.103,
-          "monthlyRate": 75.19
-        },
-        "bx2d-4x16": {
-          "hourlyRate": 0.232,
-          "monthlyRate": 169.36
+        "bx2-48x192": {
+          "hourlyRate": 2.791,
+          "monthlyRate": 2037.43
         },
         "bx2-4x16": {
           "hourlyRate": 0.232,
           "monthlyRate": 169.36
         },
+        "bx2-64x256": {
+          "hourlyRate": 3.722,
+          "monthlyRate": 2717.06
+        },
+        "bx2-8x32": {
+          "hourlyRate": 0.465,
+          "monthlyRate": 339.45
+        },
+        "bx2-96x384": {
+          "hourlyRate": 5.583,
+          "monthlyRate": 4075.59
+        },
+        "bx2d-128x512": {
+          "hourlyRate": 7.444,
+          "monthlyRate": 5434.12
+        },
+        "bx2d-16x64": {
+          "hourlyRate": 0.931,
+          "monthlyRate": 679.63
+        },
+        "bx2d-2x8": {
+          "hourlyRate": 0.116,
+          "monthlyRate": 84.68
+        },
+        "bx2d-32x128": {
+          "hourlyRate": 1.861,
+          "monthlyRate": 1358.53
+        },
+        "bx2d-48x192": {
+          "hourlyRate": 2.791,
+          "monthlyRate": 2037.43
+        },
+        "bx2d-4x16": {
+          "hourlyRate": 0.232,
+          "monthlyRate": 169.36
+        },
+        "bx2d-64x256": {
+          "hourlyRate": 3.722,
+          "monthlyRate": 2717.06
+        },
+        "bx2d-8x32": {
+          "hourlyRate": 0.465,
+          "monthlyRate": 339.45
+        },
+        "bx2d-96x384": {
+          "hourlyRate": 5.583,
+          "monthlyRate": 4075.59
+        },
+        "cx2-128x256": {
+          "hourlyRate": 6.591,
+          "monthlyRate": 4811.43
+        },
+        "cx2-16x32": {
+          "hourlyRate": 0.824,
+          "monthlyRate": 601.52
+        },
+        "cx2-2x4": {
+          "hourlyRate": 0.103,
+          "monthlyRate": 75.19
+        },
+        "cx2-32x64": {
+          "hourlyRate": 1.647,
+          "monthlyRate": 1202.31
+        },
+        "cx2-48x96": {
+          "hourlyRate": 2.471,
+          "monthlyRate": 1803.83
+        },
         "cx2-4x8": {
           "hourlyRate": 0.206,
           "monthlyRate": 150.38
+        },
+        "cx2-64x128": {
+          "hourlyRate": 3.295,
+          "monthlyRate": 2405.35
+        },
+        "cx2-8x16": {
+          "hourlyRate": 0.412,
+          "monthlyRate": 300.76
+        },
+        "cx2-96x192": {
+          "hourlyRate": 4.943,
+          "monthlyRate": 3608.39
+        },
+        "cx2d-128x256": {
+          "hourlyRate": 6.591,
+          "monthlyRate": 4811.43
+        },
+        "cx2d-16x32": {
+          "hourlyRate": 0.824,
+          "monthlyRate": 601.52
+        },
+        "cx2d-2x4": {
+          "hourlyRate": 0.103,
+          "monthlyRate": 75.19
+        },
+        "cx2d-32x64": {
+          "hourlyRate": 1.647,
+          "monthlyRate": 1202.31
+        },
+        "cx2d-48x96": {
+          "hourlyRate": 2.471,
+          "monthlyRate": 1803.83
         },
         "cx2d-4x8": {
           "hourlyRate": 0.206,
           "monthlyRate": 150.38
         },
-        "bx2-8x32": {
-          "hourlyRate": 0.464,
-          "monthlyRate": 338.72
-        },
-        "bx2d-8x32": {
-          "hourlyRate": 0.464,
-          "monthlyRate": 338.72
-        },
-        "cx2-8x16": {
-          "hourlyRate": 0.411,
-          "monthlyRate": 300.03
+        "cx2d-64x128": {
+          "hourlyRate": 3.295,
+          "monthlyRate": 2405.35
         },
         "cx2d-8x16": {
-          "hourlyRate": 0.411,
-          "monthlyRate": 300.03
+          "hourlyRate": 0.412,
+          "monthlyRate": 300.76
+        },
+        "cx2d-96x192": {
+          "hourlyRate": 4.943,
+          "monthlyRate": 3608.39
+        },
+        "mx2-128x1024": {
+          "hourlyRate": 9.628,
+          "monthlyRate": 7028.44
+        },
+        "mx2-16x128": {
+          "hourlyRate": 1.204,
+          "monthlyRate": 878.92
+        },
+        "mx2-2x16": {
+          "hourlyRate": 0.151,
+          "monthlyRate": 110.23
+        },
+        "mx2-32x256": {
+          "hourlyRate": 2.407,
+          "monthlyRate": 1757.11
+        },
+        "mx2-48x384": {
+          "hourlyRate": 3.611,
+          "monthlyRate": 2636.03
+        },
+        "mx2-4x32": {
+          "hourlyRate": 0.301,
+          "monthlyRate": 219.73
+        },
+        "mx2-64x512": {
+          "hourlyRate": 4.813,
+          "monthlyRate": 3513.49
+        },
+        "mx2-8x64": {
+          "hourlyRate": 0.601,
+          "monthlyRate": 438.73
+        },
+        "mx2-96x768": {
+          "hourlyRate": 7.221,
+          "monthlyRate": 5271.33
+        },
+        "mx2d-128x1024": {
+          "hourlyRate": 9.628,
+          "monthlyRate": 7028.44
+        },
+        "mx2d-16x128": {
+          "hourlyRate": 1.204,
+          "monthlyRate": 878.92
+        },
+        "mx2d-2x16": {
+          "hourlyRate": 0.151,
+          "monthlyRate": 110.23
+        },
+        "mx2d-32x256": {
+          "hourlyRate": 2.407,
+          "monthlyRate": 1757.11
+        },
+        "mx2d-48x384": {
+          "hourlyRate": 3.611,
+          "monthlyRate": 2636.03
+        },
+        "mx2d-4x32": {
+          "hourlyRate": 0.301,
+          "monthlyRate": 219.73
+        },
+        "mx2d-64x512": {
+          "hourlyRate": 4.813,
+          "monthlyRate": 3513.49
+        },
+        "mx2d-8x64": {
+          "hourlyRate": 0.601,
+          "monthlyRate": 438.73
+        },
+        "mx2d-96x768": {
+          "hourlyRate": 7.221,
+          "monthlyRate": 5271.33
+        },
+        "ux2d-100x2800": {
+          "hourlyRate": 22.874,
+          "monthlyRate": 16698.02
+        },
+        "ux2d-16x448": {
+          "hourlyRate": 3.66,
+          "monthlyRate": 2671.8
+        },
+        "ux2d-200x5600": {
+          "hourlyRate": 45.748,
+          "monthlyRate": 33396.04
+        },
+        "ux2d-2x56": {
+          "hourlyRate": 0.457,
+          "monthlyRate": 333.61
+        },
+        "ux2d-36x1008": {
+          "hourlyRate": 8.235,
+          "monthlyRate": 6011.55
+        },
+        "ux2d-48x1344": {
+          "hourlyRate": 10.979,
+          "monthlyRate": 8014.67
+        },
+        "ux2d-4x112": {
+          "hourlyRate": 0.915,
+          "monthlyRate": 667.95
+        },
+        "ux2d-72x2016": {
+          "hourlyRate": 16.469,
+          "monthlyRate": 12022.37
+        },
+        "ux2d-8x224": {
+          "hourlyRate": 1.83,
+          "monthlyRate": 1335.9
+        },
+        "vx2d-144x2016": {
+          "hourlyRate": 17.463,
+          "monthlyRate": 12747.99
+        },
+        "vx2d-16x224": {
+          "hourlyRate": 1.941,
+          "monthlyRate": 1416.93
+        },
+        "vx2d-176x2464": {
+          "hourlyRate": 21.344,
+          "monthlyRate": 15581.12
+        },
+        "vx2d-2x28": {
+          "hourlyRate": 0.242,
+          "monthlyRate": 176.66
+        },
+        "vx2d-44x616": {
+          "hourlyRate": 5.336,
+          "monthlyRate": 3895.28
+        },
+        "vx2d-4x56": {
+          "hourlyRate": 0.485,
+          "monthlyRate": 354.05
+        },
+        "vx2d-88x1232": {
+          "hourlyRate": 10.673,
+          "monthlyRate": 7791.29
+        },
+        "vx2d-8x112": {
+          "hourlyRate": 0.97,
+          "monthlyRate": 708.1
         },
         "bx3dc-2x10": {
           "hourlyRate": 0.0263,
@@ -5897,53 +7109,289 @@
           "hourlyRate": 0.109,
           "monthlyRate": 79.57
         },
+        "bx2-128x512": {
+          "hourlyRate": 7.26,
+          "monthlyRate": 5299.8
+        },
+        "bx2-16x64": {
+          "hourlyRate": 0.908,
+          "monthlyRate": 662.84
+        },
         "bx2-2x8": {
           "hourlyRate": 0.114,
           "monthlyRate": 83.22
+        },
+        "bx2-32x128": {
+          "hourlyRate": 1.815,
+          "monthlyRate": 1324.95
+        },
+        "bx2-48x192": {
+          "hourlyRate": 2.723,
+          "monthlyRate": 1987.79
+        },
+        "bx2-4x16": {
+          "hourlyRate": 0.227,
+          "monthlyRate": 165.71
+        },
+        "bx2-64x256": {
+          "hourlyRate": 3.63,
+          "monthlyRate": 2649.9
+        },
+        "bx2-8x32": {
+          "hourlyRate": 0.454,
+          "monthlyRate": 331.42
+        },
+        "bx2-96x384": {
+          "hourlyRate": 5.445,
+          "monthlyRate": 3974.85
+        },
+        "bx2d-128x512": {
+          "hourlyRate": 7.26,
+          "monthlyRate": 5299.8
+        },
+        "bx2d-16x64": {
+          "hourlyRate": 0.908,
+          "monthlyRate": 662.84
         },
         "bx2d-2x8": {
           "hourlyRate": 0.114,
           "monthlyRate": 83.22
         },
-        "cx2d-2x4": {
-          "hourlyRate": 0.101,
-          "monthlyRate": 73.73
+        "bx2d-32x128": {
+          "hourlyRate": 1.815,
+          "monthlyRate": 1324.95
+        },
+        "bx2d-48x192": {
+          "hourlyRate": 2.723,
+          "monthlyRate": 1987.79
+        },
+        "bx2d-4x16": {
+          "hourlyRate": 0.227,
+          "monthlyRate": 165.71
+        },
+        "bx2d-64x256": {
+          "hourlyRate": 3.63,
+          "monthlyRate": 2649.9
+        },
+        "bx2d-8x32": {
+          "hourlyRate": 0.454,
+          "monthlyRate": 331.42
+        },
+        "bx2d-96x384": {
+          "hourlyRate": 5.445,
+          "monthlyRate": 3974.85
+        },
+        "cx2-128x256": {
+          "hourlyRate": 6.428,
+          "monthlyRate": 4692.44
+        },
+        "cx2-16x32": {
+          "hourlyRate": 0.803,
+          "monthlyRate": 586.19
         },
         "cx2-2x4": {
           "hourlyRate": 0.101,
           "monthlyRate": 73.73
         },
-        "bx2d-4x16": {
-          "hourlyRate": 0.228,
-          "monthlyRate": 166.44
+        "cx2-32x64": {
+          "hourlyRate": 1.607,
+          "monthlyRate": 1173.11
         },
-        "bx2-4x16": {
-          "hourlyRate": 0.228,
-          "monthlyRate": 166.44
+        "cx2-48x96": {
+          "hourlyRate": 2.41,
+          "monthlyRate": 1759.3
         },
         "cx2-4x8": {
-          "hourlyRate": 0.202,
-          "monthlyRate": 147.46
+          "hourlyRate": 0.201,
+          "monthlyRate": 146.73
         },
-        "cx2d-4x8": {
-          "hourlyRate": 0.202,
-          "monthlyRate": 147.46
-        },
-        "bx2-8x32": {
-          "hourlyRate": 0.455,
-          "monthlyRate": 332.15
-        },
-        "bx2d-8x32": {
-          "hourlyRate": 0.455,
-          "monthlyRate": 332.15
+        "cx2-64x128": {
+          "hourlyRate": 3.214,
+          "monthlyRate": 2346.22
         },
         "cx2-8x16": {
-          "hourlyRate": 0.403,
-          "monthlyRate": 294.19
+          "hourlyRate": 0.402,
+          "monthlyRate": 293.46
+        },
+        "cx2-96x192": {
+          "hourlyRate": 4.821,
+          "monthlyRate": 3519.33
+        },
+        "cx2d-128x256": {
+          "hourlyRate": 6.428,
+          "monthlyRate": 4692.44
+        },
+        "cx2d-16x32": {
+          "hourlyRate": 0.803,
+          "monthlyRate": 586.19
+        },
+        "cx2d-2x4": {
+          "hourlyRate": 0.101,
+          "monthlyRate": 73.73
+        },
+        "cx2d-32x64": {
+          "hourlyRate": 1.607,
+          "monthlyRate": 1173.11
+        },
+        "cx2d-48x96": {
+          "hourlyRate": 2.41,
+          "monthlyRate": 1759.3
+        },
+        "cx2d-4x8": {
+          "hourlyRate": 0.201,
+          "monthlyRate": 146.73
+        },
+        "cx2d-64x128": {
+          "hourlyRate": 3.214,
+          "monthlyRate": 2346.22
         },
         "cx2d-8x16": {
-          "hourlyRate": 0.403,
-          "monthlyRate": 294.19
+          "hourlyRate": 0.402,
+          "monthlyRate": 293.46
+        },
+        "cx2d-96x192": {
+          "hourlyRate": 4.821,
+          "monthlyRate": 3519.33
+        },
+        "mx2-128x1024": {
+          "hourlyRate": 9.391,
+          "monthlyRate": 6855.43
+        },
+        "mx2-16x128": {
+          "hourlyRate": 1.173,
+          "monthlyRate": 856.29
+        },
+        "mx2-2x16": {
+          "hourlyRate": 0.147,
+          "monthlyRate": 107.31
+        },
+        "mx2-32x256": {
+          "hourlyRate": 2.348,
+          "monthlyRate": 1714.04
+        },
+        "mx2-48x384": {
+          "hourlyRate": 3.521,
+          "monthlyRate": 2570.33
+        },
+        "mx2-4x32": {
+          "hourlyRate": 0.294,
+          "monthlyRate": 214.62
+        },
+        "mx2-64x512": {
+          "hourlyRate": 4.695,
+          "monthlyRate": 3427.35
+        },
+        "mx2-8x64": {
+          "hourlyRate": 0.587,
+          "monthlyRate": 428.51
+        },
+        "mx2-96x768": {
+          "hourlyRate": 7.043,
+          "monthlyRate": 5141.39
+        },
+        "mx2d-128x1024": {
+          "hourlyRate": 9.391,
+          "monthlyRate": 6855.43
+        },
+        "mx2d-16x128": {
+          "hourlyRate": 1.173,
+          "monthlyRate": 856.29
+        },
+        "mx2d-2x16": {
+          "hourlyRate": 0.147,
+          "monthlyRate": 107.31
+        },
+        "mx2d-32x256": {
+          "hourlyRate": 2.348,
+          "monthlyRate": 1714.04
+        },
+        "mx2d-48x384": {
+          "hourlyRate": 3.521,
+          "monthlyRate": 2570.33
+        },
+        "mx2d-4x32": {
+          "hourlyRate": 0.294,
+          "monthlyRate": 214.62
+        },
+        "mx2d-64x512": {
+          "hourlyRate": 4.695,
+          "monthlyRate": 3427.35
+        },
+        "mx2d-8x64": {
+          "hourlyRate": 0.587,
+          "monthlyRate": 428.51
+        },
+        "mx2d-96x768": {
+          "hourlyRate": 7.043,
+          "monthlyRate": 5141.39
+        },
+        "ux2d-100x2800": {
+          "hourlyRate": 22.31,
+          "monthlyRate": 16286.3
+        },
+        "ux2d-16x448": {
+          "hourlyRate": 3.57,
+          "monthlyRate": 2606.1
+        },
+        "ux2d-200x5600": {
+          "hourlyRate": 44.619,
+          "monthlyRate": 32571.87
+        },
+        "ux2d-2x56": {
+          "hourlyRate": 0.446,
+          "monthlyRate": 325.58
+        },
+        "ux2d-36x1008": {
+          "hourlyRate": 8.032,
+          "monthlyRate": 5863.36
+        },
+        "ux2d-48x1344": {
+          "hourlyRate": 10.709,
+          "monthlyRate": 7817.57
+        },
+        "ux2d-4x112": {
+          "hourlyRate": 0.893,
+          "monthlyRate": 651.89
+        },
+        "ux2d-72x2016": {
+          "hourlyRate": 16.063,
+          "monthlyRate": 11725.99
+        },
+        "ux2d-8x224": {
+          "hourlyRate": 1.784,
+          "monthlyRate": 1302.32
+        },
+        "vx2d-144x2016": {
+          "hourlyRate": 17.033,
+          "monthlyRate": 12434.09
+        },
+        "vx2d-16x224": {
+          "hourlyRate": 1.892,
+          "monthlyRate": 1381.16
+        },
+        "vx2d-176x2464": {
+          "hourlyRate": 20.817,
+          "monthlyRate": 15196.41
+        },
+        "vx2d-2x28": {
+          "hourlyRate": 0.237,
+          "monthlyRate": 173.01
+        },
+        "vx2d-44x616": {
+          "hourlyRate": 5.205,
+          "monthlyRate": 3799.65
+        },
+        "vx2d-4x56": {
+          "hourlyRate": 0.473,
+          "monthlyRate": 345.29
+        },
+        "vx2d-88x1232": {
+          "hourlyRate": 10.409,
+          "monthlyRate": 7598.57
+        },
+        "vx2d-8x112": {
+          "hourlyRate": 0.947,
+          "monthlyRate": 691.31
         },
         "bx3dc-2x10": {
           "hourlyRate": 0.0253,
@@ -7043,37 +8491,289 @@
           "hourlyRate": 0.117,
           "monthlyRate": 85.41
         },
+        "bx2-128x512": {
+          "hourlyRate": 7.704,
+          "monthlyRate": 5623.92
+        },
+        "bx2-16x64": {
+          "hourlyRate": 0.963,
+          "monthlyRate": 702.99
+        },
         "bx2-2x8": {
           "hourlyRate": 0.12,
           "monthlyRate": 87.6
+        },
+        "bx2-32x128": {
+          "hourlyRate": 1.926,
+          "monthlyRate": 1405.98
+        },
+        "bx2-48x192": {
+          "hourlyRate": 2.889,
+          "monthlyRate": 2108.97
+        },
+        "bx2-4x16": {
+          "hourlyRate": 0.241,
+          "monthlyRate": 175.93
+        },
+        "bx2-64x256": {
+          "hourlyRate": 3.851,
+          "monthlyRate": 2811.23
+        },
+        "bx2-8x32": {
+          "hourlyRate": 0.482,
+          "monthlyRate": 351.86
+        },
+        "bx2-96x384": {
+          "hourlyRate": 5.778,
+          "monthlyRate": 4217.94
+        },
+        "bx2d-128x512": {
+          "hourlyRate": 7.704,
+          "monthlyRate": 5623.92
+        },
+        "bx2d-16x64": {
+          "hourlyRate": 0.963,
+          "monthlyRate": 702.99
         },
         "bx2d-2x8": {
           "hourlyRate": 0.12,
           "monthlyRate": 87.6
         },
-        "cx2d-2x4": {
-          "hourlyRate": 0.106,
-          "monthlyRate": 77.38
+        "bx2d-32x128": {
+          "hourlyRate": 1.926,
+          "monthlyRate": 1405.98
+        },
+        "bx2d-48x192": {
+          "hourlyRate": 2.889,
+          "monthlyRate": 2108.97
+        },
+        "bx2d-4x16": {
+          "hourlyRate": 0.241,
+          "monthlyRate": 175.93
+        },
+        "bx2d-64x256": {
+          "hourlyRate": 3.851,
+          "monthlyRate": 2811.23
+        },
+        "bx2d-8x32": {
+          "hourlyRate": 0.482,
+          "monthlyRate": 351.86
+        },
+        "bx2d-96x384": {
+          "hourlyRate": 5.778,
+          "monthlyRate": 4217.94
+        },
+        "cx2-128x256": {
+          "hourlyRate": 6.82,
+          "monthlyRate": 4978.6
+        },
+        "cx2-16x32": {
+          "hourlyRate": 0.853,
+          "monthlyRate": 622.69
         },
         "cx2-2x4": {
           "hourlyRate": 0.106,
           "monthlyRate": 77.38
         },
-        "bx2d-4x16": {
-          "hourlyRate": 0.24,
-          "monthlyRate": 175.2
+        "cx2-32x64": {
+          "hourlyRate": 1.705,
+          "monthlyRate": 1244.65
         },
-        "bx2-4x16": {
-          "hourlyRate": 0.24,
-          "monthlyRate": 175.2
+        "cx2-48x96": {
+          "hourlyRate": 2.558,
+          "monthlyRate": 1867.34
         },
         "cx2-4x8": {
-          "hourlyRate": 0.212,
-          "monthlyRate": 154.76
+          "hourlyRate": 0.213,
+          "monthlyRate": 155.49
+        },
+        "cx2-64x128": {
+          "hourlyRate": 3.41,
+          "monthlyRate": 2489.3
+        },
+        "cx2-8x16": {
+          "hourlyRate": 0.426,
+          "monthlyRate": 310.98
+        },
+        "cx2-96x192": {
+          "hourlyRate": 5.116,
+          "monthlyRate": 3734.68
+        },
+        "cx2d-128x256": {
+          "hourlyRate": 6.82,
+          "monthlyRate": 4978.6
+        },
+        "cx2d-16x32": {
+          "hourlyRate": 0.853,
+          "monthlyRate": 622.69
+        },
+        "cx2d-2x4": {
+          "hourlyRate": 0.106,
+          "monthlyRate": 77.38
+        },
+        "cx2d-32x64": {
+          "hourlyRate": 1.705,
+          "monthlyRate": 1244.65
+        },
+        "cx2d-48x96": {
+          "hourlyRate": 2.558,
+          "monthlyRate": 1867.34
         },
         "cx2d-4x8": {
-          "hourlyRate": 0.212,
-          "monthlyRate": 154.76
+          "hourlyRate": 0.213,
+          "monthlyRate": 155.49
+        },
+        "cx2d-64x128": {
+          "hourlyRate": 3.41,
+          "monthlyRate": 2489.3
+        },
+        "cx2d-8x16": {
+          "hourlyRate": 0.426,
+          "monthlyRate": 310.98
+        },
+        "cx2d-96x192": {
+          "hourlyRate": 5.116,
+          "monthlyRate": 3734.68
+        },
+        "mx2-128x1024": {
+          "hourlyRate": 9.964,
+          "monthlyRate": 7273.72
+        },
+        "mx2-16x128": {
+          "hourlyRate": 1.245,
+          "monthlyRate": 908.85
+        },
+        "mx2-2x16": {
+          "hourlyRate": 0.156,
+          "monthlyRate": 113.88
+        },
+        "mx2-32x256": {
+          "hourlyRate": 2.491,
+          "monthlyRate": 1818.43
+        },
+        "mx2-48x384": {
+          "hourlyRate": 3.736,
+          "monthlyRate": 2727.28
+        },
+        "mx2-4x32": {
+          "hourlyRate": 0.311,
+          "monthlyRate": 227.03
+        },
+        "mx2-64x512": {
+          "hourlyRate": 4.982,
+          "monthlyRate": 3636.86
+        },
+        "mx2-8x64": {
+          "hourlyRate": 0.623,
+          "monthlyRate": 454.79
+        },
+        "mx2-96x768": {
+          "hourlyRate": 7.473,
+          "monthlyRate": 5455.29
+        },
+        "mx2d-128x1024": {
+          "hourlyRate": 9.964,
+          "monthlyRate": 7273.72
+        },
+        "mx2d-16x128": {
+          "hourlyRate": 1.245,
+          "monthlyRate": 908.85
+        },
+        "mx2d-2x16": {
+          "hourlyRate": 0.156,
+          "monthlyRate": 113.88
+        },
+        "mx2d-32x256": {
+          "hourlyRate": 2.491,
+          "monthlyRate": 1818.43
+        },
+        "mx2d-48x384": {
+          "hourlyRate": 3.736,
+          "monthlyRate": 2727.28
+        },
+        "mx2d-4x32": {
+          "hourlyRate": 0.311,
+          "monthlyRate": 227.03
+        },
+        "mx2d-64x512": {
+          "hourlyRate": 4.982,
+          "monthlyRate": 3636.86
+        },
+        "mx2d-8x64": {
+          "hourlyRate": 0.623,
+          "monthlyRate": 454.79
+        },
+        "mx2d-96x768": {
+          "hourlyRate": 7.473,
+          "monthlyRate": 5455.29
+        },
+        "ux2d-100x2800": {
+          "hourlyRate": 23.672,
+          "monthlyRate": 17280.56
+        },
+        "ux2d-16x448": {
+          "hourlyRate": 3.787,
+          "monthlyRate": 2764.51
+        },
+        "ux2d-200x5600": {
+          "hourlyRate": 47.345,
+          "monthlyRate": 34561.85
+        },
+        "ux2d-2x56": {
+          "hourlyRate": 0.473,
+          "monthlyRate": 345.29
+        },
+        "ux2d-36x1008": {
+          "hourlyRate": 8.522,
+          "monthlyRate": 6221.06
+        },
+        "ux2d-48x1344": {
+          "hourlyRate": 11.362,
+          "monthlyRate": 8294.26
+        },
+        "ux2d-4x112": {
+          "hourlyRate": 0.947,
+          "monthlyRate": 691.31
+        },
+        "ux2d-72x2016": {
+          "hourlyRate": 17.044,
+          "monthlyRate": 12442.12
+        },
+        "ux2d-8x224": {
+          "hourlyRate": 1.894,
+          "monthlyRate": 1382.62
+        },
+        "vx2d-144x2016": {
+          "hourlyRate": 18.073,
+          "monthlyRate": 13193.29
+        },
+        "vx2d-16x224": {
+          "hourlyRate": 2.009,
+          "monthlyRate": 1466.57
+        },
+        "vx2d-176x2464": {
+          "hourlyRate": 22.089,
+          "monthlyRate": 16124.97
+        },
+        "vx2d-2x28": {
+          "hourlyRate": 0.251,
+          "monthlyRate": 183.23
+        },
+        "vx2d-44x616": {
+          "hourlyRate": 5.522,
+          "monthlyRate": 4031.06
+        },
+        "vx2d-4x56": {
+          "hourlyRate": 0.502,
+          "monthlyRate": 366.46
+        },
+        "vx2d-88x1232": {
+          "hourlyRate": 11.045,
+          "monthlyRate": 8062.85
+        },
+        "vx2d-8x112": {
+          "hourlyRate": 1.004,
+          "monthlyRate": 732.92
         },
         "bx3dc-2x10": {
           "hourlyRate": 0.027,
@@ -7453,37 +9153,289 @@
           "hourlyRate": 0.117,
           "monthlyRate": 85.41
         },
+        "bx2-128x512": {
+          "hourlyRate": 7.704,
+          "monthlyRate": 5623.92
+        },
+        "bx2-16x64": {
+          "hourlyRate": 0.963,
+          "monthlyRate": 702.99
+        },
         "bx2-2x8": {
           "hourlyRate": 0.12,
           "monthlyRate": 87.6
+        },
+        "bx2-32x128": {
+          "hourlyRate": 1.926,
+          "monthlyRate": 1405.98
+        },
+        "bx2-48x192": {
+          "hourlyRate": 2.889,
+          "monthlyRate": 2108.97
+        },
+        "bx2-4x16": {
+          "hourlyRate": 0.241,
+          "monthlyRate": 175.93
+        },
+        "bx2-64x256": {
+          "hourlyRate": 3.852,
+          "monthlyRate": 2811.96
+        },
+        "bx2-8x32": {
+          "hourlyRate": 0.482,
+          "monthlyRate": 351.86
+        },
+        "bx2-96x384": {
+          "hourlyRate": 5.778,
+          "monthlyRate": 4217.94
+        },
+        "bx2d-128x512": {
+          "hourlyRate": 7.704,
+          "monthlyRate": 5623.92
+        },
+        "bx2d-16x64": {
+          "hourlyRate": 0.963,
+          "monthlyRate": 702.99
         },
         "bx2d-2x8": {
           "hourlyRate": 0.12,
           "monthlyRate": 87.6
         },
-        "cx2d-2x4": {
-          "hourlyRate": 0.106,
-          "monthlyRate": 77.38
+        "bx2d-32x128": {
+          "hourlyRate": 1.926,
+          "monthlyRate": 1405.98
+        },
+        "bx2d-48x192": {
+          "hourlyRate": 2.889,
+          "monthlyRate": 2108.97
+        },
+        "bx2d-4x16": {
+          "hourlyRate": 0.241,
+          "monthlyRate": 175.93
+        },
+        "bx2d-64x256": {
+          "hourlyRate": 3.852,
+          "monthlyRate": 2811.96
+        },
+        "bx2d-8x32": {
+          "hourlyRate": 0.482,
+          "monthlyRate": 351.86
+        },
+        "bx2d-96x384": {
+          "hourlyRate": 5.778,
+          "monthlyRate": 4217.94
+        },
+        "cx2-128x256": {
+          "hourlyRate": 6.82,
+          "monthlyRate": 4978.6
+        },
+        "cx2-16x32": {
+          "hourlyRate": 0.853,
+          "monthlyRate": 622.69
         },
         "cx2-2x4": {
           "hourlyRate": 0.106,
           "monthlyRate": 77.38
         },
-        "bx2d-4x16": {
-          "hourlyRate": 0.24,
-          "monthlyRate": 175.2
+        "cx2-32x64": {
+          "hourlyRate": 1.705,
+          "monthlyRate": 1244.65
         },
-        "bx2-4x16": {
-          "hourlyRate": 0.24,
-          "monthlyRate": 175.2
+        "cx2-48x96": {
+          "hourlyRate": 2.558,
+          "monthlyRate": 1867.34
         },
         "cx2-4x8": {
-          "hourlyRate": 0.212,
-          "monthlyRate": 154.76
+          "hourlyRate": 0.213,
+          "monthlyRate": 155.49
+        },
+        "cx2-64x128": {
+          "hourlyRate": 3.411,
+          "monthlyRate": 2490.03
+        },
+        "cx2-8x16": {
+          "hourlyRate": 0.426,
+          "monthlyRate": 310.98
+        },
+        "cx2-96x192": {
+          "hourlyRate": 5.116,
+          "monthlyRate": 3734.68
+        },
+        "cx2d-128x256": {
+          "hourlyRate": 6.82,
+          "monthlyRate": 4978.6
+        },
+        "cx2d-16x32": {
+          "hourlyRate": 0.853,
+          "monthlyRate": 622.69
+        },
+        "cx2d-2x4": {
+          "hourlyRate": 0.106,
+          "monthlyRate": 77.38
+        },
+        "cx2d-32x64": {
+          "hourlyRate": 1.705,
+          "monthlyRate": 1244.65
+        },
+        "cx2d-48x96": {
+          "hourlyRate": 2.558,
+          "monthlyRate": 1867.34
         },
         "cx2d-4x8": {
-          "hourlyRate": 0.212,
-          "monthlyRate": 154.76
+          "hourlyRate": 0.213,
+          "monthlyRate": 155.49
+        },
+        "cx2d-64x128": {
+          "hourlyRate": 3.411,
+          "monthlyRate": 2490.03
+        },
+        "cx2d-8x16": {
+          "hourlyRate": 0.426,
+          "monthlyRate": 310.98
+        },
+        "cx2d-96x192": {
+          "hourlyRate": 5.116,
+          "monthlyRate": 3734.68
+        },
+        "mx2-128x1024": {
+          "hourlyRate": 9.964,
+          "monthlyRate": 7273.72
+        },
+        "mx2-16x128": {
+          "hourlyRate": 1.245,
+          "monthlyRate": 908.85
+        },
+        "mx2-2x16": {
+          "hourlyRate": 0.156,
+          "monthlyRate": 113.88
+        },
+        "mx2-32x256": {
+          "hourlyRate": 2.491,
+          "monthlyRate": 1818.43
+        },
+        "mx2-48x384": {
+          "hourlyRate": 3.736,
+          "monthlyRate": 2727.28
+        },
+        "mx2-4x32": {
+          "hourlyRate": 0.311,
+          "monthlyRate": 227.03
+        },
+        "mx2-64x512": {
+          "hourlyRate": 4.982,
+          "monthlyRate": 3636.86
+        },
+        "mx2-8x64": {
+          "hourlyRate": 0.623,
+          "monthlyRate": 454.79
+        },
+        "mx2-96x768": {
+          "hourlyRate": 7.473,
+          "monthlyRate": 5455.29
+        },
+        "mx2d-128x1024": {
+          "hourlyRate": 9.964,
+          "monthlyRate": 7273.72
+        },
+        "mx2d-16x128": {
+          "hourlyRate": 1.245,
+          "monthlyRate": 908.85
+        },
+        "mx2d-2x16": {
+          "hourlyRate": 0.156,
+          "monthlyRate": 113.88
+        },
+        "mx2d-32x256": {
+          "hourlyRate": 2.491,
+          "monthlyRate": 1818.43
+        },
+        "mx2d-48x384": {
+          "hourlyRate": 3.736,
+          "monthlyRate": 2727.28
+        },
+        "mx2d-4x32": {
+          "hourlyRate": 0.311,
+          "monthlyRate": 227.03
+        },
+        "mx2d-64x512": {
+          "hourlyRate": 4.982,
+          "monthlyRate": 3636.86
+        },
+        "mx2d-8x64": {
+          "hourlyRate": 0.623,
+          "monthlyRate": 454.79
+        },
+        "mx2d-96x768": {
+          "hourlyRate": 7.473,
+          "monthlyRate": 5455.29
+        },
+        "ux2d-100x2800": {
+          "hourlyRate": 23.672,
+          "monthlyRate": 17280.56
+        },
+        "ux2d-16x448": {
+          "hourlyRate": 3.788,
+          "monthlyRate": 2765.24
+        },
+        "ux2d-200x5600": {
+          "hourlyRate": 47.346,
+          "monthlyRate": 34562.58
+        },
+        "ux2d-2x56": {
+          "hourlyRate": 0.473,
+          "monthlyRate": 345.29
+        },
+        "ux2d-36x1008": {
+          "hourlyRate": 8.522,
+          "monthlyRate": 6221.06
+        },
+        "ux2d-48x1344": {
+          "hourlyRate": 11.363,
+          "monthlyRate": 8294.99
+        },
+        "ux2d-4x112": {
+          "hourlyRate": 0.947,
+          "monthlyRate": 691.31
+        },
+        "ux2d-72x2016": {
+          "hourlyRate": 17.044,
+          "monthlyRate": 12442.12
+        },
+        "ux2d-8x224": {
+          "hourlyRate": 1.894,
+          "monthlyRate": 1382.62
+        },
+        "vx2d-144x2016": {
+          "hourlyRate": 18.073,
+          "monthlyRate": 13193.29
+        },
+        "vx2d-16x224": {
+          "hourlyRate": 2.009,
+          "monthlyRate": 1466.57
+        },
+        "vx2d-176x2464": {
+          "hourlyRate": 22.089,
+          "monthlyRate": 16124.97
+        },
+        "vx2d-2x28": {
+          "hourlyRate": 0.251,
+          "monthlyRate": 183.23
+        },
+        "vx2d-44x616": {
+          "hourlyRate": 5.522,
+          "monthlyRate": 4031.06
+        },
+        "vx2d-4x56": {
+          "hourlyRate": 0.502,
+          "monthlyRate": 366.46
+        },
+        "vx2d-88x1232": {
+          "hourlyRate": 11.045,
+          "monthlyRate": 8062.85
+        },
+        "vx2d-8x112": {
+          "hourlyRate": 1.004,
+          "monthlyRate": 732.92
         },
         "bx3dc-2x10": {
           "hourlyRate": 0.027,
@@ -7943,37 +9895,289 @@
           "hourlyRate": 0.096,
           "monthlyRate": 70.08
         },
+        "bx2-128x512": {
+          "hourlyRate": 6.423,
+          "monthlyRate": 4688.79
+        },
+        "bx2-16x64": {
+          "hourlyRate": 0.803,
+          "monthlyRate": 586.19
+        },
         "bx2-2x8": {
           "hourlyRate": 0.1,
           "monthlyRate": 73
+        },
+        "bx2-32x128": {
+          "hourlyRate": 1.605,
+          "monthlyRate": 1171.65
+        },
+        "bx2-48x192": {
+          "hourlyRate": 2.409,
+          "monthlyRate": 1758.57
+        },
+        "bx2-4x16": {
+          "hourlyRate": 0.201,
+          "monthlyRate": 146.73
+        },
+        "bx2-64x256": {
+          "hourlyRate": 3.211,
+          "monthlyRate": 2344.03
+        },
+        "bx2-8x32": {
+          "hourlyRate": 0.402,
+          "monthlyRate": 293.46
+        },
+        "bx2-96x384": {
+          "hourlyRate": 4.817,
+          "monthlyRate": 3516.41
+        },
+        "bx2d-128x512": {
+          "hourlyRate": 6.423,
+          "monthlyRate": 4688.79
+        },
+        "bx2d-16x64": {
+          "hourlyRate": 0.803,
+          "monthlyRate": 586.19
         },
         "bx2d-2x8": {
           "hourlyRate": 0.1,
           "monthlyRate": 73
         },
-        "cx2d-2x4": {
-          "hourlyRate": 0.088,
-          "monthlyRate": 64.24
+        "bx2d-32x128": {
+          "hourlyRate": 1.605,
+          "monthlyRate": 1171.65
+        },
+        "bx2d-48x192": {
+          "hourlyRate": 2.409,
+          "monthlyRate": 1758.57
+        },
+        "bx2d-4x16": {
+          "hourlyRate": 0.201,
+          "monthlyRate": 146.73
+        },
+        "bx2d-64x256": {
+          "hourlyRate": 3.211,
+          "monthlyRate": 2344.03
+        },
+        "bx2d-8x32": {
+          "hourlyRate": 0.402,
+          "monthlyRate": 293.46
+        },
+        "bx2d-96x384": {
+          "hourlyRate": 4.817,
+          "monthlyRate": 3516.41
+        },
+        "cx2-128x256": {
+          "hourlyRate": 5.686,
+          "monthlyRate": 4150.78
+        },
+        "cx2-16x32": {
+          "hourlyRate": 0.711,
+          "monthlyRate": 519.03
         },
         "cx2-2x4": {
           "hourlyRate": 0.088,
           "monthlyRate": 64.24
         },
-        "bx2d-4x16": {
-          "hourlyRate": 0.2,
-          "monthlyRate": 146
+        "cx2-32x64": {
+          "hourlyRate": 1.421,
+          "monthlyRate": 1037.33
         },
-        "bx2-4x16": {
-          "hourlyRate": 0.2,
-          "monthlyRate": 146
+        "cx2-48x96": {
+          "hourlyRate": 2.133,
+          "monthlyRate": 1557.09
         },
         "cx2-4x8": {
-          "hourlyRate": 0.177,
-          "monthlyRate": 129.21
+          "hourlyRate": 0.178,
+          "monthlyRate": 129.94
+        },
+        "cx2-64x128": {
+          "hourlyRate": 2.843,
+          "monthlyRate": 2075.39
+        },
+        "cx2-8x16": {
+          "hourlyRate": 0.356,
+          "monthlyRate": 259.88
+        },
+        "cx2-96x192": {
+          "hourlyRate": 4.264,
+          "monthlyRate": 3112.72
+        },
+        "cx2d-128x256": {
+          "hourlyRate": 5.686,
+          "monthlyRate": 4150.78
+        },
+        "cx2d-16x32": {
+          "hourlyRate": 0.711,
+          "monthlyRate": 519.03
+        },
+        "cx2d-2x4": {
+          "hourlyRate": 0.088,
+          "monthlyRate": 64.24
+        },
+        "cx2d-32x64": {
+          "hourlyRate": 1.421,
+          "monthlyRate": 1037.33
+        },
+        "cx2d-48x96": {
+          "hourlyRate": 2.133,
+          "monthlyRate": 1557.09
         },
         "cx2d-4x8": {
-          "hourlyRate": 0.177,
-          "monthlyRate": 129.21
+          "hourlyRate": 0.178,
+          "monthlyRate": 129.94
+        },
+        "cx2d-64x128": {
+          "hourlyRate": 2.843,
+          "monthlyRate": 2075.39
+        },
+        "cx2d-8x16": {
+          "hourlyRate": 0.356,
+          "monthlyRate": 259.88
+        },
+        "cx2d-96x192": {
+          "hourlyRate": 4.264,
+          "monthlyRate": 3112.72
+        },
+        "mx2-128x1024": {
+          "hourlyRate": 8.306,
+          "monthlyRate": 6063.38
+        },
+        "mx2-16x128": {
+          "hourlyRate": 1.039,
+          "monthlyRate": 758.47
+        },
+        "mx2-2x16": {
+          "hourlyRate": 0.13,
+          "monthlyRate": 94.9
+        },
+        "mx2-32x256": {
+          "hourlyRate": 2.077,
+          "monthlyRate": 1516.21
+        },
+        "mx2-48x384": {
+          "hourlyRate": 3.115,
+          "monthlyRate": 2273.95
+        },
+        "mx2-4x32": {
+          "hourlyRate": 0.259,
+          "monthlyRate": 189.07
+        },
+        "mx2-64x512": {
+          "hourlyRate": 4.153,
+          "monthlyRate": 3031.69
+        },
+        "mx2-8x64": {
+          "hourlyRate": 0.519,
+          "monthlyRate": 378.87
+        },
+        "mx2-96x768": {
+          "hourlyRate": 6.23,
+          "monthlyRate": 4547.9
+        },
+        "mx2d-128x1024": {
+          "hourlyRate": 8.306,
+          "monthlyRate": 6063.38
+        },
+        "mx2d-16x128": {
+          "hourlyRate": 1.039,
+          "monthlyRate": 758.47
+        },
+        "mx2d-2x16": {
+          "hourlyRate": 0.13,
+          "monthlyRate": 94.9
+        },
+        "mx2d-32x256": {
+          "hourlyRate": 2.077,
+          "monthlyRate": 1516.21
+        },
+        "mx2d-48x384": {
+          "hourlyRate": 3.115,
+          "monthlyRate": 2273.95
+        },
+        "mx2d-4x32": {
+          "hourlyRate": 0.259,
+          "monthlyRate": 189.07
+        },
+        "mx2d-64x512": {
+          "hourlyRate": 4.153,
+          "monthlyRate": 3031.69
+        },
+        "mx2d-8x64": {
+          "hourlyRate": 0.519,
+          "monthlyRate": 378.87
+        },
+        "mx2d-96x768": {
+          "hourlyRate": 6.23,
+          "monthlyRate": 4547.9
+        },
+        "ux2d-100x2800": {
+          "hourlyRate": 19.735,
+          "monthlyRate": 14406.55
+        },
+        "ux2d-16x448": {
+          "hourlyRate": 3.158,
+          "monthlyRate": 2305.34
+        },
+        "ux2d-200x5600": {
+          "hourlyRate": 39.469,
+          "monthlyRate": 28812.37
+        },
+        "ux2d-2x56": {
+          "hourlyRate": 0.395,
+          "monthlyRate": 288.35
+        },
+        "ux2d-36x1008": {
+          "hourlyRate": 7.105,
+          "monthlyRate": 5186.65
+        },
+        "ux2d-48x1344": {
+          "hourlyRate": 9.473,
+          "monthlyRate": 6915.29
+        },
+        "ux2d-4x112": {
+          "hourlyRate": 0.789,
+          "monthlyRate": 575.97
+        },
+        "ux2d-72x2016": {
+          "hourlyRate": 14.209,
+          "monthlyRate": 10372.57
+        },
+        "ux2d-8x224": {
+          "hourlyRate": 1.578,
+          "monthlyRate": 1151.94
+        },
+        "vx2d-144x2016": {
+          "hourlyRate": 15.067,
+          "monthlyRate": 10998.91
+        },
+        "vx2d-16x224": {
+          "hourlyRate": 1.674,
+          "monthlyRate": 1222.02
+        },
+        "vx2d-176x2464": {
+          "hourlyRate": 18.415,
+          "monthlyRate": 13442.95
+        },
+        "vx2d-2x28": {
+          "hourlyRate": 0.21,
+          "monthlyRate": 153.3
+        },
+        "vx2d-44x616": {
+          "hourlyRate": 4.604,
+          "monthlyRate": 3360.92
+        },
+        "vx2d-4x56": {
+          "hourlyRate": 0.418,
+          "monthlyRate": 305.14
+        },
+        "vx2d-88x1232": {
+          "hourlyRate": 9.208,
+          "monthlyRate": 6721.84
+        },
+        "vx2d-8x112": {
+          "hourlyRate": 0.837,
+          "monthlyRate": 611.01
         },
         "bx3dc-2x10": {
           "hourlyRate": 0.0222,
@@ -8433,37 +10637,289 @@
           "hourlyRate": 0.096,
           "monthlyRate": 70.08
         },
+        "bx2-128x512": {
+          "hourlyRate": 6.423,
+          "monthlyRate": 4688.79
+        },
+        "bx2-16x64": {
+          "hourlyRate": 0.803,
+          "monthlyRate": 586.19
+        },
         "bx2-2x8": {
           "hourlyRate": 0.1,
           "monthlyRate": 73
+        },
+        "bx2-32x128": {
+          "hourlyRate": 1.605,
+          "monthlyRate": 1171.65
+        },
+        "bx2-48x192": {
+          "hourlyRate": 2.409,
+          "monthlyRate": 1758.57
+        },
+        "bx2-4x16": {
+          "hourlyRate": 0.201,
+          "monthlyRate": 146.73
+        },
+        "bx2-64x256": {
+          "hourlyRate": 3.211,
+          "monthlyRate": 2344.03
+        },
+        "bx2-8x32": {
+          "hourlyRate": 0.402,
+          "monthlyRate": 293.46
+        },
+        "bx2-96x384": {
+          "hourlyRate": 4.817,
+          "monthlyRate": 3516.41
+        },
+        "bx2d-128x512": {
+          "hourlyRate": 6.423,
+          "monthlyRate": 4688.79
+        },
+        "bx2d-16x64": {
+          "hourlyRate": 0.803,
+          "monthlyRate": 586.19
         },
         "bx2d-2x8": {
           "hourlyRate": 0.1,
           "monthlyRate": 73
         },
-        "cx2d-2x4": {
-          "hourlyRate": 0.088,
-          "monthlyRate": 64.24
+        "bx2d-32x128": {
+          "hourlyRate": 1.605,
+          "monthlyRate": 1171.65
+        },
+        "bx2d-48x192": {
+          "hourlyRate": 2.409,
+          "monthlyRate": 1758.57
+        },
+        "bx2d-4x16": {
+          "hourlyRate": 0.201,
+          "monthlyRate": 146.73
+        },
+        "bx2d-64x256": {
+          "hourlyRate": 3.211,
+          "monthlyRate": 2344.03
+        },
+        "bx2d-8x32": {
+          "hourlyRate": 0.402,
+          "monthlyRate": 293.46
+        },
+        "bx2d-96x384": {
+          "hourlyRate": 4.817,
+          "monthlyRate": 3516.41
+        },
+        "cx2-128x256": {
+          "hourlyRate": 5.686,
+          "monthlyRate": 4150.78
+        },
+        "cx2-16x32": {
+          "hourlyRate": 0.711,
+          "monthlyRate": 519.03
         },
         "cx2-2x4": {
           "hourlyRate": 0.088,
           "monthlyRate": 64.24
         },
-        "bx2d-4x16": {
-          "hourlyRate": 0.2,
-          "monthlyRate": 146
+        "cx2-32x64": {
+          "hourlyRate": 1.421,
+          "monthlyRate": 1037.33
         },
-        "bx2-4x16": {
-          "hourlyRate": 0.2,
-          "monthlyRate": 146
+        "cx2-48x96": {
+          "hourlyRate": 2.133,
+          "monthlyRate": 1557.09
         },
         "cx2-4x8": {
-          "hourlyRate": 0.177,
-          "monthlyRate": 129.21
+          "hourlyRate": 0.178,
+          "monthlyRate": 129.94
+        },
+        "cx2-64x128": {
+          "hourlyRate": 2.843,
+          "monthlyRate": 2075.39
+        },
+        "cx2-8x16": {
+          "hourlyRate": 0.356,
+          "monthlyRate": 259.88
+        },
+        "cx2-96x192": {
+          "hourlyRate": 4.264,
+          "monthlyRate": 3112.72
+        },
+        "cx2d-128x256": {
+          "hourlyRate": 5.686,
+          "monthlyRate": 4150.78
+        },
+        "cx2d-16x32": {
+          "hourlyRate": 0.711,
+          "monthlyRate": 519.03
+        },
+        "cx2d-2x4": {
+          "hourlyRate": 0.088,
+          "monthlyRate": 64.24
+        },
+        "cx2d-32x64": {
+          "hourlyRate": 1.421,
+          "monthlyRate": 1037.33
+        },
+        "cx2d-48x96": {
+          "hourlyRate": 2.133,
+          "monthlyRate": 1557.09
         },
         "cx2d-4x8": {
-          "hourlyRate": 0.177,
-          "monthlyRate": 129.21
+          "hourlyRate": 0.178,
+          "monthlyRate": 129.94
+        },
+        "cx2d-64x128": {
+          "hourlyRate": 2.843,
+          "monthlyRate": 2075.39
+        },
+        "cx2d-8x16": {
+          "hourlyRate": 0.356,
+          "monthlyRate": 259.88
+        },
+        "cx2d-96x192": {
+          "hourlyRate": 4.264,
+          "monthlyRate": 3112.72
+        },
+        "mx2-128x1024": {
+          "hourlyRate": 8.306,
+          "monthlyRate": 6063.38
+        },
+        "mx2-16x128": {
+          "hourlyRate": 1.039,
+          "monthlyRate": 758.47
+        },
+        "mx2-2x16": {
+          "hourlyRate": 0.13,
+          "monthlyRate": 94.9
+        },
+        "mx2-32x256": {
+          "hourlyRate": 2.077,
+          "monthlyRate": 1516.21
+        },
+        "mx2-48x384": {
+          "hourlyRate": 3.115,
+          "monthlyRate": 2273.95
+        },
+        "mx2-4x32": {
+          "hourlyRate": 0.259,
+          "monthlyRate": 189.07
+        },
+        "mx2-64x512": {
+          "hourlyRate": 4.153,
+          "monthlyRate": 3031.69
+        },
+        "mx2-8x64": {
+          "hourlyRate": 0.519,
+          "monthlyRate": 378.87
+        },
+        "mx2-96x768": {
+          "hourlyRate": 6.23,
+          "monthlyRate": 4547.9
+        },
+        "mx2d-128x1024": {
+          "hourlyRate": 8.306,
+          "monthlyRate": 6063.38
+        },
+        "mx2d-16x128": {
+          "hourlyRate": 1.039,
+          "monthlyRate": 758.47
+        },
+        "mx2d-2x16": {
+          "hourlyRate": 0.13,
+          "monthlyRate": 94.9
+        },
+        "mx2d-32x256": {
+          "hourlyRate": 2.077,
+          "monthlyRate": 1516.21
+        },
+        "mx2d-48x384": {
+          "hourlyRate": 3.115,
+          "monthlyRate": 2273.95
+        },
+        "mx2d-4x32": {
+          "hourlyRate": 0.259,
+          "monthlyRate": 189.07
+        },
+        "mx2d-64x512": {
+          "hourlyRate": 4.153,
+          "monthlyRate": 3031.69
+        },
+        "mx2d-8x64": {
+          "hourlyRate": 0.519,
+          "monthlyRate": 378.87
+        },
+        "mx2d-96x768": {
+          "hourlyRate": 6.23,
+          "monthlyRate": 4547.9
+        },
+        "ux2d-100x2800": {
+          "hourlyRate": 19.735,
+          "monthlyRate": 14406.55
+        },
+        "ux2d-16x448": {
+          "hourlyRate": 3.158,
+          "monthlyRate": 2305.34
+        },
+        "ux2d-200x5600": {
+          "hourlyRate": 39.469,
+          "monthlyRate": 28812.37
+        },
+        "ux2d-2x56": {
+          "hourlyRate": 0.395,
+          "monthlyRate": 288.35
+        },
+        "ux2d-36x1008": {
+          "hourlyRate": 7.105,
+          "monthlyRate": 5186.65
+        },
+        "ux2d-48x1344": {
+          "hourlyRate": 9.473,
+          "monthlyRate": 6915.29
+        },
+        "ux2d-4x112": {
+          "hourlyRate": 0.789,
+          "monthlyRate": 575.97
+        },
+        "ux2d-72x2016": {
+          "hourlyRate": 14.209,
+          "monthlyRate": 10372.57
+        },
+        "ux2d-8x224": {
+          "hourlyRate": 1.578,
+          "monthlyRate": 1151.94
+        },
+        "vx2d-144x2016": {
+          "hourlyRate": 15.067,
+          "monthlyRate": 10998.91
+        },
+        "vx2d-16x224": {
+          "hourlyRate": 1.674,
+          "monthlyRate": 1222.02
+        },
+        "vx2d-176x2464": {
+          "hourlyRate": 18.415,
+          "monthlyRate": 13442.95
+        },
+        "vx2d-2x28": {
+          "hourlyRate": 0.21,
+          "monthlyRate": 153.3
+        },
+        "vx2d-44x616": {
+          "hourlyRate": 4.604,
+          "monthlyRate": 3360.92
+        },
+        "vx2d-4x56": {
+          "hourlyRate": 0.418,
+          "monthlyRate": 305.14
+        },
+        "vx2d-88x1232": {
+          "hourlyRate": 9.208,
+          "monthlyRate": 6721.84
+        },
+        "vx2d-8x112": {
+          "hourlyRate": 0.837,
+          "monthlyRate": 611.01
         },
         "bx3dc-2x10": {
           "hourlyRate": 0.0222,

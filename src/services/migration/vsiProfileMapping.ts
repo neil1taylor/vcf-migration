@@ -34,6 +34,7 @@ export interface VMProfileMapping {
   memoryGiB: number;
   nics: number;
   guestOS: string;
+  firmwareType: string | null;
   autoProfile: VSIProfile;
   burstableProfile: VSIProfile | null;
   profile: VSIProfile;
@@ -78,7 +79,7 @@ const NETWORK_APPLIANCE_PATTERNS = [
 // Patterns to detect enterprise applications (case-insensitive)
 const ENTERPRISE_APP_PATTERNS = [
   /oracle/i,
-  /sap[-_]?/i,
+  /\bsap[-_]/i,
   /sql[-_]?server/i,
   /mssql/i,
   /db2/i,
@@ -96,22 +97,11 @@ const ENTERPRISE_APP_PATTERNS = [
   /dhcp[-_]?server/i,
 ];
 
-// OS patterns indicating enterprise/production workloads
-const ENTERPRISE_OS_PATTERNS = [
-  /windows.*server/i,
-  /red\s*hat.*enterprise/i,
-  /rhel/i,
-  /oracle.*linux/i,
-  /suse.*enterprise/i,
-  /sles/i,
-];
-
 /**
  * Classify a VM to determine if burstable profiles are suitable
  */
 export function classifyVMForBurstable(
   vmName: string,
-  guestOS: string,
   nics: number
 ): VMClassification {
   const reasons: string[] = [];
@@ -124,7 +114,7 @@ export function classifyVMForBurstable(
   // Check for network appliance patterns in VM name
   for (const pattern of NETWORK_APPLIANCE_PATTERNS) {
     if (pattern.test(vmName)) {
-      reasons.push('Network appliance detected');
+      reasons.push('Network appliance');
       break;
     }
   }
@@ -132,15 +122,7 @@ export function classifyVMForBurstable(
   // Check for enterprise app patterns in VM name
   for (const pattern of ENTERPRISE_APP_PATTERNS) {
     if (pattern.test(vmName)) {
-      reasons.push('Enterprise application detected');
-      break;
-    }
-  }
-
-  // Check for enterprise OS
-  for (const pattern of ENTERPRISE_OS_PATTERNS) {
-    if (pattern.test(guestOS)) {
-      reasons.push('Enterprise OS');
+      reasons.push('Enterprise app');
       break;
     }
   }
@@ -150,14 +132,14 @@ export function classifyVMForBurstable(
     return {
       recommendation: 'standard',
       reasons,
-      note: `Standard profile recommended: ${reasons.join(', ')}. These workloads typically require sustained CPU performance.`,
+      note: `Standard profile recommended — dedicated CPU for sustained performance. Reasons: ${reasons.join(', ')}`,
     };
   }
 
   return {
     recommendation: 'burstable',
     reasons: [],
-    note: 'Burstable (Flex) profile recommended for cost optimization. Suitable for variable workloads that don\'t require sustained high CPU.',
+    note: 'Burstable profile recommended — shared CPU, lower cost. Suitable for variable workloads without sustained high CPU demand.',
   };
 }
 
@@ -166,6 +148,14 @@ export function classifyVMForBurstable(
  */
 export function getVSIProfiles(): Record<ProfileFamily, VSIProfile[]> {
   return ibmCloudConfig.vsiProfiles as Record<ProfileFamily, VSIProfile[]>;
+}
+
+/**
+ * Check if a profile is a z-series (s390x) profile — not x86, wrong architecture for VMware migrations
+ */
+export function isZSeriesProfile(profileName: string): boolean {
+  const prefix = profileName.split('-')[0];
+  return prefix.includes('z');
 }
 
 /**
@@ -178,12 +168,20 @@ export function isBurstableProfile(profileName: string): boolean {
 }
 
 /**
- * Check if a profile is a standard (non-burstable) profile
+ * Check if a profile is a standard (non-burstable, non-z-series) profile
  */
 export function isStandardProfile(profileName: string): boolean {
+  return !isBurstableProfile(profileName) && !isZSeriesProfile(profileName);
+}
+
+/**
+ * Check if a profile is a preferred (gen3) generation.
+ * Gen3 profiles use 4th Gen Intel Xeon (Sapphire Rapids), DDR5, PCIe Gen5.
+ * Prefixes: bx3d, bx3dc, cx3d, cx3dc, mx3d
+ */
+export function isPreferredGeneration(profileName: string): boolean {
   const prefix = profileName.split('-')[0];
-  // Standard profiles: bx2, bx2d, bx3d, cx2, cx2d, mx2, mx2d, etc. (not ending in 'f')
-  return !prefix.endsWith('f');
+  return prefix.includes('3');
 }
 
 /**
@@ -219,28 +217,81 @@ export function findBurstableProfile(vcpus: number, memoryGiB: number): VSIProfi
 }
 
 /**
- * Find the best-fit standard (non-burstable) profile for given requirements
+ * Check if a firmware type indicates BIOS (non-UEFI) boot mode.
+ * Gen3 profiles require UEFI — BIOS VMs must use Gen2.
  */
-export function findStandardProfile(vcpus: number, memoryGiB: number): VSIProfile {
+export function isBIOSFirmware(firmwareType: string | null | undefined): boolean {
+  if (!firmwareType) return false; // null/unknown → optimistic (allow Gen3)
+  return !firmwareType.toLowerCase().includes('efi');
+}
+
+/**
+ * Find the instance storage (d-suffix) variant of a profile.
+ * For gen3 profiles, all are already d-suffix so returns the same profile.
+ * For gen2, converts e.g. cx2-2x4 → cx2d-2x4.
+ */
+export function findInstanceStorageVariant(profile: VSIProfile): VSIProfile {
+  if (hasInstanceStorage(profile.name)) return profile;
+
+  // Build the d-variant name: e.g. "cx2" → "cx2d", then reattach the size part
+  const [prefix, ...rest] = profile.name.split('-');
+  const dPrefix = prefix + 'd';
+  const dName = [dPrefix, ...rest].join('-');
+
+  const found = findProfileByName(dName);
+  return found || profile;
+}
+
+/**
+ * Find the best-fit standard (non-burstable) profile for given requirements.
+ * Prefers gen3 (Sapphire Rapids) over gen2 (Cascade Lake).
+ * Falls back to gen2 only when no gen3 profile can fit the requirements.
+ *
+ * When firmwareType indicates BIOS boot, gen3 is skipped because gen3 profiles
+ * require UEFI boot mode exclusively.
+ */
+export function findStandardProfile(vcpus: number, memoryGiB: number, firmwareType?: string | null): VSIProfile {
   const vsiProfiles = getVSIProfiles();
   const family = determineProfileFamily(vcpus, memoryGiB);
   const profiles = vsiProfiles[family];
 
-  // Filter to only standard profiles, sorted by vcpus
+  // Filter to only standard x86 profiles (excludes z-series and burstable)
+  // When specs are equal, prefer profiles without instance storage (d-suffix)
+  // since NVMe instance storage is ephemeral and unnecessary for most workloads
   const standardProfiles = profiles
     .filter(p => isStandardProfile(p.name))
-    .sort((a, b) => a.vcpus - b.vcpus || a.memoryGiB - b.memoryGiB);
+    .sort((a, b) => a.vcpus - b.vcpus || a.memoryGiB - b.memoryGiB || Number(hasInstanceStorage(a.name)) - Number(hasInstanceStorage(b.name)));
 
-  // Find first profile that meets requirements
-  const bestFit = standardProfiles.find(p => p.vcpus >= vcpus && p.memoryGiB >= memoryGiB);
-  return bestFit || standardProfiles[standardProfiles.length - 1];
+  // BIOS firmware cannot boot on Gen3 (UEFI-only) — skip Gen3
+  const skipGen3 = isBIOSFirmware(firmwareType);
+
+  if (!skipGen3) {
+    // Try gen3 first
+    const gen3Profiles = standardProfiles.filter(p => isPreferredGeneration(p.name));
+    const gen3Fit = gen3Profiles.find(p => p.vcpus >= vcpus && p.memoryGiB >= memoryGiB);
+    if (gen3Fit) return gen3Fit;
+  }
+
+  // Fall back to any standard profile (gen2) if gen3 can't fit or is skipped
+  const gen2Profiles = standardProfiles.filter(p => !isPreferredGeneration(p.name));
+  const gen2Fit = gen2Profiles.find(p => p.vcpus >= vcpus && p.memoryGiB >= memoryGiB);
+  if (gen2Fit) return gen2Fit;
+
+  // If gen3 was skipped due to BIOS, last resort is largest gen2
+  if (skipGen3) {
+    return gen2Profiles[gen2Profiles.length - 1] || standardProfiles[standardProfiles.length - 1];
+  }
+
+  // Last resort: largest available profile (gen3 preferred)
+  const gen3Profiles = standardProfiles.filter(p => isPreferredGeneration(p.name));
+  return gen3Profiles[gen3Profiles.length - 1] || standardProfiles[standardProfiles.length - 1];
 }
 
 /**
  * Map a VM to the best-fit VSI profile (returns standard profile)
  */
-export function mapVMToVSIProfile(vcpus: number, memoryGiB: number): VSIProfile {
-  return findStandardProfile(vcpus, memoryGiB);
+export function mapVMToVSIProfile(vcpus: number, memoryGiB: number, firmwareType?: string | null): VSIProfile {
+  return findStandardProfile(vcpus, memoryGiB, firmwareType);
 }
 
 /**
@@ -283,12 +334,34 @@ export function getProfileTypeFromName(profileName: string): 'Burstable' | 'Stan
   return isBurstableProfile(profileName) ? 'Burstable' : 'Standard';
 }
 
+/**
+ * Check if a profile has NVMe instance storage (d-suffix in prefix, but not flex profiles).
+ * NVMe instance storage provides high IOPS local storage but is ephemeral on stop/start.
+ */
+export function hasInstanceStorage(profileName: string): boolean {
+  const prefix = profileName.split('-')[0];
+  // d-suffix profiles (bx2d, bx3d, bx3dc, mx2d, etc.) have NVMe, but flex profiles (bxf) do not
+  if (isBurstableProfile(profileName)) return false;
+  return prefix.includes('d');
+}
+
+/**
+ * Get the hardware generation of a profile.
+ * Gen3 profiles use 4th Gen Intel Xeon (Sapphire Rapids), DDR5, PCIe Gen5.
+ * Gen2 profiles use 2nd Gen Intel Xeon (Cascade Lake), DDR4, PCIe Gen4.
+ */
+export function getProfileGeneration(profileName: string): 2 | 3 {
+  const prefix = profileName.split('-')[0];
+  return prefix.includes('3') ? 3 : 2;
+}
+
 export interface VMInput {
   vmName: string;
   cpus: number;
   memory: number; // in MiB
   nics?: number;
   guestOS?: string;
+  firmwareType?: string | null;
 }
 
 /**
@@ -304,12 +377,13 @@ export function createVMProfileMappings(
     const memoryGiB = mibToGiB(vm.memory);
     const nics = vm.nics ?? 1;
     const guestOS = vm.guestOS ?? '';
+    const firmwareType = vm.firmwareType ?? null;
 
     // Classify VM for burstable eligibility
-    const classification = classifyVMForBurstable(vm.vmName, guestOS, nics);
+    const classification = classifyVMForBurstable(vm.vmName, nics);
 
-    // Get both standard and burstable profiles
-    const standardProfile = findStandardProfile(vm.cpus, memoryGiB);
+    // Get both standard and burstable profiles (firmware-aware)
+    const standardProfile = findStandardProfile(vm.cpus, memoryGiB, firmwareType);
     const burstableProfile = findBurstableProfile(vm.cpus, memoryGiB);
 
     // Default auto profile based on classification
@@ -347,6 +421,7 @@ export function createVMProfileMappings(
       memoryGiB: Math.round(memoryGiB),
       nics,
       guestOS,
+      firmwareType,
       autoProfile,
       burstableProfile,
       profile: effectiveProfile,

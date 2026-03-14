@@ -48,6 +48,8 @@ import {
   Reset,
   Category,
   NotebookReference,
+  Flash,
+  Subtract,
 } from '@carbon/icons-react';
 import { NO_AUTO_EXCLUSION } from '@/utils/autoExclusion';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
@@ -158,6 +160,8 @@ export function DiscoveryVMTable({
         exclusionSource,
         hasNotes: notes.length > 0,
         notes,
+        burstable: vmOverrides.isBurstableCandidate(vmId),
+        instanceStorage: vmOverrides.isInstanceStoragePreferred(vmId),
         status,
         actions: '',
       };
@@ -255,7 +259,7 @@ export function DiscoveryVMTable({
     if (row.isForceIncluded) {
       return (
         <span style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-          <Tag type="green" size="sm">Included</Tag>
+          <Tag type="green" size="sm" onClick={() => handleToggleExclusion(row)} style={{ cursor: 'pointer' }}>Included</Tag>
           <Tag type="outline" size="sm">Override</Tag>
         </span>
       );
@@ -263,7 +267,7 @@ export function DiscoveryVMTable({
     if (row.isAutoExcluded) {
       return (
         <span style={{ display: 'flex', gap: '0.25rem', flexWrap: 'wrap' }}>
-          <Tag type="red" size="sm">Auto-Excluded</Tag>
+          <Tag type="red" size="sm" onClick={() => handleToggleExclusion(row)} style={{ cursor: 'pointer' }}>Auto-Excluded</Tag>
           {row.autoExclusionLabels.map(label => (
             <Tag key={label} type="magenta" size="sm">{label}</Tag>
           ))}
@@ -271,9 +275,9 @@ export function DiscoveryVMTable({
       );
     }
     if (row.isManuallyExcluded) {
-      return <Tag type="gray" size="sm">Excluded</Tag>;
+      return <Tag type="gray" size="sm" onClick={() => handleToggleExclusion(row)} style={{ cursor: 'pointer' }}>Excluded</Tag>;
     }
-    return <Tag type="green" size="sm">Included</Tag>;
+    return <Tag type="green" size="sm" onClick={() => handleToggleExclusion(row)} style={{ cursor: 'pointer' }}>Included</Tag>;
   }
 
   function renderCategoryCell(row: VMRow) {
@@ -294,16 +298,6 @@ export function DiscoveryVMTable({
     return (
       <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
         <Tag type="blue" size="sm">{row.categoryName}</Tag>
-        {isUserSource && (
-          <Tag type="cyan" size="sm">User</Tag>
-        )}
-        {isMaintainerSource && (
-          <Tooltip label={row.matchedPattern || 'Maintainer-defined classification'} align="bottom">
-            <button type="button" style={{ all: 'unset', cursor: 'help' }}>
-              <Tag type="teal" size="sm">Maintainer</Tag>
-            </button>
-          </Tooltip>
-        )}
         {isAISource && hasAI && (
           <Tooltip label={aiResult.reasoning || 'AI-classified workload'} align="bottom">
             <button type="button" style={{ all: 'unset', cursor: 'help' }}>
@@ -336,6 +330,8 @@ export function DiscoveryVMTable({
     { key: 'memoryGiB', header: 'Memory' },
     { key: 'storageGiB', header: 'Storage' },
     { key: 'category', header: 'Workload Type' },
+    { key: 'burstable', header: 'Burstable' },
+    { key: 'instanceStorage', header: 'Instance Storage' },
     { key: 'status', header: 'Status' },
     { key: 'notes', header: 'Notes' },
     { key: 'actions', header: '' },
@@ -411,7 +407,7 @@ export function DiscoveryVMTable({
             <TableContainer
               {...getTableContainerProps()}
               title="Virtual Machines"
-              description="Review and manage VMs for migration"
+              description="Review each VM by clicking on the VM Name for more info. Ensure Workload Type is correct, change as needed. Set the instance to Burstable if you think the workload is suitable for a burstable VSI. Set Instance Storage to NVMe if the workload needs fast local I/O (e.g. DB scratch, Kafka). Set the Status as needed, to exclude VMs not in scope for migration."
             >
               <TableToolbar>
                 <TableBatchActions {...batchActionProps}>
@@ -435,6 +431,32 @@ export function DiscoveryVMTable({
                     onClick={() => handleBulkEditWorkload(selectedRows)}
                   >
                     Change Workload Type
+                  </TableBatchAction>
+                  <TableBatchAction
+                    tabIndex={batchActionProps.shouldShowBatchActions ? 0 : -1}
+                    renderIcon={Flash}
+                    onClick={() => {
+                      const selected = selectedRows.map(r => {
+                        const orig = paginatedRows.find(pr => pr.id === r.id);
+                        return orig ? { vmId: orig.id, vmName: orig.vmName } : null;
+                      }).filter(Boolean) as Array<{ vmId: string; vmName: string }>;
+                      vmOverrides.bulkSetBurstableCandidate(selected, true);
+                    }}
+                  >
+                    Mark as Burstable
+                  </TableBatchAction>
+                  <TableBatchAction
+                    tabIndex={batchActionProps.shouldShowBatchActions ? 0 : -1}
+                    renderIcon={Subtract}
+                    onClick={() => {
+                      const selected = selectedRows.map(r => {
+                        const orig = paginatedRows.find(pr => pr.id === r.id);
+                        return orig ? { vmId: orig.id, vmName: orig.vmName } : null;
+                      }).filter(Boolean) as Array<{ vmId: string; vmName: string }>;
+                      vmOverrides.bulkSetBurstableCandidate(selected, false);
+                    }}
+                  >
+                    Mark as Standard
                   </TableBatchAction>
                   <TableBatchAction
                     tabIndex={batchActionProps.shouldShowBatchActions ? 0 : -1}
@@ -521,6 +543,26 @@ export function DiscoveryVMTable({
                         <TableCell>{originalRow.storageGiB} GiB</TableCell>
                         <TableCell>
                           {renderCategoryCell(originalRow)}
+                        </TableCell>
+                        <TableCell>
+                          <Tag
+                            type={originalRow.burstable ? 'cyan' : 'gray'}
+                            size="sm"
+                            onClick={() => vmOverrides.setBurstableCandidate(originalRow.id, originalRow.vmName, !originalRow.burstable)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {originalRow.burstable ? 'Burstable' : 'Standard'}
+                          </Tag>
+                        </TableCell>
+                        <TableCell>
+                          <Tag
+                            type={originalRow.instanceStorage ? 'teal' : 'gray'}
+                            size="sm"
+                            onClick={() => vmOverrides.setInstanceStorage(originalRow.id, originalRow.vmName, !originalRow.instanceStorage)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {originalRow.instanceStorage ? 'NVMe' : 'Block'}
+                          </Tag>
                         </TableCell>
                         <TableCell>
                           {renderStatusTags(originalRow)}

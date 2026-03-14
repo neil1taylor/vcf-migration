@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=\"$TOOL_INPUT_FILE_PATH\"; if [ -n \"$filepath\" ] && echo \"$filepath\" | grep -qE '\\.(ts|tsx)$'; then npx eslint --fix \"$filepath\" 2>/dev/null; fi; exit 0"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=\"$TOOL_INPUT_FILE_PATH\"; if [ -n \"$filepath\" ] && echo \"$filepath\" | grep -qE 'src/data/(ibmCloudConfig|workloadPatterns|virtualizationOverhead|ibmCloudOSCompatibility|redhatOSCompatibility|vpcSecurityGroupTemplates)\\.json$'; then echo 'WARN: Editing critical config file — verify this is intentional'; fi; exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}

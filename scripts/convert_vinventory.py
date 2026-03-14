@@ -462,6 +462,51 @@ def synthesize_vmemory(wb_in, wb_out):
     return row_count
 
 
+def synthesize_vrp(wb_in, wb_out):
+    """Synthesize vRP (Resource Pool) sheet from vmInfo columns.
+
+    vInventory has no dedicated ResourcePool sheet with RP settings, but vmInfo
+    has a ResourcePool column.  We group VMs by (ResourcePool, Cluster, Datacenter)
+    to produce one row per pool with a VM count.  CPU/memory reservation fields
+    are left empty since vInventory doesn't expose RP configuration.
+    """
+    src_cols = _get_vminfo_col_indices(wb_in,
+        ('ResourcePool', 'Cluster', 'Datacenter'))
+    if 'ResourcePool' not in src_cols:
+        return 0
+
+    ws_in = wb_in['vmInfo']
+    # Aggregate: (pool, cluster, datacenter) -> vm_count
+    pools = {}  # key -> {'cluster', 'datacenter', 'count'}
+    for row in ws_in.iter_rows(min_row=2, values_only=True):
+        rp_idx = src_cols['ResourcePool']
+        pool_name = row[rp_idx] if rp_idx < len(row) else None
+        if not pool_name:
+            continue
+        cluster = ''
+        if 'Cluster' in src_cols and src_cols['Cluster'] < len(row):
+            cluster = row[src_cols['Cluster']] or ''
+        datacenter = ''
+        if 'Datacenter' in src_cols and src_cols['Datacenter'] < len(row):
+            datacenter = row[src_cols['Datacenter']] or ''
+        key = (pool_name, cluster, datacenter)
+        if key not in pools:
+            pools[key] = 0
+        pools[key] += 1
+
+    ws_out = wb_out.create_sheet('vRP')
+    out_headers = ['Name', '# VMs', 'Cluster', 'Datacenter']
+    ws_out.append(out_headers)
+
+    row_count = 0
+    for (pool_name, cluster, datacenter), count in sorted(pools.items()):
+        ws_out.append([pool_name, count, cluster, datacenter])
+        row_count += 1
+
+    log.info("vRP: %d resource pools (synthesized from vmInfo)", row_count)
+    return row_count
+
+
 def create_stub_sheet(wb_out, sheet_name, headers):
     """Create an empty sheet with headers only."""
     ws = wb_out.create_sheet(sheet_name)
@@ -649,6 +694,7 @@ def convert(input_path: Path, output_path: Path) -> None:
         stats['vTools'] = synthesize_vtools(wb_in, wb_out)
         stats['vCPU'] = synthesize_vcpu(wb_in, wb_out)
         stats['vMemory'] = synthesize_vmemory(wb_in, wb_out)
+        stats['vRP'] = synthesize_vrp(wb_in, wb_out)
 
     # 11. vDatastore (synthesized from vDisk/DatastoreAssociation/LUN)
     stats['vDatastore'] = synthesize_vdatastore(wb_in, wb_out)
@@ -662,7 +708,7 @@ def convert(input_path: Path, output_path: Path) -> None:
     mapped_src_sheets = {'vmInfo', 'vDisk', 'vNetworkadapter', 'Snapshots',
                          'DvdFloppy', 'Cluster', 'vmhost', 'vCenter',
                          'vLicense', 'Datastore', 'DatastoreAssociation',
-                         'LUN', 'vPartition'}
+                         'LUN', 'vPartition', 'ResourcePool_vApp'}
     skipped = [s for s in wb_in.sheetnames if s not in mapped_src_sheets]
 
     # --- Save ---
