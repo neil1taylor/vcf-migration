@@ -80,7 +80,7 @@ function buildRightsizingPrompt(vms, profiles) {
 
 Consider:
 - Workload type affects optimal profile family (databases need memory-optimized mx2, compute workloads need cx2, general use needs balanced bx2)
-- VMs with low CPU/memory usage may be over-provisioned and can use smaller profiles
+- VMs with low CPU/memory usage may be over-provisioned — if recommending a smaller profile, use hedging language (e.g. 'may be over-provisioned', 'appears to be over-provisioned') rather than stating it as fact
 - Always recommend a profile that meets or exceeds the VM's resource requirements
 - Prefer the smallest profile that satisfies requirements for cost optimization
 
@@ -97,7 +97,7 @@ Respond with a JSON array. Each element must have:
 - "costSavingsEstimate": if the VM appears over-provisioned, describe potential savings
 - "alternativeProfile": second-best profile option (or null)
 - "alternativeReasoning": why the alternative could work (or null)
-- "isOverprovisioned": boolean indicating if the VM appears to have more resources than needed
+- "isOverprovisioned": boolean indicating if the VM may have more resources than needed based on usage data
 
 Respond ONLY with valid JSON, no other text.`;
 }

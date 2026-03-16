@@ -132,7 +132,7 @@ export function VSISizingPanel({
             )}
             {aiRecommendations[row.original.vmName]?.source === 'ai' && (() => {
               const aiRec = aiRecommendations[row.original.vmName];
-              const tooltipText = aiRec.reasoning + (aiRec.isOverprovisioned ? ' (Overprovisioned)' : '');
+              const tooltipText = aiRec.reasoning + (aiRec.isOverprovisioned ? ' (Possibly overprovisioned)' : '');
               return (
                 <>
                   <Tooltip label={tooltipText} align="bottom">
@@ -141,7 +141,7 @@ export function VSISizingPanel({
                     </button>
                   </Tooltip>
                   {aiRec.isOverprovisioned && (
-                    <Tag type="warm-gray" size="sm">Overprovisioned</Tag>
+                    <Tag type="warm-gray" size="sm">Possibly overprovisioned</Tag>
                   )}
                 </>
               );
