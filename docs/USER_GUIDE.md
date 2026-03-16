@@ -813,7 +813,7 @@ Comprehensive migration assessment documents:
 Detailed cost spreadsheets with formulas:
 
 **Formats:**
-- **Excel BOM** - Full spreadsheet with formulas and styling
+- **Excel BOM** - Full spreadsheet with BOM Summary (aggregated cost by category), per-VM formulas, and styling
 - **Text BOM** - Plain text summary
 - **JSON BOM** - Machine-readable format
 - **CSV BOM** - For import into other tools

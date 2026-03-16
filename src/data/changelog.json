@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "version": "2.3.1",
+      "date": "2026-03-16",
+      "sections": {
+        "added": [
+          "Aggregated BOM Summary sheet in VSI BOM XLSX export — category-level cost overview with Subtotal, Discount, and Total rows",
+          "VM names are now clickable in VSI profile mapping table for quick navigation",
+          "10 GB minimum enforced for VPC data volumes to match IBM Cloud minimum block storage size"
+        ],
+        "fixed": [
+          "AI right-sizing language softened from definitive \"Overprovisioned\" to hedged phrasing for better user experience"
+        ]
+      }
+    },
+    {
       "version": "2.3.0",
       "date": "2026-03-14",
       "sections": {

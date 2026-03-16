@@ -48,6 +48,7 @@ This section covers how to use the VCF Migration application for migration plann
 ### Export & Reporting
 
 #### Bill of Materials (BOM) Export
+- **BOM Summary Sheet** — Aggregated cost overview by category (Compute, Storage, Networking) with Qty, Unit Cost, Monthly, and Annual columns plus Subtotal/Discount/Total rows
 - **Excel BOM with Formulas** — Detailed spreadsheet with:
   - VPC/Cluster summary with regional pricing
   - Per-VM/node cost breakdown with formulas (Unit Price × Quantity)
