@@ -124,7 +124,7 @@ const STYLES = {
 // Generate VPC VSI BOM as xlsx workbook with formulas and styling
 export async function generateVSIBOMExcel(
   vmDetails: VMDetail[],
-  _estimate: CostEstimate,
+  estimate: CostEstimate,
   vpcName: string = 'Default VPC',
   region: RegionCode = 'us-south',
   discountType: DiscountType = 'onDemand',
@@ -138,6 +138,85 @@ export async function generateVSIBOMExcel(
   const regionData = pricing.regions[region];
   const regional = getRegionalPricing(pricing, region);
   const storageCostPerGB = regional.blockStorage['generalPurpose']?.costPerGBMonth ?? regional.blockStorage['general-purpose']?.costPerGBMonth ?? 0.08;
+
+  // === BOM Summary Sheet (first sheet — default view) ===
+  const summaryBomSheet = workbook.addWorksheet('BOM Summary');
+  summaryBomSheet.columns = [
+    { width: 18 }, // Category
+    { width: 25 }, // Description
+    { width: 45 }, // Details
+    { width: 15 }, // Qty
+    { width: 12 }, // Unit Cost
+    { width: 14 }, // Monthly
+    { width: 14 }, // Annual
+  ];
+
+  // Header row
+  const bomSummaryHeader = summaryBomSheet.getRow(1);
+  ['Category', 'Description', 'Details', 'Qty', 'Unit Cost', 'Monthly', 'Annual'].forEach((val, i) => {
+    const cell = bomSummaryHeader.getCell(i + 1);
+    cell.value = val;
+    cell.fill = STYLES.headerBlack.fill;
+    cell.font = STYLES.headerBlack.font;
+  });
+
+  // Data rows from estimate.lineItems
+  let bomSummaryRow = 2;
+  for (const item of estimate.lineItems) {
+    const row = summaryBomSheet.getRow(bomSummaryRow);
+    row.getCell(1).value = item.category;
+    row.getCell(2).value = item.description;
+    row.getCell(3).value = item.notes || '';
+    row.getCell(4).value = `${item.quantity.toLocaleString()} ${item.unit}`;
+    row.getCell(5).value = item.unitCost;
+    row.getCell(5).numFmt = STYLES.currency.numFmt;
+    row.getCell(6).value = item.monthlyCost;
+    row.getCell(6).numFmt = STYLES.currency.numFmt;
+    row.getCell(7).value = item.annualCost;
+    row.getCell(7).numFmt = STYLES.currency.numFmt;
+    bomSummaryRow++;
+  }
+
+  // Subtotal row
+  const subtotalRow = summaryBomSheet.getRow(bomSummaryRow);
+  subtotalRow.getCell(1).value = 'Subtotal';
+  subtotalRow.getCell(1).font = { bold: true };
+  summaryBomSheet.mergeCells(bomSummaryRow, 1, bomSummaryRow, 5);
+  subtotalRow.getCell(6).value = estimate.subtotalMonthly;
+  subtotalRow.getCell(6).numFmt = STYLES.currency.numFmt;
+  subtotalRow.getCell(6).font = { bold: true };
+  subtotalRow.getCell(7).value = estimate.subtotalAnnual;
+  subtotalRow.getCell(7).numFmt = STYLES.currency.numFmt;
+  subtotalRow.getCell(7).font = { bold: true };
+  bomSummaryRow++;
+
+  // Discount row (conditional)
+  if (estimate.discountPct > 0) {
+    const discountRow = summaryBomSheet.getRow(bomSummaryRow);
+    discountRow.getCell(1).value = `Discount (${estimate.discountPct}%)`;
+    discountRow.getCell(1).font = { bold: true };
+    summaryBomSheet.mergeCells(bomSummaryRow, 1, bomSummaryRow, 5);
+    discountRow.getCell(6).value = -estimate.discountAmountMonthly;
+    discountRow.getCell(6).numFmt = STYLES.currency.numFmt;
+    discountRow.getCell(6).font = { bold: true };
+    discountRow.getCell(7).value = -estimate.discountAmountAnnual;
+    discountRow.getCell(7).numFmt = STYLES.currency.numFmt;
+    discountRow.getCell(7).font = { bold: true };
+    bomSummaryRow++;
+  }
+
+  // Total row
+  const totalSummaryRow = summaryBomSheet.getRow(bomSummaryRow);
+  totalSummaryRow.getCell(1).value = 'Total';
+  summaryBomSheet.mergeCells(bomSummaryRow, 1, bomSummaryRow, 5);
+  totalSummaryRow.getCell(6).value = estimate.totalMonthly;
+  totalSummaryRow.getCell(6).numFmt = STYLES.currency.numFmt;
+  totalSummaryRow.getCell(7).value = estimate.totalAnnual;
+  totalSummaryRow.getCell(7).numFmt = STYLES.currency.numFmt;
+  for (let col = 1; col <= 7; col++) {
+    totalSummaryRow.getCell(col).fill = STYLES.totalRow.fill;
+    totalSummaryRow.getCell(col).font = STYLES.totalRow.font;
+  }
 
   // === BOM Sheet ===
   const bomSheet = workbook.addWorksheet('VPC VSI BOM');
