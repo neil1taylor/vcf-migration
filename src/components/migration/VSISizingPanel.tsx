@@ -1,6 +1,7 @@
 // VSI Sizing tab panel content - extracted from VSIMigrationPage
 
-import { Tile, Tag, Button, InlineNotification, Tooltip, Toggletip, ToggletipButton, ToggletipContent } from '@carbon/react';
+import { useState } from 'react';
+import { Tile, Tag, Button, InlineNotification, Tooltip, Toggletip, ToggletipButton, ToggletipContent, Link } from '@carbon/react';
 import { Grid, Column } from '@carbon/react';
 import { Settings, Reset, ArrowUp, ArrowDown } from '@carbon/icons-react';
 import { Link as RouterLink } from 'react-router-dom';
@@ -16,6 +17,7 @@ import type { VMProfileMapping } from '@/services/migration';
 import type { CustomProfile } from '@/hooks/useCustomProfiles';
 import type { ProfileRecommendation as AIProfileRecommendation } from '@/services/ai/types';
 import type { StorageTierType } from '@/utils/workloadClassification';
+import { VMDetailModal } from '@/components/discovery/VMDetailModal';
 
 export interface VSISizingPanelProps {
   totalVSIs: number;
@@ -55,10 +57,19 @@ export function VSISizingPanel({
   setStorageTierOverride,
   removeStorageTierOverride,
 }: VSISizingPanelProps) {
+  const [viewingVMName, setViewingVMName] = useState<string | null>(null);
+
   // Table columns
   type ProfileMappingRow = VMProfileMapping;
   const profileMappingColumns: ColumnDef<ProfileMappingRow, unknown>[] = [
-    { accessorKey: 'vmName', header: 'VM Name', enableSorting: true },
+    {
+      accessorKey: 'vmName', header: 'VM Name', enableSorting: true,
+      cell: ({ row }) => (
+        <Link href="#" onClick={(e: React.MouseEvent) => { e.preventDefault(); setViewingVMName(row.original.vmName); }}>
+          {row.original.vmName}
+        </Link>
+      ),
+    },
     { accessorKey: 'vcpus', header: 'Source vCPUs', enableSorting: true },
     { accessorKey: 'memoryGiB', header: 'Source Memory (GiB)', enableSorting: true },
     { accessorKey: 'nics', header: 'NICs', enableSorting: true },
@@ -185,7 +196,7 @@ export function VSISizingPanel({
               <Tag type="cyan" size="sm">High BW</Tag>
             )}
             {firmwareBIOS && (
-              <Tooltip label="This VM uses BIOS firmware. Gen 3 profiles require UEFI boot mode. Convert to UEFI before migrating to Gen 3." align="bottom">
+              <Tooltip label="This VM uses BIOS firmware. Gen 3 profiles require UEFI boot mode. If you want to use a Gen 3 profile, convert to UEFI before migrating to Gen 3." align="bottom">
                 <button type="button" className="tooltip-trigger">
                   <Tag type="warm-gray" size="sm">BIOS</Tag>
                 </button>
@@ -269,6 +280,7 @@ export function VSISizingPanel({
   ];
 
   return (
+    <>
     <Grid className="migration-page__tab-content">
       <Column lg={16} md={8} sm={4}>
         <Tile className="migration-page__sizing-header">
@@ -380,5 +392,7 @@ export function VSISizingPanel({
         </Tile>
       </Column>
     </Grid>
+    <VMDetailModal vmName={viewingVMName} onClose={() => setViewingVMName(null)} />
+    </>
   );
 }
