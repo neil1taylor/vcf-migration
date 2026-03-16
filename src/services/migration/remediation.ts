@@ -7,6 +7,7 @@ import type { MigrationMode } from './osCompatibility';
 // VPC VSI Limits
 export const VPC_BOOT_DISK_MIN_GB = 10;
 export const VPC_BOOT_DISK_MAX_GB = 250;
+export const VPC_DATA_VOLUME_MIN_GB = 10;
 export const VPC_MAX_DISKS_PER_VM = 12;
 
 // Documentation Links
@@ -51,6 +52,8 @@ export interface PreflightCheckCounts {
   vmsWithVeryLargeMemoryList?: string[];
   vmsWithUnsupportedOS?: number;
   vmsWithUnsupportedOSList?: string[];
+  vmsWithSmallDataDisk?: number;
+  vmsWithSmallDataDiskList?: string[];
 
   // ROKS-specific checks
   vmsWithCdConnected?: number;
@@ -227,6 +230,19 @@ export function generateVSIRemediationItems(counts: PreflightCheckCounts): Remed
       documentationLink: VPC_DOCS.wancloudsMigration,
       affectedCount: counts.vmsWithOldSnapshots,
       affectedVMs: counts.vmsWithOldSnapshotsList,
+    });
+  }
+
+  if (counts.vmsWithSmallDataDisk && counts.vmsWithSmallDataDisk > 0) {
+    items.push({
+      id: 'data-disk-size-min',
+      name: `Data Disk Below ${VPC_DATA_VOLUME_MIN_GB}GB Minimum`,
+      severity: 'warning',
+      description: `VPC block storage volumes require a minimum of ${VPC_DATA_VOLUME_MIN_GB}GB. Data disks smaller than ${VPC_DATA_VOLUME_MIN_GB}GB will be provisioned as ${VPC_DATA_VOLUME_MIN_GB}GB volumes, increasing storage costs slightly.`,
+      remediation: `No action required — volumes will be automatically upsized to ${VPC_DATA_VOLUME_MIN_GB}GB during provisioning. Cost estimates already reflect the ${VPC_DATA_VOLUME_MIN_GB}GB minimum.`,
+      documentationLink: VPC_DOCS.ibmVpcBlockStorage,
+      affectedCount: counts.vmsWithSmallDataDisk,
+      affectedVMs: counts.vmsWithSmallDataDiskList || [],
     });
   }
 
@@ -493,6 +509,31 @@ export function generateVSIAllChecks(counts: PreflightCheckCounts): RemediationI
       description: `VPC VSI boot volumes are limited to ${VPC_BOOT_DISK_MAX_GB}GB maximum. All VMs have boot disks within this limit.`,
       remediation: 'No action required. All boot disks are within the VPC VSI maximum size limit.',
       documentationLink: VPC_DOCS.fullvalenceMigration,
+      affectedCount: 0,
+      affectedVMs: [],
+    });
+  }
+
+  // Data Disk Minimum (10GB)
+  if ((counts.vmsWithSmallDataDisk || 0) > 0) {
+    items.push({
+      id: 'data-disk-minimum',
+      name: `Data Disk Minimum (${VPC_DATA_VOLUME_MIN_GB}GB)`,
+      severity: 'warning',
+      description: `VPC block storage volumes require a minimum of ${VPC_DATA_VOLUME_MIN_GB}GB. Data disks smaller than ${VPC_DATA_VOLUME_MIN_GB}GB will be provisioned as ${VPC_DATA_VOLUME_MIN_GB}GB volumes.`,
+      remediation: `No action required — volumes will be automatically upsized to ${VPC_DATA_VOLUME_MIN_GB}GB during provisioning. Cost estimates already reflect the ${VPC_DATA_VOLUME_MIN_GB}GB minimum.`,
+      documentationLink: VPC_DOCS.ibmVpcBlockStorage,
+      affectedCount: counts.vmsWithSmallDataDisk || 0,
+      affectedVMs: counts.vmsWithSmallDataDiskList || [],
+    });
+  } else {
+    items.push({
+      id: 'data-disk-minimum',
+      name: `Data Disk Minimum (${VPC_DATA_VOLUME_MIN_GB}GB)`,
+      severity: 'success',
+      description: `VPC block storage volumes require a minimum of ${VPC_DATA_VOLUME_MIN_GB}GB. All data disks meet this requirement.`,
+      remediation: 'No action required. All data disks meet the minimum size requirement for VPC block storage.',
+      documentationLink: VPC_DOCS.ibmVpcBlockStorage,
       affectedCount: 0,
       affectedVMs: [],
     });

@@ -3,6 +3,7 @@
 
 import { useMemo } from 'react';
 import { mibToGiB } from '@/utils/formatters';
+import { VPC_DATA_VOLUME_MIN_GB } from '@/services/migration/remediation';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import { mapVMToVSIProfile, getVSIProfiles, classifyVMForBurstable, findBurstableProfile, findInstanceStorageVariant, findGpuProfile, findBandwidthUpgrade, getProfileFamilyFromName } from '@/services/migration';
 import type { VSIProfile, VMProfileMapping, VMClassification } from '@/services/migration';
@@ -252,10 +253,10 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
       );
       totalBootStorageGiB += bootGiB;
 
-      // Data disks: use VM's workload-based tier
+      // Data disks: use VM's workload-based tier, floor to VPC minimum
       const dataDisks = vmDisks.slice(1);
       if (dataDisks.length > 0) {
-        const dataGiB = dataDisks.reduce((sum, d) => sum + Math.round(mibToGiB(d.capacityMiB)), 0);
+        const dataGiB = dataDisks.reduce((sum, d) => sum + Math.max(Math.round(mibToGiB(d.capacityMiB)), VPC_DATA_VOLUME_MIN_GB), 0);
         const tier = mapping.storageTier;
         storageByTierGiB[tier] = (storageByTierGiB[tier] || 0) + dataGiB;
       }

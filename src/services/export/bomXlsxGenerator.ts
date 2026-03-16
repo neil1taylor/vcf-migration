@@ -5,6 +5,7 @@ import type { MigrationInsights } from '@/services/ai/types';
 import type { IBMCloudPricing } from '../pricing/pricingCache';
 import { getCurrentPricing } from '../pricing/pricingCache';
 import { getRegionalPricing } from '@/services/pricing/regionalPricingResolver';
+import { VPC_DATA_VOLUME_MIN_GB } from '@/services/migration/remediation';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 
 // Helper to get active pricing data
@@ -293,11 +294,12 @@ export async function generateVSIBOMExcel(
     bootRow.getCell(4).numFmt = STYLES.currency.numFmt;
     currentRow++;
 
-    // Data volume rows
+    // Data volume rows (floor to VPC minimum)
     for (const vol of vm.dataVolumes) {
+      const provisionedGiB = Math.max(vol.sizeGiB, VPC_DATA_VOLUME_MIN_GB);
       const dataRow = bomSheet.getRow(currentRow);
-      dataRow.getCell(1).value = `Data volume - ${vol.sizeGiB} GB (3 IOPS)`;
-      dataRow.getCell(2).value = { formula: `${vol.sizeGiB}*${storageCostCell}` };
+      dataRow.getCell(1).value = `Data volume - ${provisionedGiB} GB (3 IOPS)`;
+      dataRow.getCell(2).value = { formula: `${provisionedGiB}*${storageCostCell}` };
       dataRow.getCell(2).numFmt = STYLES.currency.numFmt;
       dataRow.getCell(3).value = 1;
       dataRow.getCell(4).value = { formula: `B${currentRow}*C${currentRow}` };
@@ -346,7 +348,7 @@ export async function generateVSIBOMExcel(
   for (const vm of vmDetails) {
     const vsiCost = regional.vsi[vm.profile]?.monthlyRate ?? 0;
     const bootSize = vm.bootVolumeGiB || (vm.guestOS.toLowerCase().includes('windows') ? 120 : 100);
-    const dataStorageTotal = vm.dataVolumes.reduce((s, v) => s + v.sizeGiB, 0);
+    const dataStorageTotal = vm.dataVolumes.reduce((s, v) => s + Math.max(v.sizeGiB, VPC_DATA_VOLUME_MIN_GB), 0);
 
     const row = detailSheet.getRow(detailRowNum);
     row.getCell(1).value = vm.vmName;
@@ -355,7 +357,7 @@ export async function generateVSIBOMExcel(
     row.getCell(4).value = vm.vcpus;
     row.getCell(5).value = vm.memoryGiB;
     row.getCell(6).value = bootSize;
-    row.getCell(7).value = vm.dataVolumes.map(v => `${v.sizeGiB}GB`).join(', ') || 'None';
+    row.getCell(7).value = vm.dataVolumes.map(v => `${Math.max(v.sizeGiB, VPC_DATA_VOLUME_MIN_GB)}GB`).join(', ') || 'None';
     row.getCell(8).value = vsiCost;
     row.getCell(8).numFmt = STYLES.currency.numFmt;
     // Storage cost = (boot + data) * cost per GB

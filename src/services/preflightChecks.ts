@@ -249,6 +249,15 @@ export const CHECK_DEFINITIONS: CheckDefinition[] = [
     modes: ['vsi'],
   },
   {
+    id: 'data-disk-size-min',
+    name: 'Data Disk ≥10GB',
+    shortName: 'Data Min',
+    category: 'storage',
+    severity: 'warning',
+    description: 'VPC block storage volumes require minimum 10GB; smaller disks will be provisioned as 10GB',
+    modes: ['vsi'],
+  },
+  {
     id: 'vsi-tools',
     name: 'VMware Tools',
     shortName: 'Tools',
@@ -441,6 +450,26 @@ function evaluateCheck(
         };
       }
       return { status: 'pass', value: `${bootDiskGB} GB` };
+    }
+
+    case 'data-disk-size-min': {
+      const VPC_DATA_VOL_MIN_GB = 10;
+      if (context.disks.length <= 1) {
+        return { status: 'pass', value: 'No data disks' };
+      }
+      const sortedDisks = [...context.disks].sort((a, b) => (a.diskKey || 0) - (b.diskKey || 0));
+      const dataDisks = sortedDisks.slice(1); // skip boot disk
+      const smallDataDisks = dataDisks.filter(d => Math.round(mibToGiB(d.capacityMiB)) < VPC_DATA_VOL_MIN_GB);
+      if (smallDataDisks.length > 0) {
+        const smallest = Math.round(Math.min(...smallDataDisks.map(d => mibToGiB(d.capacityMiB))));
+        return {
+          status: 'fail',
+          value: `${smallDataDisks.length} disk(s) < ${VPC_DATA_VOL_MIN_GB}GB`,
+          threshold: `${VPC_DATA_VOL_MIN_GB} GB`,
+          message: `Smallest: ${smallest} GB — will be provisioned as ${VPC_DATA_VOL_MIN_GB}GB`,
+        };
+      }
+      return { status: 'pass', value: 'All data disks ≥10GB' };
     }
 
     case 'disk-count': {
@@ -778,6 +807,10 @@ export function derivePreflightCounts(
     const vmsWithUnsupportedOSList = failedVMs('vsi-os');
     counts.vmsWithUnsupportedOS = vmsWithUnsupportedOSList.length;
     counts.vmsWithUnsupportedOSList = vmsWithUnsupportedOSList;
+
+    const vmsWithSmallDataDiskList = failedVMs('data-disk-size-min');
+    counts.vmsWithSmallDataDisk = vmsWithSmallDataDiskList.length;
+    counts.vmsWithSmallDataDiskList = vmsWithSmallDataDiskList;
   }
 
   if (mode === 'roks') {
