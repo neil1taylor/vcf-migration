@@ -62,6 +62,8 @@ export interface DocxExportOptions {
   roksCostEstimate?: CostEstimate | null;
   /** Cached VSI cost estimate from BOM cache — full platform costs matching the UI */
   vsiCostEstimate?: CostEstimate | null;
+  /** Source infrastructure BOM result for current VMware environment costing */
+  sourceBOM?: import('@/services/sourceBom').SourceBOMResult | null;
 }
 
 export interface TargetAssignmentExport {

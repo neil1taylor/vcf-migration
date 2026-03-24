@@ -171,5 +171,7 @@ export function transformProxyToAppPricing(proxyData: ProxyPricingResponse): IBM
       transitGateway: staticPricing.networking.transitGateway,
     } : staticPricing.networking,
     regionalPricing: proxyData.regionalPricing as IBMCloudPricing['regionalPricing'],
+    fileStorage: (proxyData as { fileStorage?: IBMCloudPricing['fileStorage'] }).fileStorage ?? staticPricing.fileStorage,
+    vcfLicensing: (proxyData as { vcfLicensing?: IBMCloudPricing['vcfLicensing'] }).vcfLicensing ?? staticPricing.vcfLicensing,
   };
 }

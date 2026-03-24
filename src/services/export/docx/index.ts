@@ -43,6 +43,7 @@ import {
   buildOSCompatibilitySection,
   buildWorkloadClassification,
   buildPlatformRecommendation,
+  buildSourceBOMSection,
 } from './sections';
 
 // Re-export types for consumers
@@ -82,6 +83,7 @@ export async function generateDocxReport(
     sourceEnvironment: options.sourceEnvironment ?? null,
     roksCostEstimate: options.roksCostEstimate ?? null,
     vsiCostEstimate: options.vsiCostEstimate ?? null,
+    sourceBOM: options.sourceBOM ?? null,
   };
 
   // Reset caption counters for fresh document
@@ -156,9 +158,17 @@ export async function generateDocxReport(
     ...executiveSummary,                                                    // §1
     ...buildAssumptionsAndScope(execNum),                                   // §1.1
     ...environmentAnalysis,                                                 // §2 (enriched)
-    ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §3
-    ...buildComplexityAssessment(filteredRawData, sec.next(), finalOptions.platformSelection?.score?.leaning),               // §4
   ];
+
+  // §3 Source Infrastructure BOM (conditional)
+  if (options.sourceBOM) {
+    sections.push(...buildSourceBOMSection(options.sourceBOM, sec.next()));
+  }
+
+  sections.push(
+    ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §3/4
+    ...buildComplexityAssessment(filteredRawData, sec.next(), finalOptions.platformSelection?.score?.leaning),               // §4
+  );
 
   // §5 Workload Classification (NEW — conditional)
   if (finalOptions.workloadClassification) {

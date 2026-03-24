@@ -34,6 +34,9 @@ import {
 import { Navigate } from 'react-router-dom';
 import { useData, usePDFExport, useExcelExport, useDocxExport, usePptxExport, useAISettings, useVMs, useAllVMs, useAutoExclusion, usePlatformSelection, useVMOverrides, useMigrationAssessment, useWavePlanning } from '@/hooks';
 import { useTimelineConfig } from '@/hooks/useTimelineConfig';
+import { useSourceBOM } from '@/hooks/useSourceBOM';
+import { useDynamicPricing } from '@/hooks/useDynamicPricing';
+import { useTargetLocation } from '@/hooks/useTargetLocation';
 import { downloadHandoverFile } from '@/services/export/handoverExporter';
 import { extractSettingsFromFile, type ExtractedSettings } from '@/services/settingsExtractor';
 import { restoreBundledSettings } from '@/services/settingsRestore';
@@ -56,7 +59,7 @@ import { runPreFlightChecks, type CheckMode } from '@/services/preflightChecks';
 import { exportPreFlightExcel, downloadWavePlanningExcel } from '@/services/export/excelGenerator';
 import { buildDiagnosticBundle, downloadDiagnosticBundle } from '@/services/diagnosticBundle';
 import { getCachedBOM, hasCachedBOM } from '@/services/bomCache';
-import { downloadVSIBOMExcel, downloadROKSBOMExcel, MTVYAMLGenerator, downloadBlob } from '@/services/export';
+import { downloadVSIBOMExcel, downloadROKSBOMExcel, downloadSourceBOMExcel, MTVYAMLGenerator, downloadBlob } from '@/services/export';
 import type { MTVExportOptions } from '@/types/mtvYaml';
 import { RackwareExportModal } from '@/components/export/RackwareExportModal';
 import './ExportPage.scss';
@@ -163,6 +166,7 @@ export function ExportPage() {
   const [roksBomFilename, setRoksBomFilename] = useState(() => getDefaultFilename('roks-bom', filenameCtx));
   const [handoverFilename, setHandoverFilename] = useState(() => getDefaultFilename('handover', filenameCtx));
   const [diagnosticsFilename, setDiagnosticsFilename] = useState(() => getDefaultFilename('diagnostics', filenameCtx));
+  const [sourceBomFilename, setSourceBomFilename] = useState(() => getDefaultFilename('source-bom', filenameCtx));
 
   // ===== Filtered VMs (same exclusion logic as migration pages) =====
   const includedVMs = useMemo(() => {
@@ -218,6 +222,12 @@ export function ExportPage() {
   const { phases: timelinePhases, startDate: timelineStartDate } = useTimelineConfig(
     waveCount, waveVmCounts, waveNames, waveStorageGiB
   );
+
+  // ===== Source Infrastructure BOM =====
+  const { targetMzr } = useTargetLocation();
+  const { pricing } = useDynamicPricing();
+  const sourceBOM = useSourceBOM(rawData, targetMzr ?? 'us-south', pricing);
+  const hasSourceBOM = sourceBOM != null;
 
   // ===== Pre-flight check results =====
   const preflightResults = useMemo(
@@ -329,9 +339,10 @@ export function ExportPage() {
       filteredRawData,
       roksCostEstimate: roksBOM?.estimate ?? null,
       vsiCostEstimate: vsiBOM?.estimate ?? null,
+      sourceBOM: sourceBOM ?? null,
     }, sanitizeFilename(docxFilename, '.docx'));
     markExportComplete();
-  }, [rawData, filteredRawData, exportDocx, aiAvailable, markExportComplete, docxFilename, includeAppendices, timelinePhases, timelineStartDate]);
+  }, [rawData, filteredRawData, exportDocx, aiAvailable, markExportComplete, docxFilename, includeAppendices, timelinePhases, timelineStartDate, sourceBOM]);
 
   const handleExportPptx = useCallback(async () => {
     if (!rawData) return;
@@ -403,6 +414,12 @@ export function ExportPage() {
     );
     markExportComplete();
   }, [markExportComplete, roksBomFilename]);
+
+  const handleExportSourceBOM = useCallback(async () => {
+    if (!sourceBOM) return;
+    await downloadSourceBOMExcel(sourceBOM, sanitizeFilename(sourceBomFilename, '.xlsx'));
+    markExportComplete();
+  }, [sourceBOM, markExportComplete, sourceBomFilename]);
 
   const handleExportMTVYAML = useCallback(async () => {
     const waves = wavePlanning.activeWaves;
@@ -687,6 +704,43 @@ export function ExportPage() {
         {/* ===== Section 2: Migration Exports ===== */}
         <Column lg={16} md={8} sm={4}>
           <h2 className="export-page__section-title">Migration Exports</h2>
+        </Column>
+
+        {/* Source Infrastructure BOM */}
+        <Column lg={8} md={4} sm={4}>
+          <Tile className="export-page__card">
+            <div className="export-page__card-header">
+              <Report size={24} className="export-page__card-icon" />
+              <div>
+                <h3 className="export-page__card-title">Source Infrastructure BOM</h3>
+                <p className="export-page__card-description">
+                  Bill of Materials for the source VMware environment — IBM Cloud bare metal servers, VCF licensing, and storage costs.
+                </p>
+              </div>
+            </div>
+            {!hasSourceBOM && (
+              <p className="export-page__card-helper">Upload an RVTools file with host data and select a target MZR to enable.</p>
+            )}
+            <TextInput
+              id="source-bom-filename"
+              labelText="Filename"
+              size="sm"
+              value={sourceBomFilename}
+              onChange={(e) => setSourceBomFilename(e.target.value)}
+              disabled={!hasSourceBOM}
+              className="export-page__card-filename"
+            />
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={Report}
+              onClick={handleExportSourceBOM}
+              disabled={!hasSourceBOM}
+              className="export-page__card-action"
+            >
+              Export Source BOM
+            </Button>
+          </Tile>
         </Column>
 
         {/* VSI BOM */}

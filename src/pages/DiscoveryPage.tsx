@@ -8,7 +8,7 @@ import { ROUTES } from '@/utils/constants';
 import { formatNumber } from '@/utils/formatters';
 import { HorizontalBarChart } from '@/components/charts';
 import { MetricCard, NextStepBanner } from '@/components/common';
-import { DiscoveryVMTable, InfrastructureTab } from '@/components/discovery';
+import { DiscoveryVMTable, InfrastructureTab, SourceBOMTab } from '@/components/discovery';
 import { NetworkSummaryTable } from '@/components/network';
 import type { WorkloadMatch } from '@/components/discovery';
 import { getVMIdentifier, getEnvironmentFingerprint } from '@/utils/vmIdentifier';
@@ -339,6 +339,7 @@ export function DiscoveryPage() {
               <Tab>Infrastructure</Tab>
               <Tab>Workload</Tab>
               <Tab>Networks</Tab>
+              <Tab disabled={rawData.vHost.length === 0}>Source BOM</Tab>
             </TabList>
             <TabPanels>
               <TabPanel>
@@ -497,6 +498,9 @@ export function DiscoveryPage() {
                     </Tile>
                   )}
                 </div>
+              </TabPanel>
+              <TabPanel>
+                <SourceBOMTab rawData={rawData} />
               </TabPanel>
             </TabPanels>
           </Tabs>

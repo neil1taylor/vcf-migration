@@ -6,6 +6,7 @@ export { ApplianceVMTable } from './ApplianceVMTable';
 export { NetworkEquipmentTable } from './NetworkEquipmentTable';
 export { CustomWorkloadTable } from './CustomWorkloadTable';
 export { DiscoveryVMTable } from './DiscoveryVMTable';
+export { SourceBOMTab } from './SourceBOMTab';
 export { VMDetailModal } from './VMDetailModal';
 
 // Re-export types

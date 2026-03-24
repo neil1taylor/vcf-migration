@@ -44,6 +44,12 @@ export interface BlockStorageTier {
   costPerIOPSMonth?: number;
 }
 
+export interface FileStorageTier {
+  tierName: string;
+  costPerGBMonth: number;
+  description: string;
+}
+
 export interface NetworkPricing {
   publicGateway: { perGatewayMonthly: number; description: string };
   floatingIP: { perIPMonthly: number; description: string };
@@ -114,6 +120,8 @@ export interface RegionalPricingData {
       vsi?: Record<string, { hourlyRate: number; monthlyRate: number }>;
     };
   };
+  fileStorage?: Record<string, { costPerGBMonth: number }>;
+  vcfLicensing?: { perCoreMonthly: number };
 }
 
 export interface DiscountOption {
@@ -159,6 +167,11 @@ export interface IBMCloudPricing {
   storageAddons: {
     snapshots: { costPerGBMonth: number; description: string };
     objectStorage: { standardPerGBMonth: number; vaultPerGBMonth: number; description: string };
+  };
+  fileStorage?: Record<string, FileStorageTier>;
+  vcfLicensing?: {
+    perCoreMonthly: number;
+    description: string;
   };
   regions: Record<string, RegionPricing>;
   regionalPricing?: Record<string, RegionalPricingData>;
@@ -309,6 +322,11 @@ export function getStaticPricing(): IBMCloudPricing {
       monthlyRate: number;
     }>>;
     blockStorage: Record<string, BlockStorageTier>;
+    fileStorage?: Record<string, FileStorageTier>;
+    vcfLicensing?: {
+      perCoreMonthly: number;
+      description: string;
+    };
     networking: NetworkPricing;
     storageAddons: {
       snapshots: { costPerGBMonth: number; description: string };
@@ -427,6 +445,8 @@ export function getStaticPricing(): IBMCloudPricing {
     bareMetal,
     vsi,
     blockStorage: config.blockStorage,
+    fileStorage: config.fileStorage,
+    vcfLicensing: config.vcfLicensing,
     roks: config.roks,
     ove: (config as { ove?: IBMCloudPricing['ove'] }).ove,
     networking: config.networking,

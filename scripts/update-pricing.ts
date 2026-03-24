@@ -826,6 +826,160 @@ async function fetchROKSPricing(): Promise<{
   }
 }
 
+// ===== File Storage Pricing =====
+
+interface FileStorageRegionalPricing {
+  dp2: { costPerGBMonth: number };
+}
+
+async function fetchFileStoragePricing(): Promise<{
+  usSouth: { costPerGBMonth: number };
+  regional: Record<string, FileStorageRegionalPricing>;
+}> {
+  console.log('');
+  console.log('--- File Storage for VPC Pricing ---');
+
+  const defaultRate = { costPerGBMonth: 0.11 }; // fallback
+  const regional: Record<string, FileStorageRegionalPricing> = {};
+
+  try {
+    // Find the dp2 plan under is.share
+    console.log('  Fetching is.share plans...');
+    const shareChildren = await fetchPlanChildren('is.share');
+    const dp2Plan = shareChildren.find(c => c.name === 'dp2' && c.kind === 'plan');
+
+    if (!dp2Plan) {
+      console.warn('  Warning: dp2 plan not found under is.share');
+      return { usSouth: defaultRate, regional };
+    }
+
+    console.log(`  Found dp2 plan: ${dp2Plan.id}`);
+
+    // List dp2 plan children (per-region deployments)
+    const dp2Children = await fetchPlanChildren(dp2Plan.id);
+    const regionDeployments = dp2Children.filter(c => {
+      if (c.kind !== 'deployment') return false;
+      const geo = c.geo_tags?.[0];
+      // Only want region-level entries (e.g. "us-south"), not zone-level (e.g. "us-south-1")
+      return geo && !(/^[a-z]{2}-[a-z]+-\d+$/.test(geo)) && !(/^[a-z]{2}-[a-z]+-\d$/.test(geo));
+    });
+
+    console.log(`  Found ${regionDeployments.length} regional deployments`);
+
+    let fetched = 0;
+    for (const child of regionDeployments) {
+      const region = child.geo_tags?.[0];
+      if (!region) continue;
+
+      const pricing = await fetchChildPricing(child.id);
+      if (!pricing?.metrics) continue;
+
+      // Find the GB metric (is.share.dp2.GB)
+      for (const metric of pricing.metrics) {
+        if (metric.metric_id?.includes('dp2.GB') && !metric.metric_id?.includes('snapshot')) {
+          const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
+          const hourlyRate = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
+            ?? usdAmount?.prices?.[0]?.price;
+
+          if (hourlyRate && hourlyRate > 0) {
+            const monthlyRate = Math.round(hourlyRate * HOURS_PER_MONTH * 100000) / 100000;
+            regional[region] = { dp2: { costPerGBMonth: monthlyRate } };
+
+            if (region === DEFAULT_REGION) {
+              defaultRate.costPerGBMonth = monthlyRate;
+              console.log(`    dp2 (us-south): $${monthlyRate}/GB/mo (from $${hourlyRate}/GB-hr)`);
+            }
+            fetched++;
+          }
+        }
+      }
+      await delay(50);
+    }
+
+    console.log(`  File Storage pricing: ${fetched} regions`);
+  } catch (error) {
+    console.warn('  Warning: Failed to fetch File Storage pricing, using defaults');
+    console.warn('  Error:', error instanceof Error ? error.message : error);
+  }
+
+  return { usSouth: defaultRate, regional };
+}
+
+// ===== VCF Licensing Pricing =====
+
+interface VCFRegionalPricing {
+  perCoreMonthly: number;
+}
+
+async function fetchVCFPricing(): Promise<{
+  usSouth: { perCoreMonthly: number; description: string };
+  regional: Record<string, VCFRegionalPricing>;
+}> {
+  console.log('');
+  console.log('--- VCF Licensing Pricing (from VMware Solutions) ---');
+
+  const defaultResult = {
+    perCoreMonthly: 192.50,
+    description: 'VMware Cloud Foundation per physical core per month (IBM Cloud list price)',
+  };
+  const regional: Record<string, VCFRegionalPricing> = {};
+
+  try {
+    // Use on-demand VCD plan as the VCF licensing proxy
+    // VCD_ONDEMAND_VCPU_METRIC gives per-vCPU-hour rate which includes VCF licensing
+    console.log('  Searching for vmware-solutions on-demand-vcd plan...');
+    const vmwChildren = await fetchPlanChildren('cf329950-0a3e-11e8-922e-f1366c6e1c83'); // vmware-solutions
+    const onDemandPlan = vmwChildren.find(c => c.name === 'on-demand-vcd' && c.kind === 'plan');
+
+    if (!onDemandPlan) {
+      console.warn('  Warning: on-demand-vcd plan not found');
+      return { usSouth: defaultResult, regional };
+    }
+
+    console.log(`  Found on-demand-vcd plan: ${onDemandPlan.id}`);
+
+    // Fetch pricing deployments for per-region rates
+    const deployments = await fetchPlanPricingDeployments(onDemandPlan.id);
+    console.log(`  Found ${deployments.length} pricing deployment(s)`);
+
+    let fetched = 0;
+    for (const deployment of deployments) {
+      const region = deployment.deployment_location || deployment.deployment_region || '';
+      if (!region || !deployment.metrics) continue;
+
+      for (const metric of deployment.metrics) {
+        if (!metric.metric_id?.includes('VCPU')) continue;
+
+        const usdAmount = metric.amounts?.find(a => a.country === 'USA' && a.currency === 'USD');
+        const price = usdAmount?.prices?.find(p => p.quantity_tier === 1)?.price
+          ?? usdAmount?.prices?.[0]?.price;
+        if (!price || price === 0) continue;
+
+        const qty = metric.charge_unit_quantity || 1;
+        const perVCPUHourly = price / qty;
+        // Convert vCPU hourly → per-core monthly (2 vCPUs per physical core × 730 hrs)
+        const perCoreMonthly = Math.round(perVCPUHourly * 2 * HOURS_PER_MONTH * 100) / 100;
+
+        regional[region] = { perCoreMonthly };
+
+        if (region === DEFAULT_REGION || region === 'us-south') {
+          defaultResult.perCoreMonthly = perCoreMonthly;
+          console.log(`    VCF licensing (us-south): $${perVCPUHourly}/vCPU-hr → $${perCoreMonthly}/core/mo`);
+        }
+        fetched++;
+        break; // Only need the first VCPU metric per deployment
+      }
+    }
+
+    console.log(`  VCF licensing pricing: ${fetched} regions`);
+  } catch (error) {
+    console.warn('  Warning: Failed to fetch VCF pricing, using defaults');
+    console.warn('  Error:', error instanceof Error ? error.message : error);
+  }
+
+  return { usSouth: defaultResult, regional };
+}
+
 // Config type for pricing updates
 interface IBMCloudConfig {
   vsiPricing?: Record<string, { hourlyRate: number; monthlyRate: number }>;
@@ -847,7 +1001,11 @@ function updateConfigWithPricing(
   vsiRegionalPricing: Map<string, Record<string, { hourlyRate: number; monthlyRate: number }>>,
   bmRegionalPricing: Map<string, Record<string, { hourlyRate: number; monthlyRate: number }>>,
   roksRegionalRates: Record<string, RegionalROKSRates>,
-  roksWorkerRegional: Record<string, RegionalROKSWorkerRates>
+  roksWorkerRegional: Record<string, RegionalROKSWorkerRates>,
+  fileStorageUsSouth?: { costPerGBMonth: number },
+  fileStorageRegional?: Record<string, FileStorageRegionalPricing>,
+  vcfUsSouth?: { perCoreMonthly: number; description: string },
+  vcfRegional?: Record<string, VCFRegionalPricing>,
 ): IBMCloudConfig {
   const newConfig = { ...existingConfig };
 
@@ -916,6 +1074,12 @@ function updateConfigWithPricing(
   }
   for (const region of Object.keys(roksRegionalRates)) allRegions.add(region);
   for (const region of Object.keys(roksWorkerRegional)) allRegions.add(region);
+  if (fileStorageRegional) {
+    for (const region of Object.keys(fileStorageRegional)) allRegions.add(region);
+  }
+  if (vcfRegional) {
+    for (const region of Object.keys(vcfRegional)) allRegions.add(region);
+  }
 
   // Get existing block storage and networking rates from config to use as static values for all regions
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -928,27 +1092,23 @@ function updateConfigWithPricing(
   for (const region of allRegions) {
     const regionData: Record<string, unknown> = {};
 
-    // VSI rates for this region
+    // VSI rates for this region (always include, even if empty)
     const vsiRates: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
     for (const [profile, regionMap] of vsiRegionalPricing) {
       if (regionMap[region]) {
         vsiRates[profile] = regionMap[region];
       }
     }
-    if (Object.keys(vsiRates).length > 0) {
-      regionData.vsi = vsiRates;
-    }
+    regionData.vsi = vsiRates;
 
-    // Bare metal rates for this region
+    // Bare metal rates for this region (always include, even if empty)
     const bmRates: Record<string, { hourlyRate: number; monthlyRate: number }> = {};
     for (const [profile, regionMap] of bmRegionalPricing) {
       if (regionMap[region]) {
         bmRates[profile] = regionMap[region];
       }
     }
-    if (Object.keys(bmRates).length > 0) {
-      regionData.bareMetal = bmRates;
-    }
+    regionData.bareMetal = bmRates;
 
     // Block storage rates (static — same for all regions for now)
     // Normalize keys to camelCase to match RegionalPricingData convention
@@ -981,12 +1141,41 @@ function updateConfigWithPricing(
       (regionData.roks as Record<string, unknown>).workerRates = workerRates;
     }
 
+    // File Storage rates for this region
+    if (fileStorageRegional?.[region]) {
+      regionData.fileStorage = fileStorageRegional[region];
+    }
+
+    // VCF licensing rates for this region
+    if (vcfRegional?.[region]) {
+      regionData.vcfLicensing = vcfRegional[region];
+    }
+
     if (Object.keys(regionData).length > 0) {
       regionalPricingData[region] = regionData;
     }
   }
 
   newConfig.regionalPricing = regionalPricingData;
+
+  // Update File Storage pricing (top-level)
+  if (fileStorageUsSouth) {
+    newConfig.fileStorage = {
+      dp2: {
+        tierName: 'dp2',
+        costPerGBMonth: fileStorageUsSouth.costPerGBMonth,
+        description: 'File Storage for VPC - dp2 profile',
+      },
+    };
+  }
+
+  // Update VCF licensing pricing (top-level)
+  if (vcfUsSouth) {
+    newConfig.vcfLicensing = {
+      perCoreMonthly: vcfUsSouth.perCoreMonthly,
+      description: vcfUsSouth.description,
+    };
+  }
 
   // Update version
   newConfig.version = new Date().toISOString().split('T')[0];
@@ -1033,6 +1222,8 @@ async function main() {
     const bareMetalResult = await fetchBareMetalPricing(bmProfileNames);
     const roksResult = await fetchROKSPricing();
     const roksWorkerResult = await fetchROKSWorkerRates();
+    const fileStorageResult = await fetchFileStoragePricing();
+    const vcfResult = await fetchVCFPricing();
 
     // Update config
     console.log('');
@@ -1045,7 +1236,11 @@ async function main() {
       vsiResult.regionalPricing,
       bareMetalResult.regionalPricing,
       roksResult?.regional || {},
-      roksWorkerResult.regional
+      roksWorkerResult.regional,
+      fileStorageResult.usSouth,
+      fileStorageResult.regional,
+      vcfResult.usSouth,
+      vcfResult.regional,
     );
 
     // Update ROKS pricing section (us-south backward compat)
@@ -1079,6 +1274,10 @@ async function main() {
     console.log(`  - Bare Metal profiles with us-south pricing: ${bareMetalResult.pricing.size}`);
     console.log(`  - Bare Metal profiles with regional pricing: ${bareMetalResult.regionalPricing.size}`);
     console.log(`  - Regional pricing: ${Object.keys(newConfig.regionalPricing || {}).length} regions`);
+    console.log(`  - File Storage dp2 (us-south): $${fileStorageResult.usSouth.costPerGBMonth}/GB/mo`);
+    console.log(`  - File Storage regions: ${Object.keys(fileStorageResult.regional).length}`);
+    console.log(`  - VCF licensing (us-south): $${vcfResult.usSouth.perCoreMonthly}/core/mo`);
+    console.log(`  - VCF licensing regions: ${Object.keys(vcfResult.regional).length}`);
     console.log(`  - Config version: ${newConfig.version}`);
 
     // Report missing profiles

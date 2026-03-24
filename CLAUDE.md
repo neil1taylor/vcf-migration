@@ -299,7 +299,7 @@ const vms = allVmsRaw.filter(vm => {
 
 ## Discovery
 
-Discovery page (`src/pages/DiscoveryPage.tsx`) has Infrastructure, Workload, and Networks tabs.
+Discovery page (`src/pages/DiscoveryPage.tsx`) has Infrastructure, Workload, Networks, and Source BOM tabs.
 
 ### Infrastructure Tab
 
@@ -310,6 +310,19 @@ Source Data Center selector and Target IBM Cloud MZR dropdown. Source DC auto-se
 | `src/components/discovery/InfrastructureTab.tsx` | Infrastructure tab with DC/MZR selectors and environment summary tables |
 | `src/hooks/useTargetLocation.ts` | localStorage `vcf-target-location`, env fingerprinting, DC→MZR mapping |
 | `src/data/ibmCloudDataCenters.json` | IBM Cloud data center codes, cities, MZR mappings |
+
+### Source BOM Tab
+
+Prices the source VMware environment using IBM Cloud bare metal, VCF licensing, and storage. Best-fit matches each ESXi host to the smallest adequate bare metal profile. Storage classified by type: NFS → File Storage, VMFS → Block Storage, vSAN/VVOL → local NVMe ($0). Uses the target MZR from the Infrastructure tab for regional pricing.
+
+| File | Purpose |
+|------|---------|
+| `src/components/discovery/SourceBOMTab.tsx` | Source BOM tab with host mapping, storage, cost summary |
+| `src/hooks/useSourceBOM.ts` | Computes source BOM from RVTools data + pricing |
+| `src/services/sourceBom/sourceBomService.ts` | Pure functions: `matchHostToBareMetal`, `classifyDatastoreStorage`, `buildSourceBOM` |
+| `src/services/sourceBom/types.ts` | `HostMapping`, `StorageLineItem`, `SourceBOMResult` types |
+| `src/services/export/sourceBomXlsxGenerator.ts` | XLSX export: BOM Summary, Host Mapping, Storage Mapping sheets |
+| `src/services/export/docx/sections/sourceBom.ts` | DOCX section: Source Infrastructure Costing |
 
 ### Classification Precedence
 

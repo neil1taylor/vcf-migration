@@ -1,6 +1,21 @@
 {
   "releases": [
     {
+      "version": "2.5.0",
+      "date": "2026-03-24",
+      "sections": {
+        "added": [
+          "Source Infrastructure BOM — new Discovery tab showing IBM Cloud bare metal, VCF licensing, and storage costs for the current VMware environment",
+          "Best-fit host-to-bare-metal matching with per-host and grouped cost breakdowns",
+          "Storage classification: NFS datastores mapped to File Storage, VMFS to Block Storage, vSAN/VVOL to local NVMe",
+          "VCF per-core licensing costs from IBM Cloud Global Catalog pricing",
+          "Source BOM XLSX export with BOM Summary, Host Mapping, and Storage Mapping sheets",
+          "Source BOM included in DOCX report as Source Infrastructure Costing section",
+          "File Storage and VCF licensing pricing types added to pricing infrastructure"
+        ]
+      }
+    },
+    {
       "version": "2.4.0",
       "date": "2026-03-23",
       "sections": {

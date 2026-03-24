@@ -93,5 +93,15 @@ export function buildFallbackFromBase(pricing: IBMCloudPricing): RegionalPricing
     } : undefined,
   } : undefined;
 
-  return { vsi, bareMetal, blockStorage, networking, roks, ove };
+  const fileStorage: RegionalPricingData['fileStorage'] = pricing.fileStorage
+    ? Object.fromEntries(
+        Object.entries(pricing.fileStorage).map(([tier, data]) => [tier, { costPerGBMonth: data.costPerGBMonth }])
+      )
+    : undefined;
+
+  const vcfLicensing: RegionalPricingData['vcfLicensing'] = pricing.vcfLicensing
+    ? { perCoreMonthly: pricing.vcfLicensing.perCoreMonthly }
+    : undefined;
+
+  return { vsi, bareMetal, blockStorage, networking, roks, ove, fileStorage, vcfLicensing };
 }

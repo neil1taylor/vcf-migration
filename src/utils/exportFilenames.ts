@@ -40,6 +40,8 @@ export function getDefaultFilename(exportType: string, context: FilenameContext 
       return `vpc-vsi-bom-${context.region || 'us-south'}-${date}.xlsx`;
     case 'roks-bom':
       return `roks-bom-${context.region || 'us-south'}-${date}.xlsx`;
+    case 'source-bom':
+      return `source-infrastructure-bom-${date}.xlsx`;
     case 'preflight': {
       const mode = context.mode || 'roks';
       return `preflight-report-${mode}-${date}.xlsx`;
