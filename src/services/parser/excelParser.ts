@@ -1,6 +1,7 @@
-// Main Excel parser for RVTools files
+// Main Excel parser for RVTools and vInventory files
 import * as XLSX from 'xlsx';
 import type { RVToolsData, RVToolsMetadata, ParseResult } from '@/types';
+import { isVInventoryFormat, convertVInventoryWorkbook } from './vinventoryConverter';
 import {
   parseVInfo,
   parseVCPU,
@@ -50,6 +51,22 @@ export async function parseRVToolsFile(
 
     const arrayBuffer = await file.arrayBuffer();
     const workbook = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
+
+    // Auto-detect and convert vInventory format
+    let sourceFormat: 'rvtools' | 'vinventory' = 'rvtools';
+    let storageUsageIncomplete = false;
+    if (isVInventoryFormat(workbook)) {
+      sourceFormat = 'vinventory';
+      onProgress?.({
+        phase: 'reading',
+        sheetsProcessed: 0,
+        totalSheets: 0,
+        message: 'Detected vInventory format, converting...',
+      });
+      const convResult = convertVInventoryWorkbook(workbook);
+      warnings.push(...convResult.warnings);
+      storageUsageIncomplete = convResult.storageUsageIncomplete;
+    }
 
     const allSheetNames = workbook.SheetNames;
 
@@ -113,7 +130,10 @@ export async function parseRVToolsFile(
     };
 
     // Extract metadata
-    const metadata = extractMetadata(workbook, file.name);
+    const metadata = extractMetadata(workbook, file.name, sourceFormat);
+    if (storageUsageIncomplete) {
+      metadata.storageUsageIncomplete = true;
+    }
 
     // Parse each sheet
     reportProgress('vInfo');
@@ -249,7 +269,11 @@ export async function parseRVToolsFile(
 /**
  * Extract metadata from workbook
  */
-function extractMetadata(workbook: XLSX.WorkBook, fileName: string): RVToolsMetadata {
+function extractMetadata(
+  workbook: XLSX.WorkBook,
+  fileName: string,
+  sourceFormat: 'rvtools' | 'vinventory' = 'rvtools',
+): RVToolsMetadata {
   // Try to extract date from filename (format: RVTools_export_*_YYYY-MM-DD_HH.MM.SS.xlsx)
   let collectionDate: Date | null = null;
   const dateMatch = fileName.match(/(\d{4}-\d{2}-\d{2})_(\d{2}\.\d{2}\.\d{2})/);
@@ -291,6 +315,7 @@ function extractMetadata(workbook: XLSX.WorkBook, fileName: string): RVToolsMeta
     collectionDate,
     vCenterVersion,
     environment,
+    sourceFormat,
   };
 }
 

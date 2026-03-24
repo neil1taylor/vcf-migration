@@ -5,6 +5,8 @@ export interface RVToolsMetadata {
   collectionDate: Date | null;
   vCenterVersion: string | null;
   environment: string | null;
+  sourceFormat?: 'rvtools' | 'vinventory';
+  storageUsageIncomplete?: boolean;
 }
 
 export interface VirtualMachine {

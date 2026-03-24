@@ -61,6 +61,7 @@ export interface DashboardData {
   totalInUseTiB: number;
   totalDiskCapacityMiB: number;
   totalDiskCapacityTiB: number;
+  storageUsageIncomplete: boolean;
   uniqueClusters: number;
   uniqueDatacenters: number;
 
@@ -119,10 +120,10 @@ export function useDashboardData(): DashboardData {
   const totalMemoryGiB = mibToGiB(totalMemoryMiB);
   const totalMemoryTiB = mibToTiB(totalMemoryMiB);
 
+  const storageUsageIncomplete = rawData?.metadata.storageUsageIncomplete ?? false;
+
   const totalProvisionedMiB = vms.reduce((sum, vm) => sum + vm.provisionedMiB, 0);
   const totalProvisionedTiB = mibToTiB(totalProvisionedMiB);
-  const totalInUseMiB = vms.reduce((sum, vm) => sum + vm.inUseMiB, 0);
-  const totalInUseTiB = mibToTiB(totalInUseMiB);
 
   // Disk capacity from vDisk sheet (filtered to non-template, powered-on VMs)
   const vmNames = new Set(vms.map(vm => vm.vmName));
@@ -130,6 +131,23 @@ export function useDashboardData(): DashboardData {
     .filter(disk => vmNames.has(disk.vmName))
     .reduce((sum, disk) => sum + disk.capacityMiB, 0);
   const totalDiskCapacityTiB = mibToTiB(totalDiskCapacityMiB);
+
+  // For vInventory with incomplete disk usage data, fall back to vDisk capacity per-VM
+  const vmDiskCapacity = useMemo(() => {
+    if (!storageUsageIncomplete) return new Map<string, number>();
+    const map = new Map<string, number>();
+    for (const disk of rawData?.vDisk ?? []) {
+      map.set(disk.vmName, (map.get(disk.vmName) ?? 0) + disk.capacityMiB);
+    }
+    return map;
+  }, [storageUsageIncomplete, rawData?.vDisk]);
+
+  const totalInUseMiB = vms.reduce((sum, vm) => {
+    if (vm.inUseMiB > 0) return sum + vm.inUseMiB;
+    if (storageUsageIncomplete) return sum + (vmDiskCapacity.get(vm.vmName) ?? 0);
+    return sum;
+  }, 0);
+  const totalInUseTiB = mibToTiB(totalInUseMiB);
 
   const uniqueClusters = new Set(vms.map(vm => vm.cluster).filter(Boolean)).size;
   const uniqueDatacenters = new Set(vms.map(vm => vm.datacenter).filter(Boolean)).size;
@@ -445,6 +463,7 @@ export function useDashboardData(): DashboardData {
     totalInUseTiB,
     totalDiskCapacityMiB,
     totalDiskCapacityTiB,
+    storageUsageIncomplete,
     uniqueClusters,
     uniqueDatacenters,
     clusterData,

@@ -34,6 +34,7 @@ export function DashboardPage() {
     totalInUseTiB,
     totalDiskCapacityMiB,
     totalDiskCapacityTiB,
+    storageUsageIncomplete,
     uniqueClusters,
     uniqueDatacenters,
     templates,
@@ -161,6 +162,7 @@ export function DashboardPage() {
           totalProvisionedTiB={totalProvisionedTiB}
           totalProvisionedMiB={totalProvisionedMiB}
           totalVMs={totalVMs}
+          storageUsageIncomplete={storageUsageIncomplete}
         />
 
         {/* Charts */}

@@ -113,7 +113,7 @@ export function DropZone({
       onClick={handleClick}
       role="button"
       tabIndex={disabled ? -1 : 0}
-      aria-label="Upload RVTools Excel file"
+      aria-label="Upload RVTools or vInventory Excel file"
     >
       <input
         ref={inputRef}
@@ -127,7 +127,7 @@ export function DropZone({
       <div className="drop-zone__content">
         <Upload size={48} className="drop-zone__icon" />
         <h3 className="drop-zone__title">
-          {isDragOver ? 'Drop file here' : 'Drag and drop your RVTools file'}
+          {isDragOver ? 'Drop file here' : 'Drag and drop your RVTools or vInventory file'}
         </h3>
         <p className="drop-zone__subtitle">
           or click to browse

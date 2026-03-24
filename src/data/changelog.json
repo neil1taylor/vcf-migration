@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "2.4.0",
+      "date": "2026-03-23",
+      "sections": {
+        "added": [
+          "Direct vInventory file import — vInventory Excel exports are auto-detected and converted in-memory, no separate Python conversion step needed",
+          "Storage data quality warnings for vInventory files with incomplete disk usage data, with automatic fallback to disk capacity estimates"
+        ]
+      }
+    },
+    {
       "version": "2.3.1",
       "date": "2026-03-16",
       "sections": {

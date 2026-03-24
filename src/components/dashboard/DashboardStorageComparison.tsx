@@ -1,5 +1,5 @@
 // Dashboard storage calculation methods comparison tile
-import { Column, Tile, Tag, Tooltip } from '@carbon/react';
+import { Column, Tile, Tag, Tooltip, InlineNotification } from '@carbon/react';
 import { Information } from '@carbon/icons-react';
 import { mibToGiB } from '@/utils/formatters';
 
@@ -11,6 +11,7 @@ export interface DashboardStorageComparisonProps {
   totalProvisionedTiB: number;
   totalProvisionedMiB: number;
   totalVMs: number;
+  storageUsageIncomplete?: boolean;
 }
 
 export function DashboardStorageComparison({
@@ -21,6 +22,7 @@ export function DashboardStorageComparison({
   totalProvisionedTiB,
   totalProvisionedMiB,
   totalVMs,
+  storageUsageIncomplete = false,
 }: DashboardStorageComparisonProps) {
   return (
     <Column lg={16} md={8} sm={4}>
@@ -34,6 +36,16 @@ export function DashboardStorageComparison({
         <p className="dashboard-page__storage-comparison-subtitle">
           Compare storage metrics for migration planning (powered-on VMs only)
         </p>
+        {storageUsageIncomplete && (
+          <InlineNotification
+            kind="info"
+            title="Estimated usage"
+            subtitle="vInventory export has incomplete disk usage data. 'In Use' values are estimated from disk capacity where actual usage is unavailable."
+            lowContrast
+            hideCloseButton
+            style={{ marginBottom: '1rem' }}
+          />
+        )}
         <div className="dashboard-page__storage-bars">
           {[
             { label: 'Provisioned', value: totalProvisionedTiB, color: '#8a3ffc' },
@@ -72,7 +84,9 @@ export function DashboardStorageComparison({
           <div className="dashboard-page__storage-comparison-item dashboard-page__storage-comparison-item--recommended">
             <div className="dashboard-page__storage-comparison-label">
               <span>In Use</span>
-              <Tag type="green" size="sm">Recommended</Tag>
+              <Tag type={storageUsageIncomplete ? 'warm-gray' : 'green'} size="sm">
+                {storageUsageIncomplete ? 'Estimated' : 'Recommended'}
+              </Tag>
             </div>
             <span className="dashboard-page__storage-comparison-value">{totalInUseTiB.toFixed(2)} TiB</span>
             <span className="dashboard-page__storage-comparison-detail">

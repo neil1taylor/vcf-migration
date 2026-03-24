@@ -172,7 +172,7 @@ describe('File Upload E2E Tests', () => {
 
       expect(screen.getByText(/drag and drop/i)).toBeInTheDocument();
       expect(screen.getByText(/click to browse/i)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /upload rvtools excel file/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i })).toBeInTheDocument();
     });
 
     it('should show accepted file types', () => {
@@ -187,7 +187,7 @@ describe('File Upload E2E Tests', () => {
       render(<DropZone onFileDrop={onFileDrop} />);
 
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
 
       // Create a mock DataTransfer object
       const dataTransfer = {
@@ -206,7 +206,7 @@ describe('File Upload E2E Tests', () => {
       render(<DropZone onFileDrop={onFileDrop} />);
 
       const file = createMockFile('invalid.txt', 1024, 'text/plain');
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
 
       const dataTransfer = { files: [file] };
       fireEvent.drop(dropZone, { dataTransfer });
@@ -222,7 +222,7 @@ describe('File Upload E2E Tests', () => {
 
       // Create a file larger than 1MB
       const largeFile = createMockFile('large.xlsx', 2 * 1024 * 1024, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
 
       const dataTransfer = { files: [largeFile] };
       fireEvent.drop(dropZone, { dataTransfer });
@@ -236,7 +236,7 @@ describe('File Upload E2E Tests', () => {
       const onFileDrop = vi.fn();
       render(<DropZone onFileDrop={onFileDrop} />);
 
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
 
       fireEvent.dragOver(dropZone, {
         dataTransfer: { files: [] },
@@ -249,7 +249,7 @@ describe('File Upload E2E Tests', () => {
       const onFileDrop = vi.fn();
       render(<DropZone onFileDrop={onFileDrop} />);
 
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
 
       fireEvent.dragOver(dropZone, {
         dataTransfer: { files: [] },
@@ -266,7 +266,7 @@ describe('File Upload E2E Tests', () => {
       const onFileDrop = vi.fn();
       render(<DropZone onFileDrop={onFileDrop} disabled />);
 
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       expect(dropZone).toHaveClass('drop-zone--disabled');
       expect(dropZone).toHaveAttribute('tabindex', '-1');
     });
@@ -275,7 +275,7 @@ describe('File Upload E2E Tests', () => {
       const onFileDrop = vi.fn();
       render(<DropZone onFileDrop={onFileDrop} disabled />);
 
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       const file = createValidExcelFile();
 
       fireEvent.drop(dropZone, {
@@ -308,7 +308,7 @@ describe('File Upload E2E Tests', () => {
       render(<FileUpload onDataParsed={onDataParsed} />);
 
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       // Should show file name during processing
@@ -330,7 +330,7 @@ describe('File Upload E2E Tests', () => {
       render(<FileUpload onDataParsed={onDataParsed} />);
 
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       await waitFor(() => {
@@ -363,7 +363,7 @@ describe('File Upload E2E Tests', () => {
       render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       await waitFor(() => {
@@ -386,7 +386,7 @@ describe('File Upload E2E Tests', () => {
       render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       await waitFor(() => {
@@ -411,7 +411,7 @@ describe('File Upload E2E Tests', () => {
       render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       await waitFor(() => {
@@ -436,7 +436,7 @@ describe('File Upload E2E Tests', () => {
 
       // First, trigger an error
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       await waitFor(() => {
@@ -457,7 +457,7 @@ describe('File Upload E2E Tests', () => {
       render(<FileUpload onDataParsed={onDataParsed} />);
 
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       await waitFor(() => {
@@ -475,7 +475,7 @@ describe('File Upload E2E Tests', () => {
       render(<FileUpload onDataParsed={onDataParsed} />);
 
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       await waitFor(() => {
@@ -508,7 +508,7 @@ describe('File Upload E2E Tests', () => {
       render(<FileUpload onDataParsed={onDataParsed} />);
 
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       await waitFor(() => {
@@ -532,7 +532,7 @@ describe('File Upload E2E Tests', () => {
 
       // Step 2: Drop file
       const file = createValidExcelFile('RVTools_export_DC1_2025-01-14_10.30.00.xlsx');
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       // Step 3: Processing state - file name displayed
@@ -566,7 +566,7 @@ describe('File Upload E2E Tests', () => {
 
       // Step 1: Drop file (valid extension but parse will fail)
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       // Step 2: Error state displayed
@@ -597,7 +597,7 @@ describe('File Upload E2E Tests', () => {
       render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       await waitFor(() => {
@@ -615,7 +615,7 @@ describe('File Upload E2E Tests', () => {
 
       // First upload
       const file1 = createValidExcelFile('first.xlsx');
-      let dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      let dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file1] } });
 
       await waitFor(() => {
@@ -630,7 +630,7 @@ describe('File Upload E2E Tests', () => {
 
       // Second upload
       const file2 = createValidExcelFile('second.xlsx');
-      dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file2] } });
 
       await waitFor(() => {
@@ -650,7 +650,7 @@ describe('File Upload E2E Tests', () => {
       render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       const file = createValidExcelFile();
-      const dropZone = screen.getByRole('button', { name: /upload rvtools excel file/i });
+      const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
       fireEvent.drop(dropZone, { dataTransfer: { files: [file] } });
 
       await waitFor(() => {

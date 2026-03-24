@@ -86,7 +86,7 @@ React 19 + TypeScript + Vite application for VMware Cloud Foundation migration p
 
 ### Key Architectural Patterns
 
-- **Data Flow**: RVTools Excel parsed client-side (SheetJS `xlsx`) → `DataContext` (React Context + useReducer) → all components. Types in `src/types/rvtools.ts`. Only vInfo is required; all other sheets default to `[]` when missing.
+- **Data Flow**: RVTools/vInventory Excel parsed client-side (SheetJS `xlsx`) → `DataContext` (React Context + useReducer) → all components. Types in `src/types/rvtools.ts`. Only vInfo is required; all other sheets default to `[]` when missing. vInventory files are auto-detected (has `vmInfo` but no `vInfo` sheet) and converted in-memory by `src/services/parser/vinventoryConverter.ts` before parsing.
 - **Sheet Availability**: `src/hooks/useAvailableSheets.ts` derives boolean flags (`hasVDisk`, `hasVDatastore`, `hasVNetwork`, `hasVHost`, `hasVCluster`, `hasVSnapshot`, `hasVTools`) from `rawData` array lengths. SideNav greys out items for pages missing required sheets; pages show empty state tiles.
 - **State Management**: `src/context/DataContext.tsx` (global state), `src/context/dataReducer.ts` (reducer), hooks in `src/hooks/` (complex logic).
 - **VM Management**: `src/hooks/useVMOverrides.ts` (exclusions/overrides/burstable/instance storage with localStorage), `src/utils/vmIdentifier.ts` (VM ID and environment fingerprinting).
