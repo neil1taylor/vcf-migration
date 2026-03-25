@@ -1,5 +1,7 @@
-export { buildSourceBOM, matchHostToBareMetal, groupHostMappings, classifyDatastoreStorage } from './sourceBomService';
+export { buildSourceBOM, matchHostToClassicBM, groupHostMappings, classifyDatastoreStorage } from './sourceBomService';
 export type {
+  ClassicBareMetalCpu,
+  ClassicBareMetalRam,
   HostMapping,
   HostGroupLineItem,
   StorageLineItem,

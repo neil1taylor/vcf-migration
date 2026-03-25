@@ -1,13 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
-  matchHostToBareMetal,
+  matchHostToClassicBM,
   groupHostMappings,
   classifyDatastoreStorage,
   buildSourceBOM,
 } from './sourceBomService';
 import type { VHostInfo, VDatastoreInfo } from '@/types/rvtools';
-import type { BareMetalProfile } from '@/services/pricing/pricingCache';
-import type { HostMapping } from './types';
+import type { ClassicBareMetalCpu, ClassicBareMetalRam, HostMapping } from './types';
 
 // ===== TEST HELPERS =====
 
@@ -37,17 +36,22 @@ function makeHost(overrides: Partial<VHostInfo> = {}): VHostInfo {
   };
 }
 
-function makeProfile(overrides: Partial<BareMetalProfile> = {}): BareMetalProfile {
+function makeCpu(overrides: Partial<ClassicBareMetalCpu> = {}): ClassicBareMetalCpu {
   return {
-    profile: 'bx2d-metal-96x384',
-    family: 'balanced',
-    vcpus: 96,
-    physicalCores: 48,
-    memoryGiB: 384,
-    hasNvme: true,
-    hourlyRate: 5.0,
-    monthlyRate: 3650,
-    description: 'Balanced - 96 vCPUs, 384 GiB RAM',
+    keyName: 'INTEL_XEON_5218_2_30',
+    description: 'Dual Intel Xeon Gold 5218 (32 Cores, 2.30 GHz)',
+    cores: 32,
+    monthlyRate: 268.13,
+    ...overrides,
+  };
+}
+
+function makeRam(overrides: Partial<ClassicBareMetalRam> = {}): ClassicBareMetalRam {
+  return {
+    keyName: 'RAM_256_GB',
+    description: '256 GB RAM',
+    memoryGiB: 256,
+    monthlyRate: 473.28,
     ...overrides,
   };
 }
@@ -70,71 +74,72 @@ function makeDatastore(overrides: Partial<VDatastoreInfo> = {}): VDatastoreInfo 
   };
 }
 
-const smallProfile = makeProfile({
-  profile: 'bx2-metal-32x128',
-  physicalCores: 16,
-  memoryGiB: 128,
-  monthlyRate: 1200,
-  hasNvme: false,
-});
+const smallCpu = makeCpu({ keyName: 'INTEL_4110', description: 'Dual Xeon Silver 4110 (16 Cores)', cores: 16, monthlyRate: 170.25 });
+const medCpu = makeCpu({ keyName: 'INTEL_5218', description: 'Dual Xeon Gold 5218 (32 Cores)', cores: 32, monthlyRate: 268.13 });
+const largeCpu = makeCpu({ keyName: 'INTEL_6140', description: 'Dual Xeon Gold 6140 (36 Cores)', cores: 36, monthlyRate: 370.29 });
+const xlCpu = makeCpu({ keyName: 'INTEL_8260', description: 'Dual Xeon Platinum 8260 (48 Cores)', cores: 48, monthlyRate: 412.85 });
 
-const mediumProfile = makeProfile({
-  profile: 'bx2d-metal-64x256',
-  physicalCores: 32,
-  memoryGiB: 256,
-  monthlyRate: 2400,
-});
+const ram128 = makeRam({ keyName: 'RAM_128', description: '128 GB RAM', memoryGiB: 128, monthlyRate: 282.61 });
+const ram256 = makeRam({ keyName: 'RAM_256', description: '256 GB RAM', memoryGiB: 256, monthlyRate: 473.28 });
+const ram384 = makeRam({ keyName: 'RAM_384', description: '384 GB RAM', memoryGiB: 384, monthlyRate: 663.95 });
+const ram512 = makeRam({ keyName: 'RAM_512', description: '512 GB RAM', memoryGiB: 512, monthlyRate: 854.62 });
 
-const largeProfile = makeProfile({
-  profile: 'bx2d-metal-96x384',
-  physicalCores: 48,
-  memoryGiB: 384,
-  monthlyRate: 3650,
-});
-
-const xlProfile = makeProfile({
-  profile: 'mx2d-metal-96x768',
-  physicalCores: 48,
-  memoryGiB: 768,
-  monthlyRate: 5200,
-});
-
-const allProfiles = [smallProfile, mediumProfile, largeProfile, xlProfile];
+const allCpus = [smallCpu, medCpu, largeCpu, xlCpu];
+const allRams = [ram128, ram256, ram384, ram512];
 
 // ===== TESTS =====
 
-describe('matchHostToBareMetal', () => {
-  it('selects the smallest adequate profile (exact fit)', () => {
+describe('matchHostToClassicBM', () => {
+  it('selects the smallest adequate CPU and RAM (exact fit)', () => {
     const host = makeHost({ totalCpuCores: 32, memoryMiB: 256 * 1024 });
-    const { mapping, warning } = matchHostToBareMetal(host, allProfiles);
-    expect(mapping.matchedProfile).toBe('bx2d-metal-64x256');
+    const { mapping, warning } = matchHostToClassicBM(host, allCpus, allRams);
+    expect(mapping.matchedCpu).toBe('Dual Xeon Gold 5218 (32 Cores)');
+    expect(mapping.matchedCpuCores).toBe(32);
+    expect(mapping.matchedRam).toBe('256 GB RAM');
+    expect(mapping.matchedRamGiB).toBe(256);
     expect(mapping.overProvisionCoresPct).toBe(0);
     expect(mapping.overProvisionMemoryPct).toBe(0);
     expect(warning).toBeUndefined();
   });
 
-  it('selects over-provisioned profile when exact match unavailable', () => {
+  it('independently matches CPU and RAM — can over-provision differently', () => {
     const host = makeHost({ totalCpuCores: 20, memoryMiB: 200 * 1024 });
-    const { mapping, warning } = matchHostToBareMetal(host, allProfiles);
-    expect(mapping.matchedProfile).toBe('bx2d-metal-64x256');
-    expect(mapping.overProvisionCoresPct).toBe(60); // (32-20)/20 = 60%
-    expect(mapping.overProvisionMemoryPct).toBe(28); // (256-200)/200 = 28%
+    const { mapping, warning } = matchHostToClassicBM(host, allCpus, allRams);
+    expect(mapping.matchedCpu).toBe('Dual Xeon Gold 5218 (32 Cores)');
+    expect(mapping.matchedRam).toBe('256 GB RAM');
+    expect(mapping.overProvisionCoresPct).toBe(60); // (32-20)/20
+    expect(mapping.overProvisionMemoryPct).toBe(28); // (256-200)/200
     expect(warning).toBeUndefined();
   });
 
-  it('picks largest profile and warns when host exceeds all profiles', () => {
-    const host = makeHost({ totalCpuCores: 64, memoryMiB: 1024 * 1024 });
-    const { mapping, warning } = matchHostToBareMetal(host, allProfiles);
-    // Largest by cores then memory
-    expect(mapping.matchedProfile).toBe('mx2d-metal-96x768');
-    expect(warning).toContain('exceeds the largest available');
+  it('warns when host exceeds largest CPU', () => {
+    const host = makeHost({ totalCpuCores: 64, memoryMiB: 256 * 1024 });
+    const { mapping, warning } = matchHostToClassicBM(host, allCpus, allRams);
+    expect(mapping.matchedCpuCores).toBe(48); // largest available
+    expect(warning).toContain('exceeds the largest available Classic bare metal CPU');
     expect(warning).toContain('esxi-host-01');
   });
 
-  it('handles host with small specs — picks smallest profile', () => {
+  it('warns when host exceeds largest RAM', () => {
+    const host = makeHost({ totalCpuCores: 16, memoryMiB: 1024 * 1024 });
+    const { mapping, warning } = matchHostToClassicBM(host, allCpus, allRams);
+    expect(mapping.matchedRamGiB).toBe(512); // largest available
+    expect(warning).toContain('exceeds the largest available Classic bare metal RAM');
+  });
+
+  it('calculates total cost as CPU + RAM', () => {
+    const host = makeHost({ totalCpuCores: 32, memoryMiB: 384 * 1024 });
+    const { mapping } = matchHostToClassicBM(host, allCpus, allRams);
+    expect(mapping.cpuMonthlyCost).toBe(268.13);
+    expect(mapping.ramMonthlyCost).toBe(663.95);
+    expect(mapping.profileMonthlyCost).toBeCloseTo(268.13 + 663.95, 2);
+  });
+
+  it('handles host with small specs — picks smallest CPU and RAM', () => {
     const host = makeHost({ totalCpuCores: 8, memoryMiB: 64 * 1024 });
-    const { mapping, warning } = matchHostToBareMetal(host, allProfiles);
-    expect(mapping.matchedProfile).toBe('bx2-metal-32x128');
+    const { mapping, warning } = matchHostToClassicBM(host, allCpus, allRams);
+    expect(mapping.matchedCpuCores).toBe(16); // smallest
+    expect(mapping.matchedRamGiB).toBe(128); // smallest
     expect(warning).toBeUndefined();
   });
 
@@ -147,7 +152,7 @@ describe('matchHostToBareMetal', () => {
       cluster: 'Production',
       datacenter: 'London-DC',
     });
-    const { mapping } = matchHostToBareMetal(host, allProfiles);
+    const { mapping } = matchHostToClassicBM(host, allCpus, allRams);
     expect(mapping.hostName).toBe('esx-prod-42');
     expect(mapping.sourceCpuModel).toBe('AMD EPYC 7543');
     expect(mapping.sourceVendor).toBe('HPE');
@@ -155,32 +160,28 @@ describe('matchHostToBareMetal', () => {
     expect(mapping.cluster).toBe('Production');
     expect(mapping.datacenter).toBe('London-DC');
   });
-
-  it('prefers fewer cores when memory is equal', () => {
-    const profileA = makeProfile({ profile: 'a', physicalCores: 32, memoryGiB: 256, monthlyRate: 2000 });
-    const profileB = makeProfile({ profile: 'b', physicalCores: 48, memoryGiB: 256, monthlyRate: 3000 });
-    const host = makeHost({ totalCpuCores: 24, memoryMiB: 200 * 1024 });
-    const { mapping } = matchHostToBareMetal(host, [profileB, profileA]);
-    expect(mapping.matchedProfile).toBe('a');
-  });
 });
 
 describe('groupHostMappings', () => {
-  it('groups mappings by matched profile', () => {
+  it('groups mappings by matched CPU+RAM combo', () => {
+    const base = {
+      sourceCores: 32, sourceMemoryGiB: 256, sourceCpuModel: '', sourceVendor: '', sourceModel: '',
+      cluster: 'C1', datacenter: 'DC1', overProvisionCoresPct: 0, overProvisionMemoryPct: 0,
+    };
     const mappings: HostMapping[] = [
-      { ...makeHost(), hostName: 'h1', matchedProfile: 'bx2d-metal-64x256', matchedProfileCores: 32, matchedProfileMemoryGiB: 256, profileMonthlyCost: 2400, sourceCores: 32, sourceMemoryGiB: 256, sourceCpuModel: '', sourceVendor: '', sourceModel: '', cluster: 'C1', datacenter: 'DC1', overProvisionCoresPct: 0, overProvisionMemoryPct: 0 },
-      { ...makeHost(), hostName: 'h2', matchedProfile: 'bx2d-metal-64x256', matchedProfileCores: 32, matchedProfileMemoryGiB: 256, profileMonthlyCost: 2400, sourceCores: 28, sourceMemoryGiB: 200, sourceCpuModel: '', sourceVendor: '', sourceModel: '', cluster: 'C1', datacenter: 'DC1', overProvisionCoresPct: 0, overProvisionMemoryPct: 0 },
-      { ...makeHost(), hostName: 'h3', matchedProfile: 'bx2d-metal-96x384', matchedProfileCores: 48, matchedProfileMemoryGiB: 384, profileMonthlyCost: 3650, sourceCores: 40, sourceMemoryGiB: 384, sourceCpuModel: '', sourceVendor: '', sourceModel: '', cluster: 'C2', datacenter: 'DC1', overProvisionCoresPct: 0, overProvisionMemoryPct: 0 },
+      { ...base, hostName: 'h1', matchedCpu: 'Dual Xeon 5218 (32c)', matchedCpuCores: 32, matchedRam: '256 GB RAM', matchedRamGiB: 256, cpuMonthlyCost: 268, ramMonthlyCost: 473, profileMonthlyCost: 741 },
+      { ...base, hostName: 'h2', matchedCpu: 'Dual Xeon 5218 (32c)', matchedCpuCores: 32, matchedRam: '256 GB RAM', matchedRamGiB: 256, cpuMonthlyCost: 268, ramMonthlyCost: 473, profileMonthlyCost: 741 },
+      { ...base, hostName: 'h3', matchedCpu: 'Dual Xeon 6140 (36c)', matchedCpuCores: 36, matchedRam: '384 GB RAM', matchedRamGiB: 384, cpuMonthlyCost: 370, ramMonthlyCost: 664, profileMonthlyCost: 1034 },
     ];
     const groups = groupHostMappings(mappings);
     expect(groups).toHaveLength(2);
-    const g64 = groups.find(g => g.profile === 'bx2d-metal-64x256')!;
-    expect(g64.quantity).toBe(2);
-    expect(g64.hosts).toEqual(['h1', 'h2']);
-    expect(g64.totalMonthlyCost).toBe(4800);
-    const g96 = groups.find(g => g.profile === 'bx2d-metal-96x384')!;
-    expect(g96.quantity).toBe(1);
-    expect(g96.totalMonthlyCost).toBe(3650);
+    const g32 = groups.find(g => g.profileCores === 32)!;
+    expect(g32.quantity).toBe(2);
+    expect(g32.hosts).toEqual(['h1', 'h2']);
+    expect(g32.totalMonthlyCost).toBe(1482);
+    const g36 = groups.find(g => g.profileCores === 36)!;
+    expect(g36.quantity).toBe(1);
+    expect(g36.totalMonthlyCost).toBe(1034);
   });
 
   it('returns empty array for empty mappings', () => {
@@ -189,7 +190,7 @@ describe('groupHostMappings', () => {
 });
 
 describe('classifyDatastoreStorage', () => {
-  it('classifies NFS → file-storage', () => {
+  it('classifies NFS -> file-storage', () => {
     const ds = makeDatastore({ type: 'NFS', capacityMiB: 1024 * 1024 }); // 1 TiB
     const items = classifyDatastoreStorage([ds], 0.11, 0.10);
     expect(items).toHaveLength(1);
@@ -198,7 +199,7 @@ describe('classifyDatastoreStorage', () => {
     expect(items[0].monthlyCost).toBeCloseTo(112.64, 1);
   });
 
-  it('classifies VMFS → block-storage', () => {
+  it('classifies VMFS -> block-storage', () => {
     const ds = makeDatastore({ type: 'VMFS', capacityMiB: 2048 * 1024 });
     const items = classifyDatastoreStorage([ds], 0.11, 0.10);
     expect(items).toHaveLength(1);
@@ -206,7 +207,7 @@ describe('classifyDatastoreStorage', () => {
     expect(items[0].monthlyCost).toBeCloseTo(204.80, 1);
   });
 
-  it('classifies vSAN → local-nvme with $0 cost', () => {
+  it('classifies vSAN -> local-nvme with $0 cost', () => {
     const ds = makeDatastore({ type: 'vsan', capacityMiB: 4096 * 1024 });
     const items = classifyDatastoreStorage([ds], 0.11, 0.10);
     expect(items).toHaveLength(1);
@@ -215,13 +216,13 @@ describe('classifyDatastoreStorage', () => {
     expect(items[0].costPerGBMonth).toBe(0);
   });
 
-  it('classifies VVOL → local-nvme', () => {
+  it('classifies VVOL -> local-nvme', () => {
     const ds = makeDatastore({ type: 'VVOL' });
     const items = classifyDatastoreStorage([ds], 0.11, 0.10);
     expect(items[0].ibmCloudTarget).toBe('local-nvme');
   });
 
-  it('classifies NFS41 → file-storage', () => {
+  it('classifies NFS41 -> file-storage', () => {
     const ds = makeDatastore({ type: 'NFS41' });
     const items = classifyDatastoreStorage([ds], 0.11, 0.10);
     expect(items[0].ibmCloudTarget).toBe('file-storage');
@@ -252,7 +253,8 @@ describe('buildSourceBOM', () => {
     ],
     region: 'us-south',
     regionName: 'Dallas',
-    bareMetalProfiles: Object.fromEntries(allProfiles.map(p => [p.profile, p])),
+    classicCpus: allCpus,
+    classicRam: allRams,
     fileStorageCostPerGBMonth: 0.11,
     blockStorageCostPerGBMonth: 0.10,
     vcfPerCoreMonthly: 192.50,
@@ -261,13 +263,13 @@ describe('buildSourceBOM', () => {
   it('produces correct host groups', () => {
     const result = buildSourceBOM(baseInput);
     expect(result.hostMappings).toHaveLength(3);
-    // h1 and h2 both match bx2d-metal-64x256 (32 cores, 256 GiB)
-    // h3 matches bx2d-metal-96x384 (48 cores, 384 GiB)
+    // h1 and h2 both match 32-core CPU + 256GB RAM
+    // h3 matches 48-core CPU + 384GB RAM
     expect(result.hostGroups).toHaveLength(2);
-    const g64 = result.hostGroups.find(g => g.profile === 'bx2d-metal-64x256')!;
-    expect(g64.quantity).toBe(2);
-    const g96 = result.hostGroups.find(g => g.profile === 'bx2d-metal-96x384')!;
-    expect(g96.quantity).toBe(1);
+    const g32 = result.hostGroups.find(g => g.profileCores === 32)!;
+    expect(g32.quantity).toBe(2);
+    const g48 = result.hostGroups.find(g => g.profileCores === 48)!;
+    expect(g48.quantity).toBe(1);
   });
 
   it('classifies storage correctly', () => {
@@ -281,9 +283,9 @@ describe('buildSourceBOM', () => {
     expect(vsan.ibmCloudTarget).toBe('local-nvme');
   });
 
-  it('calculates VCF licensing correctly', () => {
+  it('calculates VCF licensing based on matched CPU cores', () => {
     const result = buildSourceBOM(baseInput);
-    // h1→32 cores, h2→32 cores, h3→48 cores = 112 total matched profile cores
+    // h1→32 cores, h2→32 cores, h3→48 cores = 112 total matched CPU cores
     expect(result.vcfLicensing.totalPhysicalCores).toBe(112);
     expect(result.vcfLicensing.perCoreMonthly).toBe(192.50);
     expect(result.vcfLicensing.totalMonthly).toBe(21560);
@@ -297,9 +299,13 @@ describe('buildSourceBOM', () => {
 
     const computeItems = estimate.lineItems.filter(li => li.category === 'Compute');
     expect(computeItems.length).toBeGreaterThanOrEqual(1);
+    // Compute descriptions should mention "Classic Bare Metal"
+    for (const item of computeItems) {
+      expect(item.description).toContain('Classic Bare Metal');
+    }
 
     const storageItems = estimate.lineItems.filter(li => li.category === 'Storage');
-    expect(storageItems.length).toBe(2); // NFS + VMFS (vSAN has $0 so not listed separately, but as local)
+    expect(storageItems.length).toBe(2); // NFS + VMFS
 
     const licensingItems = estimate.lineItems.filter(li => li.category === 'Licensing');
     expect(licensingItems).toHaveLength(1);
@@ -315,13 +321,13 @@ describe('buildSourceBOM', () => {
     expect(result.warnings).toHaveLength(0);
   });
 
-  it('warns when host exceeds largest profile', () => {
+  it('warns when host exceeds largest CPU or RAM', () => {
     const input = {
       ...baseInput,
       hosts: [makeHost({ name: 'big-host', totalCpuCores: 128, memoryMiB: 2048 * 1024 })],
     };
     const result = buildSourceBOM(input);
-    expect(result.warnings).toHaveLength(1);
+    expect(result.warnings.length).toBeGreaterThanOrEqual(1);
     expect(result.warnings[0]).toContain('big-host');
     expect(result.warnings[0]).toContain('exceeds');
   });
@@ -340,24 +346,17 @@ describe('buildSourceBOM', () => {
     expect(result.estimate.lineItems.filter(li => li.category === 'Storage')).toHaveLength(0);
   });
 
-  it('excludes custom profiles from matching', () => {
-    const customProfile = makeProfile({
-      profile: 'custom-big',
-      physicalCores: 192,
-      memoryGiB: 1024,
-      monthlyRate: 10000,
-      isCustom: true,
-    });
-    const input = {
-      ...baseInput,
-      bareMetalProfiles: {
-        ...baseInput.bareMetalProfiles,
-        'custom-big': customProfile,
-      },
-    };
+  it('warns when no CPU options available', () => {
+    const input = { ...baseInput, classicCpus: [] };
     const result = buildSourceBOM(input);
-    // Custom profiles should not be matched
-    const usedProfiles = result.hostMappings.map(m => m.matchedProfile);
-    expect(usedProfiles).not.toContain('custom-big');
+    expect(result.warnings).toContain('No Classic bare metal CPU options available');
+    expect(result.hostMappings).toEqual([]);
+  });
+
+  it('warns when no RAM options available', () => {
+    const input = { ...baseInput, classicRam: [] };
+    const result = buildSourceBOM(input);
+    expect(result.warnings).toContain('No Classic bare metal RAM options available');
+    expect(result.hostMappings).toEqual([]);
   });
 });

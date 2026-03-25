@@ -130,12 +130,29 @@ export interface DiscountOption {
   description: string;
 }
 
+export interface ClassicBareMetalCpuConfig {
+  keyName: string;
+  description: string;
+  cores: number;
+  hourlyRate?: number;
+  monthlyRate: number;
+}
+
+export interface ClassicBareMetalRamConfig {
+  keyName: string;
+  description: string;
+  memoryGiB: number;
+  monthlyRate: number;
+}
+
 export interface IBMCloudPricing {
   pricingVersion: string;
   baseCurrency: string;
   notes: string;
   bareMetal: Record<string, BareMetalProfile>;
   vsi: Record<string, VSIProfile>;
+  classicBareMetalCpus: ClassicBareMetalCpuConfig[];
+  classicBareMetalRam: ClassicBareMetalRamConfig[];
   blockStorage: Record<string, BlockStorageTier>;
   roks: {
     ocpLicense: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
@@ -438,12 +455,20 @@ export function getStaticPricing(): IBMCloudPricing {
     }
   }
 
+  // Extract Classic bare metal CPU and RAM options
+  const classicBareMetalCpus: ClassicBareMetalCpuConfig[] =
+    (config as { classicBareMetalCpus?: ClassicBareMetalCpuConfig[] }).classicBareMetalCpus ?? [];
+  const classicBareMetalRam: ClassicBareMetalRamConfig[] =
+    (config as { classicBareMetalRam?: ClassicBareMetalRamConfig[] }).classicBareMetalRam ?? [];
+
   return {
     pricingVersion: config.version,
     baseCurrency: config.baseCurrency,
     notes: config.notes,
     bareMetal,
     vsi,
+    classicBareMetalCpus,
+    classicBareMetalRam,
     blockStorage: config.blockStorage,
     fileStorage: config.fileStorage,
     vcfLicensing: config.vcfLicensing,

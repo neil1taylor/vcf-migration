@@ -22,9 +22,9 @@ const hostMappingHeaders = [
   { key: 'sourceCores', header: 'Source Cores' },
   { key: 'sourceMemoryGiB', header: 'Source Memory (GiB)' },
   { key: 'sourceCpuModel', header: 'CPU Model' },
-  { key: 'matchedProfile', header: 'IBM Cloud Profile' },
-  { key: 'profileCores', header: 'Profile Cores' },
-  { key: 'profileMemoryGiB', header: 'Profile Memory (GiB)' },
+  { key: 'matchedCpu', header: 'Classic BM CPU' },
+  { key: 'matchedCpuCores', header: 'BM Cores' },
+  { key: 'matchedRam', header: 'Classic BM RAM' },
   { key: 'monthlyCost', header: 'Monthly Cost' },
 ];
 
@@ -47,8 +47,8 @@ const lineItemHeaders = [
 ];
 
 const TARGET_LABELS: Record<string, string> = {
-  'file-storage': 'File Storage for VPC',
-  'block-storage': 'Block Storage for VPC',
+  'file-storage': 'File Storage',
+  'block-storage': 'Block Storage',
   'local-nvme': 'Local NVMe (included)',
 };
 
@@ -66,9 +66,9 @@ export function SourceBOMTab({ rawData }: SourceBOMTabProps) {
       sourceCores: formatNumber(m.sourceCores),
       sourceMemoryGiB: formatNumber(m.sourceMemoryGiB),
       sourceCpuModel: m.sourceCpuModel,
-      matchedProfile: m.matchedProfile,
-      profileCores: formatNumber(m.matchedProfileCores),
-      profileMemoryGiB: formatNumber(m.matchedProfileMemoryGiB),
+      matchedCpu: m.matchedCpu,
+      matchedCpuCores: formatNumber(m.matchedCpuCores),
+      matchedRam: m.matchedRam,
       monthlyCost: formatCurrency(m.profileMonthlyCost),
     }));
   }, [bom]);
@@ -118,7 +118,7 @@ export function SourceBOMTab({ rawData }: SourceBOMTabProps) {
           <MetricCard
             label="Source Hosts"
             value={formatNumber(bom.hostMappings.length)}
-            detail={`${bom.hostGroups.length} unique profile(s)`}
+            detail={`${bom.hostGroups.length} unique configuration(s)`}
             variant="primary"
           />
         </Column>
@@ -167,7 +167,7 @@ export function SourceBOMTab({ rawData }: SourceBOMTabProps) {
 
       {/* Host-to-Bare-Metal Mapping */}
       <Tile style={{ marginBottom: '1rem' }}>
-        <h4 style={{ marginBottom: '1rem' }}>Host-to-Bare-Metal Mapping</h4>
+        <h4 style={{ marginBottom: '1rem' }}>Host-to-Classic-Bare-Metal Mapping</h4>
         <DataTable rows={hostRows} headers={hostMappingHeaders}>
           {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
             <Table {...getTableProps()} size="md">

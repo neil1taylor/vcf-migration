@@ -40,7 +40,7 @@ export async function generateSourceBOMExcel(
   const summarySheet = workbook.addWorksheet('BOM Summary');
   summarySheet.columns = [
     { width: 18 }, // Category
-    { width: 40 }, // Description
+    { width: 50 }, // Description
     { width: 40 }, // Details
     { width: 15 }, // Qty
     { width: 14 }, // Unit Cost
@@ -87,15 +87,15 @@ export async function generateSourceBOMExcel(
     { width: 12 }, // Source Cores
     { width: 16 }, // Source Memory
     { width: 30 }, // CPU Model
-    { width: 25 }, // Matched Profile
-    { width: 14 }, // Profile Cores
-    { width: 16 }, // Profile Memory
+    { width: 40 }, // Classic BM CPU
+    { width: 14 }, // BM Cores
+    { width: 20 }, // Classic BM RAM
     { width: 14 }, // Monthly Cost
   ];
 
   applyHeaderStyle(hostSheet.getRow(1), [
     'Host Name', 'Cluster', 'Source Cores', 'Source Memory (GiB)',
-    'CPU Model', 'IBM Cloud Profile', 'Profile Cores', 'Profile Memory (GiB)', 'Monthly Cost',
+    'CPU Model', 'Classic BM CPU', 'BM Cores', 'Classic BM RAM', 'Monthly Cost',
   ]);
 
   bomResult.hostMappings.forEach((m, i) => {
@@ -105,9 +105,9 @@ export async function generateSourceBOMExcel(
     r.getCell(3).value = m.sourceCores;
     r.getCell(4).value = m.sourceMemoryGiB;
     r.getCell(5).value = m.sourceCpuModel;
-    r.getCell(6).value = m.matchedProfile;
-    r.getCell(7).value = m.matchedProfileCores;
-    r.getCell(8).value = m.matchedProfileMemoryGiB;
+    r.getCell(6).value = m.matchedCpu;
+    r.getCell(7).value = m.matchedCpuCores;
+    r.getCell(8).value = m.matchedRam;
     r.getCell(9).value = m.profileMonthlyCost;
     r.getCell(9).numFmt = STYLES.currency.numFmt;
   });
@@ -124,8 +124,8 @@ export async function generateSourceBOMExcel(
   ];
 
   const TARGET_LABELS: Record<string, string> = {
-    'file-storage': 'File Storage for VPC',
-    'block-storage': 'Block Storage for VPC',
+    'file-storage': 'File Storage',
+    'block-storage': 'Block Storage',
     'local-nvme': 'Local NVMe (included)',
   };
 

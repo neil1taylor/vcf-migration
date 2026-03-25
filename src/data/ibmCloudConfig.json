@@ -2660,6 +2660,147 @@
     "perCoreMonthly": 17.5,
     "description": "VMware Cloud Foundation per physical core per month (IBM Cloud list price)"
   },
+  "classicBareMetalCpus": [
+    {
+      "keyName": "INTEL_INTEL_XEON_3_80",
+      "description": "Single Intel Xeon E-2174G (4 Cores, 3.80 GHz)",
+      "cores": 4,
+      "hourlyRate": 0.11577,
+      "monthlyRate": 76.61
+    },
+    {
+      "keyName": "INTEL_INTEL_XEON_4110_2_10",
+      "description": "Dual Intel Xeon Silver 4110 (16 Cores, 2.10 GHz)",
+      "cores": 16,
+      "hourlyRate": 0.25622,
+      "monthlyRate": 170.25
+    },
+    {
+      "keyName": "INTEL_XEON_4210_2_20",
+      "description": "Dual Intel Xeon Silver 4210 (20 Cores, 2.20 GHz)",
+      "cores": 20,
+      "hourlyRate": 0.25622,
+      "monthlyRate": 170.25
+    },
+    {
+      "keyName": "INTEL_INTEL_XEON_4210_2_20",
+      "description": "Dual Intel Xeon Silver 4210 (20 Cores, 2.20 GHz)",
+      "cores": 20,
+      "hourlyRate": 0.43583,
+      "monthlyRate": 289.42
+    },
+    {
+      "keyName": "INTEL_INTEL_XEON_5120_2_20",
+      "description": "Dual Intel Xeon Gold 5120 (28 Cores, 2.20 GHz)",
+      "cores": 28,
+      "hourlyRate": 0.40433,
+      "monthlyRate": 268.13
+    },
+    {
+      "keyName": "INTEL_XEON_5218_2_30",
+      "description": "Dual Intel Xeon Gold 5218 (32 Cores, 2.30 GHz)",
+      "cores": 32,
+      "hourlyRate": 0.40433,
+      "monthlyRate": 268.13
+    },
+    {
+      "keyName": "INTEL_INTEL_XEON_6140_2_30",
+      "description": "Dual Intel Xeon Gold 6140 (36 Cores, 2.30 GHz)",
+      "cores": 36,
+      "hourlyRate": 0.55755,
+      "monthlyRate": 370.29
+    },
+    {
+      "keyName": "INTEL_XEON_6248_2_50",
+      "description": "Dual Intel Xeon Gold 6248 (40 Cores, 2.50 GHz)",
+      "cores": 40,
+      "hourlyRate": 0.55755,
+      "monthlyRate": 370.29
+    },
+    {
+      "keyName": "INTEL_INTEL_XEON_8260_2_4_1U",
+      "description": "Dual Intel Xeon Platinum 8260 (48 Cores, 2.4 GHz)",
+      "cores": 48,
+      "hourlyRate": 0.62225,
+      "monthlyRate": 412.85
+    },
+    {
+      "keyName": "INTEL_XEON_8260_2_4_96",
+      "description": "Quad Intel Xeon Platinum 8260 (96 Cores, 2.4 GHz)",
+      "cores": 96,
+      "hourlyRate": 1.91755,
+      "monthlyRate": 1272.58
+    },
+    {
+      "keyName": "1U_DUAL_AMD_EPYC_7763_2_4",
+      "description": "Dual AMD EPYC 7763 (128 Cores, 2.45 GHz)",
+      "cores": 128,
+      "hourlyRate": 0.64098,
+      "monthlyRate": 468.18
+    }
+  ],
+  "classicBareMetalRam": [
+    {
+      "keyName": "RAM_16_GB_DDR4_2133_ECC_NON_REG",
+      "description": "16 GB RAM",
+      "memoryGiB": 16,
+      "monthlyRate": 115.77
+    },
+    {
+      "keyName": "RAM_32_GB_DDR4_2133_ECC_NON_REG",
+      "description": "32 GB RAM",
+      "memoryGiB": 32,
+      "monthlyRate": 139.60
+    },
+    {
+      "keyName": "RAM_64_GB_DDR4_2133_ECC_NON_REG",
+      "description": "64 GB RAM",
+      "memoryGiB": 64,
+      "monthlyRate": 187.26
+    },
+    {
+      "keyName": "RAM_96_GB_DDR4_2133_ECC_REG",
+      "description": "96 GB RAM",
+      "memoryGiB": 96,
+      "monthlyRate": 234.94
+    },
+    {
+      "keyName": "RAM_128_GB_DDR4_2133_ECC_REG",
+      "description": "128 GB RAM",
+      "memoryGiB": 128,
+      "monthlyRate": 282.61
+    },
+    {
+      "keyName": "RAM_256_GB_DDR3_1333_REG_2",
+      "description": "256 GB RAM",
+      "memoryGiB": 256,
+      "monthlyRate": 473.28
+    },
+    {
+      "keyName": "RAM_384_GB_DDR4_2133_ECC_REG",
+      "description": "384 GB RAM",
+      "memoryGiB": 384,
+      "monthlyRate": 663.95
+    },
+    {
+      "keyName": "RAM_512_GB_DDR3_1333_REG_2",
+      "description": "512 GB RAM",
+      "memoryGiB": 512,
+      "monthlyRate": 854.62
+    },
+    {
+      "keyName": "RAM_1_TB_GB_DDR4_2933_ECC_REG",
+      "description": "1 TB RAM",
+      "memoryGiB": 1024,
+      "monthlyRate": 1617.32
+    },
+    {
+      "keyName": "RAM_2048_GB_DDR4_2933_ECC_REG",
+      "description": "2 TB RAM",
+      "memoryGiB": 2048,
+      "monthlyRate": 3033.75
+    }
+  ],
   "storageAddons": {
     "snapshots": {
       "costPerGBMonth": 0.05,

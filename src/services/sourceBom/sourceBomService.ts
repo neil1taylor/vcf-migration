@@ -1,7 +1,8 @@
 import type { VHostInfo, VDatastoreInfo } from '@/types/rvtools';
-import type { BareMetalProfile } from '@/services/pricing/pricingCache';
 import type { CostEstimate, CostLineItem } from '@/services/costEstimation';
 import type {
+  ClassicBareMetalCpu,
+  ClassicBareMetalRam,
   HostMapping,
   HostGroupLineItem,
   StorageLineItem,
@@ -11,46 +12,58 @@ import type {
 } from './types';
 
 /**
- * Match a single ESXi host to the smallest adequate IBM Cloud bare metal profile.
- * Criteria: physicalCores >= host cores AND memoryGiB >= host memory.
+ * Match a single ESXi host to the best-fit Classic bare metal CPU and RAM components.
+ * CPU: smallest option where cores >= host cores.
+ * RAM: smallest option where memoryGiB >= host memory.
  * Returns the mapping and any warnings.
  */
-export function matchHostToBareMetal(
+export function matchHostToClassicBM(
   host: VHostInfo,
-  profiles: BareMetalProfile[],
+  cpus: ClassicBareMetalCpu[],
+  rams: ClassicBareMetalRam[],
 ): { mapping: HostMapping; warning?: string } {
   const hostMemoryGiB = Math.ceil(host.memoryMiB / 1024);
+  const warnings: string[] = [];
 
-  // Filter profiles that meet or exceed the host's specs
-  const candidates = profiles.filter(
-    p => p.physicalCores >= host.totalCpuCores && p.memoryGiB >= hostMemoryGiB
-  );
+  // Match CPU
+  const cpuCandidates = cpus
+    .filter(c => c.cores >= host.totalCpuCores)
+    .sort((a, b) => a.cores - b.cores);
 
-  let selectedProfile: BareMetalProfile;
-  let warning: string | undefined;
-
-  if (candidates.length > 0) {
-    // Sort by cores ASC, then memory ASC — pick smallest adequate
-    candidates.sort((a, b) => {
-      if (a.physicalCores !== b.physicalCores) return a.physicalCores - b.physicalCores;
-      return a.memoryGiB - b.memoryGiB;
-    });
-    selectedProfile = candidates[0];
+  let selectedCpu: ClassicBareMetalCpu;
+  if (cpuCandidates.length > 0) {
+    selectedCpu = cpuCandidates[0];
   } else {
-    // No adequate profile — pick the largest available
-    const sorted = [...profiles].sort((a, b) => {
-      if (a.physicalCores !== b.physicalCores) return b.physicalCores - a.physicalCores;
-      return b.memoryGiB - a.memoryGiB;
-    });
-    selectedProfile = sorted[0];
-    warning = `Host "${host.name}" (${host.totalCpuCores} cores, ${hostMemoryGiB} GiB) exceeds the largest available bare metal profile "${selectedProfile.profile}" (${selectedProfile.physicalCores} cores, ${selectedProfile.memoryGiB} GiB)`;
+    const sorted = [...cpus].sort((a, b) => b.cores - a.cores);
+    selectedCpu = sorted[0];
+    warnings.push(
+      `Host "${host.name}" (${host.totalCpuCores} cores) exceeds the largest available Classic bare metal CPU "${selectedCpu.description}" (${selectedCpu.cores} cores)`
+    );
   }
 
+  // Match RAM
+  const ramCandidates = rams
+    .filter(r => r.memoryGiB >= hostMemoryGiB)
+    .sort((a, b) => a.memoryGiB - b.memoryGiB);
+
+  let selectedRam: ClassicBareMetalRam;
+  if (ramCandidates.length > 0) {
+    selectedRam = ramCandidates[0];
+  } else {
+    const sorted = [...rams].sort((a, b) => b.memoryGiB - a.memoryGiB);
+    selectedRam = sorted[0];
+    warnings.push(
+      `Host "${host.name}" (${hostMemoryGiB} GiB) exceeds the largest available Classic bare metal RAM "${selectedRam.description}" (${selectedRam.memoryGiB} GiB)`
+    );
+  }
+
+  const totalMonthlyCost = selectedCpu.monthlyRate + selectedRam.monthlyRate;
+
   const overProvisionCoresPct = host.totalCpuCores > 0
-    ? Math.round(((selectedProfile.physicalCores - host.totalCpuCores) / host.totalCpuCores) * 100)
+    ? Math.round(((selectedCpu.cores - host.totalCpuCores) / host.totalCpuCores) * 100)
     : 0;
   const overProvisionMemoryPct = hostMemoryGiB > 0
-    ? Math.round(((selectedProfile.memoryGiB - hostMemoryGiB) / hostMemoryGiB) * 100)
+    ? Math.round(((selectedRam.memoryGiB - hostMemoryGiB) / hostMemoryGiB) * 100)
     : 0;
 
   return {
@@ -63,36 +76,40 @@ export function matchHostToBareMetal(
       sourceCpuModel: host.cpuModel,
       sourceVendor: host.vendor,
       sourceModel: host.model,
-      matchedProfile: selectedProfile.profile,
-      matchedProfileCores: selectedProfile.physicalCores,
-      matchedProfileMemoryGiB: selectedProfile.memoryGiB,
-      profileMonthlyCost: selectedProfile.monthlyRate,
+      matchedCpu: selectedCpu.description,
+      matchedCpuCores: selectedCpu.cores,
+      matchedRam: selectedRam.description,
+      matchedRamGiB: selectedRam.memoryGiB,
+      cpuMonthlyCost: selectedCpu.monthlyRate,
+      ramMonthlyCost: selectedRam.monthlyRate,
+      profileMonthlyCost: totalMonthlyCost,
       overProvisionCoresPct,
       overProvisionMemoryPct,
     },
-    warning,
+    warning: warnings.length > 0 ? warnings.join('; ') : undefined,
   };
 }
 
 /**
- * Group host mappings by matched profile for BOM line items.
+ * Group host mappings by matched CPU+RAM combo for BOM line items.
  */
 export function groupHostMappings(mappings: HostMapping[]): HostGroupLineItem[] {
   const groups = new Map<string, { hosts: string[]; mapping: HostMapping }>();
 
   for (const m of mappings) {
-    const existing = groups.get(m.matchedProfile);
+    const key = `${m.matchedCpu} + ${m.matchedRam}`;
+    const existing = groups.get(key);
     if (existing) {
       existing.hosts.push(m.hostName);
     } else {
-      groups.set(m.matchedProfile, { hosts: [m.hostName], mapping: m });
+      groups.set(key, { hosts: [m.hostName], mapping: m });
     }
   }
 
   return Array.from(groups.entries()).map(([profile, { hosts, mapping }]) => ({
     profile,
-    profileCores: mapping.matchedProfileCores,
-    profileMemoryGiB: mapping.matchedProfileMemoryGiB,
+    profileCores: mapping.matchedCpuCores,
+    profileMemoryGiB: mapping.matchedRamGiB,
     quantity: hosts.length,
     hosts,
     unitMonthlyCost: mapping.profileMonthlyCost,
@@ -141,28 +158,25 @@ export function classifyDatastoreStorage(
 }
 
 /**
- * Build a complete Source Infrastructure BOM.
+ * Build a complete Source Infrastructure BOM using Classic bare metal components.
  */
 export function buildSourceBOM(input: SourceBOMInput): SourceBOMResult {
   const warnings: string[] = [];
 
-  // Filter out custom/future profiles (no pricing) and profiles with $0 rates
-  const availableProfiles = Object.values(input.bareMetalProfiles).filter(
-    p => !p.isCustom && p.monthlyRate > 0
-  );
-
-  if (availableProfiles.length === 0) {
-    warnings.push('No bare metal profiles with pricing available');
+  if (input.classicCpus.length === 0) {
+    warnings.push('No Classic bare metal CPU options available');
+  }
+  if (input.classicRam.length === 0) {
+    warnings.push('No Classic bare metal RAM options available');
   }
 
-  // Match hosts to bare metal profiles
+  // Match hosts to Classic bare metal CPU + RAM
   const hostMappings: HostMapping[] = [];
   for (const host of input.hosts) {
-    if (availableProfiles.length === 0) {
-      // Can't match without profiles — skip
+    if (input.classicCpus.length === 0 || input.classicRam.length === 0) {
       continue;
     }
-    const { mapping, warning } = matchHostToBareMetal(host, availableProfiles);
+    const { mapping, warning } = matchHostToClassicBM(host, input.classicCpus, input.classicRam);
     hostMappings.push(mapping);
     if (warning) warnings.push(warning);
   }
@@ -177,8 +191,8 @@ export function buildSourceBOM(input: SourceBOMInput): SourceBOMResult {
     input.blockStorageCostPerGBMonth,
   );
 
-  // VCF licensing
-  const totalPhysicalCores = hostMappings.reduce((sum, m) => sum + m.matchedProfileCores, 0);
+  // VCF licensing based on matched CPU cores
+  const totalPhysicalCores = hostMappings.reduce((sum, m) => sum + m.matchedCpuCores, 0);
   const vcfTotalMonthly = Math.round(totalPhysicalCores * input.vcfPerCoreMonthly * 100) / 100;
   const vcfLicensing = {
     totalPhysicalCores,
@@ -193,7 +207,7 @@ export function buildSourceBOM(input: SourceBOMInput): SourceBOMResult {
   for (const group of hostGroups) {
     lineItems.push({
       category: 'Compute',
-      description: `Bare Metal ${group.profile}`,
+      description: `Classic Bare Metal: ${group.profile}`,
       quantity: group.quantity,
       unit: 'servers',
       unitCost: group.unitMonthlyCost,
@@ -212,7 +226,7 @@ export function buildSourceBOM(input: SourceBOMInput): SourceBOMResult {
     const totalCost = fileStorageItems.reduce((sum, s) => sum + s.monthlyCost, 0);
     lineItems.push({
       category: 'Storage',
-      description: 'File Storage for VPC (NFS)',
+      description: 'File Storage (NFS)',
       quantity: totalCapacity,
       unit: 'GB',
       unitCost: input.fileStorageCostPerGBMonth,
@@ -227,7 +241,7 @@ export function buildSourceBOM(input: SourceBOMInput): SourceBOMResult {
     const totalCost = blockStorageItems.reduce((sum, s) => sum + s.monthlyCost, 0);
     lineItems.push({
       category: 'Storage',
-      description: 'Block Storage for VPC (VMFS)',
+      description: 'Block Storage (VMFS)',
       quantity: totalCapacity,
       unit: 'GB',
       unitCost: input.blockStorageCostPerGBMonth,
@@ -270,8 +284,8 @@ export function buildSourceBOM(input: SourceBOMInput): SourceBOMResult {
       pricingVersion: new Date().toISOString().split('T')[0],
       generatedAt: new Date().toISOString(),
       notes: [
-        'Source infrastructure BOM based on IBM Cloud list pricing',
-        `${hostMappings.length} hosts matched to ${hostGroups.length} bare metal profile(s)`,
+        'Source infrastructure BOM based on IBM Cloud Classic bare metal list pricing',
+        `${hostMappings.length} hosts matched to ${hostGroups.length} Classic bare metal configuration(s)`,
         ...warnings,
       ],
     },

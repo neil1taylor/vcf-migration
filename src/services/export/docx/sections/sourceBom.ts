@@ -10,8 +10,8 @@ function formatCurrency(value: number): string {
 }
 
 const TARGET_LABELS: Record<string, string> = {
-  'file-storage': 'File Storage for VPC',
-  'block-storage': 'Block Storage for VPC',
+  'file-storage': 'File Storage',
+  'block-storage': 'Block Storage',
   'local-nvme': 'Local NVMe (included)',
 };
 
@@ -25,32 +25,33 @@ export function buildSourceBOMSection(
   sections.push(
     createHeading(`${s}. Source Infrastructure Costing`, HeadingLevel.HEADING_1),
     createParagraph(
-      'This section presents the estimated IBM Cloud cost to replicate the source VMware infrastructure using bare metal servers, VCF licensing, and equivalent storage services. Hosts are matched to the smallest IBM Cloud bare metal profile that meets or exceeds their CPU and memory specifications.'
+      'This section presents the estimated IBM Cloud Classic bare metal cost to replicate the source VMware infrastructure. Hosts are independently matched to the best-fit CPU and RAM components, with VCF licensing and equivalent storage services.'
     ),
   );
 
   // Host-to-Bare-Metal Mapping table
   sections.push(
-    createHeading(`${s}.1 Host-to-Bare-Metal Mapping`, HeadingLevel.HEADING_2),
+    createHeading(`${s}.1 Host-to-Classic-Bare-Metal Mapping`, HeadingLevel.HEADING_2),
     createParagraph(
-      `${bomResult.hostMappings.length} ESXi host(s) mapped to ${bomResult.hostGroups.length} unique IBM Cloud bare metal profile(s).`
+      `${bomResult.hostMappings.length} ESXi host(s) mapped to ${bomResult.hostGroups.length} unique Classic bare metal configuration(s).`
     ),
   );
 
-  const hostHeaders = ['Host Name', 'Cluster', 'Source Cores', 'Source Memory (GiB)', 'IBM Cloud Profile', 'Monthly Cost'];
+  const hostHeaders = ['Host Name', 'Cluster', 'Source Cores', 'Source Mem (GiB)', 'Classic BM CPU', 'Classic BM RAM', 'Monthly Cost'];
   const hostRows = bomResult.hostMappings.map(m => [
     m.hostName,
     m.cluster,
     String(m.sourceCores),
     String(m.sourceMemoryGiB),
-    m.matchedProfile,
+    m.matchedCpu,
+    m.matchedRam,
     formatCurrency(m.profileMonthlyCost),
   ]);
 
   sections.push(
     createStyledTable(hostHeaders, hostRows, {
-      columnWidths: [2200, 1600, 1200, 1400, 2200, 1400],
-      columnAligns: [AT.LEFT, AT.LEFT, AT.RIGHT, AT.RIGHT, AT.LEFT, AT.RIGHT],
+      columnWidths: [1800, 1400, 1000, 1200, 2000, 1400, 1200],
+      columnAligns: [AT.LEFT, AT.LEFT, AT.RIGHT, AT.RIGHT, AT.LEFT, AT.LEFT, AT.RIGHT],
     }),
   );
 
@@ -59,7 +60,7 @@ export function buildSourceBOMSection(
     sections.push(
       createHeading(`${s}.2 Storage Mapping`, HeadingLevel.HEADING_2),
       createParagraph(
-        'Source VMware datastores mapped to IBM Cloud storage equivalents. NFS datastores use File Storage for VPC, VMFS uses Block Storage, and vSAN/VVOL are served by bare metal local NVMe storage.'
+        'Source VMware datastores mapped to IBM Cloud storage equivalents. NFS datastores use File Storage, VMFS uses Block Storage, and vSAN/VVOL are served by bare metal local NVMe storage.'
       ),
     );
 

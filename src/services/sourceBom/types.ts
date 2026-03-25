@@ -1,6 +1,20 @@
 import type { VHostInfo, VDatastoreInfo } from '@/types/rvtools';
-import type { BareMetalProfile } from '@/services/pricing/pricingCache';
 import type { CostEstimate } from '@/services/costEstimation';
+
+export interface ClassicBareMetalCpu {
+  keyName: string;
+  description: string;
+  cores: number;
+  hourlyRate?: number;
+  monthlyRate: number;
+}
+
+export interface ClassicBareMetalRam {
+  keyName: string;
+  description: string;
+  memoryGiB: number;
+  monthlyRate: number;
+}
 
 export interface HostMapping {
   hostName: string;
@@ -11,9 +25,12 @@ export interface HostMapping {
   sourceCpuModel: string;
   sourceVendor: string;
   sourceModel: string;
-  matchedProfile: string;
-  matchedProfileCores: number;
-  matchedProfileMemoryGiB: number;
+  matchedCpu: string;
+  matchedCpuCores: number;
+  matchedRam: string;
+  matchedRamGiB: number;
+  cpuMonthlyCost: number;
+  ramMonthlyCost: number;
   profileMonthlyCost: number;
   overProvisionCoresPct: number;
   overProvisionMemoryPct: number;
@@ -45,7 +62,8 @@ export interface SourceBOMInput {
   datastores: VDatastoreInfo[];
   region: string;
   regionName: string;
-  bareMetalProfiles: Record<string, BareMetalProfile>;
+  classicCpus: ClassicBareMetalCpu[];
+  classicRam: ClassicBareMetalRam[];
   fileStorageCostPerGBMonth: number;
   blockStorageCostPerGBMonth: number;
   vcfPerCoreMonthly: number;

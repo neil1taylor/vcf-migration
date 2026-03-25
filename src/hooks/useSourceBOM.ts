@@ -7,7 +7,7 @@ import type { SourceBOMResult } from '@/services/sourceBom';
 
 /**
  * Computes the Source Infrastructure BOM by matching RVTools hosts to IBM Cloud
- * bare metal profiles and pricing storage and VCF licensing.
+ * Classic bare metal CPU and RAM components, pricing storage and VCF licensing.
  *
  * Returns null if data or pricing is unavailable.
  */
@@ -40,18 +40,6 @@ export function useSourceBOM(
       ?? pricing.vcfLicensing?.perCoreMonthly
       ?? 192.50; // fallback
 
-    // Build bare metal profiles map with regional pricing overrides
-    const bareMetalProfiles = { ...pricing.bareMetal };
-    for (const [name, rates] of Object.entries(regionalPricing.bareMetal ?? {})) {
-      if (bareMetalProfiles[name]) {
-        bareMetalProfiles[name] = {
-          ...bareMetalProfiles[name],
-          hourlyRate: rates.hourlyRate,
-          monthlyRate: rates.monthlyRate,
-        };
-      }
-    }
-
     // Region name lookup
     const regionName = pricing.regions[region]?.name ?? region;
 
@@ -60,7 +48,8 @@ export function useSourceBOM(
       datastores: rawData.vDatastore,
       region,
       regionName,
-      bareMetalProfiles,
+      classicCpus: pricing.classicBareMetalCpus,
+      classicRam: pricing.classicBareMetalRam,
       fileStorageCostPerGBMonth,
       blockStorageCostPerGBMonth,
       vcfPerCoreMonthly,
