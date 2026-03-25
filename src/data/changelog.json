@@ -12,6 +12,9 @@
           "Source BOM XLSX export with BOM Summary, Host Mapping, and Storage Mapping sheets",
           "Source BOM included in DOCX report as Source Infrastructure Costing section",
           "File Storage and VCF licensing pricing types added to pricing infrastructure"
+        ],
+        "changed": [
+          "ROKS OS compatibility data aligned with Red Hat article 4234591 (Certified Guest Operating Systems in OpenShift Virtualization) — added support tier classification (certified, vendor-supported, community-supported, known-to-work), new OS entries (RHEL 10, Oracle Linux 8/9, Windows Server 2025, Fedora, openSUSE, Debian 13), and corrected compatibility statuses for CentOS Stream, Debian, Windows legacy, and RHEL 6/7"
         ]
       }
     },

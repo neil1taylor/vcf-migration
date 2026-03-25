@@ -15,6 +15,8 @@ export interface VSIOSCompatibility {
   eolDate?: string;
 }
 
+export type ROKSSupportTier = 'certified' | 'vendor-supported' | 'community-supported' | 'known-to-work';
+
 export interface ROKSOSCompatibility {
   id: string;
   displayName: string;
@@ -22,6 +24,7 @@ export interface ROKSOSCompatibility {
   compatibilityStatus: 'fully-supported' | 'supported-with-caveats' | 'unsupported';
   compatibilityScore: number;
   notes: string;
+  supportTier?: ROKSSupportTier;
   documentationLink?: string;
   recommendedUpgrade?: string;
   eolDate?: string;
@@ -73,6 +76,7 @@ export function getROKSOSCompatibility(guestOS: string): ROKSOSCompatibility {
         compatibilityStatus: entry.compatibilityStatus as ROKSOSCompatibility['compatibilityStatus'],
         compatibilityScore: entry.compatibilityScore,
         notes: entry.notes,
+        supportTier: (entry as { supportTier?: string }).supportTier as ROKSSupportTier | undefined,
         documentationLink: entry.documentationLink,
         recommendedUpgrade: (entry as { recommendedUpgrade?: string }).recommendedUpgrade,
         eolDate: (entry as { eolDate?: string }).eolDate,

@@ -5,6 +5,7 @@ export {
   type MigrationMode,
   type VSIOSCompatibility,
   type ROKSOSCompatibility,
+  type ROKSSupportTier,
   type OSCompatibilityResult,
   getVSIOSCompatibility,
   getROKSOSCompatibility,
