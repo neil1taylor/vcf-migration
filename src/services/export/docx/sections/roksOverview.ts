@@ -155,6 +155,26 @@ export function buildROKSOverview(
             ['Total Raw NVMe (Storage Pool)', `${sizing.storageTotalNvmeTiB || sizing.totalNvmeTiB} TiB`],
             ['ODF Usable Storage', `${sizing.odfUsableTiB} TiB`],
           ]
+        : sizing.solutionType === 'bm-nfs-csi'
+        ? [
+            ['Architecture', 'Bare Metal + NFS File Storage (CSI)'],
+            ['Bare Metal Profile', sizing.profileName],
+            ['Worker Nodes', `${sizing.workerNodes}`],
+            ['Total Physical Cores', `${sizing.totalCores}`],
+            ['Total Threads', `${sizing.totalThreads}`],
+            ['Total Memory', `${sizing.totalMemoryGiB} GiB`],
+            ['Storage', 'VPC File Storage (NFS) via dp2 CSI driver'],
+          ]
+        : sizing.solutionType === 'bm-block-csi'
+        ? [
+            ['Architecture', 'Bare Metal + Block Storage (CSI)'],
+            ['Bare Metal Profile', sizing.profileName],
+            ['Worker Nodes', `${sizing.workerNodes}`],
+            ['Total Physical Cores', `${sizing.totalCores}`],
+            ['Total Threads', `${sizing.totalThreads}`],
+            ['Total Memory', `${sizing.totalMemoryGiB} GiB`],
+            ['Storage', 'VPC Block Storage via CSI driver'],
+          ]
         : [
             ['Bare Metal Profile', sizing.profileName],
             ['Worker Nodes', `${sizing.workerNodes}`],

@@ -19,7 +19,7 @@ import { AIRemediationPanel } from '@/components/ai/AIRemediationPanel';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import type { InsightsInput, NetworkSummaryForAI, RemediationInput } from '@/services/ai/types';
 import type { ROKSSizingInput, RoksSolutionType } from '@/services/costEstimation';
-import { calculateROKSCost as calcROKSCost } from '@/services/costEstimation';
+import { calculateROKSCost as calcROKSCost, FUTURE_SOLUTION_TYPES } from '@/services/costEstimation';
 import type { ROKSNodeDetail } from '@/services/export';
 import { MTVYAMLGenerator, downloadBlob } from '@/services/export';
 import { SolutionComparisonPanel } from '@/components/comparison/SolutionComparisonPanel';
@@ -558,20 +558,31 @@ export function ROKSMigrationPage() {
                       <div style={{ marginTop: '1rem' }}>
                         <ContentSwitcher
                           size="lg"
-                          selectedIndex={(['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated'] as RoksSolutionType[]).indexOf(solutionType)}
+                          selectedIndex={(['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated', 'bm-nfs-csi'] as RoksSolutionType[]).indexOf(solutionType)}
                           onChange={(params: { index?: number }) => {
                             if (params.index != null) {
-                              const types: RoksSolutionType[] = ['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated'];
+                              const types: RoksSolutionType[] = ['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated', 'bm-nfs-csi'];
                               setSolutionType(types[params.index]);
                             }
                           }}
                         >
                           <Switch name="nvme-converged" text="NVMe Converged" />
                           <Switch name="hybrid-vsi-odf" text="Hybrid (BM+VSI)" />
-                          <Switch name="bm-block-csi" text="BM + Block Storage" />
-                          <Switch name="bm-block-odf" text="BM + Block + ODF" />
+                          <Switch name="bm-block-csi" text="BM + Block Storage (Future)" />
+                          <Switch name="bm-block-odf" text="BM + Block + ODF (Future)" />
                           <Switch name="bm-disaggregated" text="BM Disaggregated" />
+                          <Switch name="bm-nfs-csi" text="BM + NFS (CSI)" />
                         </ContentSwitcher>
+                        {FUTURE_SOLUTION_TYPES.has(solutionType) && (
+                          <InlineNotification
+                            kind="warning"
+                            title="Future architecture"
+                            subtitle="IBM Cloud bare metal does not currently support VPC Block Storage attachment. This solution architecture is not yet available. Sizing estimates are indicative only."
+                            lowContrast
+                            hideCloseButton
+                            style={{ marginTop: '1rem', maxWidth: 'none' }}
+                          />
+                        )}
                       </div>
                     </Tile>
                   </Column>
@@ -585,9 +596,10 @@ export function ROKSMigrationPage() {
                         • OpenShift Virtualization requires bare metal worker nodes with hardware virtualization<br />
                         • Memory overcommitment is NOT recommended for VMs - total memory becomes the leading sizing factor<br />
                         {solutionType === 'nvme-converged' && <>• ODF with 3-way replication provides data protection; 75% operational capacity ensures room for rebalancing</>}
-                        {solutionType === 'bm-block-csi' && <>• VPC Block Storage CSI driver provides persistent volumes directly to workloads without ODF overhead</>}
-                        {solutionType === 'bm-block-odf' && <>• ODF backed by VPC Block Storage provides software-defined storage abstraction on diskless bare metal</>}
+                        {solutionType === 'bm-block-csi' && <>• <strong>(Future)</strong> VPC Block Storage CSI driver provides persistent volumes directly to workloads without ODF overhead — not yet available on bare metal</>}
+                        {solutionType === 'bm-block-odf' && <>• <strong>(Future)</strong> ODF backed by VPC Block Storage provides software-defined storage abstraction on diskless bare metal — not yet available</>}
                         {solutionType === 'hybrid-vsi-odf' && <>• Hybrid architecture separates compute (bare metal) from storage (VSI + block storage + ODF)</>}
+                        {solutionType === 'bm-nfs-csi' && <>• VPC File Storage (NFS) via dp2 CSI driver provides persistent volumes; boot volumes use block storage at 300 IOPS</>}
                       </p>
                       <RedHatDocLink href="https://cloud.ibm.com/kubernetes/catalog/create?platformType=openshift" label="Open IBM Cloud ROKS Catalog" description="Configure your bare metal OpenShift cluster" />
                     </Tile>
@@ -609,6 +621,7 @@ export function ROKSMigrationPage() {
                         {solutionType === 'nvme-converged' && <> with local NVMe storage</>}
                         {(solutionType === 'bm-block-csi' || solutionType === 'bm-block-odf') && <> with VPC Block Storage</>}
                         {solutionType === 'hybrid-vsi-odf' && <> with separate VSI storage nodes</>}
+                        {solutionType === 'bm-nfs-csi' && <> with VPC File Storage (NFS)</>}
                         <br />
                         • 1-year reserved capacity provides 20% discount, 3-year provides 35% discount
                       </p>

@@ -469,8 +469,8 @@ export function useSizingCalculator({
     );
   }, [odfTuningProfile, selectedProfile.nvmeDisks, includeRgw, odfCpuUnitMode, htMultiplier, useHyperthreading]);
 
-  // For bm-block-csi and bm-disaggregated compute: no ODF on compute nodes
-  const hasOdf = solutionType !== 'bm-block-csi' && solutionType !== 'bm-disaggregated';
+  // For bm-block-csi, bm-nfs-csi, and bm-disaggregated compute: no ODF on compute nodes
+  const hasOdf = solutionType !== 'bm-block-csi' && solutionType !== 'bm-nfs-csi' && solutionType !== 'bm-disaggregated';
   const odfReservedCpu = hasOdf ? odfReservation.totalCpu : 0;
   const odfReservedMemory = hasOdf ? odfReservation.totalMemoryGiB : 0;
 
@@ -926,7 +926,7 @@ export function useSizingCalculator({
         computeProfile: selectedProfileName,
         // CSI: raw disk capacity (volumes expandable online); ODF: includes growth/overhead
         storageTiB: Math.ceil(
-          (solutionType === 'bm-block-csi' ? nodeRequirements.baseStorageGiB : nodeRequirements.totalStorageGiB) / 1024
+          (solutionType === 'bm-block-csi' || solutionType === 'bm-nfs-csi' ? nodeRequirements.baseStorageGiB : nodeRequirements.totalStorageGiB) / 1024
         ),
         solutionType,
         useNvme: solutionType === 'nvme-converged',
@@ -936,7 +936,7 @@ export function useSizingCalculator({
           storageNodes: storageNodeCount,
           storageProfile: selectedStorageProfileName,
         } : {}),
-        ...(solutionType === 'bm-block-csi' ? (() => {
+        ...((solutionType === 'bm-block-csi' || solutionType === 'bm-nfs-csi') ? (() => {
           // First disk encountered per VM = boot; rest = data
           const seenVMs = new Set<string>();
           const bootDisks: typeof filteredDisks = [];
@@ -949,12 +949,17 @@ export function useSizingCalculator({
               dataDisks.push(d);
             }
           }
-          return {
+          const result: Record<string, number> = {
             bootVolumeCount: bootDisks.length,
             bootVolumeCapacityGiB: Math.ceil(bootDisks.reduce((sum, d) => sum + d.capacityMiB / 1024, 0)),
             dataVolumeCount: dataDisks.length,
             dataVolumeCapacityGiB: Math.ceil(dataDisks.reduce((sum, d) => sum + d.capacityMiB / 1024, 0)),
           };
+          if (solutionType === 'bm-nfs-csi') {
+            // File storage capacity = data disk capacity (boot stays on block)
+            result.fileStorageCapacityGiB = result.dataVolumeCapacityGiB;
+          }
+          return result;
         })() : {}),
         odfSettings: {
           odfTuningProfile,

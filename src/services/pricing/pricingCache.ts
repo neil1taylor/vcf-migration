@@ -44,10 +44,17 @@ export interface BlockStorageTier {
   costPerIOPSMonth?: number;
 }
 
+export interface FileStorageIopsRate {
+  upTo: number;
+  rate: number;
+}
+
 export interface FileStorageTier {
   tierName: string;
   costPerGBMonth: number;
   description: string;
+  iopsHourlyRates?: FileStorageIopsRate[];
+  preDefinedIops?: number[];
 }
 
 export interface NetworkPricing {
@@ -153,6 +160,10 @@ export interface IBMCloudPricing {
   vsi: Record<string, VSIProfile>;
   classicBareMetalCpus: ClassicBareMetalCpuConfig[];
   classicBareMetalRam: ClassicBareMetalRamConfig[];
+  classicStoragePricing?: {
+    fileEndurance4iops?: number;
+    blockEndurance4iops?: number;
+  };
   blockStorage: Record<string, BlockStorageTier>;
   roks: {
     ocpLicense: { perVCPUHourly: number; perVCPUMonthly: number; description: string };
@@ -460,6 +471,8 @@ export function getStaticPricing(): IBMCloudPricing {
     (config as { classicBareMetalCpus?: ClassicBareMetalCpuConfig[] }).classicBareMetalCpus ?? [];
   const classicBareMetalRam: ClassicBareMetalRamConfig[] =
     (config as { classicBareMetalRam?: ClassicBareMetalRamConfig[] }).classicBareMetalRam ?? [];
+  const classicStoragePricing =
+    (config as { classicStoragePricing?: IBMCloudPricing['classicStoragePricing'] }).classicStoragePricing;
 
   return {
     pricingVersion: config.version,
@@ -469,6 +482,7 @@ export function getStaticPricing(): IBMCloudPricing {
     vsi,
     classicBareMetalCpus,
     classicBareMetalRam,
+    classicStoragePricing,
     blockStorage: config.blockStorage,
     fileStorage: config.fileStorage,
     vcfLicensing: config.vcfLicensing,

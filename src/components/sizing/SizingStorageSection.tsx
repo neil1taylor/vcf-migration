@@ -52,12 +52,12 @@ export function SizingStorageSection({
   setEvictionThreshold,
   solutionType,
 }: SizingStorageSectionProps) {
-  const hasOdf = solutionType !== 'bm-block-csi';
+  const hasOdf = solutionType !== 'bm-block-csi' && solutionType !== 'bm-nfs-csi';
 
   return (
     <Column lg={16} md={8} sm={4}>
       <div className="sizing-calculator__settings-grid">
-        {/* Storage Settings — ODF-specific controls hidden for bm-block-csi */}
+        {/* Storage Settings — ODF-specific controls hidden for bm-block-csi / bm-nfs-csi */}
         <div>
           <Tile className="sizing-calculator__section">
             <h3 className="sizing-calculator__section-title">{hasOdf ? 'ODF Storage Settings' : 'Storage Settings'}</h3>
@@ -158,7 +158,16 @@ export function SizingStorageSection({
             </div>
             </>)}
 
-            {!hasOdf && (
+            {!hasOdf && solutionType === 'bm-nfs-csi' && (
+            <div className="sizing-calculator__info-text" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
+              <span className="label">VPC File Storage (NFS)</span><br />
+              &bull; NFS persistent volumes via dp2 CSI driver (500 / 1,000 / 3,000 IOPS)<br />
+              &bull; Boot volumes on block storage (300 IOPS)<br />
+              &bull; No software-defined storage overhead
+            </div>
+            )}
+
+            {!hasOdf && solutionType !== 'bm-nfs-csi' && (
             <div className="sizing-calculator__info-text" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
               <span className="label">VPC Block Storage</span><br />
               &bull; Persistent block volumes attached directly to bare metal nodes via CSI driver<br />

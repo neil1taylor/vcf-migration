@@ -186,7 +186,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
 
       // Check if ODF reservation exceeds this profile's CPU capacity
       let cpuViable = true;
-      if (solutionType !== 'bm-block-csi' && solutionType !== 'bm-disaggregated' && roksSizing.odfSettings) {
+      if (solutionType !== 'bm-block-csi' && solutionType !== 'bm-nfs-csi' && solutionType !== 'bm-disaggregated' && roksSizing.odfSettings) {
         const { odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw, systemReservedCpu, cpuOvercommit } = roksSizing.odfSettings;
         // For bm-block-odf, use 1 OSD per node (block storage volumes); for NVMe, use actual disk count
         const osdCount = solutionType === 'bm-block-odf' ? 1 : (profile.nvmeDisks ?? 0);
@@ -374,6 +374,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
         {/* ROKS Licensing Options */}
         {type === 'roks' && (
           <div className="cost-estimation__roks-options">
+            {roksSizing?.solutionType !== 'bm-block-csi' && roksSizing?.solutionType !== 'bm-nfs-csi' && (
             <Select
               id="odf-tier-select"
               labelText="ODF Tier"
@@ -383,6 +384,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
               <SelectItem value="advanced" text="ODF Advanced ($681.82/node/mo)" />
               <SelectItem value="essentials" text="ODF Essentials ($545.46/node/mo)" />
             </Select>
+            )}
 
             <Toggle
               id="acm-toggle"

@@ -1,7 +1,7 @@
 // Side-by-side comparison of all ROKS solution architectures
 import { useMemo } from 'react';
 import { Tile, Tag } from '@carbon/react';
-import { calculateROKSCost } from '@/services/costEstimation';
+import { calculateROKSCost, FUTURE_SOLUTION_TYPES } from '@/services/costEstimation';
 import type { ROKSSizingInput, RoksSolutionType, CostEstimate } from '@/services/costEstimation';
 import { useCostSettings } from '@/hooks';
 import { useDynamicPricing } from '@/hooks';
@@ -57,6 +57,12 @@ const SOLUTION_META: Record<RoksSolutionType, { label: string; description: stri
     storageApproach: 'Dedicated NVMe BM + ODF',
     hasOdf: true,
   },
+  'bm-nfs-csi': {
+    label: 'BM + NFS (CSI)',
+    description: 'Bare metal (no NVMe) + VPC File Storage (NFS) via dp2 CSI driver',
+    storageApproach: 'VPC File Storage NFS (CSI)',
+    hasOdf: false,
+  },
 };
 
 function formatCurrency(amount: number): string {
@@ -68,7 +74,7 @@ export function SolutionComparisonPanel({ roksSizing }: SolutionComparisonPanelP
   const { pricing } = useDynamicPricing();
 
   const solutions = useMemo<SolutionSummary[]>(() => {
-    const solutionTypes: RoksSolutionType[] = ['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated'];
+    const solutionTypes: RoksSolutionType[] = ['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated', 'bm-nfs-csi'];
     const pricedProfiles = getBareMetalProfiles(pricing).data;
 
     return solutionTypes.map((st) => {
@@ -163,7 +169,8 @@ export function SolutionComparisonPanel({ roksSizing }: SolutionComparisonPanelP
     });
   }, [roksSizing, region, discountType, pricing]);
 
-  const cheapestMonthly = Math.min(...solutions.map(s => s.roksEstimate.totalMonthly));
+  const availableSolutions = solutions.filter(s => !FUTURE_SOLUTION_TYPES.has(s.solutionType));
+  const cheapestMonthly = Math.min(...availableSolutions.map(s => s.roksEstimate.totalMonthly));
 
   return (
     <Tile>
@@ -174,11 +181,15 @@ export function SolutionComparisonPanel({ roksSizing }: SolutionComparisonPanelP
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
         {solutions.map((sol) => {
-          const isCheapest = sol.roksEstimate.totalMonthly === cheapestMonthly;
+          const isFuture = FUTURE_SOLUTION_TYPES.has(sol.solutionType);
+          const isCheapest = !isFuture && sol.roksEstimate.totalMonthly === cheapestMonthly;
           const delta = sol.roksEstimate.totalMonthly - cheapestMonthly;
 
           return (
-            <Tile key={sol.solutionType} style={{ border: isCheapest ? '2px solid var(--cds-support-success)' : '1px solid var(--cds-border-subtle)', position: 'relative' }}>
+            <Tile key={sol.solutionType} style={{ border: isCheapest ? '2px solid var(--cds-support-success)' : '1px solid var(--cds-border-subtle)', position: 'relative', opacity: isFuture ? 0.6 : 1 }}>
+              {isFuture && (
+                <Tag type="purple" style={{ position: 'absolute', top: '0.5rem', right: '0.5rem' }}>Future</Tag>
+              )}
               {isCheapest && (
                 <Tag type="green" style={{ position: 'absolute', top: '0.5rem', right: '0.5rem' }}>Lowest Cost</Tag>
               )}

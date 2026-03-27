@@ -2653,7 +2653,14 @@
     "dp2": {
       "tierName": "dp2",
       "costPerGBMonth": 0.15155,
-      "description": "File Storage for VPC - dp2 profile"
+      "description": "File Storage for VPC - dp2 profile",
+      "iopsHourlyRates": [
+        { "upTo": 5000, "rate": 0.000138 },
+        { "upTo": 20000, "rate": 0.0000692 },
+        { "upTo": 40000, "rate": 0.0000277 },
+        { "upTo": 96000, "rate": 0.0000138 }
+      ],
+      "preDefinedIops": [500, 1000, 3000]
     }
   },
   "vcfLicensing": {
@@ -2801,6 +2808,11 @@
       "monthlyRate": 3033.75
     }
   ],
+  "classicStoragePricing": {
+    "fileEndurance4iops": 0.13,
+    "blockEndurance4iops": 0.13,
+    "description": "Classic Infrastructure Endurance Storage at 4 IOPS/GB tier (list price)"
+  },
   "storageAddons": {
     "snapshots": {
       "costPerGBMonth": 0.05,

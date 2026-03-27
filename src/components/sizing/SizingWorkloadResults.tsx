@@ -73,7 +73,7 @@ export function SizingWorkloadResults({
   solutionType,
   filteredDisks,
 }: SizingWorkloadResultsProps) {
-  const hasOdf = solutionType !== 'bm-block-csi';
+  const hasOdf = solutionType !== 'bm-block-csi' && solutionType !== 'bm-nfs-csi';
   // Calculate cluster totals for breakdown visualizations
   const totalClusterCpuRaw = selectedProfile.physicalCores * (useHyperthreading ? htMultiplier : 1) * cpuOvercommit * nodeRequirements.totalNodes;
   const totalClusterMemoryRaw = selectedProfile.memoryGiB * memoryOvercommit * nodeRequirements.totalNodes;

@@ -10,8 +10,8 @@ function formatCurrency(value: number): string {
 }
 
 const TARGET_LABELS: Record<string, string> = {
-  'file-storage': 'File Storage',
-  'block-storage': 'Block Storage',
+  'file-storage': 'Endurance File Storage',
+  'block-storage': 'Endurance Block Storage',
   'local-nvme': 'Local NVMe (included)',
 };
 
@@ -60,7 +60,7 @@ export function buildSourceBOMSection(
     sections.push(
       createHeading(`${s}.2 Storage Mapping`, HeadingLevel.HEADING_2),
       createParagraph(
-        'Source VMware datastores mapped to IBM Cloud storage equivalents. NFS datastores use File Storage, VMFS uses Block Storage, and vSAN/VVOL are served by bare metal local NVMe storage.'
+        'Source VMware datastores mapped to IBM Cloud Classic storage equivalents. NFS datastores use Endurance File Storage, VMFS uses Endurance Block Storage (both at 4 IOPS/GB tier), and vSAN/VVOL are served by bare metal local NVMe storage.'
       ),
     );
 
@@ -87,11 +87,12 @@ export function buildSourceBOMSection(
     createHeading(`${s}.${nextSub} Cost Summary`, HeadingLevel.HEADING_2),
   );
 
-  const costHeaders = ['Category', 'Description', 'Qty', 'Monthly', 'Annual'];
+  const costHeaders = ['Category', 'Description', 'Qty', 'Unit Cost', 'Monthly', 'Annual'];
   const costRows = bomResult.estimate.lineItems.map(li => [
     li.category,
     li.description,
     `${li.quantity.toLocaleString()} ${li.unit}`,
+    formatCurrency(li.unitCost),
     formatCurrency(li.monthlyCost),
     formatCurrency(li.annualCost),
   ]);
@@ -101,16 +102,36 @@ export function buildSourceBOMSection(
     'Total',
     '',
     '',
+    '',
     formatCurrency(bomResult.estimate.totalMonthly),
     formatCurrency(bomResult.estimate.totalAnnual),
   ]);
 
   sections.push(
     createStyledTable(costHeaders, costRows, {
-      columnWidths: [1600, 2800, 1400, 1600, 1600],
-      columnAligns: [AT.LEFT, AT.LEFT, AT.RIGHT, AT.RIGHT, AT.RIGHT],
+      columnWidths: [1400, 2400, 1400, 1200, 1400, 1400],
+      columnAligns: [AT.LEFT, AT.LEFT, AT.RIGHT, AT.RIGHT, AT.RIGHT, AT.RIGHT],
     }),
   );
+
+  // Pricing assumptions
+  const storageNote = bomResult.storageItems.length > 0
+    ? 'Network-attached storage priced using Classic Infrastructure Endurance tier at 4 IOPS/GB.'
+    : '';
+  const assumptions = [
+    'Classic bare metal CPU and RAM priced at IBM Cloud list rates (SoftLayer standard pricing group).',
+    storageNote,
+    'VMware Cloud Foundation (VCF) licensing priced per physical core per month.',
+    'vSAN and VVOL datastores mapped to local NVMe storage included with bare metal servers at no additional cost.',
+  ].filter(Boolean);
+
+  sections.push(
+    createParagraph(''),
+    createParagraph('Pricing Assumptions:'),
+  );
+  for (const assumption of assumptions) {
+    sections.push(createParagraph(`• ${assumption}`));
+  }
 
   // Warnings
   if (bomResult.warnings.length > 0) {

@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest';
 import {
   calculateVSICost,
   calculateROKSCost,
+  calculateDp2FileStorageMonthlyCost,
   getRegions,
   getDiscountOptions,
   formatCurrency,
@@ -937,7 +938,7 @@ describe('Cost Estimation Service', () => {
     });
 
     it('should accept valid solution types', () => {
-      for (const st of ['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated']) {
+      for (const st of ['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated', 'bm-nfs-csi']) {
         const result = validateROKSSizingInput({
           computeNodes: 3,
           computeProfile: 'bx2-metal-96x384',
@@ -954,6 +955,140 @@ describe('Cost Estimation Service', () => {
         solutionType: 'invalid-type' as never,
       });
       expect(result.valid).toBe(false);
+    });
+  });
+
+  describe('calculateDp2FileStorageMonthlyCost', () => {
+    const defaultRates = [
+      { upTo: 5000, rate: 0.000138 },
+      { upTo: 20000, rate: 0.0000692 },
+      { upTo: 40000, rate: 0.0000277 },
+      { upTo: 96000, rate: 0.0000138 },
+    ];
+
+    it('should calculate capacity + IOPS cost for 500 IOPS', () => {
+      const result = calculateDp2FileStorageMonthlyCost(100, 500, 0.15155, defaultRates);
+      expect(result.capacityCost).toBeCloseTo(15.155, 2);
+      // 500 IOPS × $0.000138/hr × 730 hrs = $50.37
+      expect(result.iopsCost).toBeCloseTo(500 * 0.000138 * 730, 2);
+      expect(result.totalCost).toBeCloseTo(result.capacityCost + result.iopsCost, 2);
+    });
+
+    it('should calculate capacity + IOPS cost for 3000 IOPS', () => {
+      const result = calculateDp2FileStorageMonthlyCost(1000, 3000, 0.15155, defaultRates);
+      expect(result.capacityCost).toBeCloseTo(151.55, 2);
+      // 3000 IOPS all within first tier (≤5000)
+      expect(result.iopsCost).toBeCloseTo(3000 * 0.000138 * 730, 2);
+    });
+
+    it('should apply tiered IOPS pricing across tiers', () => {
+      // 10000 IOPS: 5000 at tier1 + 5000 at tier2
+      const result = calculateDp2FileStorageMonthlyCost(500, 10000, 0.15155, defaultRates);
+      const expectedIopsHourly = (5000 * 0.000138) + (5000 * 0.0000692);
+      expect(result.iopsCost).toBeCloseTo(expectedIopsHourly * 730, 2);
+    });
+
+    it('should handle zero IOPS', () => {
+      const result = calculateDp2FileStorageMonthlyCost(100, 0, 0.15155, defaultRates);
+      expect(result.iopsCost).toBe(0);
+      expect(result.totalCost).toBeCloseTo(15.155, 2);
+    });
+  });
+
+  describe('calculateROKSCost with bm-nfs-csi', () => {
+    it('should produce bm-nfs-csi architecture with no ODF line items', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-nfs-csi',
+        storageTiB: 10,
+      };
+      const cost = calculateROKSCost(input);
+      expect(cost.architecture).toBe('Bare Metal + NFS File Storage (CSI)');
+      const odfItems = cost.lineItems.filter(item => item.category === 'Storage - ODF');
+      expect(odfItems).toHaveLength(0);
+    });
+
+    it('should have boot block storage and data file storage line items', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-nfs-csi',
+        bootVolumeCount: 100,
+        bootVolumeCapacityGiB: 5000,
+        fileStorageCapacityGiB: 20000,
+        fileStorageIops: 1000,
+      };
+      const cost = calculateROKSCost(input);
+
+      // Boot volumes on block storage
+      const bootItems = cost.lineItems.filter(item => item.category === 'Storage - Block');
+      expect(bootItems).toHaveLength(1);
+      expect(bootItems[0].description).toContain('Boot');
+      expect(bootItems[0].description).toContain('3 IOPS/GB');
+      expect(bootItems[0].quantity).toBe(5000);
+      expect(bootItems[0].notes).toContain('100 boot volumes');
+
+      // Data volumes on file storage
+      const fileItems = cost.lineItems.filter(item => item.category === 'Storage - File');
+      expect(fileItems).toHaveLength(1);
+      expect(fileItems[0].description).toContain('dp2');
+      expect(fileItems[0].description).toContain('1,000 IOPS');
+      expect(fileItems[0].quantity).toBe(20000);
+      expect(fileItems[0].monthlyCost).toBeGreaterThan(0);
+      expect(fileItems[0].notes).toContain('capacity');
+      expect(fileItems[0].notes).toContain('IOPS');
+    });
+
+    it('should default file storage IOPS to 500', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-nfs-csi',
+        fileStorageCapacityGiB: 10000,
+      };
+      const cost = calculateROKSCost(input);
+      const fileItems = cost.lineItems.filter(item => item.category === 'Storage - File');
+      expect(fileItems).toHaveLength(1);
+      expect(fileItems[0].description).toContain('500 IOPS');
+    });
+
+    it('should fall back to storageTiB for file storage capacity', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-nfs-csi',
+        storageTiB: 5,
+      };
+      const cost = calculateROKSCost(input);
+      const fileItems = cost.lineItems.filter(item => item.category === 'Storage - File');
+      expect(fileItems).toHaveLength(1);
+      expect(fileItems[0].quantity).toBe(5120); // 5 TiB * 1024
+    });
+
+    it('should include metadata note about File Storage', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-nfs-csi',
+        storageTiB: 5,
+      };
+      const cost = calculateROKSCost(input);
+      expect(cost.metadata.notes).toContainEqual(expect.stringContaining('File Storage'));
+    });
+
+    it('should work with ROV variant', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-nfs-csi',
+        fileStorageCapacityGiB: 10000,
+        fileStorageIops: 500,
+      };
+      const roksCost = calculateROKSCost(input, 'us-south', 'onDemand', undefined, 'full');
+      const rovCost = calculateROKSCost(input, 'us-south', 'onDemand', undefined, 'rov');
+      // ROV has lower license cost
+      expect(rovCost.totalMonthly).toBeLessThan(roksCost.totalMonthly);
     });
   });
 

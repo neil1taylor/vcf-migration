@@ -37,7 +37,7 @@ export function SizingNodeCapacity({
   operationalCapacity,
   solutionType,
 }: SizingNodeCapacityProps) {
-  const hasOdf = solutionType !== 'bm-block-csi';
+  const hasOdf = solutionType !== 'bm-block-csi' && solutionType !== 'bm-nfs-csi';
   const colSize = hasOdf ? 4 : 8;
 
   return (

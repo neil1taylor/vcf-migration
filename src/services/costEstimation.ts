@@ -1,7 +1,7 @@
 // IBM Cloud Cost Estimation Service
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import { createLogger } from '@/utils/logger';
-import type { IBMCloudPricing, BareMetalProfile, VSIProfile } from '@/services/pricing/pricingCache';
+import type { IBMCloudPricing, BareMetalProfile, VSIProfile, FileStorageIopsRate } from '@/services/pricing/pricingCache';
 import { getCurrentPricing, getStaticPricing } from '@/services/pricing/pricingCache';
 import { getRegionalPricing } from '@/services/pricing/regionalPricingResolver';
 
@@ -28,7 +28,13 @@ export type RoksSolutionType =
   | 'hybrid-vsi-odf'    // BM compute + VSI storage + block + ODF
   | 'bm-block-csi'      // BM (no NVMe) + block storage via CSI, no ODF
   | 'bm-block-odf'      // BM (no NVMe) + block storage backing ODF
-  | 'bm-disaggregated'; // Diskless BM compute + NVMe BM dedicated ODF storage pool
+  | 'bm-disaggregated'  // Diskless BM compute + NVMe BM dedicated ODF storage pool
+  | 'bm-nfs-csi';       // BM (no NVMe) + NFS file storage via dp2 CSI, no ODF
+
+/** Solution types not yet available — BM does not yet support VPC Block Storage attachment */
+export const FUTURE_SOLUTION_TYPES: ReadonlySet<RoksSolutionType> = new Set(['bm-block-csi', 'bm-block-odf']);
+
+export type FileStorageIops = 500 | 1000 | 3000;
 
 /** Resolve effective solution type from input, with backward compatibility for useNvme boolean */
 export function resolveRoksSolutionType(input: ROKSSizingInput): RoksSolutionType {
@@ -58,6 +64,10 @@ export interface ROKSSizingInput {
   dataVolumeCount?: number;
   /** CSI: data volume total capacity in GiB */
   dataVolumeCapacityGiB?: number;
+  /** NFS CSI: file storage IOPS (dp2 profile) — 500, 1000, or 3000 */
+  fileStorageIops?: FileStorageIops;
+  /** NFS CSI: file storage total capacity in GiB */
+  fileStorageCapacityGiB?: number;
   odfProfile?: string;
   odfTier?: OdfTier;
   includeAcm?: boolean;
@@ -165,7 +175,7 @@ export function validateROKSSizingInput(input: ROKSSizingInput): ValidationResul
 
   // Solution type validation (optional)
   if (input.solutionType !== undefined && input.solutionType !== null) {
-    if (!['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated'].includes(input.solutionType)) {
+    if (!['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated', 'bm-nfs-csi'].includes(input.solutionType)) {
       errors.push({ field: 'solutionType', message: 'Invalid solution type' });
     }
   }
@@ -520,6 +530,35 @@ export function getODFProfiles(pricing?: IBMCloudPricing): PricingResult<{ id: s
 }
 
 /**
+ * Calculate monthly cost for VPC File Storage dp2 profile.
+ * dp2 has two-dimensional pricing: capacity (per GB) + IOPS (tiered hourly).
+ */
+export function calculateDp2FileStorageMonthlyCost(
+  capacityGiB: number,
+  iops: number,
+  costPerGBMonth: number,
+  iopsHourlyRates: FileStorageIopsRate[],
+): { capacityCost: number; iopsCost: number; totalCost: number } {
+  const capacityCost = capacityGiB * costPerGBMonth;
+
+  // Apply tiered IOPS pricing
+  let remainingIops = iops;
+  let iopsHourlyCost = 0;
+  let prevUpTo = 0;
+  for (const tier of iopsHourlyRates) {
+    if (remainingIops <= 0) break;
+    const tierRange = tier.upTo - prevUpTo;
+    const iopsInTier = Math.min(remainingIops, tierRange);
+    iopsHourlyCost += iopsInTier * tier.rate;
+    remainingIops -= iopsInTier;
+    prevUpTo = tier.upTo;
+  }
+  const iopsCost = iopsHourlyCost * 730; // monthly
+
+  return { capacityCost, iopsCost, totalCost: capacityCost + iopsCost };
+}
+
+/**
  * Calculate ROKS cluster cost estimate
  */
 export function calculateROKSCost(
@@ -733,6 +772,55 @@ export function calculateROKSCost(
         });
       }
     }
+  } else if (solutionType === 'bm-nfs-csi') {
+    // NFS CSI: boot volumes on block storage (300 IOPS = 3 IOPS/GB × 100GB), data on NFS file storage (dp2)
+    const bootCount = input.bootVolumeCount ?? 0;
+    const bootCapacityGB = input.bootVolumeCapacityGiB ?? 0;
+
+    // Boot volumes — block storage, general-purpose (3 IOPS/GB)
+    if (bootCapacityGB > 0) {
+      const bootTierData = pricingToUse.blockStorage?.['general-purpose'];
+      const bootCostPerGB = regional.blockStorage['generalPurpose']?.costPerGBMonth
+        ?? regional.blockStorage['general-purpose']?.costPerGBMonth
+        ?? bootTierData?.costPerGBMonth ?? 0.10;
+      lineItems.push({
+        category: 'Storage - Block',
+        description: 'Block Storage - Boot Volumes (3 IOPS/GB)',
+        quantity: bootCapacityGB,
+        unit: 'GB',
+        unitCost: bootCostPerGB,
+        monthlyCost: bootCapacityGB * bootCostPerGB,
+        annualCost: bootCapacityGB * bootCostPerGB * 12,
+        notes: `${bootCount} boot volumes (300 IOPS each)`,
+      });
+    }
+
+    // Data volumes — NFS file storage via dp2 CSI driver
+    const fileCapacityGiB = input.fileStorageCapacityGiB ?? (input.storageTiB ? input.storageTiB * 1024 : 0);
+    const fileIops = input.fileStorageIops ?? 500;
+    if (fileCapacityGiB > 0) {
+      const dp2Tier = pricingToUse.fileStorage?.['dp2'];
+      const dp2CostPerGB = regional.fileStorage?.['dp2']?.costPerGBMonth ?? dp2Tier?.costPerGBMonth ?? 0.15155;
+      const defaultIopsRates: FileStorageIopsRate[] = [
+        { upTo: 5000, rate: 0.000138 },
+        { upTo: 20000, rate: 0.0000692 },
+        { upTo: 40000, rate: 0.0000277 },
+        { upTo: 96000, rate: 0.0000138 },
+      ];
+      const iopsRates = (dp2Tier as { iopsHourlyRates?: FileStorageIopsRate[] })?.iopsHourlyRates ?? defaultIopsRates;
+      const dp2Cost = calculateDp2FileStorageMonthlyCost(fileCapacityGiB, fileIops, dp2CostPerGB, iopsRates);
+
+      lineItems.push({
+        category: 'Storage - File',
+        description: `File Storage - Data (dp2, ${fileIops.toLocaleString()} IOPS)`,
+        quantity: fileCapacityGiB,
+        unit: 'GB',
+        unitCost: dp2Cost.totalCost / fileCapacityGiB,
+        monthlyCost: dp2Cost.totalCost,
+        annualCost: dp2Cost.totalCost * 12,
+        notes: `NFS via dp2 CSI: $${dp2Cost.capacityCost.toFixed(2)}/mo capacity + $${dp2Cost.iopsCost.toFixed(2)}/mo IOPS`,
+      });
+    }
   }
 
   // OCP License (applies to all worker node vCPUs — compute + storage VSIs)
@@ -836,7 +924,7 @@ export function calculateROKSCost(
       notes: `ODF ${odfTierLabel} license for dedicated storage nodes only`,
     });
   }
-  // bm-block-csi: no ODF — intentionally no ODF line items
+  // bm-block-csi / bm-nfs-csi: no ODF — intentionally no ODF line items
 
   // ACM (Red Hat Advanced Cluster Management) — optional
   if (input.includeAcm && computeProfile && input.computeNodes > 0) {
@@ -903,6 +991,7 @@ export function calculateROKSCost(
     'bm-block-csi': 'Bare Metal + Block Storage (CSI)',
     'bm-block-odf': 'Bare Metal + Block Storage + ODF',
     'bm-disaggregated': 'Disaggregated Bare Metal (Compute + Storage Pools)',
+    'bm-nfs-csi': 'Bare Metal + NFS File Storage (CSI)',
   };
 
   return {
@@ -925,9 +1014,11 @@ export function calculateROKSCost(
         'Estimated pricing - actual costs may vary',
         solutionType === 'bm-block-csi'
           ? 'Includes OpenShift licensing and VPC Block Storage costs'
-          : solutionType === 'bm-disaggregated'
-            ? 'Includes OpenShift licensing, dedicated storage pool, and ODF costs'
-            : 'Includes OpenShift licensing and ODF storage costs',
+          : solutionType === 'bm-nfs-csi'
+            ? 'Includes OpenShift licensing and VPC File Storage (NFS) costs'
+            : solutionType === 'bm-disaggregated'
+              ? 'Includes OpenShift licensing, dedicated storage pool, and ODF costs'
+              : 'Includes OpenShift licensing and ODF storage costs',
         'Contact IBM for enterprise pricing',
         discountData.discountPct > 0 ? `${discountData.name} discount applied` : 'On-demand pricing',
       ],

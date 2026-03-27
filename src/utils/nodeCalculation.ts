@@ -71,8 +71,8 @@ export function calculateNodesForProfile(
   } = params;
 
   // bm-disaggregated compute nodes: no ODF (runs on separate storage pool), no per-node storage
-  const hasOdf = solutionType !== 'bm-block-csi' && solutionType !== 'bm-disaggregated';
-  const isExternalStorage = solutionType === 'bm-block-csi' || solutionType === 'bm-block-odf' || solutionType === 'bm-disaggregated';
+  const hasOdf = solutionType !== 'bm-block-csi' && solutionType !== 'bm-nfs-csi' && solutionType !== 'bm-disaggregated';
+  const isExternalStorage = solutionType === 'bm-block-csi' || solutionType === 'bm-nfs-csi' || solutionType === 'bm-block-odf' || solutionType === 'bm-disaggregated';
 
   // Calculate ODF reservation for this profile
   // For bm-block-csi (no ODF): skip reservation entirely
@@ -165,7 +165,7 @@ export function calculateNodesForProfile(
     return roundUpToRackGroup(preRoundingTotal);
   }
 
-  // No ODF (bm-block-csi / bm-disaggregated compute): just N + redundancy, no round-to-3
+  // No ODF (bm-block-csi / bm-nfs-csi / bm-disaggregated compute): just N + redundancy, no round-to-3
   return preRoundingTotal;
 }
 

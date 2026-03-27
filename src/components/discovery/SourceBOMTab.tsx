@@ -47,8 +47,8 @@ const lineItemHeaders = [
 ];
 
 const TARGET_LABELS: Record<string, string> = {
-  'file-storage': 'File Storage',
-  'block-storage': 'Block Storage',
+  'file-storage': 'Endurance File Storage',
+  'block-storage': 'Endurance Block Storage',
   'local-nvme': 'Local NVMe (included)',
 };
 

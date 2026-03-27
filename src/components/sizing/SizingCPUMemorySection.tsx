@@ -61,10 +61,10 @@ export function SizingCPUMemorySection({
   totalNodes,
   solutionType,
 }: SizingCPUMemorySectionProps) {
-  // ODF runs on compute nodes for converged/hybrid/bm-block-odf, but NOT for bm-block-csi or bm-disaggregated
-  const hasOdfOnCompute = solutionType !== 'bm-block-csi' && solutionType !== 'bm-disaggregated';
-  // ODF tuning controls are relevant whenever ODF exists (all except bm-block-csi)
-  const hasOdf = solutionType !== 'bm-block-csi';
+  // ODF runs on compute nodes for converged/hybrid/bm-block-odf, but NOT for bm-block-csi, bm-nfs-csi, or bm-disaggregated
+  const hasOdfOnCompute = solutionType !== 'bm-block-csi' && solutionType !== 'bm-nfs-csi' && solutionType !== 'bm-disaggregated';
+  // ODF tuning controls are relevant whenever ODF exists (all except bm-block-csi / bm-nfs-csi)
+  const hasOdf = solutionType !== 'bm-block-csi' && solutionType !== 'bm-nfs-csi';
   const selectedProfileIndex = odfProfiles.findIndex(p => p.id === odfTuningProfile);
   const cpuUnit = odfCpuUnitMode === 'physical' ? 'cores' : 'vCPUs';
 

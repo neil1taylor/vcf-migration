@@ -25,7 +25,7 @@ export function SizingRedundancyValidation({
   operationalCapacity,
   solutionType,
 }: SizingRedundancyValidationProps) {
-  const hasOdf = solutionType !== 'bm-block-csi';
+  const hasOdf = solutionType !== 'bm-block-csi' && solutionType !== 'bm-nfs-csi';
 
   return (
     <Column lg={16} md={8} sm={4}>

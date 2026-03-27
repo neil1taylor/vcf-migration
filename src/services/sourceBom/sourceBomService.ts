@@ -226,13 +226,13 @@ export function buildSourceBOM(input: SourceBOMInput): SourceBOMResult {
     const totalCost = fileStorageItems.reduce((sum, s) => sum + s.monthlyCost, 0);
     lineItems.push({
       category: 'Storage',
-      description: 'File Storage (NFS)',
+      description: 'Endurance File Storage (NFS)',
       quantity: totalCapacity,
       unit: 'GB',
       unitCost: input.fileStorageCostPerGBMonth,
       monthlyCost: Math.round(totalCost * 100) / 100,
       annualCost: Math.round(totalCost * 12 * 100) / 100,
-      notes: `${fileStorageItems.length} NFS datastore(s)`,
+      notes: `${fileStorageItems.length} NFS datastore(s), 4 IOPS/GB, $${input.fileStorageCostPerGBMonth}/GB/mo`,
     });
   }
 
@@ -241,13 +241,13 @@ export function buildSourceBOM(input: SourceBOMInput): SourceBOMResult {
     const totalCost = blockStorageItems.reduce((sum, s) => sum + s.monthlyCost, 0);
     lineItems.push({
       category: 'Storage',
-      description: 'Block Storage (VMFS)',
+      description: 'Endurance Block Storage (VMFS)',
       quantity: totalCapacity,
       unit: 'GB',
       unitCost: input.blockStorageCostPerGBMonth,
       monthlyCost: Math.round(totalCost * 100) / 100,
       annualCost: Math.round(totalCost * 12 * 100) / 100,
-      notes: `${blockStorageItems.length} VMFS datastore(s)`,
+      notes: `${blockStorageItems.length} VMFS datastore(s), 4 IOPS/GB, $${input.blockStorageCostPerGBMonth}/GB/mo`,
     });
   }
 

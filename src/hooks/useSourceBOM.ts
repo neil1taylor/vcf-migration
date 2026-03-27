@@ -21,18 +21,15 @@ export function useSourceBOM(
 
     const regionalPricing = getRegionalPricing(pricing, region);
 
-    // File storage cost: use dp2 tier or first available
+    // Classic Endurance File Storage cost (4 IOPS/GB tier)
     const fileStorageCostPerGBMonth =
-      regionalPricing.fileStorage?.dp2?.costPerGBMonth
-      ?? pricing.fileStorage?.dp2?.costPerGBMonth
-      ?? 0.11; // fallback
+      pricing.classicStoragePricing?.fileEndurance4iops
+      ?? 0.13;
 
-    // Block storage cost: use general purpose tier
+    // Classic Endurance Block Storage cost (4 IOPS/GB tier)
     const blockStorageCostPerGBMonth =
-      regionalPricing.blockStorage?.generalPurpose?.costPerGBMonth
-      ?? pricing.blockStorage?.generalPurpose?.costPerGBMonth
-      ?? pricing.blockStorage?.['general-purpose']?.costPerGBMonth
-      ?? 0.10; // fallback
+      pricing.classicStoragePricing?.blockEndurance4iops
+      ?? 0.13;
 
     // VCF licensing per core
     const vcfPerCoreMonthly =
