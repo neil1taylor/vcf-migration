@@ -1,9 +1,9 @@
 // Bare metal profile selection section for the Sizing Calculator
+import { useMemo } from 'react';
 import {
   Column,
   Tile,
-  Select,
-  SelectItem,
+  ComboBox,
   Tag,
 } from '@carbon/react';
 import { ProfilesRefresh } from '@/components/profiles';
@@ -42,6 +42,11 @@ export function SizingProfileSection({
   profileCounts,
   solutionType,
 }: SizingProfileSectionProps) {
+  const selectedItem = useMemo(
+    () => profileItems.find((item) => item.id === selectedProfileName) || null,
+    [profileItems, selectedProfileName]
+  );
+
   return (
     <Column lg={16} md={8} sm={4}>
       <Tile className="sizing-calculator__section">
@@ -60,16 +65,23 @@ export function SizingProfileSection({
             compact
           />
         </div>
-        <Select
+        <ComboBox
           id="profile-selector"
-          labelText="Select IBM Cloud Bare Metal Profile"
-          value={selectedProfileName}
-          onChange={(e) => { hasUserSelectedProfileRef.current = true; setSelectedProfileName(e.target.value); }}
-        >
-          {profileItems.map((item) => (
-            <SelectItem key={item.id} value={item.id} text={item.text} />
-          ))}
-        </Select>
+          titleText="Select IBM Cloud Bare Metal Profile"
+          placeholder="Type to search profiles..."
+          items={profileItems}
+          selectedItem={selectedItem}
+          itemToString={(item: ProfileItem | null) => item?.text || ''}
+          onChange={({ selectedItem: item }: { selectedItem: ProfileItem | null }) => {
+            if (item) {
+              hasUserSelectedProfileRef.current = true;
+              setSelectedProfileName(item.id);
+            }
+          }}
+          shouldFilterItem={({ item, inputValue }: { item: ProfileItem; inputValue: string }) =>
+            !inputValue || item.text.toLowerCase().includes(inputValue.toLowerCase())
+          }
+        />
         <div className="sizing-calculator__profile-details">
           {selectedProfile.isCustom && (
             <Tag type="purple">{selectedProfile.tag || 'Custom'}</Tag>
@@ -99,6 +111,8 @@ export function SizingProfileSection({
               <><strong>Note:</strong> This profile uses VPC Block Storage to back ODF. No local NVMe disks are required.</>
             ) : solutionType === 'bm-block-csi' ? (
               <><strong>Note:</strong> This profile uses VPC Block Storage via CSI driver. No local NVMe disks or ODF are required.</>
+            ) : solutionType === 'bm-nfs-csi' ? (
+              <><strong>Note:</strong> This profile uses VPC File Storage (NFS) via dp2 CSI driver. Boot volumes use block storage. No local NVMe disks or ODF are required.</>
             ) : (
               <><strong>Note:</strong> This profile has no local NVMe storage. ODF (OpenShift Data Foundation) cannot be deployed on nodes without local storage. You will need to use external file storage.</>
             )}
