@@ -179,8 +179,8 @@ export function DiscoveryVMTable({
           vmOverrides.isInstanceStoragePreferred(vmId) ? 'NVMe' : '',
           vmOverrides.isGpuRequired(vmId) ? 'GPU' : '',
           vmOverrides.isBandwidthSensitive(vmId) ? 'BW' : '',
-          vmOverrides.getBootStorageTier(vmId) ? 'Boot' : '',
-          vmOverrides.getDataStorageTier(vmId) ? 'Data' : '',
+          (vmOverrides.getBootStorageTier(vmId) && vmOverrides.getBootStorageTier(vmId) !== 'general-purpose') ? 'Boot' : '',
+          (vmOverrides.getDataStorageTier(vmId) || getStorageTierForWorkload(category === '_unclassified' ? null : category)) !== 'general-purpose' ? 'Data' : '',
         ].filter(Boolean).join(' ') || '—',
         status,
         actions: '',
@@ -621,7 +621,7 @@ export function DiscoveryVMTable({
                                       {originalRow.instanceStorage && <Tag type="teal" size="sm">NVMe</Tag>}
                                       {originalRow.gpuRequired && <Tag type="purple" size="sm">GPU</Tag>}
                                       {originalRow.bandwidthSensitive && <Tag type="cyan" size="sm">BW</Tag>}
-                                      {originalRow.bootTier !== 'general-purpose' && <Tag type={originalRow.bootTier === '10iops' ? 'purple' : 'teal'} size="sm">Boot: {originalRow.bootTier}</Tag>}
+                                      {originalRow.bootTier !== 'general-purpose' && <Tag type={originalRow.bootTier === '10iops' ? 'purple' : 'teal'} size="sm">Boot: {getStorageTierLabel(originalRow.bootTier as StorageTierType)}</Tag>}
                                       {originalRow.dataTier !== 'general-purpose' && <Tag type={originalRow.dataTier === '10iops' ? 'purple' : 'teal'} size="sm">Data: {getStorageTierLabel(originalRow.dataTier as StorageTierType)}</Tag>}
                                     </>
                                 }

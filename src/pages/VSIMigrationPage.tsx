@@ -83,16 +83,42 @@ export function VSIMigrationPage() {
     return vmOverrides.isBandwidthSensitive(vmId);
   }, [allVmsRaw, vmOverrides]);
 
-  // Wrap getEffectiveStorageTier to check vmOverrides.dataStorageTier (from Discovery) first
-  const getEffectiveStorageTierWithOverrides = useCallback((vmName: string, autoTier: StorageTierType): StorageTierType => {
+  // Unified storage tier: vmOverrides.dataStorageTier is the single source of truth.
+  // Falls back to autoTier (workload auto-detect) when no override is set.
+  const getEffectiveStorageTierUnified = useCallback((vmName: string, autoTier: StorageTierType): StorageTierType => {
     const vm = allVmsRaw.find(v => v.vmName === vmName);
     if (vm) {
       const vmId = getVMIdentifier(vm);
-      const discoveryTier = vmOverrides.getDataStorageTier(vmId);
-      if (discoveryTier) return discoveryTier as StorageTierType;
+      const tier = vmOverrides.getDataStorageTier(vmId);
+      if (tier) return tier as StorageTierType;
     }
-    return getEffectiveStorageTier(vmName, autoTier);
-  }, [allVmsRaw, vmOverrides, getEffectiveStorageTier]);
+    return autoTier;
+  }, [allVmsRaw, vmOverrides]);
+
+  const hasStorageTierOverrideUnified = useCallback((vmName: string): boolean => {
+    const vm = allVmsRaw.find(v => v.vmName === vmName);
+    if (!vm) return false;
+    return !!vmOverrides.getDataStorageTier(getVMIdentifier(vm));
+  }, [allVmsRaw, vmOverrides]);
+
+  // Unified tier setters — write to vmOverrides so Discovery and VSI stay in sync
+  const setStorageTierOverrideUnified = useCallback((vmName: string, tier: StorageTierType) => {
+    const vm = allVmsRaw.find(v => v.vmName === vmName);
+    if (vm) {
+      const vmId = getVMIdentifier(vm);
+      vmOverrides.setDataStorageTier(vmId, vmName, tier);
+    }
+    setStorageTierOverride(vmName, tier); // also update useCustomProfiles for backward compat
+  }, [allVmsRaw, vmOverrides, setStorageTierOverride]);
+
+  const removeStorageTierOverrideUnified = useCallback((vmName: string) => {
+    const vm = allVmsRaw.find(v => v.vmName === vmName);
+    if (vm) {
+      const vmId = getVMIdentifier(vm);
+      vmOverrides.setDataStorageTier(vmId, vmName, undefined);
+    }
+    removeStorageTierOverride(vmName); // also clear useCustomProfiles
+  }, [allVmsRaw, vmOverrides, removeStorageTierOverride]);
 
   // Filter out excluded VMs using unified three-tier exclusion
   const vms = useMemo(() => {
@@ -233,8 +259,8 @@ export function VSIMigrationPage() {
     customProfiles,
     getEffectiveProfile,
     hasOverride,
-    getEffectiveStorageTier: getEffectiveStorageTierWithOverrides,
-    hasStorageTierOverride,
+    getEffectiveStorageTier: getEffectiveStorageTierUnified,
+    hasStorageTierOverride: hasStorageTierOverrideUnified,
     isBurstableCandidate: isBurstableCandidateByName,
     isInstanceStoragePreferred: isInstanceStoragePreferredByName,
     isGpuRequired: isGpuRequiredByName,
@@ -351,8 +377,8 @@ export function VSIMigrationPage() {
                   setProfileOverride={setProfileOverride}
                   removeProfileOverride={removeProfileOverride}
                   aiRecommendations={aiRecommendations}
-                  setStorageTierOverride={setStorageTierOverride}
-                  removeStorageTierOverride={removeStorageTierOverride}
+                  setStorageTierOverride={setStorageTierOverrideUnified}
+                  removeStorageTierOverride={removeStorageTierOverrideUnified}
                 />
               </TabPanel>
 

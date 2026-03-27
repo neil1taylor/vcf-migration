@@ -16,7 +16,7 @@ import type { ComplexityScore } from '@/services/migration';
 import type { UseWavePlanningReturn } from '@/hooks/useWavePlanning';
 import type { CustomProfile } from '@/hooks/useCustomProfiles';
 import type { StorageTierType } from '@/utils/workloadClassification';
-import { getVMWorkloadCategory, getStorageTierForWorkload, getCategoryDisplayName } from '@/utils/workloadClassification';
+import { getVMWorkloadCategory, getCategoryDisplayName } from '@/utils/workloadClassification';
 
 // ===== INPUT TYPE =====
 
@@ -160,10 +160,12 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
         }
       }
 
-      // Storage tier classification
+      // Workload category (for display, not storage tier)
       const workloadCategory = getVMWorkloadCategory(vm.vmName, vm.annotation ?? null);
-      const autoStorageTier = getStorageTierForWorkload(workloadCategory);
-      const storageTier = getEffectiveStorageTier(vm.vmName, autoStorageTier);
+
+      // Storage tier — Discovery is the single source of truth.
+      // Default is general-purpose; overrides come from vmOverrides.dataStorageTier (set in Discovery or VSI table).
+      const storageTier = getEffectiveStorageTier(vm.vmName, 'general-purpose' as StorageTierType);
       const isStorageTierOverridden = hasStorageTierOverride(vm.vmName);
 
       // Storage capacity
@@ -185,7 +187,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
         isOverridden,
         classification,
         storageTier,
-        autoStorageTier,
+        autoStorageTier: 'general-purpose' as StorageTierType,
         isStorageTierOverridden,
         workloadCategory,
         provisionedStorageGiB,
