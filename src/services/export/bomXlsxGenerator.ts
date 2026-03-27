@@ -1,6 +1,6 @@
 // VPC VSI and ROKS BOM Excel Generator with Formulas and Styling
 import ExcelJS from 'exceljs';
-import type { CostEstimate, RegionCode, DiscountType } from '../costEstimation';
+import type { CostEstimate, RegionCode, DiscountType, RoksSolutionType } from '../costEstimation';
 import type { MigrationInsights } from '@/services/ai/types';
 import type { IBMCloudPricing } from '../pricing/pricingCache';
 import { getCurrentPricing } from '../pricing/pricingCache';
@@ -527,7 +527,8 @@ export async function generateROKSBOMExcel(
   clusterName: string = 'ROKS Cluster',
   region: RegionCode = 'us-south',
   discountType: DiscountType = 'onDemand',
-  aiInsights?: MigrationInsights | null
+  aiInsights?: MigrationInsights | null,
+  solutionType?: RoksSolutionType,
 ): Promise<ExcelJS.Workbook> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'VCF Migration Tool';
@@ -624,12 +625,15 @@ export async function generateROKSBOMExcel(
     currentRow++;
 
     const storageItemRows: number[] = [];
+    const isDisaggregated = solutionType === 'bm-disaggregated';
     Object.entries(storageByProfile).forEach(([profile, count]) => {
-      const monthlyCost = regional.vsi[profile]?.monthlyRate ?? 0;
+      const monthlyCost = isDisaggregated
+        ? (regional.roks?.workerRates?.bareMetal?.[profile]?.monthlyRate ?? regional.bareMetal[profile]?.monthlyRate ?? 0)
+        : (regional.vsi[profile]?.monthlyRate ?? 0);
 
       storageItemRows.push(currentRow);
       const row = bomSheet.getRow(currentRow);
-      row.getCell(1).value = `${profile} - VSI`;
+      row.getCell(1).value = isDisaggregated ? `${profile} - Bare Metal (ODF)` : `${profile} - VSI`;
       row.getCell(2).value = monthlyCost;
       row.getCell(2).numFmt = STYLES.currency.numFmt;
       row.getCell(3).value = count;
@@ -785,14 +789,17 @@ export async function downloadROKSBOMExcel(
   clusterName?: string,
   region?: RegionCode,
   discountType?: DiscountType,
-  filename?: string
+  filename?: string,
+  solutionType?: RoksSolutionType,
 ): Promise<void> {
   const workbook = await generateROKSBOMExcel(
     estimate,
     nodeDetails,
     clusterName,
     region || estimate.region as RegionCode,
-    discountType || estimate.discountType as DiscountType
+    discountType || estimate.discountType as DiscountType,
+    undefined,
+    solutionType,
   );
 
   const defaultFilename = `roks-bom-${estimate.region}-${new Date().toISOString().split('T')[0]}.xlsx`;

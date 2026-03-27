@@ -21,14 +21,43 @@ export interface ValidationResult {
 
 export type OdfTier = 'advanced' | 'essentials';
 
+export type StorageTierKey = 'general-purpose' | '5iops' | '10iops';
+
+export type RoksSolutionType =
+  | 'nvme-converged'    // BM + local NVMe + ODF
+  | 'hybrid-vsi-odf'    // BM compute + VSI storage + block + ODF
+  | 'bm-block-csi'      // BM (no NVMe) + block storage via CSI, no ODF
+  | 'bm-block-odf'      // BM (no NVMe) + block storage backing ODF
+  | 'bm-disaggregated'; // Diskless BM compute + NVMe BM dedicated ODF storage pool
+
+/** Resolve effective solution type from input, with backward compatibility for useNvme boolean */
+export function resolveRoksSolutionType(input: ROKSSizingInput): RoksSolutionType {
+  if (input.solutionType) return input.solutionType;
+  return input.useNvme ? 'nvme-converged' : 'hybrid-vsi-odf';
+}
+
 export interface ROKSSizingInput {
   computeNodes: number;
   computeProfile: string;
   storageNodes?: number;
   storageProfile?: string;
   storageTiB?: number;
-  storageTier?: '5iops' | '10iops';
+  storageTier?: StorageTierKey;
+  /** @deprecated Use solutionType instead */
   useNvme?: boolean;
+  solutionType?: RoksSolutionType;
+  /** @deprecated Use blockVolumeCapacityGiB for CSI solutions */
+  bootStorageGiB?: number;
+  /** Data storage IOPS tier (for block storage solutions) */
+  dataStorageTier?: StorageTierKey;
+  /** CSI: boot volume count (1 per VM, unitNumber 0) */
+  bootVolumeCount?: number;
+  /** CSI: boot volume total capacity in GiB */
+  bootVolumeCapacityGiB?: number;
+  /** CSI: data volume count (unitNumber > 0) */
+  dataVolumeCount?: number;
+  /** CSI: data volume total capacity in GiB */
+  dataVolumeCapacityGiB?: number;
   odfProfile?: string;
   odfTier?: OdfTier;
   includeAcm?: boolean;
@@ -129,8 +158,15 @@ export function validateROKSSizingInput(input: ROKSSizingInput): ValidationResul
 
   // Storage tier validation (optional)
   if (input.storageTier !== undefined && input.storageTier !== null) {
-    if (!['5iops', '10iops'].includes(input.storageTier)) {
-      errors.push({ field: 'storageTier', message: 'Storage tier must be "5iops" or "10iops"' });
+    if (!['general-purpose', '5iops', '10iops'].includes(input.storageTier)) {
+      errors.push({ field: 'storageTier', message: 'Storage tier must be "general-purpose", "5iops", or "10iops"' });
+    }
+  }
+
+  // Solution type validation (optional)
+  if (input.solutionType !== undefined && input.solutionType !== null) {
+    if (!['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated'].includes(input.solutionType)) {
+      errors.push({ field: 'solutionType', message: 'Invalid solution type' });
     }
   }
 
@@ -505,6 +541,8 @@ export function calculateROKSCost(
   // When ROV variant, prefer OVE regional rates for licenses
   const regionalLicense = roksVariant === 'rov' && regional.ove ? regional.ove : regional.roks;
 
+  const solutionType = resolveRoksSolutionType(input);
+
   // Compute nodes (bare metal)
   const computeProfile = pricingToUse.bareMetal[input.computeProfile as keyof typeof pricingToUse.bareMetal];
   if (computeProfile && input.computeNodes > 0) {
@@ -527,10 +565,9 @@ export function calculateROKSCost(
     });
   }
 
-  // If using NVMe (converged storage), no separate storage nodes needed
-  if (input.useNvme && computeProfile?.hasNvme) {
+  // Storage line items — depends on solution type
+  if (solutionType === 'nvme-converged' && computeProfile?.hasNvme) {
     // NVMe storage is included in the bare metal cost
-    // Cast to access optional NVMe properties
     const nvmeProfile = computeProfile as { totalNvmeGB?: number; nvmeDisks?: number; nvmeSizeGB?: number };
     const nvmeCapacity = input.computeNodes * (nvmeProfile.totalNvmeGB || 0);
     lineItems.push({
@@ -543,8 +580,8 @@ export function calculateROKSCost(
       annualCost: 0,
       notes: `${nvmeProfile.nvmeDisks || 0}x ${(nvmeProfile.nvmeSizeGB || 0) / 1000}TB NVMe per node`,
     });
-  } else {
-    // Hybrid architecture with separate storage nodes
+  } else if (solutionType === 'hybrid-vsi-odf') {
+    // Hybrid architecture with separate VSI storage nodes
     if (input.storageNodes && input.storageProfile) {
       const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
       if (storageVSI) {
@@ -581,6 +618,121 @@ export function calculateROKSCost(
         notes: storageTierData?.description || `${tier} IOPS tier`,
       });
     }
+  } else if (solutionType === 'bm-block-csi') {
+    // CSI: each VM disk becomes a block volume — boot disks at 3 IOPS, data disks at selected tier
+    const bootCount = input.bootVolumeCount ?? 0;
+    const bootCapacityGB = input.bootVolumeCapacityGiB ?? 0;
+    const dataCount = input.dataVolumeCount ?? 0;
+    const dataCapacityGB = input.dataVolumeCapacityGiB ?? (input.storageTiB ? input.storageTiB * 1024 : 0);
+
+    // Boot volumes — general-purpose (3 IOPS/GB)
+    if (bootCapacityGB > 0) {
+      const bootTierData = pricingToUse.blockStorage?.['general-purpose'];
+      const bootCostPerGB = regional.blockStorage['generalPurpose']?.costPerGBMonth
+        ?? regional.blockStorage['general-purpose']?.costPerGBMonth
+        ?? bootTierData?.costPerGBMonth ?? 0.10;
+      lineItems.push({
+        category: 'Storage - Block',
+        description: 'Block Storage - Boot Volumes (3 IOPS/GB)',
+        quantity: bootCapacityGB,
+        unit: 'GB',
+        unitCost: bootCostPerGB,
+        monthlyCost: bootCapacityGB * bootCostPerGB,
+        annualCost: bootCapacityGB * bootCostPerGB * 12,
+        notes: `${bootCount} boot volumes`,
+      });
+    }
+
+    // Data volumes — user-selected tier (default 5 IOPS)
+    if (dataCapacityGB > 0) {
+      const dataTier = input.dataStorageTier || input.storageTier || '5iops';
+      const dataTierData = pricingToUse.blockStorage?.[dataTier];
+      const dataCostPerGB = regional.blockStorage[dataTier]?.costPerGBMonth ?? dataTierData?.costPerGBMonth ?? 0.10;
+      lineItems.push({
+        category: 'Storage - Block',
+        description: `Block Storage - Data Volumes (${dataTierData?.tierName || dataTier + ' IOPS/GB'})`,
+        quantity: dataCapacityGB,
+        unit: 'GB',
+        unitCost: dataCostPerGB,
+        monthlyCost: dataCapacityGB * dataCostPerGB,
+        annualCost: dataCapacityGB * dataCostPerGB * 12,
+        notes: `${dataCount} data volumes`,
+      });
+    }
+  } else if (solutionType === 'bm-block-odf') {
+    // BM + Block Storage + ODF: boot + data volumes backing ODF
+    const bootGiB = input.bootStorageGiB ?? 100;
+    const totalBootGB = bootGiB * input.computeNodes;
+
+    // Boot storage — always general-purpose (3 IOPS/GB)
+    const bootTierData = pricingToUse.blockStorage?.['general-purpose'];
+    const bootCostPerGB = regional.blockStorage['generalPurpose']?.costPerGBMonth
+      ?? regional.blockStorage['general-purpose']?.costPerGBMonth
+      ?? bootTierData?.costPerGBMonth ?? 0.10;
+    lineItems.push({
+      category: 'Storage - Block',
+      description: 'Block Storage - Boot (General Purpose)',
+      quantity: totalBootGB,
+      unit: 'GB',
+      unitCost: bootCostPerGB,
+      monthlyCost: totalBootGB * bootCostPerGB,
+      annualCost: totalBootGB * bootCostPerGB * 12,
+      notes: `${bootGiB} GiB boot volume per node (3 IOPS/GB)`,
+    });
+
+    // Data storage for ODF backing
+    if (input.storageTiB && input.storageTiB > 0) {
+      const dataTier = input.dataStorageTier || input.storageTier || '10iops';
+      const dataTierData = pricingToUse.blockStorage?.[dataTier];
+      const dataStorageGB = input.storageTiB * 1024;
+      const dataCostPerGB = regional.blockStorage[dataTier]?.costPerGBMonth ?? dataTierData?.costPerGBMonth ?? 0.10;
+
+      lineItems.push({
+        category: 'Storage - Block',
+        description: `Block Storage - Data (${dataTierData?.tierName || dataTier})`,
+        quantity: dataStorageGB,
+        unit: 'GB',
+        unitCost: dataCostPerGB,
+        monthlyCost: dataStorageGB * dataCostPerGB,
+        annualCost: dataStorageGB * dataCostPerGB * 12,
+        notes: `ODF backing storage - ${dataTierData?.description || dataTier}`,
+      });
+    }
+  } else if (solutionType === 'bm-disaggregated') {
+    // Disaggregated: separate NVMe bare metal storage nodes for ODF
+    if (input.storageNodes && input.storageProfile) {
+      const storageBM = pricingToUse.bareMetal[input.storageProfile as keyof typeof pricingToUse.bareMetal];
+      if (storageBM) {
+        const roksStorageRate = pricingToUse.roks?.workerRates?.bareMetal?.[input.storageProfile];
+        const monthlyRate = regional.roks?.workerRates?.bareMetal?.[input.storageProfile]?.monthlyRate
+          ?? roksStorageRate?.monthlyRate ?? storageBM.monthlyRate;
+        lineItems.push({
+          category: 'Storage - Bare Metal',
+          description: `Bare Metal - ${input.storageProfile} (ODF Storage Pool)`,
+          quantity: input.storageNodes,
+          unit: 'nodes',
+          unitCost: monthlyRate,
+          monthlyCost: input.storageNodes * monthlyRate,
+          annualCost: input.storageNodes * monthlyRate * 12,
+          notes: 'Dedicated NVMe storage nodes for ODF',
+        });
+      }
+      // NVMe included in storage node cost
+      const nvmeProfile = storageBM as { totalNvmeGB?: number; nvmeDisks?: number; nvmeSizeGB?: number } | undefined;
+      const nvmeCapacity = input.storageNodes * (nvmeProfile?.totalNvmeGB || 0);
+      if (nvmeCapacity > 0) {
+        lineItems.push({
+          category: 'Storage',
+          description: 'NVMe Local Storage (included in storage nodes)',
+          quantity: Math.round(nvmeCapacity / 1024),
+          unit: 'TiB raw',
+          unitCost: 0,
+          monthlyCost: 0,
+          annualCost: 0,
+          notes: `${nvmeProfile?.nvmeDisks || 0}x ${((nvmeProfile?.nvmeSizeGB || 0) / 1000).toFixed(1)}TB NVMe per storage node`,
+        });
+      }
+    }
   }
 
   // OCP License (applies to all worker node vCPUs — compute + storage VSIs)
@@ -590,10 +742,17 @@ export function calculateROKSCost(
   if (computeProfile && input.computeNodes > 0) {
     let totalOCPvCPUs = computeProfile.vcpus * input.computeNodes;
     // In hybrid mode, storage VSI workers also run OCP
-    if (!input.useNvme && input.storageNodes && input.storageProfile) {
+    if (solutionType === 'hybrid-vsi-odf' && input.storageNodes && input.storageProfile) {
       const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
       if (storageVSI) {
         totalOCPvCPUs += storageVSI.vcpus * input.storageNodes;
+      }
+    }
+    // In disaggregated mode, storage BM workers also run OCP
+    if (solutionType === 'bm-disaggregated' && input.storageNodes && input.storageProfile) {
+      const storageBM = pricingToUse.bareMetal[input.storageProfile as keyof typeof pricingToUse.bareMetal];
+      if (storageBM) {
+        totalOCPvCPUs += storageBM.vcpus * input.storageNodes;
       }
     }
     const regionalOcpHourly = regionalLicense?.ocpLicense?.perVCPUHourly ?? ocpHourlyRate;
@@ -610,13 +769,14 @@ export function calculateROKSCost(
     });
   }
 
-  // ODF Storage (OpenShift Data Foundation)
+  // ODF Storage (OpenShift Data Foundation) — only for solutions that include ODF
   const selectedOdfTier = input.odfTier ?? 'advanced';
   const odfTierData = licensePricing?.odf?.[selectedOdfTier]
     ?? licensePricing?.odf?.advanced;
   const odfTierLabel = selectedOdfTier === 'essentials' ? 'Essentials' : 'Advanced';
-  if (input.useNvme && computeProfile?.hasNvme) {
-    // Converged: per-node monthly rate
+
+  if (solutionType === 'nvme-converged' && computeProfile?.hasNvme) {
+    // Converged NVMe: per-node monthly rate
     const odfPerNode = regionalLicense?.odf?.[selectedOdfTier]?.bareMetalPerNodeMonthly ?? odfTierData?.bareMetalPerNodeMonthly ?? 681.818;
     const odfMonthlyCost = odfPerNode * input.computeNodes;
     lineItems.push({
@@ -629,7 +789,21 @@ export function calculateROKSCost(
       annualCost: odfMonthlyCost * 12,
       notes: `ODF ${odfTierLabel} license for converged bare metal nodes`,
     });
-  } else if (input.storageNodes && input.storageProfile) {
+  } else if (solutionType === 'bm-block-odf' && computeProfile) {
+    // BM + Block Storage + ODF: per-node monthly rate (same as converged)
+    const odfPerNode = regionalLicense?.odf?.[selectedOdfTier]?.bareMetalPerNodeMonthly ?? odfTierData?.bareMetalPerNodeMonthly ?? 681.818;
+    const odfMonthlyCost = odfPerNode * input.computeNodes;
+    lineItems.push({
+      category: 'Storage - ODF',
+      description: `OpenShift Data Foundation ${odfTierLabel}`,
+      quantity: input.computeNodes,
+      unit: 'nodes',
+      unitCost: odfPerNode,
+      monthlyCost: odfMonthlyCost,
+      annualCost: odfMonthlyCost * 12,
+      notes: `ODF ${odfTierLabel} license for bare metal nodes (block storage backed)`,
+    });
+  } else if (solutionType === 'hybrid-vsi-odf' && input.storageNodes && input.storageProfile) {
     // Hybrid: per-vCPU-hour rate on storage VSIs
     const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
     if (storageVSI) {
@@ -647,7 +821,22 @@ export function calculateROKSCost(
         notes: `ODF ${odfTierLabel} license for VSI storage workers`,
       });
     }
+  } else if (solutionType === 'bm-disaggregated' && input.storageNodes) {
+    // Disaggregated: ODF licensed per storage node only (not compute)
+    const odfPerNode = regionalLicense?.odf?.[selectedOdfTier]?.bareMetalPerNodeMonthly ?? odfTierData?.bareMetalPerNodeMonthly ?? 681.818;
+    const odfMonthlyCost = odfPerNode * input.storageNodes;
+    lineItems.push({
+      category: 'Storage - ODF',
+      description: `OpenShift Data Foundation ${odfTierLabel}`,
+      quantity: input.storageNodes,
+      unit: 'nodes',
+      unitCost: odfPerNode,
+      monthlyCost: odfMonthlyCost,
+      annualCost: odfMonthlyCost * 12,
+      notes: `ODF ${odfTierLabel} license for dedicated storage nodes only`,
+    });
   }
+  // bm-block-csi: no ODF — intentionally no ODF line items
 
   // ACM (Red Hat Advanced Cluster Management) — optional
   if (input.includeAcm && computeProfile && input.computeNodes > 0) {
@@ -657,10 +846,17 @@ export function calculateROKSCost(
     const acmPerVCPUHourly = acmPricing?.perVCPUHourly ?? 0.0298;
     let totalACMvCPUs = computeProfile.vcpus * input.computeNodes;
     // In hybrid mode, storage VSI workers also need ACM
-    if (!input.useNvme && input.storageNodes && input.storageProfile) {
+    if (solutionType === 'hybrid-vsi-odf' && input.storageNodes && input.storageProfile) {
       const storageVSI = pricingToUse.vsi[input.storageProfile as keyof typeof pricingToUse.vsi];
       if (storageVSI) {
         totalACMvCPUs += storageVSI.vcpus * input.storageNodes;
+      }
+    }
+    // In disaggregated mode, storage BM workers also need ACM
+    if (solutionType === 'bm-disaggregated' && input.storageNodes && input.storageProfile) {
+      const storageBM = pricingToUse.bareMetal[input.storageProfile as keyof typeof pricingToUse.bareMetal];
+      if (storageBM) {
+        totalACMvCPUs += storageBM.vcpus * input.storageNodes;
       }
     }
     const regionalAcmHourly = regionalLicense?.acm?.perVCPUHourly ?? acmPerVCPUHourly;
@@ -700,8 +896,17 @@ export function calculateROKSCost(
   const totalMonthly = subtotalMonthly - discountAmountMonthly;
   const totalAnnual = totalMonthly * 12;
 
+  // Architecture label per solution type
+  const architectureLabels: Record<RoksSolutionType, string> = {
+    'nvme-converged': 'All-NVMe Converged',
+    'hybrid-vsi-odf': 'Hybrid (Bare Metal + VSI Storage)',
+    'bm-block-csi': 'Bare Metal + Block Storage (CSI)',
+    'bm-block-odf': 'Bare Metal + Block Storage + ODF',
+    'bm-disaggregated': 'Disaggregated Bare Metal (Compute + Storage Pools)',
+  };
+
   return {
-    architecture: input.useNvme ? 'All-NVMe Converged' : 'Hybrid (Bare Metal + VSI Storage)',
+    architecture: architectureLabels[solutionType],
     region,
     regionName: regionData.name,
     discountType,
@@ -718,7 +923,11 @@ export function calculateROKSCost(
       generatedAt: new Date().toISOString(),
       notes: [
         'Estimated pricing - actual costs may vary',
-        'Includes OpenShift licensing and ODF storage costs',
+        solutionType === 'bm-block-csi'
+          ? 'Includes OpenShift licensing and VPC Block Storage costs'
+          : solutionType === 'bm-disaggregated'
+            ? 'Includes OpenShift licensing, dedicated storage pool, and ODF costs'
+            : 'Includes OpenShift licensing and ODF storage costs',
         'Contact IBM for enterprise pricing',
         discountData.discountPct > 0 ? `${discountData.name} discount applied` : 'On-demand pricing',
       ],

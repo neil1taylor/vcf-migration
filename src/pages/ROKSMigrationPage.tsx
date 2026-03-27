@@ -1,7 +1,7 @@
 // ROKS (OpenShift Virtualization) Migration page - Refactored with shared hooks and components
 
 import { useState, useCallback, useMemo } from 'react';
-import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, UnorderedList, ListItem, Button, InlineNotification, Tooltip } from '@carbon/react';
+import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, UnorderedList, ListItem, Button, InlineNotification, Tooltip, ContentSwitcher, Switch } from '@carbon/react';
 import { Download, Information, VirtualMachine } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
 import { useData, useAllVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides, useAutoExclusion, useCostSettings, usePlatformSelection } from '@/hooks';
@@ -18,10 +18,11 @@ import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel';
 import { AIRemediationPanel } from '@/components/ai/AIRemediationPanel';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
 import type { InsightsInput, NetworkSummaryForAI, RemediationInput } from '@/services/ai/types';
-import type { ROKSSizingInput } from '@/services/costEstimation';
+import type { ROKSSizingInput, RoksSolutionType } from '@/services/costEstimation';
 import { calculateROKSCost as calcROKSCost } from '@/services/costEstimation';
 import type { ROKSNodeDetail } from '@/services/export';
 import { MTVYAMLGenerator, downloadBlob } from '@/services/export';
+import { SolutionComparisonPanel } from '@/components/comparison/SolutionComparisonPanel';
 import type { MTVExportOptions } from '@/types/mtvYaml';
 import mtvRequirements from '@/data/mtvRequirements.json';
 import './MigrationPage.scss';
@@ -34,6 +35,7 @@ export function ROKSMigrationPage() {
   const [calculatorSizing, setCalculatorSizing] = useState<SizingResult | null>(null);
   const [activeTabIndex, setActiveTabIndex] = useState(0);
   const [requestedProfile, setRequestedProfile] = useState<string | null>(null);
+  const [solutionType, setSolutionType] = useState<RoksSolutionType>('nvme-converged');
   const { odfTier, setOdfTier, includeAcm, setIncludeAcm } = useCostSettings();
   const { score: platformScore } = usePlatformSelection();
 
@@ -176,12 +178,21 @@ export function ROKSMigrationPage() {
       return {
         computeNodes: calculatorSizing.computeNodes,
         computeProfile: calculatorSizing.computeProfile,
+        solutionType: calculatorSizing.solutionType,
         useNvme: calculatorSizing.useNvme,
         storageTiB: calculatorSizing.storageTiB,
         odfTier,
         includeAcm,
         odfSettings: calculatorSizing.odfSettings,
         nodeCalcParams: calculatorSizing.nodeCalcParams,
+        // CSI disk counts for BOM
+        bootVolumeCount: calculatorSizing.bootVolumeCount,
+        bootVolumeCapacityGiB: calculatorSizing.bootVolumeCapacityGiB,
+        dataVolumeCount: calculatorSizing.dataVolumeCount,
+        dataVolumeCapacityGiB: calculatorSizing.dataVolumeCapacityGiB,
+        // bm-disaggregated storage pool
+        storageNodes: calculatorSizing.storageNodes,
+        storageProfile: calculatorSizing.storageProfile,
       };
     }
 
@@ -189,6 +200,7 @@ export function ROKSMigrationPage() {
     return {
       computeNodes: 3,
       computeProfile: 'mx2d.metal.96x768',
+      solutionType: 'nvme-converged' as const,
       useNvme: true,
       storageTiB: Math.ceil(totalStorageGiB / 1024),
       odfTier,
@@ -215,7 +227,7 @@ export function ROKSMigrationPage() {
     for (let i = 0; i < roksSizing.computeNodes; i++) {
       nodes.push({ nodeName: `worker-${i + 1}`, profile: roksSizing.computeProfile, nodeType: 'worker' });
     }
-    if (!roksSizing.useNvme && roksSizing.storageNodes && roksSizing.storageProfile) {
+    if ((roksSizing.solutionType === 'hybrid-vsi-odf' || roksSizing.solutionType === 'bm-disaggregated') && roksSizing.storageNodes && roksSizing.storageProfile) {
       for (let i = 0; i < roksSizing.storageNodes; i++) {
         nodes.push({ nodeName: `storage-${i + 1}`, profile: roksSizing.storageProfile, nodeType: 'storage' });
       }
@@ -384,6 +396,7 @@ export function ROKSMigrationPage() {
               <Tab>Pre-Flight Checks</Tab>
               <Tab>Sizing</Tab>
               <Tab>Cost Estimation</Tab>
+              <Tab>Solution Comparison</Tab>
               <Tab>OS Compatibility</Tab>
               <Tab>Complexity</Tab>
               <Tab>AI Insights</Tab>
@@ -541,11 +554,29 @@ export function ROKSMigrationPage() {
                   <Column lg={16} md={8} sm={4}>
                     <Tile className="migration-page__sizing-header">
                       <h3>ROKS Bare Metal Cluster Sizing</h3>
-                      <p>Interactive sizing calculator for OpenShift Virtualization with ODF storage on NVMe drives.</p>
+                      <p>Select a solution architecture and configure the cluster sizing.</p>
+                      <div style={{ marginTop: '1rem' }}>
+                        <ContentSwitcher
+                          size="lg"
+                          selectedIndex={(['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated'] as RoksSolutionType[]).indexOf(solutionType)}
+                          onChange={(params: { index?: number }) => {
+                            if (params.index != null) {
+                              const types: RoksSolutionType[] = ['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated'];
+                              setSolutionType(types[params.index]);
+                            }
+                          }}
+                        >
+                          <Switch name="nvme-converged" text="NVMe Converged" />
+                          <Switch name="hybrid-vsi-odf" text="Hybrid (BM+VSI)" />
+                          <Switch name="bm-block-csi" text="BM + Block Storage" />
+                          <Switch name="bm-block-odf" text="BM + Block + ODF" />
+                          <Switch name="bm-disaggregated" text="BM Disaggregated" />
+                        </ContentSwitcher>
+                      </div>
                     </Tile>
                   </Column>
                   <Column lg={16} md={8} sm={4}>
-                    <SizingCalculator onSizingChange={setCalculatorSizing} requestedProfile={requestedProfile} onRequestedProfileHandled={handleRequestedProfileHandled} />
+                    <SizingCalculator onSizingChange={setCalculatorSizing} requestedProfile={requestedProfile} onRequestedProfileHandled={handleRequestedProfileHandled} solutionType={solutionType} />
                   </Column>
                   <Column lg={16} md={8} sm={4}>
                     <Tile className="migration-page__cost-tile">
@@ -553,7 +584,10 @@ export function ROKSMigrationPage() {
                       <p className="migration-page__cost-description">
                         • OpenShift Virtualization requires bare metal worker nodes with hardware virtualization<br />
                         • Memory overcommitment is NOT recommended for VMs - total memory becomes the leading sizing factor<br />
-                        • ODF with 3-way replication provides data protection; 75% operational capacity ensures room for rebalancing
+                        {solutionType === 'nvme-converged' && <>• ODF with 3-way replication provides data protection; 75% operational capacity ensures room for rebalancing</>}
+                        {solutionType === 'bm-block-csi' && <>• VPC Block Storage CSI driver provides persistent volumes directly to workloads without ODF overhead</>}
+                        {solutionType === 'bm-block-odf' && <>• ODF backed by VPC Block Storage provides software-defined storage abstraction on diskless bare metal</>}
+                        {solutionType === 'hybrid-vsi-odf' && <>• Hybrid architecture separates compute (bare metal) from storage (VSI + block storage + ODF)</>}
                       </p>
                       <RedHatDocLink href="https://cloud.ibm.com/kubernetes/catalog/create?platformType=openshift" label="Open IBM Cloud ROKS Catalog" description="Configure your bare metal OpenShift cluster" />
                     </Tile>
@@ -571,11 +605,24 @@ export function ROKSMigrationPage() {
                     <Tile className="migration-page__cost-tile">
                       <h4>Cost Estimation Notes</h4>
                       <p className="migration-page__cost-description">
-                        • Based on {roksSizing.computeNodes} {roksSizing.computeProfile} bare metal nodes with local NVMe storage<br />
+                        • Based on {roksSizing.computeNodes} {roksSizing.computeProfile} bare metal nodes
+                        {solutionType === 'nvme-converged' && <> with local NVMe storage</>}
+                        {(solutionType === 'bm-block-csi' || solutionType === 'bm-block-odf') && <> with VPC Block Storage</>}
+                        {solutionType === 'hybrid-vsi-odf' && <> with separate VSI storage nodes</>}
+                        <br />
                         • 1-year reserved capacity provides 20% discount, 3-year provides 35% discount
                       </p>
                       <RedHatDocLink href="https://cloud.ibm.com/estimator" label="Open IBM Cloud Cost Estimator" description="Create a detailed cost estimate" />
                     </Tile>
+                  </Column>
+                </Grid>
+              </TabPanel>
+
+              {/* Solution Comparison Panel */}
+              <TabPanel>
+                <Grid className="migration-page__tab-content">
+                  <Column lg={16} md={8} sm={4}>
+                    <SolutionComparisonPanel roksSizing={roksSizing} roksVariant={platformScore.roksVariant} />
                   </Column>
                 </Grid>
               </TabPanel>

@@ -4,6 +4,7 @@
 
 import { calculateOdfReservation } from '@/utils/odfCalculation';
 import type { OdfTuningProfile, OdfCpuUnitMode } from '@/utils/odfCalculation';
+import type { RoksSolutionType } from '@/services/costEstimation';
 
 export interface NodeCalcParams {
   totalVCPUs: number;
@@ -24,6 +25,7 @@ export interface NodeCalcParams {
   systemReservedCpu: number;
   systemReservedMemory: number;
   odfReservedMemory: number;
+  solutionType?: RoksSolutionType;
 }
 
 export interface ProfileForNodeCalc {
@@ -39,7 +41,9 @@ export interface ProfileForNodeCalc {
  * Calculate the number of nodes required for a specific bare metal profile
  * to host the given workload requirements.
  *
- * Returns totalNodes (rounded to multiples of 3 for ODF rack fault domains).
+ * For NVMe-converged and bm-block-odf solutions, returns totalNodes rounded
+ * to multiples of 3 (ODF rack fault domain). For bm-block-csi (no ODF),
+ * returns N + redundancy without round-to-3.
  */
 export function calculateNodesForProfile(
   profile: ProfileForNodeCalc,
@@ -63,22 +67,36 @@ export function calculateNodesForProfile(
     includeRgw,
     systemReservedCpu,
     systemReservedMemory,
+    solutionType,
   } = params;
 
-  // Calculate ODF reservation for this profile
-  const nvmeDisks = profile.nvmeDisks ?? 0;
-  const odf = calculateOdfReservation(
-    odfTuningProfile as OdfTuningProfile,
-    nvmeDisks,
-    3, // Initial pass uses minimum 3 nodes
-    includeRgw,
-    odfCpuUnitMode as OdfCpuUnitMode,
-    htMultiplier,
-    useHyperthreading,
-  );
+  // bm-disaggregated compute nodes: no ODF (runs on separate storage pool), no per-node storage
+  const hasOdf = solutionType !== 'bm-block-csi' && solutionType !== 'bm-disaggregated';
+  const isExternalStorage = solutionType === 'bm-block-csi' || solutionType === 'bm-block-odf' || solutionType === 'bm-disaggregated';
 
-  const odfReservedCpu = odf.totalCpu;
-  const odfReservedMemory = odf.totalMemoryGiB;
+  // Calculate ODF reservation for this profile
+  // For bm-block-csi (no ODF): skip reservation entirely
+  // For bm-block-odf: ODF on block storage, use 1 OSD per node (block volumes)
+  // For nvme-converged: use actual NVMe disk count
+  // For hybrid-vsi-odf / undefined: use NVMe disk count (existing behavior)
+  let odfReservedCpu = 0;
+  let odfReservedMemory = 0;
+
+  if (hasOdf) {
+    const osdCount = solutionType === 'bm-block-odf' ? 1 : (profile.nvmeDisks ?? 0);
+    const odf = calculateOdfReservation(
+      odfTuningProfile as OdfTuningProfile,
+      osdCount,
+      3, // Initial pass uses minimum 3 nodes
+      includeRgw,
+      odfCpuUnitMode as OdfCpuUnitMode,
+      htMultiplier,
+      useHyperthreading,
+    );
+    odfReservedCpu = odf.totalCpu;
+    odfReservedMemory = odf.totalMemoryGiB;
+  }
+
   const totalReservedCpu = systemReservedCpu + odfReservedCpu;
   const totalReservedMemory = systemReservedMemory + odfReservedMemory;
 
@@ -102,11 +120,14 @@ export function calculateNodesForProfile(
   const availableMemoryGiB = Math.max(0, profile.memoryGiB - totalReservedMemory);
   const memoryCapacity = Math.floor(availableMemoryGiB * memoryOvercommit);
 
-  // Storage capacity (totalNvmeGB is actually GiB despite the field name)
-  const rawStorageGiB = profile.totalNvmeGiB ?? (profile.totalNvmeGB ?? 0);
-  const maxStorageEfficiency = (1 / replicaFactor) * (1 - cephOverhead / 100);
-  const maxUsableStorageGiB = Math.floor(rawStorageGiB * maxStorageEfficiency);
-  const usableStorageGiB = Math.floor(maxUsableStorageGiB * (operationalCapacity / 100));
+  // Storage capacity — for external block storage solutions, storage is not per-node constrained
+  let usableStorageGiB = 0;
+  if (!isExternalStorage) {
+    const rawStorageGiB = profile.totalNvmeGiB ?? (profile.totalNvmeGB ?? 0);
+    const maxStorageEfficiency = (1 / replicaFactor) * (1 - cephOverhead / 100);
+    const maxUsableStorageGiB = Math.floor(rawStorageGiB * maxStorageEfficiency);
+    usableStorageGiB = Math.floor(maxUsableStorageGiB * (operationalCapacity / 100));
+  }
 
   // N+X Redundancy Calculation
   const evictionFactor = evictionThreshold / 100;
@@ -128,14 +149,73 @@ export function calculateNodesForProfile(
   const nodesForMemory = effectiveMemoryCapacity > 0
     ? Math.ceil(totalMemoryGiB / effectiveMemoryCapacity)
     : 0;
-  const nodesForStorage = effectiveStorageCapacity > 0
+  // External storage: no per-node storage constraint
+  const nodesForStorage = (!isExternalStorage && effectiveStorageCapacity > 0)
     ? Math.ceil(totalStorageGiB / effectiveStorageCapacity)
     : 0;
 
-  const minSurvivingNodes = Math.max(3, nodesForCPU, nodesForMemory, nodesForStorage);
+  const minNodes = hasOdf ? 3 : 1; // ODF requires minimum 3 nodes for quorum
+  const minSurvivingNodes = Math.max(minNodes, nodesForCPU, nodesForMemory, nodesForStorage);
+
+  const preRoundingTotal = minSurvivingNodes + nodeRedundancy;
 
   // ODF rack fault domain requires nodes in multiples of 3
-  const roundUpToRackGroup = (n: number) => Math.ceil(n / 3) * 3;
+  if (hasOdf) {
+    const roundUpToRackGroup = (n: number) => Math.ceil(n / 3) * 3;
+    return roundUpToRackGroup(preRoundingTotal);
+  }
+
+  // No ODF (bm-block-csi / bm-disaggregated compute): just N + redundancy, no round-to-3
+  return preRoundingTotal;
+}
+
+export interface StorageNodeCalcParams {
+  totalStorageGiB: number;
+  replicaFactor: number;
+  cephOverhead: number;
+  operationalCapacity: number;
+  nodeRedundancy: number;
+  odfTuningProfile: string;
+  odfCpuUnitMode: string;
+  htMultiplier: number;
+  useHyperthreading: boolean;
+  includeRgw: boolean;
+}
+
+/**
+ * Calculate the number of dedicated NVMe storage nodes required for the
+ * bm-disaggregated solution type. These nodes run ODF only (no VM workloads).
+ *
+ * Returns node count rounded to multiples of 3 (ODF rack fault domain),
+ * with a minimum of 3 for ODF quorum.
+ */
+export function calculateStorageNodesForProfile(
+  profile: ProfileForNodeCalc,
+  params: StorageNodeCalcParams,
+): number {
+  const {
+    totalStorageGiB,
+    replicaFactor,
+    cephOverhead,
+    operationalCapacity,
+    nodeRedundancy,
+  } = params;
+
+  // Storage capacity per node from NVMe
+  const rawStorageGiB = profile.totalNvmeGiB ?? (profile.totalNvmeGB ?? 0);
+  const maxStorageEfficiency = (1 / replicaFactor) * (1 - cephOverhead / 100);
+  const maxUsableStorageGiB = Math.floor(rawStorageGiB * maxStorageEfficiency);
+  const usableStorageGiB = Math.floor(maxUsableStorageGiB * (operationalCapacity / 100));
+
+  // Nodes required for storage
+  const nodesForStorage = usableStorageGiB > 0
+    ? Math.ceil(totalStorageGiB / usableStorageGiB)
+    : 0;
+
+  // ODF requires minimum 3 nodes for quorum
+  const minSurvivingNodes = Math.max(3, nodesForStorage);
   const preRoundingTotal = minSurvivingNodes + nodeRedundancy;
-  return roundUpToRackGroup(preRoundingTotal);
+
+  // ODF rack fault domain: round to multiples of 3
+  return Math.ceil(preRoundingTotal / 3) * 3;
 }

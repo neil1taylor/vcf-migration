@@ -7,6 +7,7 @@ import {
   RadioButtonGroup,
   RadioButton,
 } from '@carbon/react';
+import type { RoksSolutionType } from '@/services/costEstimation';
 
 interface SizingStorageSectionProps {
   storageMetric: 'provisioned' | 'inUse' | 'diskCapacity';
@@ -27,6 +28,7 @@ interface SizingStorageSectionProps {
   setNodeRedundancy: (value: number) => void;
   evictionThreshold: number;
   setEvictionThreshold: (value: number) => void;
+  solutionType?: RoksSolutionType;
 }
 
 export function SizingStorageSection({
@@ -48,14 +50,17 @@ export function SizingStorageSection({
   setNodeRedundancy,
   evictionThreshold,
   setEvictionThreshold,
+  solutionType,
 }: SizingStorageSectionProps) {
+  const hasOdf = solutionType !== 'bm-block-csi';
+
   return (
     <Column lg={16} md={8} sm={4}>
       <div className="sizing-calculator__settings-grid">
-        {/* ODF Storage Settings */}
+        {/* Storage Settings — ODF-specific controls hidden for bm-block-csi */}
         <div>
           <Tile className="sizing-calculator__section">
-            <h3 className="sizing-calculator__section-title">ODF Storage Settings</h3>
+            <h3 className="sizing-calculator__section-title">{hasOdf ? 'ODF Storage Settings' : 'Storage Settings'}</h3>
 
             <div className="sizing-calculator__radio-group">
               <RadioButtonGroup
@@ -89,6 +94,7 @@ export function SizingStorageSection({
               <strong>Provisioned:</strong> Allocated capacity including thin-provisioned promises.
             </div>
 
+            {hasOdf && (<>
             <Slider
               id="replica-factor"
               labelText="Replica Factor (Data Protection)"
@@ -150,6 +156,16 @@ export function SizingStorageSection({
               &bull; ODF pools NVMe across nodes for shared storage<br />
               &bull; No external SAN/NAS dependencies
             </div>
+            </>)}
+
+            {!hasOdf && (
+            <div className="sizing-calculator__info-text" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
+              <span className="label">VPC Block Storage</span><br />
+              &bull; Persistent block volumes attached directly to bare metal nodes via CSI driver<br />
+              &bull; No software-defined storage overhead<br />
+              &bull; IOPS tier selected in cost estimation
+            </div>
+            )}
           </Tile>
         </div>
 

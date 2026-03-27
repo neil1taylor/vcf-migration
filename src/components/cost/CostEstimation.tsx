@@ -25,6 +25,7 @@ import { PricingRefresh } from '@/components/pricing';
 import { ProfilesRefresh } from '@/components/profiles';
 import { useDynamicPricing, useDynamicProfiles, useTargetLocation, useCostSettings } from '@/hooks';
 import type { CostEstimate, RegionCode, DiscountType, ROKSSizingInput, VSISizingInput, DataQuality } from '@/services/costEstimation';
+import { resolveRoksSolutionType } from '@/services/costEstimation';
 import {
   calculateROKSCost,
   calculateVSICost,
@@ -144,9 +145,9 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
   useEffect(() => {
     const estimateToCache = type === 'roks' && roksVariant === 'rov' && rovEstimate ? rovEstimate : estimate;
     if (estimateToCache) {
-      cacheBOMData(type, estimateToCache, vmDetails, roksNodeDetails, region, discountType);
+      cacheBOMData(type, estimateToCache, vmDetails, roksNodeDetails, region, discountType, roksSizing?.solutionType);
     }
-  }, [estimate, rovEstimate, roksVariant, type, vmDetails, roksNodeDetails, region, discountType]);
+  }, [estimate, rovEstimate, roksVariant, type, vmDetails, roksNodeDetails, region, discountType, roksSizing?.solutionType]);
 
   // Calculate costs for all bare metal profiles (ROKS only)
   const allProfileCosts = useMemo(() => {
@@ -154,10 +155,12 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
 
     const profilesResult = getBareMetalProfiles(pricing);
     const profiles = profilesResult.data;
-    // Filter to only NVMe profiles for ODF compatibility
-    const nvmeProfiles = profiles.filter(p => p.hasNvme);
+    // Filter profiles based on solution type
+    const solutionType = roksSizing.solutionType ? resolveRoksSolutionType(roksSizing) : 'nvme-converged';
+    const needsNvme = solutionType === 'nvme-converged' || solutionType === 'hybrid-vsi-odf';
+    const filteredProfiles = profiles.filter(p => needsNvme ? p.hasNvme : !p.hasNvme);
 
-    const costs = nvmeProfiles.map(profile => {
+    const costs = filteredProfiles.map(profile => {
       // Calculate per-profile node count if we have the workload params
       let nodeCount = roksSizing.computeNodes;
       if (roksSizing.nodeCalcParams) {
@@ -169,7 +172,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
             nvmeDisks: profile.nvmeDisks,
             totalNvmeGB: profile.totalNvmeGB,
           },
-          roksSizing.nodeCalcParams,
+          { ...roksSizing.nodeCalcParams, solutionType },
         );
       }
 
@@ -183,11 +186,13 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
 
       // Check if ODF reservation exceeds this profile's CPU capacity
       let cpuViable = true;
-      if (roksSizing.odfSettings) {
+      if (solutionType !== 'bm-block-csi' && solutionType !== 'bm-disaggregated' && roksSizing.odfSettings) {
         const { odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw, systemReservedCpu, cpuOvercommit } = roksSizing.odfSettings;
+        // For bm-block-odf, use 1 OSD per node (block storage volumes); for NVMe, use actual disk count
+        const osdCount = solutionType === 'bm-block-odf' ? 1 : (profile.nvmeDisks ?? 0);
         const odf = calculateOdfReservation(
           odfTuningProfile as OdfTuningProfile,
-          profile.nvmeDisks ?? 0,
+          osdCount,
           3,
           includeRgw,
           odfCpuUnitMode as OdfCpuUnitMode,
@@ -274,7 +279,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
       if (type === 'vsi' && vmDetails && vmDetails.length > 0) {
         await downloadVSIBOMExcel(vmDetails, estimate, 'Default VPC', region, discountType);
       } else if (type === 'roks' && roksNodeDetails && roksNodeDetails.length > 0) {
-        await downloadROKSBOMExcel(estimate, roksNodeDetails, 'ROKS Cluster', region, discountType);
+        await downloadROKSBOMExcel(estimate, roksNodeDetails, 'ROKS Cluster', region, discountType, undefined, roksSizing?.solutionType);
       } else {
         // Fallback to text BOM if no detailed data
         downloadBOM(estimate, 'text');

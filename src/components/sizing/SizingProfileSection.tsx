@@ -9,6 +9,7 @@ import {
 import { ProfilesRefresh } from '@/components/profiles';
 import type { BareMetalProfile, ProfileItem } from '@/hooks/useSizingCalculator';
 import type { ProfilesSource } from '@/services/profiles/profilesCache';
+import type { RoksSolutionType } from '@/services/costEstimation';
 
 interface SizingProfileSectionProps {
   selectedProfile: BareMetalProfile;
@@ -23,6 +24,7 @@ interface SizingProfileSectionProps {
   isProfilesApiAvailable: boolean | null;
   profilesError: string | null;
   profileCounts: { vsi: number; bareMetal: number };
+  solutionType?: RoksSolutionType;
 }
 
 export function SizingProfileSection({
@@ -38,12 +40,15 @@ export function SizingProfileSection({
   isProfilesApiAvailable,
   profilesError,
   profileCounts,
+  solutionType,
 }: SizingProfileSectionProps) {
   return (
     <Column lg={16} md={8} sm={4}>
       <Tile className="sizing-calculator__section">
         <div className="sizing-calculator__section-header">
-          <h3 className="sizing-calculator__section-title">Bare Metal Node Profile</h3>
+          <h3 className="sizing-calculator__section-title">
+            {solutionType === 'bm-disaggregated' ? 'Compute Pool Profile' : 'Bare Metal Node Profile'}
+          </h3>
           <ProfilesRefresh
             lastUpdated={profilesLastUpdated}
             source={profilesSource}
@@ -88,7 +93,15 @@ export function SizingProfileSection({
         )}
         {selectedProfile.roksSupported && !selectedProfile.hasNvme && (
           <div className="sizing-calculator__warning" style={{ marginTop: '1rem', padding: '0.75rem', backgroundColor: 'var(--cds-support-info)', borderRadius: '4px', fontSize: '0.875rem' }}>
-            <strong>Note:</strong> This profile has no local NVMe storage. ODF (OpenShift Data Foundation) cannot be deployed on nodes without local storage. You will need to use external file storage.
+            {solutionType === 'bm-disaggregated' ? (
+              <><strong>Note:</strong> Compute pool uses diskless bare metal. ODF storage runs on a separate dedicated NVMe bare metal pool.</>
+            ) : solutionType === 'bm-block-odf' ? (
+              <><strong>Note:</strong> This profile uses VPC Block Storage to back ODF. No local NVMe disks are required.</>
+            ) : solutionType === 'bm-block-csi' ? (
+              <><strong>Note:</strong> This profile uses VPC Block Storage via CSI driver. No local NVMe disks or ODF are required.</>
+            ) : (
+              <><strong>Note:</strong> This profile has no local NVMe storage. ODF (OpenShift Data Foundation) cannot be deployed on nodes without local storage. You will need to use external file storage.</>
+            )}
           </div>
         )}
       </Tile>

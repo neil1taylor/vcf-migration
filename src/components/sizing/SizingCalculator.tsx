@@ -1,8 +1,11 @@
 // Interactive sizing calculator for OpenShift Virtualization and ODF
+import { useEffect } from 'react';
 import {
   Grid,
   Column,
   Tile,
+  Dropdown,
+  Tag,
 } from '@carbon/react';
 import { useSizingCalculator } from '@/hooks/useSizingCalculator';
 import { SizingProfileSection } from '@/components/sizing/SizingProfileSection';
@@ -14,13 +17,26 @@ import { SizingRedundancyValidation } from '@/components/sizing/SizingRedundancy
 import { SizingVMFitValidation } from '@/components/sizing/SizingVMFitValidation';
 import { SizingDataQualityBanner } from '@/components/sizing/SizingDataQualityBanner';
 import { useDataInconsistencies } from '@/hooks';
+import type { RoksSolutionType } from '@/services/costEstimation';
 import './SizingCalculator.scss';
 
 export interface SizingResult {
   computeNodes: number;
   computeProfile: string;
   storageTiB: number;
+  solutionType?: RoksSolutionType;
+  /** @deprecated Use solutionType instead */
   useNvme: boolean;
+  /** bm-disaggregated: dedicated NVMe storage pool node count */
+  storageNodes?: number;
+  /** bm-disaggregated: NVMe storage pool profile name */
+  storageProfile?: string;
+  /** CSI: boot disk count and capacity (unitNumber 0 per VM) */
+  bootVolumeCount?: number;
+  bootVolumeCapacityGiB?: number;
+  /** CSI: data disk count and capacity (unitNumber > 0 per VM) */
+  dataVolumeCount?: number;
+  dataVolumeCapacityGiB?: number;
   /** ODF/capacity settings for per-profile viability checks in cost comparison */
   odfSettings?: {
     odfTuningProfile: string;
@@ -58,10 +74,19 @@ interface SizingCalculatorProps {
   onSizingChange?: (sizing: SizingResult) => void;
   requestedProfile?: string | null;
   onRequestedProfileHandled?: () => void;
+  solutionType?: RoksSolutionType;
 }
 
-export function SizingCalculator({ onSizingChange, requestedProfile, onRequestedProfileHandled }: SizingCalculatorProps) {
+export function SizingCalculator({ onSizingChange, requestedProfile, onRequestedProfileHandled, solutionType: externalSolutionType }: SizingCalculatorProps) {
   const sizing = useSizingCalculator({ onSizingChange, requestedProfile, onRequestedProfileHandled });
+
+  // Sync external solutionType (from page ContentSwitcher) into the hook's state
+  useEffect(() => {
+    if (externalSolutionType && externalSolutionType !== sizing.solutionType) {
+      sizing.setSolutionType(externalSolutionType);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- only sync when external prop changes
+  }, [externalSolutionType]);
   const dataInconsistencies = useDataInconsistencies();
 
   return (
@@ -81,7 +106,45 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
           isProfilesApiAvailable={sizing.isProfilesApiAvailable}
           profilesError={sizing.profilesError}
           profileCounts={sizing.profileCounts}
+          solutionType={sizing.solutionType}
         />
+
+        {/* Storage Pool Profile (bm-disaggregated only) */}
+        {sizing.solutionType === 'bm-disaggregated' && (
+          <Column lg={16} md={8} sm={4}>
+            <Tile className="sizing-calculator__section">
+              <h3 className="sizing-calculator__section-title">Storage Pool Profile (ODF)</h3>
+              <p style={{ fontSize: '0.75rem', marginBottom: '0.75rem', color: 'var(--cds-text-secondary)' }}>
+                Dedicated NVMe bare metal nodes for ODF storage. These nodes do not run VM workloads.
+              </p>
+              <Dropdown
+                id="storage-profile-dropdown"
+                titleText="NVMe Storage Profile"
+                label="Select a storage profile"
+                items={sizing.storageProfileItems}
+                itemToString={(item: { id: string; text: string } | null) => item?.text || ''}
+                selectedItem={sizing.storageProfileItems.find(i => i.id === sizing.selectedStorageProfileName) || null}
+                onChange={({ selectedItem }: { selectedItem: { id: string; text: string } | null }) => {
+                  if (selectedItem) {
+                    sizing.setSelectedStorageProfileName(selectedItem.id);
+                  }
+                }}
+              />
+              {sizing.selectedStorageProfile && (
+                <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <Tag type="blue">{sizing.selectedStorageProfile.physicalCores} cores</Tag>
+                  <Tag type="teal">{sizing.selectedStorageProfile.memoryGiB} GiB RAM</Tag>
+                  <Tag type="purple">
+                    {sizing.selectedStorageProfile.nvmeDisks}&times; {sizing.selectedStorageProfile.nvmeSizeGiB} GiB NVMe
+                  </Tag>
+                  {sizing.storageNodeCount !== null && (
+                    <Tag type="green">{sizing.storageNodeCount} storage nodes</Tag>
+                  )}
+                </div>
+              )}
+            </Tile>
+          </Column>
+        )}
 
         {/* Row 1: CPU + Memory Settings */}
         <SizingCPUMemorySection
@@ -105,6 +168,7 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
           setOdfCpuUnitMode={sizing.setOdfCpuUnitMode}
           odfReservation={sizing.odfReservation}
           totalNodes={sizing.nodeRequirements?.totalNodes ?? 3}
+          solutionType={sizing.solutionType}
         />
 
         {/* Row 2: ODF Storage + Capacity Planning */}
@@ -127,6 +191,7 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
           setNodeRedundancy={sizing.setNodeRedundancy}
           evictionThreshold={sizing.evictionThreshold}
           setEvictionThreshold={sizing.setEvictionThreshold}
+          solutionType={sizing.solutionType}
         />
 
         {/* Per-Node Capacity Results */}
@@ -142,6 +207,7 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
           replicaFactor={sizing.replicaFactor}
           cephOverhead={sizing.cephOverhead}
           operationalCapacity={sizing.operationalCapacity}
+          solutionType={sizing.solutionType}
         />
 
         {/* Workload-Based Node Requirements (if data is loaded) */}
@@ -172,6 +238,8 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
             cephOverhead={sizing.cephOverhead}
             evictionThreshold={sizing.evictionThreshold}
             odfReservation={sizing.odfReservation}
+            solutionType={sizing.solutionType}
+            filteredDisks={sizing.filteredDisks}
           />
         )}
 
@@ -196,6 +264,7 @@ export function SizingCalculator({ onSizingChange, requestedProfile, onRequested
             nodeRedundancy={sizing.nodeRedundancy}
             evictionThreshold={sizing.evictionThreshold}
             operationalCapacity={sizing.operationalCapacity}
+            solutionType={sizing.solutionType}
           />
         )}
 

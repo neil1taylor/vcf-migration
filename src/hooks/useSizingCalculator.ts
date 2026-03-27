@@ -5,13 +5,15 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { useData, useDynamicProfiles, useDynamicPricing, useVMOverrides } from '@/hooks';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { getBareMetalProfiles as getPricedProfiles } from '@/services/costEstimation';
-import { calculateNodesForProfile } from '@/utils/nodeCalculation';
+import { calculateNodesForProfile, calculateStorageNodesForProfile } from '@/utils/nodeCalculation';
 import { createLogger } from '@/utils/logger';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import virtualizationOverhead from '@/data/virtualizationOverhead.json';
 import { calculateOdfReservation } from '@/utils/odfCalculation';
 import type { OdfTuningProfile, OdfCpuUnitMode, OdfReservation } from '@/utils/odfCalculation';
+import type { RoksSolutionType } from '@/services/costEstimation';
 import type { SizingResult } from '@/components/sizing/SizingCalculator';
+import type { VDiskInfo } from '@/types/rvtools';
 
 const logger = createLogger('SizingCalculator');
 
@@ -19,6 +21,7 @@ const SIZING_STORAGE_KEY = 'vcf-sizing-settings';
 
 interface SizingSettings {
   selectedProfileName: string | null;
+  selectedStorageProfileName?: string | null;
   cpuOvercommit: number;
   memoryOvercommit: number;
   htMultiplier: number;
@@ -35,6 +38,7 @@ interface SizingSettings {
   odfTuningProfile: string;
   includeRgw: boolean;
   odfCpuUnitMode: string;
+  solutionType?: RoksSolutionType;
 }
 
 function loadSizingSettings(): SizingSettings | null {
@@ -154,6 +158,10 @@ export interface UseSizingCalculatorReturn {
   // Data availability
   hasData: boolean;
 
+  // Solution type
+  solutionType: RoksSolutionType;
+  setSolutionType: (type: RoksSolutionType) => void;
+
   // Profile selection
   bareMetalProfiles: BareMetalProfile[];
   selectedProfile: BareMetalProfile;
@@ -229,6 +237,16 @@ export interface UseSizingCalculatorReturn {
   nodeRequirements: NodeRequirements | null;
   redundancyValidation: RedundancyValidation | null;
   vmFitValidation: VMFitValidation | null;
+
+  // Filtered disk data (for block storage inventory)
+  filteredDisks: VDiskInfo[];
+
+  // Storage pool (bm-disaggregated only)
+  selectedStorageProfile: BareMetalProfile | null;
+  selectedStorageProfileName: string;
+  setSelectedStorageProfileName: (name: string) => void;
+  storageProfileItems: ProfileItem[];
+  storageNodeCount: number | null;
 }
 
 interface UseSizingCalculatorParams {
@@ -303,17 +321,15 @@ export function useSizingCalculator({
 
   const defaults = ibmCloudConfig.defaults;
 
-  // Default to best-value profile: cheapest ROKS+NVMe profile by monthly rate
+  // Default profile: cheapest ROKS+NVMe profile (initial default before solution type is set)
   const defaultProfileName = useMemo(() => {
     const pricedProfiles = getPricedProfiles(pricing).data;
-    // Find cheapest ROKS+NVMe profile with actual pricing
     const candidates = pricedProfiles
       .filter(p => p.hasNvme && p.roksSupported && p.monthlyRate > 0);
     if (candidates.length > 0) {
       candidates.sort((a, b) => a.monthlyRate - b.monthlyRate);
       return candidates[0].id;
     }
-    // Fallback: first ROKS+NVMe profile from the display list
     const fallback = bareMetalProfiles.find(p => p.hasNvme && p.roksSupported) || bareMetalProfiles[0];
     return fallback?.name || '';
   }, [bareMetalProfiles, pricing]);
@@ -346,6 +362,42 @@ export function useSizingCalculator({
   }, [bareMetalProfiles, selectedProfileName]);
 
   const ss = storedSizingRef.current; // shorthand for stored settings
+
+  // Solution type state — persisted to localStorage
+  const [solutionType, setSolutionType] = useState<RoksSolutionType>(
+    (ss?.solutionType as RoksSolutionType) ?? 'nvme-converged'
+  );
+
+  // Whether current solution type needs NVMe profiles for compute
+  const needsNvme = solutionType === 'nvme-converged' || solutionType === 'hybrid-vsi-odf';
+
+  // Storage pool profile (bm-disaggregated only) — NVMe profiles for dedicated ODF nodes
+  const [selectedStorageProfileName, setSelectedStorageProfileName] = useState<string>(() => {
+    const stored = storedSizingRef.current;
+    if (stored?.selectedStorageProfileName) return stored.selectedStorageProfileName;
+    // Default: cheapest NVMe ROKS-supported profile
+    const nvmeDefault = bareMetalProfiles.find(p => p.hasNvme && p.roksSupported);
+    return nvmeDefault?.name || '';
+  });
+
+  const selectedStorageProfile = useMemo(() => {
+    if (solutionType !== 'bm-disaggregated') return null;
+    return bareMetalProfiles.find(p => p.name === selectedStorageProfileName) || bareMetalProfiles.find(p => p.hasNvme && p.roksSupported) || null;
+  }, [bareMetalProfiles, selectedStorageProfileName, solutionType]);
+
+  const storageProfileItems = useMemo(() => {
+    return bareMetalProfiles
+      .filter(p => p.hasNvme && p.roksSupported)
+      .map((p) => {
+        const nvmeLabel = `${p.nvmeDisks}\u00d7${p.nvmeSizeGiB} GiB NVMe`;
+        const tagLabel = p.isCustom ? `${p.tag || 'Custom'}` : '\u2713 ROKS';
+        return {
+          id: p.name,
+          text: `${p.name} (${p.physicalCores}c/${p.vcpus}t, ${p.memoryGiB} GiB, ${nvmeLabel}) [${tagLabel}]`,
+        };
+      });
+  }, [bareMetalProfiles]);
+
   const [cpuOvercommit, setCpuOvercommit] = useState(ss?.cpuOvercommit ?? defaults.cpuOvercommitRatio);
   const [memoryOvercommit, setMemoryOvercommit] = useState(ss?.memoryOvercommit ?? defaults.memoryOvercommitRatio);
   const [htMultiplier, setHtMultiplier] = useState(ss?.htMultiplier ?? 1.25);
@@ -381,6 +433,7 @@ export function useSizingCalculator({
   useEffect(() => {
     saveSizingSettings({
       selectedProfileName: hasUserSelectedProfileRef.current ? selectedProfileName : null,
+      selectedStorageProfileName: solutionType === 'bm-disaggregated' ? selectedStorageProfileName : null,
       cpuOvercommit,
       memoryOvercommit,
       htMultiplier,
@@ -397,8 +450,9 @@ export function useSizingCalculator({
       odfTuningProfile,
       includeRgw,
       odfCpuUnitMode,
+      solutionType,
     });
-  }, [selectedProfileName, cpuOvercommit, memoryOvercommit, htMultiplier, useHyperthreading, replicaFactor, operationalCapacity, cephOverhead, nodeRedundancy, evictionThreshold, storageMetric, annualGrowthRate, planningHorizonYears, virtOverhead, odfTuningProfile, includeRgw, odfCpuUnitMode]);
+  }, [selectedProfileName, selectedStorageProfileName, cpuOvercommit, memoryOvercommit, htMultiplier, useHyperthreading, replicaFactor, operationalCapacity, cephOverhead, nodeRedundancy, evictionThreshold, storageMetric, annualGrowthRate, planningHorizonYears, virtOverhead, odfTuningProfile, includeRgw, odfCpuUnitMode, solutionType]);
 
   // ODF resource reservations — two-pass calculation for cluster-wide distribution
   // Pass 1: estimate with minimum 3 nodes to get initial node count
@@ -415,8 +469,10 @@ export function useSizingCalculator({
     );
   }, [odfTuningProfile, selectedProfile.nvmeDisks, includeRgw, odfCpuUnitMode, htMultiplier, useHyperthreading]);
 
-  const odfReservedCpu = odfReservation.totalCpu;
-  const odfReservedMemory = odfReservation.totalMemoryGiB;
+  // For bm-block-csi and bm-disaggregated compute: no ODF on compute nodes
+  const hasOdf = solutionType !== 'bm-block-csi' && solutionType !== 'bm-disaggregated';
+  const odfReservedCpu = hasOdf ? odfReservation.totalCpu : 0;
+  const odfReservedMemory = hasOdf ? odfReservation.totalMemoryGiB : 0;
 
   // Total infrastructure reserved (system + ODF)
   const totalReservedCpu = systemReservedCpu + odfReservedCpu;
@@ -566,15 +622,16 @@ export function useSizingCalculator({
       ? Math.ceil(totalStorageGiB / effectiveStorageCapacity)
       : 0;
 
-    // Minimum surviving nodes needed (at least 3 for ODF quorum)
-    const minSurvivingNodes = Math.max(3, nodesForCPUAtThreshold, nodesForMemoryAtThreshold, nodesForStorageAtThreshold);
+    // Minimum surviving nodes: ODF requires at least 3 for quorum, no-ODF needs just 1
+    const minNodes = hasOdf ? 3 : 1;
+    const minSurvivingNodes = Math.max(minNodes, nodesForCPUAtThreshold, nodesForMemoryAtThreshold, nodesForStorageAtThreshold);
 
     // ODF rack fault domain requires nodes in multiples of 3 (racks 0-2)
     const roundUpToRackGroup = (n: number) => Math.ceil(n / 3) * 3;
 
-    // Total nodes = surviving nodes + redundancy buffer, rounded to rack group
+    // Total nodes = surviving nodes + redundancy buffer, rounded to rack group if ODF
     const preRoundingTotal = minSurvivingNodes + nodeRedundancy;
-    const totalNodes = roundUpToRackGroup(preRoundingTotal);
+    const totalNodes = hasOdf ? roundUpToRackGroup(preRoundingTotal) : preRoundingTotal;
 
     // Also calculate base nodes without redundancy consideration (for display)
     const nodesForCPU = nodeCapacity.vcpuCapacity > 0
@@ -589,7 +646,9 @@ export function useSizingCalculator({
       ? Math.ceil(totalStorageGiB / nodeCapacity.usableStorageGiB)
       : 0;
 
-    const baseNodes = roundUpToRackGroup(Math.max(3, nodesForCPU, nodesForMemory, nodesForStorage));
+    const baseNodes = hasOdf
+      ? roundUpToRackGroup(Math.max(3, nodesForCPU, nodesForMemory, nodesForStorage))
+      : Math.max(1, nodesForCPU, nodesForMemory, nodesForStorage);
 
     // Determine limiting factor (based on threshold calculation)
     let limitingFactor: 'cpu' | 'memory' | 'storage' = 'cpu';
@@ -635,7 +694,7 @@ export function useSizingCalculator({
   const bestValueProfileName = useMemo(() => {
     if (!nodeRequirements) return null;
     const pricedProfiles = getPricedProfiles(pricing).data;
-    const candidates = pricedProfiles.filter(p => p.hasNvme && p.roksSupported && p.monthlyRate > 0);
+    const candidates = pricedProfiles.filter(p => (needsNvme ? p.hasNvme : !p.hasNvme) && p.roksSupported && p.monthlyRate > 0);
     if (candidates.length === 0) return null;
 
     const nodeCalcParams = {
@@ -657,6 +716,7 @@ export function useSizingCalculator({
       systemReservedCpu,
       systemReservedMemory,
       odfReservedMemory,
+      solutionType,
     };
 
     let bestId = candidates[0].id;
@@ -673,7 +733,7 @@ export function useSizingCalculator({
       }
     }
     return bestId;
-  }, [nodeRequirements, pricing, evictionThreshold, nodeRedundancy, memoryOvercommit, cpuOvercommit, replicaFactor, cephOverhead, operationalCapacity, odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw, systemReservedCpu, systemReservedMemory, odfReservedMemory]);
+  }, [nodeRequirements, pricing, needsNvme, evictionThreshold, nodeRedundancy, memoryOvercommit, cpuOvercommit, replicaFactor, cephOverhead, operationalCapacity, odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw, systemReservedCpu, systemReservedMemory, odfReservedMemory, solutionType]);
 
   // Update default when pricing loads or best-value is computed (only if user hasn't manually changed)
   useEffect(() => {
@@ -772,6 +832,32 @@ export function useSizingCalculator({
     };
   }, [nodeRequirements, nodeCapacity, nodeRedundancy, evictionThreshold, operationalCapacity]);
 
+  // Storage node count for bm-disaggregated (dedicated NVMe ODF pool)
+  const storageNodeCount = useMemo(() => {
+    if (solutionType !== 'bm-disaggregated' || !selectedStorageProfile || !nodeRequirements) return null;
+    return calculateStorageNodesForProfile(
+      {
+        physicalCores: selectedStorageProfile.physicalCores,
+        memoryGiB: selectedStorageProfile.memoryGiB,
+        hasNvme: selectedStorageProfile.hasNvme,
+        nvmeDisks: selectedStorageProfile.nvmeDisks,
+        totalNvmeGiB: selectedStorageProfile.totalNvmeGiB,
+      },
+      {
+        totalStorageGiB: nodeRequirements.totalStorageGiB,
+        replicaFactor,
+        cephOverhead,
+        operationalCapacity,
+        nodeRedundancy,
+        odfTuningProfile,
+        odfCpuUnitMode,
+        htMultiplier,
+        useHyperthreading,
+        includeRgw,
+      },
+    );
+  }, [solutionType, selectedStorageProfile, nodeRequirements, replicaFactor, cephOverhead, operationalCapacity, nodeRedundancy, odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw]);
+
   // Per-VM fit validation — check if any individual VM exceeds node capacity
   const vmFitValidation = useMemo<VMFitValidation | null>(() => {
     if (!hasData || !rawData) return null;
@@ -818,6 +904,17 @@ export function useSizingCalculator({
     return { allFit: oversizedVMs.length === 0, oversizedVMs };
   }, [hasData, rawData, nodeCapacity, vmOverrides, cpuFixedPerVM, cpuProportionalPercent, memoryFixedPerVMMiB, memoryProportionalPercent]);
 
+  // Filtered vDisk data for block storage inventory (powered-on, non-excluded VMs)
+  const filteredDisks = useMemo<VDiskInfo[]>(() => {
+    if (!hasData || !rawData) return [];
+    const vmNames = new Set(
+      rawData.vInfo
+        .filter(vm => !vm.template && vm.powerState === 'poweredOn' && !vmOverrides.isExcluded(getVMIdentifier(vm)))
+        .map(vm => vm.vmName)
+    );
+    return rawData.vDisk.filter(disk => vmNames.has(disk.vmName));
+  }, [hasData, rawData, vmOverrides]);
+
   // Track previous sizing to avoid unnecessary parent updates
   const prevSizingRef = useRef<string>('');
 
@@ -827,8 +924,38 @@ export function useSizingCalculator({
       const newSizing = {
         computeNodes: nodeRequirements.totalNodes,
         computeProfile: selectedProfileName,
-        storageTiB: Math.ceil(nodeRequirements.totalStorageGiB / 1024),
-        useNvme: true,
+        // CSI: raw disk capacity (volumes expandable online); ODF: includes growth/overhead
+        storageTiB: Math.ceil(
+          (solutionType === 'bm-block-csi' ? nodeRequirements.baseStorageGiB : nodeRequirements.totalStorageGiB) / 1024
+        ),
+        solutionType,
+        useNvme: solutionType === 'nvme-converged',
+        // CSI: split boot (first disk per VM) vs data (additional disks)
+        // bm-disaggregated: include storage pool info
+        ...(solutionType === 'bm-disaggregated' && selectedStorageProfile && storageNodeCount ? {
+          storageNodes: storageNodeCount,
+          storageProfile: selectedStorageProfileName,
+        } : {}),
+        ...(solutionType === 'bm-block-csi' ? (() => {
+          // First disk encountered per VM = boot; rest = data
+          const seenVMs = new Set<string>();
+          const bootDisks: typeof filteredDisks = [];
+          const dataDisks: typeof filteredDisks = [];
+          for (const d of filteredDisks) {
+            if (!seenVMs.has(d.vmName)) {
+              seenVMs.add(d.vmName);
+              bootDisks.push(d);
+            } else {
+              dataDisks.push(d);
+            }
+          }
+          return {
+            bootVolumeCount: bootDisks.length,
+            bootVolumeCapacityGiB: Math.ceil(bootDisks.reduce((sum, d) => sum + d.capacityMiB / 1024, 0)),
+            dataVolumeCount: dataDisks.length,
+            dataVolumeCapacityGiB: Math.ceil(dataDisks.reduce((sum, d) => sum + d.capacityMiB / 1024, 0)),
+          };
+        })() : {}),
         odfSettings: {
           odfTuningProfile,
           odfCpuUnitMode,
@@ -860,29 +987,35 @@ export function useSizingCalculator({
         },
       };
       // Only call parent if values actually changed
-      const sizingKey = `${newSizing.computeNodes}-${newSizing.computeProfile}-${newSizing.storageTiB}-${odfTuningProfile}-${odfCpuUnitMode}-${htMultiplier}-${useHyperthreading}-${includeRgw}-${systemReservedCpu}-${cpuOvercommit}-${evictionThreshold}-${nodeRedundancy}-${memoryOvercommit}-${replicaFactor}-${cephOverhead}-${operationalCapacity}-${systemReservedMemory}-${odfReservedMemory}`;
+      const sizingKey = `${newSizing.computeNodes}-${newSizing.computeProfile}-${newSizing.storageTiB}-${solutionType}-${filteredDisks.length}-${odfTuningProfile}-${odfCpuUnitMode}-${htMultiplier}-${useHyperthreading}-${includeRgw}-${systemReservedCpu}-${cpuOvercommit}-${evictionThreshold}-${nodeRedundancy}-${memoryOvercommit}-${replicaFactor}-${cephOverhead}-${operationalCapacity}-${systemReservedMemory}-${odfReservedMemory}-${storageNodeCount}-${selectedStorageProfileName}`;
       if (sizingKey !== prevSizingRef.current) {
         prevSizingRef.current = sizingKey;
         onSizingChange(newSizing);
       }
     }
-  }, [nodeRequirements, selectedProfileName, onSizingChange, odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw, systemReservedCpu, cpuOvercommit, evictionThreshold, nodeRedundancy, memoryOvercommit, replicaFactor, cephOverhead, operationalCapacity, systemReservedMemory, odfReservedMemory]);
+  }, [nodeRequirements, selectedProfileName, onSizingChange, solutionType, odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw, systemReservedCpu, cpuOvercommit, evictionThreshold, nodeRedundancy, memoryOvercommit, replicaFactor, cephOverhead, operationalCapacity, systemReservedMemory, odfReservedMemory, storageNodeCount, selectedStorageProfileName, selectedStorageProfile]);
 
   // Profile dropdown items - memoized to maintain stable references for Carbon Dropdown
-  const profileItems = useMemo(() => bareMetalProfiles.map((p) => {
-    const nvmeLabel = p.hasNvme ? `${p.nvmeDisks}\u00d7${p.nvmeSizeGiB} GiB NVMe` : 'No NVMe';
-    const roksLabel = p.roksSupported ? 'ROKS' : 'VPC Only';
-    const tagLabel = p.isCustom
-      ? `${p.tag || 'Custom'} | ${roksLabel}`
-      : (p.roksSupported ? '\u2713 ROKS' : '\u2717 VPC Only');
-    return {
-      id: p.name,
-      text: `${p.name} (${p.physicalCores}c/${p.vcpus}t, ${p.memoryGiB} GiB, ${nvmeLabel}) [${tagLabel}]`,
-    };
-  }), [bareMetalProfiles]);
+  // Filter by solution type: NVMe profiles for nvme-converged/hybrid, diskless for others
+  const profileItems = useMemo(() => {
+    const filtered = bareMetalProfiles.filter(p => needsNvme ? p.hasNvme : !p.hasNvme);
+    return filtered.map((p) => {
+      const nvmeLabel = p.hasNvme ? `${p.nvmeDisks}\u00d7${p.nvmeSizeGiB} GiB NVMe` : 'No NVMe';
+      const roksLabel = p.roksSupported ? 'ROKS' : 'VPC Only';
+      const tagLabel = p.isCustom
+        ? `${p.tag || 'Custom'} | ${roksLabel}`
+        : (p.roksSupported ? '\u2713 ROKS' : '\u2717 VPC Only');
+      return {
+        id: p.name,
+        text: `${p.name} (${p.physicalCores}c/${p.vcpus}t, ${p.memoryGiB} GiB, ${nvmeLabel}) [${tagLabel}]`,
+      };
+    });
+  }, [bareMetalProfiles, needsNvme]);
 
   return {
     hasData,
+    solutionType,
+    setSolutionType,
     bareMetalProfiles,
     selectedProfile,
     selectedProfileName,
@@ -943,5 +1076,11 @@ export function useSizingCalculator({
     nodeRequirements,
     redundancyValidation,
     vmFitValidation,
+    filteredDisks,
+    selectedStorageProfile,
+    selectedStorageProfileName,
+    setSelectedStorageProfileName,
+    storageProfileItems,
+    storageNodeCount,
   };
 }

@@ -10,6 +10,9 @@ import { StorageBreakdownBar, STORAGE_SEGMENT_COLORS } from '@/components/sizing
 import { ResourceBreakdownBar, RESOURCE_SEGMENT_COLORS } from '@/components/sizing/ResourceBreakdownBar';
 import type { BareMetalProfile, NodeCapacity, NodeRequirements } from '@/hooks/useSizingCalculator';
 import type { OdfReservation } from '@/utils/odfCalculation';
+import type { RoksSolutionType } from '@/services/costEstimation';
+import type { VDiskInfo } from '@/types/rvtools';
+import { BlockStorageInventory } from '@/components/sizing/BlockStorageInventory';
 
 interface SizingWorkloadResultsProps {
   nodeRequirements: NodeRequirements;
@@ -37,6 +40,8 @@ interface SizingWorkloadResultsProps {
   cephOverhead: number;
   evictionThreshold: number;
   odfReservation: OdfReservation;
+  solutionType?: RoksSolutionType;
+  filteredDisks?: VDiskInfo[];
 }
 
 export function SizingWorkloadResults({
@@ -65,7 +70,10 @@ export function SizingWorkloadResults({
   cephOverhead,
   evictionThreshold,
   odfReservation,
+  solutionType,
+  filteredDisks,
 }: SizingWorkloadResultsProps) {
+  const hasOdf = solutionType !== 'bm-block-csi';
   // Calculate cluster totals for breakdown visualizations
   const totalClusterCpuRaw = selectedProfile.physicalCores * (useHyperthreading ? htMultiplier : 1) * cpuOvercommit * nodeRequirements.totalNodes;
   const totalClusterMemoryRaw = selectedProfile.memoryGiB * memoryOvercommit * nodeRequirements.totalNodes;
@@ -103,7 +111,7 @@ export function SizingWorkloadResults({
             <div className="sizing-calculator__workload-card">
               <span className="sizing-calculator__workload-label">Total vCPU Requirements</span>
               <span className="sizing-calculator__workload-value">
-                {formatNumber(nodeRequirements.totalVCPUs + (odfReservedCpu + systemReservedCpu) * nodeRequirements.totalNodes)}
+                {formatNumber(nodeRequirements.totalVCPUs + ((hasOdf ? odfReservedCpu : 0) + systemReservedCpu) * nodeRequirements.totalNodes)}
               </span>
               <span className={`sizing-calculator__workload-nodes ${nodeRequirements.limitingFactor === 'cpu' ? 'sizing-calculator__workload-nodes--limiting' : ''}`}>
                 {nodeRequirements.nodesForCPU} nodes (min fit)
@@ -111,7 +119,7 @@ export function SizingWorkloadResults({
                 {nodeRequirements.cpuCapacityExceeded && <Tag type="magenta" size="sm">ODF exceeds node CPU</Tag>}
               </span>
               <span className="sizing-calculator__workload-detail">
-                Workload: {formatNumber(nodeRequirements.totalVCPUs)} + Infra: {formatNumber((odfReservedCpu + systemReservedCpu) * nodeRequirements.totalNodes)}
+                Workload: {formatNumber(nodeRequirements.totalVCPUs)} + Infra: {formatNumber(((hasOdf ? odfReservedCpu : 0) + systemReservedCpu) * nodeRequirements.totalNodes)}
               </span>
             </div>
           </Column>
@@ -120,14 +128,14 @@ export function SizingWorkloadResults({
             <div className="sizing-calculator__workload-card">
               <span className="sizing-calculator__workload-label">Total Memory Requirements</span>
               <span className="sizing-calculator__workload-value">
-                {formatNumber(Math.round(nodeRequirements.totalMemoryGiB + (odfReservedMemory + systemReservedMemory) * nodeRequirements.totalNodes))} GiB
+                {formatNumber(Math.round(nodeRequirements.totalMemoryGiB + ((hasOdf ? odfReservedMemory : 0) + systemReservedMemory) * nodeRequirements.totalNodes))} GiB
               </span>
               <span className={`sizing-calculator__workload-nodes ${nodeRequirements.limitingFactor === 'memory' ? 'sizing-calculator__workload-nodes--limiting' : ''}`}>
                 {nodeRequirements.nodesForMemory} nodes (min fit)
                 {nodeRequirements.limitingFactor === 'memory' && <Tag type="red" size="sm">Limiting</Tag>}
               </span>
               <span className="sizing-calculator__workload-detail">
-                Workload: {formatNumber(Math.round(nodeRequirements.totalMemoryGiB))} + Infra: {formatNumber((odfReservedMemory + systemReservedMemory) * nodeRequirements.totalNodes)} GiB
+                Workload: {formatNumber(Math.round(nodeRequirements.totalMemoryGiB))} + Infra: {formatNumber(((hasOdf ? odfReservedMemory : 0) + systemReservedMemory) * nodeRequirements.totalNodes)} GiB
               </span>
             </div>
           </Column>
@@ -178,6 +186,7 @@ export function SizingWorkloadResults({
                           <span className="sizing-calculator__breakdown-step-note">&rarr; {nodeRequirements.preRoundingTotal} nodes</span>
                         </div>
                       )}
+                      {hasOdf && (
                       <div className="sizing-calculator__breakdown-step">
                         <span className="sizing-calculator__breakdown-step-label">ODF fault domain (&times;3):</span>
                         <span className="sizing-calculator__breakdown-step-value">
@@ -187,6 +196,7 @@ export function SizingWorkloadResults({
                         </span>
                         <span className="sizing-calculator__breakdown-step-note">{nodeRequirements.totalNodes} nodes</span>
                       </div>
+                      )}
                     </>
                   );
                 })()}
@@ -218,12 +228,12 @@ export function SizingWorkloadResults({
                 color: RESOURCE_SEGMENT_COLORS.cpuOverhead,
                 description: `${nodeRequirements.vmCount} VMs \u00d7 ${cpuFixedPerVM} vCPU + ${cpuProportionalPercent}% emulation`,
               },
-              {
+              ...(hasOdf ? [{
                 label: 'ODF Reserved',
                 value: cpuOdfTotal,
                 color: RESOURCE_SEGMENT_COLORS.odfReserved,
                 description: `${odfReservation.profileLabel} profile: OSD ${odfReservation.osd.totalCpu.toFixed(1)} + MGR ${odfReservation.mgr.totalCpu.toFixed(1)} + MON ${odfReservation.mon.totalCpu.toFixed(1)} + MDS ${odfReservation.mds.totalCpu.toFixed(1)}${odfReservation.rgw ? ` + RGW ${odfReservation.rgw.totalCpu.toFixed(1)}` : ''} per node \u00d7 ${nodeRequirements.totalNodes} nodes`,
-              },
+              }] : []),
               {
                 label: 'System Reserved',
                 value: cpuSystemTotal,
@@ -266,12 +276,12 @@ export function SizingWorkloadResults({
                 color: RESOURCE_SEGMENT_COLORS.memoryOverhead,
                 description: `${nodeRequirements.vmCount} VMs \u00d7 ${memoryFixedPerVMMiB} MiB + ${memoryProportionalPercent}% guest overhead`,
               },
-              {
+              ...(hasOdf ? [{
                 label: 'ODF Reserved',
                 value: memoryOdfTotal,
                 color: RESOURCE_SEGMENT_COLORS.odfReserved,
                 description: `${odfReservation.profileLabel} profile: OSD ${odfReservation.osd.totalMemoryGiB.toFixed(1)} + MGR ${odfReservation.mgr.totalMemoryGiB.toFixed(1)} + MON ${odfReservation.mon.totalMemoryGiB.toFixed(1)} + MDS ${odfReservation.mds.totalMemoryGiB.toFixed(1)}${odfReservation.rgw ? ` + RGW ${odfReservation.rgw.totalMemoryGiB.toFixed(1)}` : ''} GiB/node \u00d7 ${nodeRequirements.totalNodes} nodes`,
-              },
+              }] : []),
               {
                 label: 'System Reserved',
                 value: memorySystemTotal,
@@ -293,8 +303,14 @@ export function SizingWorkloadResults({
             <span>Utilization: <strong>{memoryUtilization.toFixed(1)}%</strong></span>
           </div>
 
-          {/* ODF Storage Cluster Capacity Breakdown */}
-          <StorageBreakdownBar
+          {/* Storage section — ODF breakdown or Block Storage inventory */}
+          {!hasOdf && filteredDisks && (
+            <BlockStorageInventory
+              disks={filteredDisks}
+              vmCount={nodeRequirements.vmCount}
+            />
+          )}
+          {hasOdf && (<><StorageBreakdownBar
             title="ODF Storage Cluster"
             segments={[
               {
@@ -355,6 +371,7 @@ export function SizingWorkloadResults({
             <span>Workload: <strong>{formatBytes(storageUsed * 1024 * 1024 * 1024)}</strong></span>
             <span>Utilization: <strong>{storageUtilization.toFixed(1)}%</strong></span>
           </div>
+          </>)}
         </div>
 
       </Tile>

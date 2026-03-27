@@ -54,6 +54,13 @@ vi.mock('@/hooks', () => ({
     resetAll: vi.fn(),
     score: { vsiCount: 0, roksCount: 0, answeredCount: 0, leaning: 'neutral', roksVariant: 'full' },
   })),
+  useDynamicPricing: vi.fn(() => ({
+    pricing: null,
+    isRefreshing: false,
+    lastUpdated: null,
+    source: 'static',
+    refreshPricing: vi.fn(),
+  })),
 }));
 
 // Mock services
@@ -86,6 +93,10 @@ vi.mock('@/components/common', () => ({
 
 vi.mock('@/components/cost', () => ({
   CostEstimation: () => <div data-testid="cost-estimation" />,
+}));
+
+vi.mock('@/components/comparison/SolutionComparisonPanel', () => ({
+  SolutionComparisonPanel: () => <div data-testid="solution-comparison" />,
 }));
 
 vi.mock('@/components/sizing', () => ({

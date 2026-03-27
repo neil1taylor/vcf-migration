@@ -119,6 +119,11 @@ export interface ROKSSizing {
   odfUsableTiB: number;
   monthlyCost: number;
   cpuOvercommit: number;
+  // bm-disaggregated: dedicated storage pool details
+  storageNodes?: number;
+  storageProfileName?: string;
+  storageTotalNvmeTiB?: number;
+  solutionType?: string;
 }
 
 export interface VSIMapping {

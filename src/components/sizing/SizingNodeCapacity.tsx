@@ -6,6 +6,7 @@ import {
 } from '@carbon/react';
 import { formatNumber, formatBytes } from '@/utils/formatters';
 import type { BareMetalProfile, NodeCapacity } from '@/hooks/useSizingCalculator';
+import type { RoksSolutionType } from '@/services/costEstimation';
 
 interface SizingNodeCapacityProps {
   selectedProfile: BareMetalProfile;
@@ -19,6 +20,7 @@ interface SizingNodeCapacityProps {
   replicaFactor: number;
   cephOverhead: number;
   operationalCapacity: number;
+  solutionType?: RoksSolutionType;
 }
 
 export function SizingNodeCapacity({
@@ -33,7 +35,11 @@ export function SizingNodeCapacity({
   replicaFactor,
   cephOverhead,
   operationalCapacity,
+  solutionType,
 }: SizingNodeCapacityProps) {
+  const hasOdf = solutionType !== 'bm-block-csi';
+  const colSize = hasOdf ? 4 : 8;
+
   return (
     <Column lg={16} md={8} sm={4}>
       <Tile className="sizing-calculator__results">
@@ -43,7 +49,7 @@ export function SizingNodeCapacity({
         </p>
 
         <Grid narrow>
-          <Column lg={4} md={4} sm={4}>
+          <Column lg={colSize} md={4} sm={4}>
             <div className="sizing-calculator__result-card sizing-calculator__result-card--cpu">
               <span className="sizing-calculator__result-label">vCPU Capacity</span>
               <span className="sizing-calculator__result-value">{formatNumber(nodeCapacity.vcpuCapacity)}</span>
@@ -53,7 +59,7 @@ export function SizingNodeCapacity({
             </div>
           </Column>
 
-          <Column lg={4} md={4} sm={4}>
+          <Column lg={colSize} md={4} sm={4}>
             <div className="sizing-calculator__result-card sizing-calculator__result-card--memory">
               <span className="sizing-calculator__result-label">Memory Capacity</span>
               <span className="sizing-calculator__result-value">{formatNumber(nodeCapacity.memoryCapacity)} GiB</span>
@@ -63,6 +69,8 @@ export function SizingNodeCapacity({
             </div>
           </Column>
 
+          {hasOdf && (
+          <>
           <Column lg={4} md={4} sm={4}>
             <div className="sizing-calculator__result-card sizing-calculator__result-card--storage">
               <span className="sizing-calculator__result-label">Max Usable Storage</span>
@@ -82,6 +90,8 @@ export function SizingNodeCapacity({
               </span>
             </div>
           </Column>
+          </>
+          )}
         </Grid>
       </Tile>
     </Column>

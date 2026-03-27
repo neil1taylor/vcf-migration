@@ -142,15 +142,28 @@ export function buildROKSOverview(
     ),
     createStyledTable(
       ['Configuration', 'Value'],
-      [
-        ['Bare Metal Profile', sizing.profileName],
-        ['Worker Nodes', `${sizing.workerNodes}`],
-        ['Total Physical Cores', `${sizing.totalCores}`],
-        ['Total Threads', `${sizing.totalThreads}`],
-        ['Total Memory', `${sizing.totalMemoryGiB} GiB`],
-        ['Total Raw NVMe', `${sizing.totalNvmeTiB} TiB`],
-        ['ODF Usable Storage', `${sizing.odfUsableTiB} TiB`],
-      ],
+      sizing.solutionType === 'bm-disaggregated'
+        ? [
+            ['Architecture', 'Disaggregated Bare Metal (Compute + Storage Pools)'],
+            ['Compute Profile', sizing.profileName],
+            ['Compute Nodes', `${sizing.workerNodes}`],
+            ['Total Compute Cores', `${sizing.totalCores}`],
+            ['Total Compute Threads', `${sizing.totalThreads}`],
+            ['Total Compute Memory', `${sizing.totalMemoryGiB} GiB`],
+            ['Storage Profile', sizing.storageProfileName || 'N/A'],
+            ['Storage Nodes (ODF)', `${sizing.storageNodes || 0}`],
+            ['Total Raw NVMe (Storage Pool)', `${sizing.storageTotalNvmeTiB || sizing.totalNvmeTiB} TiB`],
+            ['ODF Usable Storage', `${sizing.odfUsableTiB} TiB`],
+          ]
+        : [
+            ['Bare Metal Profile', sizing.profileName],
+            ['Worker Nodes', `${sizing.workerNodes}`],
+            ['Total Physical Cores', `${sizing.totalCores}`],
+            ['Total Threads', `${sizing.totalThreads}`],
+            ['Total Memory', `${sizing.totalMemoryGiB} GiB`],
+            ['Total Raw NVMe', `${sizing.totalNvmeTiB} TiB`],
+            ['ODF Usable Storage', `${sizing.odfUsableTiB} TiB`],
+          ],
       { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT] }
     ),
     createTableLabel(templates.tableDescriptions.roksSizing.title),
@@ -181,8 +194,24 @@ export function buildROKSOverview(
     );
   }
 
+  // Deployment architecture options
+  sections.push(
+    createHeading(`${s}.7 Deployment Architecture Options`, HeadingLevel.HEADING_2),
+    createParagraph(
+      'ROKS supports multiple deployment architectures depending on storage and performance requirements:',
+      { spacing: { after: 120 } }
+    ),
+    ...createBulletList([
+      'NVMe Converged — Bare metal workers with local NVMe drives, ODF provides software-defined storage on-node. Highest performance, single node type.',
+      'Hybrid (BM + VSI) — Bare metal compute workers with separate VSI storage nodes running ODF on VPC Block Storage. Separates compute and storage scaling.',
+      'BM + Block Storage (CSI) — Bare metal workers with no local storage, VPC Block Storage volumes attached directly via CSI driver. No ODF overhead, simplest storage model.',
+      'BM + Block Storage + ODF — Bare metal workers with no local storage, ODF backed by VPC Block Storage volumes. Provides ODF abstraction layer on diskless servers.',
+      'Disaggregated Bare Metal — Diskless bare metal compute pool (all CPU/memory for VMs) with a separate NVMe bare metal pool dedicated to ODF storage. Independent profile selection and scaling for compute and storage.',
+    ]),
+  );
+
   // ROKS Wave Summary (moved from strategy)
-  let subNum = 7;
+  let subNum = 8;
   if (rawData && wavePlanningPreference) {
     const roksWaves = computeWavesForMode(rawData, 'roks', wavePlanningPreference);
     const isComplexity = wavePlanningPreference.wavePlanningMode === 'complexity';

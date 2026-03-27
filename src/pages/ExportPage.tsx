@@ -411,6 +411,7 @@ export function ExportPage() {
       cached.region,
       cached.discountType,
       sanitizeFilename(roksBomFilename, '.xlsx'),
+      cached.solutionType,
     );
     markExportComplete();
   }, [markExportComplete, roksBomFilename]);

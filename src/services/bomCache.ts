@@ -1,7 +1,7 @@
 // BOM data cache — stores cost estimation data in localStorage so Export page can generate BOMs
 // without requiring the user to re-do sizing on migration pages
 
-import type { CostEstimate, RegionCode, DiscountType } from '@/services/costEstimation';
+import type { CostEstimate, RegionCode, DiscountType, RoksSolutionType } from '@/services/costEstimation';
 import type { VMDetail, ROKSNodeDetail } from '@/services/export';
 
 const STORAGE_KEY = 'vcf-bom-cache';
@@ -12,6 +12,7 @@ interface BOMCacheEntry {
   roksNodeDetails?: ROKSNodeDetail[];
   region?: RegionCode;
   discountType?: DiscountType;
+  solutionType?: RoksSolutionType;
   cachedAt: string;
 }
 
@@ -27,6 +28,7 @@ export function cacheBOMData(
   roksNodeDetails?: ROKSNodeDetail[],
   region?: RegionCode,
   discountType?: DiscountType,
+  solutionType?: RoksSolutionType,
 ): void {
   const existing = readCache();
   existing[type] = {
@@ -35,6 +37,7 @@ export function cacheBOMData(
     roksNodeDetails,
     region,
     discountType,
+    solutionType,
     cachedAt: new Date().toISOString(),
   };
   try {

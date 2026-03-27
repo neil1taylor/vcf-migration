@@ -10,6 +10,7 @@ import {
 } from '@carbon/react';
 import type { OdfTuningProfile, OdfCpuUnitMode, OdfReservation } from '@/utils/odfCalculation';
 import { getOdfProfiles } from '@/utils/odfCalculation';
+import type { RoksSolutionType } from '@/services/costEstimation';
 
 interface SizingCPUMemorySectionProps {
   cpuOvercommit: number;
@@ -32,6 +33,7 @@ interface SizingCPUMemorySectionProps {
   setOdfCpuUnitMode: (mode: OdfCpuUnitMode) => void;
   odfReservation: OdfReservation;
   totalNodes: number;
+  solutionType?: RoksSolutionType;
 }
 
 const odfProfiles = getOdfProfiles();
@@ -57,7 +59,12 @@ export function SizingCPUMemorySection({
   setOdfCpuUnitMode,
   odfReservation,
   totalNodes,
+  solutionType,
 }: SizingCPUMemorySectionProps) {
+  // ODF runs on compute nodes for converged/hybrid/bm-block-odf, but NOT for bm-block-csi or bm-disaggregated
+  const hasOdfOnCompute = solutionType !== 'bm-block-csi' && solutionType !== 'bm-disaggregated';
+  // ODF tuning controls are relevant whenever ODF exists (all except bm-block-csi)
+  const hasOdf = solutionType !== 'bm-block-csi';
   const selectedProfileIndex = odfProfiles.findIndex(p => p.id === odfTuningProfile);
   const cpuUnit = odfCpuUnitMode === 'physical' ? 'cores' : 'vCPUs';
 
@@ -72,11 +79,14 @@ export function SizingCPUMemorySection({
 
   return (
     <Column lg={16} md={8} sm={4}>
-      {/* ODF Tuning Profile selector */}
+      {/* ODF Tuning Profile selector — hidden for bm-block-csi (no ODF) */}
+      {hasOdf && (
       <Tile className="sizing-calculator__section" style={{ marginBottom: '1rem' }}>
         <h3 className="sizing-calculator__section-title">ODF Tuning Profile</h3>
         <p style={{ fontSize: '0.75rem', marginBottom: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-          Controls CPU and memory reservations for ODF/Ceph storage components. Values match Red Hat ODF tuning profile documentation.
+          {solutionType === 'bm-disaggregated'
+            ? 'Controls CPU and memory reservations for ODF/Ceph on the dedicated storage pool nodes. Does not affect compute nodes.'
+            : 'Controls CPU and memory reservations for ODF/Ceph storage components. Values match Red Hat ODF tuning profile documentation.'}
         </p>
 
         <ContentSwitcher
@@ -132,6 +142,7 @@ export function SizingCPUMemorySection({
           ODF tuning profiles define CPU in Kubernetes CPU units (vCPUs). Physical Cores mode converts to physical cores for comparison with bare metal specs.
         </p>
       </Tile>
+      )}
 
       <div className="sizing-calculator__settings-grid">
         {/* CPU Settings */}
@@ -184,7 +195,8 @@ export function SizingCPUMemorySection({
                 <span>System (kubelet, etc.):</span>
                 <span style={{ textAlign: 'right' }}>{systemReservedCpu} cores</span>
 
-                {/* ODF per-component breakdown */}
+                {/* ODF per-component breakdown — only shown when ODF runs on compute nodes */}
+                {hasOdfOnCompute && (<>
                 <span>{formatComponentLabel('mgr', odfReservation.mgr, false)}:</span>
                 <span style={{ textAlign: 'right' }}>{odfReservation.mgr.totalCpu.toFixed(1)} {cpuUnit}</span>
                 <span>{formatComponentLabel('mon', odfReservation.mon, false)}:</span>
@@ -199,9 +211,10 @@ export function SizingCPUMemorySection({
                     <span style={{ textAlign: 'right' }}>{odfReservation.rgw.totalCpu.toFixed(1)} {cpuUnit}</span>
                   </>
                 )}
+                </>)}
 
                 <span style={{ fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>Total Reserved:</span>
-                <span style={{ textAlign: 'right', fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>{totalReservedCpu.toFixed(1)} {odfCpuUnitMode === 'physical' ? 'cores' : 'mixed'}</span>
+                <span style={{ textAlign: 'right', fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>{hasOdfOnCompute ? totalReservedCpu.toFixed(1) : systemReservedCpu} {hasOdfOnCompute ? (odfCpuUnitMode === 'physical' ? 'cores' : 'mixed') : 'cores'}</span>
               </div>
             </div>
           </Tile>
@@ -247,7 +260,8 @@ export function SizingCPUMemorySection({
                 <span>System (kubelet, etc.):</span>
                 <span style={{ textAlign: 'right' }}>{systemReservedMemory} GiB</span>
 
-                {/* ODF per-component memory breakdown */}
+                {/* ODF per-component memory breakdown — hidden for bm-block-csi */}
+                {hasOdf && (<>
                 <span>{formatComponentLabel('mgr', odfReservation.mgr, false)}:</span>
                 <span style={{ textAlign: 'right' }}>{odfReservation.mgr.totalMemoryGiB.toFixed(1)} GiB</span>
                 <span>{formatComponentLabel('mon', odfReservation.mon, false)}:</span>
@@ -262,9 +276,10 @@ export function SizingCPUMemorySection({
                     <span style={{ textAlign: 'right' }}>{odfReservation.rgw.totalMemoryGiB.toFixed(1)} GiB</span>
                   </>
                 )}
+                </>)}
 
                 <span style={{ fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>Total Reserved:</span>
-                <span style={{ textAlign: 'right', fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>{totalReservedMemory.toFixed(1)} GiB</span>
+                <span style={{ textAlign: 'right', fontWeight: 600, borderTop: '1px solid var(--cds-border-subtle-01)', paddingTop: '0.25rem' }}>{hasOdfOnCompute ? totalReservedMemory.toFixed(1) : systemReservedMemory} GiB</span>
               </div>
             </div>
           </Tile>

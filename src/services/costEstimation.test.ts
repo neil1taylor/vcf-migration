@@ -8,6 +8,7 @@ import {
   formatCurrency,
   formatCurrencyPrecise,
   findClosestPricedProfile,
+  validateROKSSizingInput,
 } from './costEstimation';
 import type { VSISizingInput, ROKSSizingInput } from './costEstimation';
 import type { VSIProfile, IBMCloudPricing } from '@/services/pricing/pricingCache';
@@ -716,6 +717,243 @@ describe('Cost Estimation Service', () => {
       const fullCost = calculateROKSCost(baseSizing, 'us-south', 'onDemand', undefined, 'full');
 
       expect(defaultCost.totalMonthly).toBe(fullCost.totalMonthly);
+    });
+  });
+
+  describe('calculateROKSCost with solutionType', () => {
+    it('should produce same result for nvme-converged as useNvme: true', () => {
+      const legacyInput: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2d-metal-96x384',
+        useNvme: true,
+        odfTier: 'advanced',
+      };
+      const newInput: ROKSSizingInput = {
+        ...legacyInput,
+        solutionType: 'nvme-converged',
+      };
+      const legacyCost = calculateROKSCost(legacyInput);
+      const newCost = calculateROKSCost(newInput);
+      expect(newCost.totalMonthly).toBe(legacyCost.totalMonthly);
+      expect(newCost.architecture).toBe('All-NVMe Converged');
+    });
+
+    it('should produce bm-block-csi architecture with no ODF line items', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-block-csi',
+        storageTiB: 10,
+      };
+      const cost = calculateROKSCost(input);
+      expect(cost.architecture).toBe('Bare Metal + Block Storage (CSI)');
+      // Should have boot block storage + data block storage, but no ODF
+      const odfItems = cost.lineItems.filter(item => item.category === 'Storage - ODF');
+      expect(odfItems).toHaveLength(0);
+      const blockItems = cost.lineItems.filter(item => item.category === 'Storage - Block');
+      expect(blockItems.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should split boot and data volumes for bm-block-csi', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 6,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-block-csi',
+        bootVolumeCount: 256,
+        bootVolumeCapacityGiB: 12800,
+        dataVolumeCount: 156,
+        dataVolumeCapacityGiB: 5000,
+      };
+      const cost = calculateROKSCost(input);
+      const blockItems = cost.lineItems.filter(item => item.category === 'Storage - Block');
+      expect(blockItems).toHaveLength(2);
+
+      const bootItem = blockItems.find(item => item.description.includes('Boot'));
+      expect(bootItem).toBeDefined();
+      expect(bootItem!.quantity).toBe(12800);
+      expect(bootItem!.notes).toContain('256 boot volumes');
+      expect(bootItem!.description).toContain('3 IOPS/GB');
+
+      const dataItem = blockItems.find(item => item.description.includes('Data'));
+      expect(dataItem).toBeDefined();
+      expect(dataItem!.quantity).toBe(5000);
+      expect(dataItem!.notes).toContain('156 data volumes');
+    });
+
+    it('should default data tier to 5iops for bm-block-csi', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-block-csi',
+        dataVolumeCount: 100,
+        dataVolumeCapacityGiB: 2048,
+      };
+      const cost = calculateROKSCost(input);
+      const dataItem = cost.lineItems.find(item => item.description.includes('Data'));
+      expect(dataItem).toBeDefined();
+      expect(dataItem!.description).toContain('5 IOPS/GB');
+    });
+
+    it('should produce bm-block-odf architecture with ODF per-node licensing', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-block-odf',
+        storageTiB: 10,
+        odfTier: 'advanced',
+      };
+      const cost = calculateROKSCost(input);
+      expect(cost.architecture).toBe('Bare Metal + Block Storage + ODF');
+      // Should have ODF per-node licensing
+      const odfItems = cost.lineItems.filter(item => item.category === 'Storage - ODF');
+      expect(odfItems).toHaveLength(1);
+      expect(odfItems[0].unit).toBe('nodes');
+      expect(odfItems[0].quantity).toBe(3);
+      expect(odfItems[0].notes).toContain('block storage backed');
+    });
+
+    it('should default data tier to 10iops for bm-block-odf', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-block-odf',
+        storageTiB: 10,
+      };
+      const cost = calculateROKSCost(input);
+      const dataItem = cost.lineItems.find(item => item.description.includes('Data'));
+      expect(dataItem).toBeDefined();
+      expect(dataItem!.description).toContain('10 IOPS');
+    });
+
+    it('should not include VSI storage nodes for block storage solutions', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-block-csi',
+        storageTiB: 10,
+        storageNodes: 3,
+        storageProfile: 'bx2-4x16',
+      };
+      const cost = calculateROKSCost(input);
+      const vsiItems = cost.lineItems.filter(item => item.category === 'Storage - VSI');
+      expect(vsiItems).toHaveLength(0);
+    });
+
+    it('should apply ROV variant to block storage solutions', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-block-odf',
+        storageTiB: 10,
+      };
+      const roksCost = calculateROKSCost(input, 'us-south', 'onDemand', undefined, 'full');
+      const rovCost = calculateROKSCost(input, 'us-south', 'onDemand', undefined, 'rov');
+      expect(rovCost.totalMonthly).toBeLessThan(roksCost.totalMonthly);
+    });
+  });
+
+  describe('calculateROKSCost with bm-disaggregated', () => {
+    it('should produce disaggregated architecture with separate compute and storage BM line items', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 6,
+        computeProfile: 'bx2-metal-96x384',
+        storageNodes: 3,
+        storageProfile: 'bx2d-metal-96x384',
+        solutionType: 'bm-disaggregated',
+        odfTier: 'advanced',
+      };
+      const cost = calculateROKSCost(input);
+      expect(cost.architecture).toBe('Disaggregated Bare Metal (Compute + Storage Pools)');
+
+      // Compute BM line item
+      const computeItems = cost.lineItems.filter(item => item.category === 'Compute');
+      expect(computeItems).toHaveLength(1);
+      expect(computeItems[0].quantity).toBe(6);
+
+      // Storage BM line item
+      const storageBMItems = cost.lineItems.filter(item => item.category === 'Storage - Bare Metal');
+      expect(storageBMItems).toHaveLength(1);
+      expect(storageBMItems[0].quantity).toBe(3);
+      expect(storageBMItems[0].description).toContain('ODF Storage Pool');
+    });
+
+    it('should license ODF on storage nodes only', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 6,
+        computeProfile: 'bx2-metal-96x384',
+        storageNodes: 3,
+        storageProfile: 'bx2d-metal-96x384',
+        solutionType: 'bm-disaggregated',
+        odfTier: 'advanced',
+      };
+      const cost = calculateROKSCost(input);
+      const odfItems = cost.lineItems.filter(item => item.category === 'Storage - ODF');
+      expect(odfItems).toHaveLength(1);
+      expect(odfItems[0].quantity).toBe(3); // storage nodes only, not 6 compute
+      expect(odfItems[0].notes).toContain('dedicated storage nodes only');
+    });
+
+    it('should license OCP on all nodes (compute + storage)', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 6,
+        computeProfile: 'bx2-metal-96x384',
+        storageNodes: 3,
+        storageProfile: 'bx2d-metal-96x384',
+        solutionType: 'bm-disaggregated',
+      };
+      const cost = calculateROKSCost(input);
+      const ocpItems = cost.lineItems.filter(item => item.description.includes('Container Platform'));
+      expect(ocpItems).toHaveLength(1);
+      // vCPUs should include both compute (6 * 96) and storage (3 * 96) = 864
+      const computeVCPUs = 96 * 6; // bx2-metal-96x384 has 96 vCPUs
+      const storageVCPUs = 96 * 3; // bx2d-metal-96x384 has 96 vCPUs
+      expect(ocpItems[0].quantity).toBe(computeVCPUs + storageVCPUs);
+    });
+
+    it('should show NVMe storage included at zero cost', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 6,
+        computeProfile: 'bx2-metal-96x384',
+        storageNodes: 3,
+        storageProfile: 'bx2d-metal-96x384',
+        solutionType: 'bm-disaggregated',
+      };
+      const cost = calculateROKSCost(input);
+      const nvmeItems = cost.lineItems.filter(item => item.description.includes('NVMe'));
+      expect(nvmeItems).toHaveLength(1);
+      expect(nvmeItems[0].monthlyCost).toBe(0);
+      expect(nvmeItems[0].notes).toContain('per storage node');
+    });
+  });
+
+  describe('validateROKSSizingInput with new fields', () => {
+    it('should accept general-purpose storage tier', () => {
+      const result = validateROKSSizingInput({
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        storageTier: 'general-purpose',
+      });
+      expect(result.valid).toBe(true);
+    });
+
+    it('should accept valid solution types', () => {
+      for (const st of ['nvme-converged', 'hybrid-vsi-odf', 'bm-block-csi', 'bm-block-odf', 'bm-disaggregated']) {
+        const result = validateROKSSizingInput({
+          computeNodes: 3,
+          computeProfile: 'bx2-metal-96x384',
+          solutionType: st,
+        } as ROKSSizingInput);
+        expect(result.valid).toBe(true);
+      }
+    });
+
+    it('should reject invalid solution type', () => {
+      const result = validateROKSSizingInput({
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'invalid-type' as never,
+      });
+      expect(result.valid).toBe(false);
     });
   });
 

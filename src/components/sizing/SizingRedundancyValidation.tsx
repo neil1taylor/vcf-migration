@@ -6,6 +6,7 @@ import {
   Tag,
 } from '@carbon/react';
 import type { NodeCapacity, RedundancyValidation } from '@/hooks/useSizingCalculator';
+import type { RoksSolutionType } from '@/services/costEstimation';
 
 interface SizingRedundancyValidationProps {
   redundancyValidation: RedundancyValidation;
@@ -13,6 +14,7 @@ interface SizingRedundancyValidationProps {
   nodeRedundancy: number;
   evictionThreshold: number;
   operationalCapacity: number;
+  solutionType?: RoksSolutionType;
 }
 
 export function SizingRedundancyValidation({
@@ -21,7 +23,10 @@ export function SizingRedundancyValidation({
   nodeRedundancy,
   evictionThreshold,
   operationalCapacity,
+  solutionType,
 }: SizingRedundancyValidationProps) {
+  const hasOdf = solutionType !== 'bm-block-csi';
+
   return (
     <Column lg={16} md={8} sm={4}>
       <Tile className={`sizing-calculator__validation-results ${redundancyValidation.allPass ? 'sizing-calculator__validation-results--pass' : 'sizing-calculator__validation-results--fail'}`}>
@@ -32,7 +37,7 @@ export function SizingRedundancyValidation({
           </Tag>
         </div>
         <p className="sizing-calculator__subtitle">
-          Verifying cluster can handle workload after {nodeRedundancy} node failure{nodeRedundancy !== 1 ? 's' : ''}: CPU/Memory below {evictionThreshold}% eviction, ODF below {operationalCapacity}% operational
+          Verifying cluster can handle workload after {nodeRedundancy} node failure{nodeRedundancy !== 1 ? 's' : ''}: CPU/Memory below {evictionThreshold}% eviction{hasOdf ? `, ODF below ${operationalCapacity}% operational` : ''}
         </p>
 
         <Grid narrow>
@@ -57,12 +62,14 @@ export function SizingRedundancyValidation({
                     {redundancyValidation.memoryUtilHealthy.toFixed(1)}%
                   </span>
                 </div>
+                {hasOdf && (
                 <div className="sizing-calculator__efficiency-metric">
                   <span className="sizing-calculator__efficiency-metric-label">Storage Utilization</span>
                   <span className="sizing-calculator__efficiency-metric-value">
                     {nodeCapacity.maxUsableStorageGiB > 0 ? `${redundancyValidation.storageUtilHealthy.toFixed(1)}%` : 'N/A (external)'}
                   </span>
                 </div>
+                )}
               </div>
             </div>
           </Column>
@@ -98,6 +105,8 @@ export function SizingRedundancyValidation({
                     </span>
                   </span>
                 </div>
+                {hasOdf && (
+                <>
                 <div className="sizing-calculator__efficiency-metric">
                   <span className="sizing-calculator__efficiency-metric-label">ODF Storage Utilization</span>
                   <span className="sizing-calculator__efficiency-metric-value">
@@ -123,6 +132,8 @@ export function SizingRedundancyValidation({
                     </Tag>
                   </span>
                 </div>
+                </>
+                )}
               </div>
             </div>
           </Column>
@@ -134,8 +145,8 @@ export function SizingRedundancyValidation({
             After {nodeRedundancy} node failure{nodeRedundancy !== 1 ? 's' : ''}, the cluster will exceed capacity thresholds
             {!redundancyValidation.cpuPasses && ` (CPU: ${redundancyValidation.cpuUtilAfterFailure.toFixed(0)}% > ${evictionThreshold}%)`}
             {!redundancyValidation.memoryPasses && ` (Memory: ${redundancyValidation.memoryUtilAfterFailure.toFixed(0)}% > ${evictionThreshold}%)`}
-            {!redundancyValidation.storagePasses && nodeCapacity.maxUsableStorageGiB > 0 && ` (ODF: ${redundancyValidation.storageUtilAfterFailure.toFixed(0)}% > ${operationalCapacity}%)`}
-            {!redundancyValidation.odfQuorumPasses && ` (ODF Quorum: only ${redundancyValidation.survivingNodes} nodes < 3 required)`}.
+            {hasOdf && !redundancyValidation.storagePasses && nodeCapacity.maxUsableStorageGiB > 0 && ` (ODF: ${redundancyValidation.storageUtilAfterFailure.toFixed(0)}% > ${operationalCapacity}%)`}
+            {hasOdf && !redundancyValidation.odfQuorumPasses && ` (ODF Quorum: only ${redundancyValidation.survivingNodes} nodes < 3 required)`}.
             Consider adding more nodes or adjusting thresholds.
           </div>
         )}
