@@ -293,8 +293,9 @@ Navigate to **Workload Discovery** in the sidebar.
 ### Tabs Overview
 
 - **Infrastructure** - Source data center selector, target IBM Cloud MZR dropdown, environment summary (vCenter, clusters, hosts, datastores)
-- **Workload** - VM workload classification with auto-detection and manual overrides
+- **Workload** - VM workload classification with auto-detection, per-VM Options (burstable, GPU, storage IOPS tiers), and manual overrides
 - **Networks** - Port group and subnet mapping from vNetwork data
+- **Source BOM** - Source infrastructure costing (IBM Cloud bare metal, VCF licensing, storage pricing)
 
 ### Using Discovery Data
 
@@ -334,11 +335,33 @@ Navigate to **Workload Discovery** > **VMs** tab.
 2. Select from predefined categories or type a custom value
 3. Custom workload types appear in the "Custom" tab
 
-#### Set Burstable / Instance Storage
+#### VM Options (Burstable, Instance Storage, GPU, Bandwidth, Storage Tiers)
 
-1. In the VM table, click the **Burstable** tag to toggle between `Standard` and `Burstable` (shared CPU, lower cost)
-2. Click the **Instance Storage** tag to toggle between `Block` (persistent, tiered) and `NVMe` (fast local I/O, ephemeral — suitable for DB scratch, Kafka)
-3. These selections drive VSI profile mapping on the VSI Migration page
+The **Options** column consolidates per-VM settings into a compact view. Click the settings icon to open a popover with all options:
+
+1. **Profile** — `Standard` or `Burstable` (shared CPU, lower cost)
+2. **Storage** — `Block` (persistent, tiered) or `NVMe` (fast local I/O, ephemeral)
+3. **GPU** — `Standard` or `GPU` (requires GPU-enabled profiles)
+4. **Bandwidth** — `Standard` or `High BW` (network-throughput-bound workloads)
+5. **Boot IOPS** — Storage tier for boot volumes (Standard / Performance / High Performance)
+6. **Data IOPS** — Storage tier for data volumes (auto-detected from workload category, overrideable)
+
+Click any tag to cycle through its options. Non-default settings appear as colored tags in the Options column.
+
+#### Storage IOPS Tiers
+
+Three unified tiers apply to both block storage (IOPS/GB) and NFS file storage (IOPS per share):
+
+| Tier | Block | NFS | Use Case |
+|------|-------|-----|----------|
+| **Standard** | 3 IOPS/GB | 500 IOPS | General workloads (default) |
+| **Performance** | 5 IOPS/GB | 1,000 IOPS | Middleware, monitoring, containers |
+| **High Performance** | 10 IOPS/GB | 3,000 IOPS | Databases, enterprise apps |
+
+- Used for non-ODF solutions (ROKS/ROVE BM + Block, BM + NFS) and VPC VSI
+- ODF solutions ignore these settings (storage is managed by ODF)
+- VPC VSI boot volumes are always Standard (IBM Cloud requirement)
+- Data tier auto-detects from workload category but can be overridden per VM
 
 #### Add Notes
 

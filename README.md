@@ -24,7 +24,16 @@ This section covers how to use the VCF Migration application for migration plann
 - **MTV Compatibility Analysis** — Pre-flight checks against Migration Toolkit for Virtualization requirements
 - **OS Compatibility Matrix** — Red Hat OS support validation with detailed compatibility status
 - **Bare Metal Sizing** — Automatic calculation of required bare metal nodes for OpenShift Virtualization
-- **ODF Storage Planning** — OpenData Foundation storage requirements with NVMe recommendations
+- **6 Solution Architectures** — Select the storage architecture that fits your requirements:
+  - **NVMe Converged** — BM with local NVMe + ODF on same nodes (highest performance)
+  - **Hybrid (BM+VSI)** — BM compute + VSI storage nodes + block storage + ODF
+  - **BM + Block Storage** — BM with VPC Block Storage via CSI driver (no ODF)
+  - **BM + Block + ODF** — BM with VPC Block Storage backing ODF
+  - **BM Disaggregated** — Diskless BM compute + dedicated NVMe BM for ODF storage
+  - **BM + NFS (CSI)** — BM with VPC File Storage (NFS) via dp2 CSI driver (no ODF)
+- **Storage IOPS Tiers** — Per-VM boot and data IOPS tier selection in the Discovery workload table:
+  - **Standard** (3 IOPS/GB · 500 IOPS) | **Performance** (5 IOPS/GB · 1,000 IOPS) | **High Performance** (10 IOPS/GB · 3,000 IOPS)
+  - Block solutions use IOPS/GB; NFS solutions use fixed IOPS per share; ODF solutions ignore tier settings
 - **ROKS Sizing Calculator** — Interactive calculator for cluster sizing with three storage calculation methods:
   - **Disk Capacity** — Full disk size from vDisk inventory (use when VMs may grow to full capacity)
   - **In Use (recommended)** — Actual consumed storage including snapshots

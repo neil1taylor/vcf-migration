@@ -342,6 +342,22 @@ export function UserGuidePage() {
                 </Tile>
 
                 <Tile className="user-guide-page__card">
+                  <h4>VM Options (Storage IOPS, Burstable, GPU, etc.)</h4>
+                  <p>The <strong>Options</strong> column shows per-VM settings. Click the settings icon to open a popover with all options:</p>
+                  <UnorderedList>
+                    <ListItem><strong>Profile</strong> — Standard or Burstable (shared CPU)</ListItem>
+                    <ListItem><strong>Storage</strong> — Block (persistent) or NVMe (ephemeral, fast I/O)</ListItem>
+                    <ListItem><strong>GPU / Bandwidth</strong> — Flag VMs requiring GPU or high bandwidth profiles</ListItem>
+                    <ListItem><strong>Boot IOPS</strong> — Storage tier for boot volumes (Standard by default)</ListItem>
+                    <ListItem><strong>Data IOPS</strong> — Storage tier for data volumes (auto-detected from workload, overrideable)</ListItem>
+                  </UnorderedList>
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
+                    <strong>Storage IOPS Tiers:</strong> Standard (3 IOPS/GB · 500 IOPS) | Performance (5 IOPS/GB · 1,000 IOPS) | High Performance (10 IOPS/GB · 3,000 IOPS).
+                    Used for non-ODF solutions and VPC VSI. ODF solutions ignore these settings. VPC VSI boot is always Standard.
+                  </p>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
                   <h4>Persistence &amp; Export</h4>
                   <p>All VM customizations are saved to browser localStorage and persist across sessions.</p>
                   <UnorderedList>
@@ -475,7 +491,8 @@ export function UserGuidePage() {
                     <ListItem><strong>Pre-Flight Checks</strong> - VMware Tools, hardware version, snapshots, RDM disks, OS compatibility</ListItem>
                     <ListItem><strong>OS Compatibility</strong> - Validation against Red Hat certified guest OS matrix</ListItem>
                     <ListItem><strong>Worker Node Sizing</strong> - Bare metal profile selection and capacity planning</ListItem>
-                    <ListItem><strong>ODF Storage Planning</strong> - OpenShift Data Foundation sizing with replication factors</ListItem>
+                    <ListItem><strong>6 Solution Architectures</strong> - NVMe Converged, Hybrid (BM+VSI), BM + Block Storage, BM + Block + ODF, BM Disaggregated, BM + NFS (CSI)</ListItem>
+                    <ListItem><strong>Storage IOPS Tiers</strong> - Standard (3 IOPS/GB · 500 IOPS), Performance (5 IOPS/GB · 1,000 IOPS), High Performance (10 IOPS/GB · 3,000 IOPS)</ListItem>
                   </UnorderedList>
                 </Tile>
 
@@ -570,8 +587,9 @@ export function UserGuidePage() {
                     <tbody>
                       <tr><td>Compute</td><td>Bare metal servers or VSI instances</td></tr>
                       <tr><td>Licensing</td><td>OpenShift Container Platform (OCP) license per vCPU (ROKS only)</td></tr>
-                      <tr><td>Storage</td><td>Block storage volumes by IOPS tier</td></tr>
-                      <tr><td>Storage - ODF</td><td>OpenShift Data Foundation license (ROKS only)</td></tr>
+                      <tr><td>Storage - Block</td><td>Block storage volumes by IOPS tier (BM + Block CSI, VPC VSI)</td></tr>
+                      <tr><td>Storage - File</td><td>NFS file storage via dp2 CSI driver (BM + NFS CSI)</td></tr>
+                      <tr><td>Storage - ODF</td><td>OpenShift Data Foundation license (ODF solutions only)</td></tr>
                       <tr><td>Networking</td><td>Load balancers, gateways, IPs</td></tr>
                       <tr><td><strong>Total</strong></td><td>Monthly and annual projections</td></tr>
                     </tbody>

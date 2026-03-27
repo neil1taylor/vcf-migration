@@ -227,6 +227,7 @@ export function buildROKSOverview(
       'BM + Block Storage (CSI) — Bare metal workers with no local storage, VPC Block Storage volumes attached directly via CSI driver. No ODF overhead, simplest storage model.',
       'BM + Block Storage + ODF — Bare metal workers with no local storage, ODF backed by VPC Block Storage volumes. Provides ODF abstraction layer on diskless servers.',
       'Disaggregated Bare Metal — Diskless bare metal compute pool (all CPU/memory for VMs) with a separate NVMe bare metal pool dedicated to ODF storage. Independent profile selection and scaling for compute and storage.',
+      'BM + NFS File Storage (CSI) — Bare metal workers with all storage via VPC File Storage (NFS) dp2 CSI driver. Boot and data volumes on NFS with selectable IOPS tiers (Standard 500 / Performance 1,000 / High Performance 3,000). No ODF overhead.',
     ]),
   );
 
