@@ -334,46 +334,61 @@ export function StoragePage() {
           )}
         </Column>
 
-        {/* Summary metrics */}
-        <Column lg={4} md={4} sm={2}>
-          <MetricCard
-            label="Total Capacity"
-            value={`${totalCapacityTiB.toFixed(1)} TiB`}
-            variant="purple"
-            tooltip="Total raw capacity of all datastores."
-            docSection="storage"
-          />
-        </Column>
+        {/* Datastore-level summary metrics */}
+        {datastores.length > 0 ? (
+          <>
+            <Column lg={4} md={4} sm={2}>
+              <MetricCard
+                label="Total Capacity"
+                value={`${totalCapacityTiB.toFixed(1)} TiB`}
+                variant="purple"
+                tooltip="Total raw capacity of all datastores."
+                docSection="storage"
+              />
+            </Column>
 
-        <Column lg={4} md={4} sm={2}>
-          <MetricCard
-            label="Used Storage"
-            value={`${totalUsedTiB.toFixed(1)} TiB`}
-            variant="primary"
-            tooltip="Total space consumed across all datastores."
-            docSection="storage"
-          />
-        </Column>
+            <Column lg={4} md={4} sm={2}>
+              <MetricCard
+                label="Used Storage"
+                value={`${totalUsedTiB.toFixed(1)} TiB`}
+                variant="primary"
+                tooltip="Total space consumed across all datastores."
+                docSection="storage"
+              />
+            </Column>
 
-        <Column lg={4} md={4} sm={2}>
-          <MetricCard
-            label="Free Storage"
-            value={`${totalFreeTiB.toFixed(1)} TiB`}
-            variant="success"
-            tooltip="Available free space across all datastores."
-            docSection="storage"
-          />
-        </Column>
+            <Column lg={4} md={4} sm={2}>
+              <MetricCard
+                label="Free Storage"
+                value={`${totalFreeTiB.toFixed(1)} TiB`}
+                variant="success"
+                tooltip="Available free space across all datastores."
+                docSection="storage"
+              />
+            </Column>
 
-        <Column lg={4} md={4} sm={2}>
-          <MetricCard
-            label="Avg Utilization"
-            value={`${avgUtilization.toFixed(1)}%`}
-            variant={avgUtilization > 80 ? 'warning' : 'info'}
-            tooltip="Percentage of datastore capacity in use. Above 80% should be monitored."
-            docSection="storage"
-          />
-        </Column>
+            <Column lg={4} md={4} sm={2}>
+              <MetricCard
+                label="Avg Utilization"
+                value={`${avgUtilization.toFixed(1)}%`}
+                variant={avgUtilization > 80 ? 'warning' : 'info'}
+                tooltip="Percentage of datastore capacity in use. Above 80% should be monitored."
+                docSection="storage"
+              />
+            </Column>
+          </>
+        ) : (
+          <Column lg={16} md={8} sm={4}>
+            <InlineNotification
+              kind="info"
+              lowContrast
+              hideCloseButton
+              title="No vDatastore sheet"
+              subtitle="Datastore-level metrics (capacity, utilization, type distribution) require the vDatastore sheet in your RVTools export. VM-level storage data from vDisk is shown below."
+              style={{ marginBottom: '1rem' }}
+            />
+          </Column>
+        )}
 
         {/* VM Storage Metrics Section */}
         <Column lg={16} md={8} sm={4}>
@@ -424,47 +439,53 @@ export function StoragePage() {
         </Column>
 
         {/* Datastore Type Distribution */}
-        <Column lg={8} md={8} sm={4}>
-          <Tile className="storage-page__chart-tile">
-            <DoughnutChart
-              title="Storage by Type"
-              subtitle="Click a segment to filter datastores and VMs"
-              data={typeChartData}
-              height={280}
-              formatValue={(v) => `${v.toFixed(1)} TiB`}
-              onSegmentClick={handleTypeClick}
-            />
-          </Tile>
-        </Column>
+        {datastores.length > 0 && (
+          <Column lg={8} md={8} sm={4}>
+            <Tile className="storage-page__chart-tile">
+              <DoughnutChart
+                title="Storage by Type"
+                subtitle="Click a segment to filter datastores and VMs"
+                data={typeChartData}
+                height={280}
+                formatValue={(v) => `${v.toFixed(1)} TiB`}
+                onSegmentClick={handleTypeClick}
+              />
+            </Tile>
+          </Column>
+        )}
 
         {/* High Utilization Datastores */}
-        <Column lg={8} md={8} sm={4}>
-          <Tile className="storage-page__chart-tile">
-            <HorizontalBarChart
-              title="High Utilization Datastores"
-              subtitle={`${highUtilDatastores.length} datastores over 80% utilized`}
-              data={highUtilDatastores}
-              height={280}
-              valueLabel="Utilization"
-              formatValue={(v) => `${v.toFixed(1)}%`}
-            />
-          </Tile>
-        </Column>
+        {datastores.length > 0 && (
+          <Column lg={8} md={8} sm={4}>
+            <Tile className="storage-page__chart-tile">
+              <HorizontalBarChart
+                title="High Utilization Datastores"
+                subtitle={`${highUtilDatastores.length} datastores over 80% utilized`}
+                data={highUtilDatastores}
+                height={280}
+                valueLabel="Utilization"
+                formatValue={(v) => `${v.toFixed(1)}%`}
+              />
+            </Tile>
+          </Column>
+        )}
 
         {/* Top Datastores */}
-        <Column lg={8} md={8} sm={4}>
-          <Tile className="storage-page__chart-tile">
-            <HorizontalBarChart
-              title={chartFilter?.dimension === 'datastoreType'
-                ? `Top Datastores (${filteredDatastores.length} ${extractTypeFromLabel(chartFilter.value)})`
-                : 'Top 15 Datastores by Usage'}
-              data={topDatastoresFiltered}
-              height={400}
-              valueLabel="Used"
-              formatValue={(v) => `${v.toFixed(0)} GiB`}
-            />
-          </Tile>
-        </Column>
+        {datastores.length > 0 && (
+          <Column lg={8} md={8} sm={4}>
+            <Tile className="storage-page__chart-tile">
+              <HorizontalBarChart
+                title={chartFilter?.dimension === 'datastoreType'
+                  ? `Top Datastores (${filteredDatastores.length} ${extractTypeFromLabel(chartFilter.value)})`
+                  : 'Top 15 Datastores by Usage'}
+                data={topDatastoresFiltered}
+                height={400}
+                valueLabel="Used"
+                formatValue={(v) => `${v.toFixed(0)} GiB`}
+              />
+            </Tile>
+          </Column>
+        )}
 
         {/* Top VM Storage Consumers */}
         <Column lg={8} md={8} sm={4}>
@@ -479,51 +500,55 @@ export function StoragePage() {
           </Tile>
         </Column>
 
-        {/* Additional metrics */}
-        <Column lg={4} md={4} sm={2}>
-          <MetricCard
-            label="Datastores"
-            value={formatNumber(datastores.length)}
-            variant="default"
-            tooltip="Total number of datastores (VMFS, NFS, vSAN) in the environment."
-          />
-        </Column>
+        {/* Additional metrics — only when vDatastore data is available */}
+        {datastores.length > 0 && (
+          <>
+            <Column lg={4} md={4} sm={2}>
+              <MetricCard
+                label="Datastores"
+                value={formatNumber(datastores.length)}
+                variant="default"
+                tooltip="Total number of datastores (VMFS, NFS, vSAN) in the environment."
+              />
+            </Column>
 
-        <Column lg={4} md={4} sm={2}>
-          <MetricCard
-            label="High Util (>80%)"
-            value={formatNumber(highUtilDatastores.length)}
-            variant={highUtilDatastores.length > 0 ? 'warning' : 'success'}
-            tooltip="Datastores with utilization above 80%. Consider freeing space before migration."
-          />
-        </Column>
+            <Column lg={4} md={4} sm={2}>
+              <MetricCard
+                label="High Util (>80%)"
+                value={formatNumber(highUtilDatastores.length)}
+                variant={highUtilDatastores.length > 0 ? 'warning' : 'success'}
+                tooltip="Datastores with utilization above 80%. Consider freeing space before migration."
+              />
+            </Column>
 
-        <Column lg={4} md={4} sm={2}>
-          <MetricCard
-            label="VMFS Datastores"
-            value={formatNumber(datastores.filter(ds => ds.type === 'VMFS').length)}
-            variant="default"
-            tooltip="VMware File System datastores - traditional block-based storage."
-          />
-        </Column>
+            <Column lg={4} md={4} sm={2}>
+              <MetricCard
+                label="VMFS Datastores"
+                value={formatNumber(datastores.filter(ds => ds.type === 'VMFS').length)}
+                variant="default"
+                tooltip="VMware File System datastores - traditional block-based storage."
+              />
+            </Column>
 
-        <Column lg={4} md={4} sm={2}>
-          <MetricCard
-            label="NFS Datastores"
-            value={formatNumber(datastores.filter(ds => ds.type === 'NFS').length)}
-            variant="default"
-            tooltip="Network File System datastores - file-based network storage."
-          />
-        </Column>
+            <Column lg={4} md={4} sm={2}>
+              <MetricCard
+                label="NFS Datastores"
+                value={formatNumber(datastores.filter(ds => ds.type === 'NFS').length)}
+                variant="default"
+                tooltip="Network File System datastores - file-based network storage."
+              />
+            </Column>
 
-        <Column lg={4} md={4} sm={2}>
-          <MetricCard
-            label="vSAN Datastores"
-            value={formatNumber(datastores.filter(ds => ds.type === 'vsan' || ds.type === 'VSAN').length)}
-            variant="default"
-            tooltip="VMware vSAN datastores - software-defined hyper-converged storage."
-          />
-        </Column>
+            <Column lg={4} md={4} sm={2}>
+              <MetricCard
+                label="vSAN Datastores"
+                value={formatNumber(datastores.filter(ds => ds.type === 'vsan' || ds.type === 'VSAN').length)}
+                variant="default"
+                tooltip="VMware vSAN datastores - software-defined hyper-converged storage."
+              />
+            </Column>
+          </>
+        )}
 
         {/* Datastore Utilization Table */}
         {datastoreUtilTableData.length > 0 && (

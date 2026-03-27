@@ -1,5 +1,5 @@
 // Dashboard page - Executive summary
-import { Grid, Column, Tile } from '@carbon/react';
+import { Grid, Column, Tile, InlineNotification } from '@carbon/react';
 import { Search } from '@carbon/icons-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/utils/constants';
@@ -45,6 +45,7 @@ export function DashboardPage() {
     vmsByClusterData,
     cpuOvercommitData,
     memOvercommitData,
+    overcommitUsingFallback,
     configAnalysis,
     hwVersionChartData,
     toolsChartData,
@@ -212,6 +213,19 @@ export function DashboardPage() {
             />
           </Tile>
         </Column>
+
+        {overcommitUsingFallback && (
+          <Column lg={16} md={8} sm={4}>
+            <InlineNotification
+              kind="warning"
+              lowContrast
+              hideCloseButton
+              title="Estimated overcommitment"
+              subtitle="Your vHost sheet is missing VM aggregate columns (# vCPUs, VM Memory). Ratios are estimated from individual VM data (vInfo)."
+              style={{ marginBottom: '0.5rem' }}
+            />
+          </Column>
+        )}
 
         {/* CPU Overcommitment by Cluster */}
         <Column lg={8} md={8} sm={4}>

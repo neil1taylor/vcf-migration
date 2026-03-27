@@ -1,6 +1,7 @@
 // Compute analysis page
-import { Grid, Column, Tile } from '@carbon/react';
+import { Grid, Column, Tile, InlineNotification } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
+import { useMemo } from 'react';
 import { useData, useVMs, useChartFilter } from '@/hooks';
 import { ROUTES } from '@/utils/constants';
 import { formatNumber, mibToGiB } from '@/utils/formatters';
@@ -126,12 +127,41 @@ export function ComputePage() {
 
   // Host overcommitment heatmap data
   const hosts = rawData.vHost || [];
+
+  // Fallback: derive per-host VM CPU/memory from vInfo when vHost lacks those columns
+  const hostVmTotals = useMemo(() => {
+    const hasVmCpuCol = hosts.some(h => h.vmCpuCount > 0);
+    const hasVmMemCol = hosts.some(h => h.vmMemoryMiB > 0);
+    if (hasVmCpuCol && hasVmMemCol) return null;
+
+    const totals = new Map<string, { cpus: number; memMiB: number }>();
+    (rawData.vInfo || []).filter(vm => !vm.template).forEach(vm => {
+      const hostName = vm.host;
+      if (!hostName) return;
+      if (!totals.has(hostName)) totals.set(hostName, { cpus: 0, memMiB: 0 });
+      const entry = totals.get(hostName)!;
+      if (!hasVmCpuCol) entry.cpus += vm.cpus || 0;
+      if (!hasVmMemCol) entry.memMiB += vm.memory || 0;
+    });
+    return { map: totals, hasVmCpuCol, hasVmMemCol };
+  }, [hosts, rawData.vInfo]);
+
   const hostOvercommitData: HeatmapCell[] = hosts
-    .filter(host => host.totalCpuCores > 0 && host.memoryMiB > 0)
+    .filter(host => {
+      const cores = host.totalCpuCores || (host.cpuSockets || 0) * (host.coresPerSocket || 0);
+      return cores > 0 && host.memoryMiB > 0;
+    })
     .slice(0, 20) // Limit to 20 hosts for readability
     .flatMap(host => {
-      const cpuRatio = host.vmCpuCount / host.totalCpuCores;
-      const memRatio = host.vmMemoryMiB / host.memoryMiB;
+      const cores = host.totalCpuCores || (host.cpuSockets || 0) * (host.coresPerSocket || 0);
+      const vmCpus = hostVmTotals && !hostVmTotals.hasVmCpuCol
+        ? (hostVmTotals.map.get(host.name)?.cpus || 0)
+        : host.vmCpuCount;
+      const vmMem = hostVmTotals && !hostVmTotals.hasVmMemCol
+        ? (hostVmTotals.map.get(host.name)?.memMiB || 0)
+        : host.vmMemoryMiB;
+      const cpuRatio = vmCpus / cores;
+      const memRatio = vmMem / host.memoryMiB;
       const hostName = host.name.length > 25 ? host.name.substring(0, 22) + '...' : host.name;
       return [
         {
@@ -266,6 +296,18 @@ export function ComputePage() {
         </Column>
 
         {/* Host Overcommitment Heatmap */}
+        {hostOvercommitData.length > 0 && hostVmTotals && (
+          <Column lg={16} md={8} sm={4}>
+            <InlineNotification
+              kind="warning"
+              lowContrast
+              hideCloseButton
+              title="Estimated overcommitment"
+              subtitle="Your vHost sheet is missing VM aggregate columns (# vCPUs, VM Memory). Per-host ratios are estimated from individual VM data (vInfo)."
+              style={{ marginBottom: '0.5rem' }}
+            />
+          </Column>
+        )}
         {hostOvercommitData.length > 0 && (
           <Column lg={16} md={8} sm={4}>
             <Tile className="compute-page__chart-tile">

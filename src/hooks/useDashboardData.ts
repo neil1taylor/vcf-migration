@@ -67,6 +67,7 @@ export interface DashboardData {
 
   // Chart data
   clusterData: Map<string, { vmCount: number; totalCores: number; vmCpus: number; hostMemoryMiB: number; vmMemoryMiB: number }>;
+  overcommitUsingFallback: boolean;
   vmsByClusterData: ChartDataPoint[];
   cpuOvercommitData: ChartDataPoint[];
   memOvercommitData: ChartDataPoint[];
@@ -157,35 +158,37 @@ export function useDashboardData(): DashboardData {
   const clusterData = useMemo(() => {
     const data = new Map<string, { vmCount: number; totalCores: number; vmCpus: number; hostMemoryMiB: number; vmMemoryMiB: number }>();
 
+    const ensure = (c: string) => { if (!data.has(c)) data.set(c, { vmCount: 0, totalCores: 0, vmCpus: 0, hostMemoryMiB: 0, vmMemoryMiB: 0 }); return data.get(c)!; };
+
     // Aggregate host data by cluster
     hosts.forEach(host => {
-      const cluster = host.cluster || 'No Cluster';
-      if (!data.has(cluster)) {
-        data.set(cluster, { vmCount: 0, totalCores: 0, vmCpus: 0, hostMemoryMiB: 0, vmMemoryMiB: 0 });
-      }
-      const entry = data.get(cluster)!;
-      entry.totalCores += host.totalCpuCores || 0;
+      const entry = ensure(host.cluster || 'No Cluster');
+      entry.totalCores += host.totalCpuCores || (host.cpuSockets || 0) * (host.coresPerSocket || 0);
       entry.vmCpus += host.vmCpuCount || 0;
       entry.hostMemoryMiB += host.memoryMiB || 0;
       entry.vmMemoryMiB += host.vmMemoryMiB || 0;
     });
 
-    // Count VMs per cluster
+    // Check if vHost had the VM-side columns
+    const hasHostVmCpus = Array.from(data.values()).some(d => d.vmCpus > 0);
+    const hasHostVmMem = Array.from(data.values()).some(d => d.vmMemoryMiB > 0);
+
+    // Count VMs per cluster, and fallback VM resources from vInfo when vHost lacks those columns
     vms.forEach(vm => {
-      const cluster = vm.cluster || 'No Cluster';
-      if (data.has(cluster)) {
-        data.get(cluster)!.vmCount++;
-      } else {
-        data.set(cluster, { vmCount: 1, totalCores: 0, vmCpus: 0, hostMemoryMiB: 0, vmMemoryMiB: 0 });
-      }
+      const entry = ensure(vm.cluster || 'No Cluster');
+      entry.vmCount++;
+      if (!hasHostVmCpus) entry.vmCpus += vm.cpus || 0;
+      if (!hasHostVmMem) entry.vmMemoryMiB += vm.memory || 0;
     });
 
-    return data;
+    return { map: data, usingFallback: !hasHostVmCpus || !hasHostVmMem };
   }, [hosts, vms]);
+
+  const overcommitUsingFallback = clusterData.usingFallback;
 
   // VM distribution by cluster (memoized)
   const vmsByClusterData = useMemo(() =>
-    Array.from(clusterData.entries())
+    Array.from(clusterData.map.entries())
       .map(([cluster, data]) => ({ label: cluster, value: data.vmCount }))
       .filter(d => d.value > 0)
       .sort((a, b) => b.value - a.value)
@@ -195,7 +198,7 @@ export function useDashboardData(): DashboardData {
 
   // CPU overcommitment by cluster (memoized)
   const cpuOvercommitData = useMemo(() =>
-    Array.from(clusterData.entries())
+    Array.from(clusterData.map.entries())
       .filter(([, data]) => data.totalCores > 0)
       .map(([cluster, data]) => ({
         label: cluster,
@@ -207,7 +210,7 @@ export function useDashboardData(): DashboardData {
 
   // Memory overcommitment by cluster (memoized)
   const memOvercommitData = useMemo(() =>
-    Array.from(clusterData.entries())
+    Array.from(clusterData.map.entries())
       .filter(([, data]) => data.hostMemoryMiB > 0)
       .map(([cluster, data]) => ({
         label: cluster,
@@ -466,7 +469,8 @@ export function useDashboardData(): DashboardData {
     storageUsageIncomplete,
     uniqueClusters,
     uniqueDatacenters,
-    clusterData,
+    clusterData: clusterData.map,
+    overcommitUsingFallback,
     vmsByClusterData,
     cpuOvercommitData,
     memOvercommitData,
