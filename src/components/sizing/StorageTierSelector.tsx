@@ -18,9 +18,9 @@ interface StorageTierSelectorProps {
 }
 
 const TIER_OPTIONS: { value: StorageTierType; label: string }[] = [
-  { value: 'general-purpose', label: '3 IOPS/GB (General Purpose)' },
-  { value: '5iops', label: '5 IOPS/GB' },
-  { value: '10iops', label: '10 IOPS/GB' },
+  { value: 'general-purpose', label: 'Standard (3 IOPS/GB · 500 IOPS)' },
+  { value: '5iops', label: 'Performance (5 IOPS/GB · 1,000 IOPS)' },
+  { value: '10iops', label: 'High Performance (10 IOPS/GB · 3,000 IOPS)' },
 ];
 
 const TIER_TAG_TYPE: Record<StorageTierType, 'gray' | 'teal' | 'purple'> = {

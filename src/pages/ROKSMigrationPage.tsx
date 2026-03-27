@@ -599,7 +599,7 @@ export function ROKSMigrationPage() {
                         {solutionType === 'bm-block-csi' && <>• <strong>(Future)</strong> VPC Block Storage CSI driver provides persistent volumes directly to workloads without ODF overhead — not yet available on bare metal</>}
                         {solutionType === 'bm-block-odf' && <>• <strong>(Future)</strong> ODF backed by VPC Block Storage provides software-defined storage abstraction on diskless bare metal — not yet available</>}
                         {solutionType === 'hybrid-vsi-odf' && <>• Hybrid architecture separates compute (bare metal) from storage (VSI + block storage + ODF)</>}
-                        {solutionType === 'bm-nfs-csi' && <>• VPC File Storage (NFS) via dp2 CSI driver provides persistent volumes; boot volumes use block storage at 300 IOPS</>}
+                        {solutionType === 'bm-nfs-csi' && <>• VPC File Storage (NFS) via dp2 CSI driver provides all persistent volumes; boot at 500 IOPS, data at selectable IOPS</>}
                       </p>
                       <RedHatDocLink href="https://cloud.ibm.com/kubernetes/catalog/create?platformType=openshift" label="Open IBM Cloud ROKS Catalog" description="Configure your bare metal OpenShift cluster" />
                     </Tile>

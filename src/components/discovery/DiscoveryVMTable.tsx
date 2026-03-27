@@ -36,6 +36,9 @@ import {
   OverflowMenuItem,
   Pagination,
   Tooltip,
+  Toggletip,
+  ToggletipButton,
+  ToggletipContent,
   MultiSelect,
   Link,
 } from '@carbon/react';
@@ -52,10 +55,13 @@ import {
   Subtract,
   Chip,
   DataVis_1,
+  Settings,
 } from '@carbon/icons-react';
 import { NO_AUTO_EXCLUSION } from '@/utils/autoExclusion';
 import { getVMIdentifier } from '@/utils/vmIdentifier';
 import { formatNumber, mibToGiB } from '@/utils/formatters';
+import { getStorageTierForWorkload, getStorageTierLabel } from '@/utils/workloadClassification';
+import type { StorageTierType } from '@/utils/workloadClassification';
 import { useDiscoveryVMTableActions } from '@/hooks/useDiscoveryVMTableActions';
 import {
   FILTER_OPTIONS,
@@ -166,6 +172,16 @@ export function DiscoveryVMTable({
         instanceStorage: vmOverrides.isInstanceStoragePreferred(vmId),
         gpuRequired: vmOverrides.isGpuRequired(vmId),
         bandwidthSensitive: vmOverrides.isBandwidthSensitive(vmId),
+        bootTier: vmOverrides.getBootStorageTier(vmId) || 'general-purpose',
+        dataTier: vmOverrides.getDataStorageTier(vmId) || getStorageTierForWorkload(category === '_unclassified' ? null : category),
+        options: [
+          vmOverrides.isBurstableCandidate(vmId) ? 'Burst' : '',
+          vmOverrides.isInstanceStoragePreferred(vmId) ? 'NVMe' : '',
+          vmOverrides.isGpuRequired(vmId) ? 'GPU' : '',
+          vmOverrides.isBandwidthSensitive(vmId) ? 'BW' : '',
+          vmOverrides.getBootStorageTier(vmId) ? 'Boot' : '',
+          vmOverrides.getDataStorageTier(vmId) ? 'Data' : '',
+        ].filter(Boolean).join(' ') || '—',
         status,
         actions: '',
       };
@@ -334,10 +350,7 @@ export function DiscoveryVMTable({
     { key: 'memoryGiB', header: 'Memory' },
     { key: 'storageGiB', header: 'Storage' },
     { key: 'category', header: 'Workload Type' },
-    { key: 'burstable', header: 'Burstable' },
-    { key: 'instanceStorage', header: 'Instance Storage' },
-    { key: 'gpuRequired', header: 'GPU' },
-    { key: 'bandwidthSensitive', header: 'Bandwidth' },
+    { key: 'options', header: 'Options' },
     { key: 'status', header: 'Status' },
     { key: 'notes', header: 'Notes' },
     { key: 'actions', header: '' },
@@ -388,6 +401,17 @@ export function DiscoveryVMTable({
             Clear All ({vmOverrides.overrideCount})
           </Button>
         )}
+      </div>
+
+      {/* Storage tier legend */}
+      <div style={{ fontSize: '0.75rem', color: 'var(--cds-text-secondary)', marginBottom: '0.5rem', padding: '0.5rem 1rem', backgroundColor: 'var(--cds-layer-01)', borderRadius: '4px' }}>
+        <strong>Storage IOPS Tiers</strong> — used for non-ODF solutions (ROKS/ROVE BM + Block, BM + NFS) and VPC VSI. ODF solutions ignore these settings.<br />
+        VPC VSI boot volumes are always Standard (IBM Cloud requirement); boot tier overrides apply to ROKS/ROVE only.<br />
+        <span style={{ display: 'inline-flex', gap: '1rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
+          <span><Tag type="outline" size="sm">Standard</Tag> 3 IOPS/GB · 500 IOPS</span>
+          <span><Tag type="teal" size="sm">Performance</Tag> 5 IOPS/GB · 1,000 IOPS</span>
+          <span><Tag type="purple" size="sm">High Performance</Tag> 10 IOPS/GB · 3,000 IOPS</span>
+        </span>
       </div>
 
       {/* Data Table */}
@@ -586,44 +610,70 @@ export function DiscoveryVMTable({
                           {renderCategoryCell(originalRow)}
                         </TableCell>
                         <TableCell>
-                          <Tag
-                            type={originalRow.burstable ? 'cyan' : 'gray'}
-                            size="sm"
-                            onClick={() => vmOverrides.setBurstableCandidate(originalRow.id, originalRow.vmName, !originalRow.burstable)}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            {originalRow.burstable ? 'Burstable' : 'Standard'}
-                          </Tag>
-                        </TableCell>
-                        <TableCell>
-                          <Tag
-                            type={originalRow.instanceStorage ? 'teal' : 'gray'}
-                            size="sm"
-                            onClick={() => vmOverrides.setInstanceStorage(originalRow.id, originalRow.vmName, !originalRow.instanceStorage)}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            {originalRow.instanceStorage ? 'NVMe' : 'Block'}
-                          </Tag>
-                        </TableCell>
-                        <TableCell>
-                          <Tag
-                            type={originalRow.gpuRequired ? 'purple' : 'gray'}
-                            size="sm"
-                            onClick={() => vmOverrides.setGpuRequired(originalRow.id, originalRow.vmName, !originalRow.gpuRequired)}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            {originalRow.gpuRequired ? 'GPU' : 'Standard'}
-                          </Tag>
-                        </TableCell>
-                        <TableCell>
-                          <Tag
-                            type={originalRow.bandwidthSensitive ? 'cyan' : 'gray'}
-                            size="sm"
-                            onClick={() => vmOverrides.setBandwidthSensitive(originalRow.id, originalRow.vmName, !originalRow.bandwidthSensitive)}
-                            style={{ cursor: 'pointer' }}
-                          >
-                            {originalRow.bandwidthSensitive ? 'High BW' : 'Standard'}
-                          </Tag>
+                          <Toggletip align="bottom" autoAlign>
+                            <ToggletipButton label="VM options">
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
+                                {originalRow.options === '—'
+                                  ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--cds-text-secondary)' }}><Settings size={14} /> Defaults</span>
+                                  : <>
+                                      <Settings size={14} />
+                                      {originalRow.burstable && <Tag type="cyan" size="sm">Burst</Tag>}
+                                      {originalRow.instanceStorage && <Tag type="teal" size="sm">NVMe</Tag>}
+                                      {originalRow.gpuRequired && <Tag type="purple" size="sm">GPU</Tag>}
+                                      {originalRow.bandwidthSensitive && <Tag type="cyan" size="sm">BW</Tag>}
+                                      {originalRow.bootTier !== 'general-purpose' && <Tag type={originalRow.bootTier === '10iops' ? 'purple' : 'teal'} size="sm">Boot: {originalRow.bootTier}</Tag>}
+                                      {originalRow.dataTier !== 'general-purpose' && <Tag type={originalRow.dataTier === '10iops' ? 'purple' : 'teal'} size="sm">Data: {getStorageTierLabel(originalRow.dataTier as StorageTierType)}</Tag>}
+                                    </>
+                                }
+                              </span>
+                            </ToggletipButton>
+                            <ToggletipContent>
+                              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 1rem', alignItems: 'center', padding: '0.25rem 0' }}>
+                                <span style={{ fontSize: '0.75rem' }}>Profile</span>
+                                <Tag type={originalRow.burstable ? 'cyan' : 'outline'} size="sm" onClick={() => vmOverrides.setBurstableCandidate(originalRow.id, originalRow.vmName, !originalRow.burstable)} style={{ cursor: 'pointer' }}>
+                                  {originalRow.burstable ? 'Burstable' : 'Standard'}
+                                </Tag>
+                                <span style={{ fontSize: '0.75rem' }}>Storage</span>
+                                <Tag type={originalRow.instanceStorage ? 'teal' : 'outline'} size="sm" onClick={() => vmOverrides.setInstanceStorage(originalRow.id, originalRow.vmName, !originalRow.instanceStorage)} style={{ cursor: 'pointer' }}>
+                                  {originalRow.instanceStorage ? 'NVMe' : 'Block'}
+                                </Tag>
+                                <span style={{ fontSize: '0.75rem' }}>GPU</span>
+                                <Tag type={originalRow.gpuRequired ? 'purple' : 'outline'} size="sm" onClick={() => vmOverrides.setGpuRequired(originalRow.id, originalRow.vmName, !originalRow.gpuRequired)} style={{ cursor: 'pointer' }}>
+                                  {originalRow.gpuRequired ? 'GPU' : 'Standard'}
+                                </Tag>
+                                <span style={{ fontSize: '0.75rem' }}>Bandwidth</span>
+                                <Tag type={originalRow.bandwidthSensitive ? 'cyan' : 'outline'} size="sm" onClick={() => vmOverrides.setBandwidthSensitive(originalRow.id, originalRow.vmName, !originalRow.bandwidthSensitive)} style={{ cursor: 'pointer' }}>
+                                  {originalRow.bandwidthSensitive ? 'High BW' : 'Standard'}
+                                </Tag>
+                                <span style={{ fontSize: '0.75rem' }}>Boot IOPS</span>
+                                <Tag
+                                  type={originalRow.bootTier === '10iops' ? 'purple' : originalRow.bootTier === '5iops' ? 'teal' : 'outline'} size="sm"
+                                  onClick={() => {
+                                    const tiers: StorageTierType[] = ['general-purpose', '5iops', '10iops'];
+                                    const idx = tiers.indexOf(originalRow.bootTier as StorageTierType);
+                                    const next = tiers[(idx + 1) % tiers.length];
+                                    vmOverrides.setBootStorageTier(originalRow.id, originalRow.vmName, next === 'general-purpose' ? undefined : next);
+                                  }}
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  {getStorageTierLabel(originalRow.bootTier as StorageTierType)}
+                                </Tag>
+                                <span style={{ fontSize: '0.75rem' }}>Data IOPS</span>
+                                <Tag
+                                  type={originalRow.dataTier === '10iops' ? 'purple' : originalRow.dataTier === '5iops' ? 'teal' : 'outline'} size="sm"
+                                  onClick={() => {
+                                    const tiers: StorageTierType[] = ['general-purpose', '5iops', '10iops'];
+                                    const idx = tiers.indexOf(originalRow.dataTier as StorageTierType);
+                                    const next = tiers[(idx + 1) % tiers.length];
+                                    vmOverrides.setDataStorageTier(originalRow.id, originalRow.vmName, next === getStorageTierForWorkload(originalRow.categoryKey === '_unclassified' ? null : originalRow.categoryKey) ? undefined : next);
+                                  }}
+                                  style={{ cursor: 'pointer' }}
+                                >
+                                  {getStorageTierLabel(originalRow.dataTier as StorageTierType)}
+                                </Tag>
+                              </div>
+                            </ToggletipContent>
+                          </Toggletip>
                         </TableCell>
                         <TableCell>
                           {renderStatusTags(originalRow)}

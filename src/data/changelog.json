@@ -13,7 +13,7 @@
           "Source BOM included in DOCX report as Source Infrastructure Costing section",
           "File Storage and VCF licensing pricing types added to pricing infrastructure",
           "Disaggregated Bare Metal solution type — separate diskless BM compute pool and dedicated NVMe BM storage pool for ODF, with independent profile selection and scaling",
-          "BM + NFS (CSI) solution type — bare metal without NVMe with VPC File Storage (NFS) via dp2 CSI driver, boot volumes on block storage at 300 IOPS, data volumes with selectable IOPS (500/1,000/3,000)"
+          "BM + NFS (CSI) solution type — bare metal without NVMe with all storage via VPC File Storage (NFS) dp2 CSI driver; boot at fixed 500 IOPS, data at selectable IOPS (500/1,000/3,000)"
         ],
         "changed": [
           "ROKS OS compatibility data aligned with Red Hat article 4234591 (Certified Guest Operating Systems in OpenShift Virtualization) — added support tier classification (certified, vendor-supported, community-supported, known-to-work), new OS entries (RHEL 10, Oracle Linux 8/9, Windows Server 2025, Fedora, openSUSE, Debian 13), and corrected compatibility statuses for CentOS Stream, Debian, Windows legacy, and RHEL 6/7"

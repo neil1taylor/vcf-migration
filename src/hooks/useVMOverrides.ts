@@ -25,6 +25,8 @@ export interface VMOverride {
   instanceStorage?: boolean;
   gpuRequired?: boolean;
   bandwidthSensitive?: boolean;
+  bootStorageTier?: string;
+  dataStorageTier?: string;
   notes?: string;
   modifiedAt: string;
 }
@@ -47,6 +49,8 @@ export interface UseVMOverridesReturn {
   setInstanceStorage: (vmId: string, vmName: string, value: boolean) => void;
   setGpuRequired: (vmId: string, vmName: string, value: boolean) => void;
   setBandwidthSensitive: (vmId: string, vmName: string, value: boolean) => void;
+  setBootStorageTier: (vmId: string, vmName: string, tier: string | undefined) => void;
+  setDataStorageTier: (vmId: string, vmName: string, tier: string | undefined) => void;
   setNotes: (vmId: string, vmName: string, notes: string | undefined) => void;
   removeOverride: (vmId: string) => void;
   clearAllOverrides: () => void;
@@ -67,6 +71,8 @@ export interface UseVMOverridesReturn {
   isInstanceStoragePreferred: (vmId: string) => boolean;
   isGpuRequired: (vmId: string) => boolean;
   isBandwidthSensitive: (vmId: string) => boolean;
+  getBootStorageTier: (vmId: string) => string | undefined;
+  getDataStorageTier: (vmId: string) => string | undefined;
   getNotes: (vmId: string) => string | undefined;
   hasOverride: (vmId: string) => boolean;
 
@@ -242,12 +248,14 @@ export function useVMOverrides(): UseVMOverridesReturn {
         instanceStorage: 'instanceStorage' in updates ? updates.instanceStorage : existing?.instanceStorage,
         gpuRequired: 'gpuRequired' in updates ? updates.gpuRequired : existing?.gpuRequired,
         bandwidthSensitive: 'bandwidthSensitive' in updates ? updates.bandwidthSensitive : existing?.bandwidthSensitive,
+        bootStorageTier: 'bootStorageTier' in updates ? updates.bootStorageTier : existing?.bootStorageTier,
+        dataStorageTier: 'dataStorageTier' in updates ? updates.dataStorageTier : existing?.dataStorageTier,
         notes: 'notes' in updates ? updates.notes : existing?.notes,
         modifiedAt: now,
       };
 
       // If all values are default, remove the override
-      const isDefault = !override.excluded && !override.forceIncluded && !override.workloadType && !override.burstableCandidate && !override.instanceStorage && !override.gpuRequired && !override.bandwidthSensitive && !override.notes;
+      const isDefault = !override.excluded && !override.forceIncluded && !override.workloadType && !override.burstableCandidate && !override.instanceStorage && !override.gpuRequired && !override.bandwidthSensitive && !override.bootStorageTier && !override.dataStorageTier && !override.notes;
       if (isDefault && existing) {
         const { [vmId]: _removed, ...rest } = prev.overrides;
         void _removed; // Silence unused variable warning
@@ -299,6 +307,14 @@ export function useVMOverrides(): UseVMOverridesReturn {
 
   const setBandwidthSensitive = useCallback((vmId: string, vmName: string, value: boolean) => {
     updateOverride(vmId, vmName, { bandwidthSensitive: value || undefined });
+  }, [updateOverride]);
+
+  const setBootStorageTier = useCallback((vmId: string, vmName: string, tier: string | undefined) => {
+    updateOverride(vmId, vmName, { bootStorageTier: tier || undefined });
+  }, [updateOverride]);
+
+  const setDataStorageTier = useCallback((vmId: string, vmName: string, tier: string | undefined) => {
+    updateOverride(vmId, vmName, { dataStorageTier: tier || undefined });
   }, [updateOverride]);
 
   const setNotes = useCallback((vmId: string, vmName: string, notes: string | undefined) => {
@@ -367,6 +383,14 @@ export function useVMOverrides(): UseVMOverridesReturn {
     return data.overrides[vmId]?.bandwidthSensitive ?? false;
   }, [data.overrides]);
 
+  const getBootStorageTier = useCallback((vmId: string): string | undefined => {
+    return data.overrides[vmId]?.bootStorageTier;
+  }, [data.overrides]);
+
+  const getDataStorageTier = useCallback((vmId: string): string | undefined => {
+    return data.overrides[vmId]?.dataStorageTier;
+  }, [data.overrides]);
+
   const getNotes = useCallback((vmId: string): string | undefined => {
     return data.overrides[vmId]?.notes;
   }, [data.overrides]);
@@ -407,7 +431,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
               modifiedAt: now,
             };
             // Remove if no other overrides
-            if (!updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
+            if (!updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.bootStorageTier && !updated.dataStorageTier && !updated.notes) {
               delete newOverrides[vmId];
             } else {
               newOverrides[vmId] = updated;
@@ -486,7 +510,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
         if (existing) {
           const updated = { ...existing, workloadType: type, modifiedAt: now };
           // Remove if no other overrides remain
-          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
+          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.bootStorageTier && !updated.dataStorageTier && !updated.notes) {
             delete newOverrides[vmId];
           } else {
             newOverrides[vmId] = updated;
@@ -525,7 +549,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
         } else {
           if (existing) {
             const updated = { ...existing, burstableCandidate: undefined, modifiedAt: now };
-            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
+            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.bootStorageTier && !updated.dataStorageTier && !updated.notes) {
               delete newOverrides[vmId];
             } else {
               newOverrides[vmId] = updated;
@@ -558,13 +582,17 @@ export function useVMOverrides(): UseVMOverridesReturn {
             workloadType: existing?.workloadType,
             burstableCandidate: existing?.burstableCandidate,
             instanceStorage: true,
+            gpuRequired: existing?.gpuRequired,
+            bandwidthSensitive: existing?.bandwidthSensitive,
+            bootStorageTier: existing?.bootStorageTier,
+            dataStorageTier: existing?.dataStorageTier,
             notes: existing?.notes,
             modifiedAt: now,
           };
         } else {
           if (existing) {
             const updated = { ...existing, instanceStorage: undefined, modifiedAt: now };
-            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
+            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.bootStorageTier && !updated.dataStorageTier && !updated.notes) {
               delete newOverrides[vmId];
             } else {
               newOverrides[vmId] = updated;
@@ -599,13 +627,15 @@ export function useVMOverrides(): UseVMOverridesReturn {
             instanceStorage: existing?.instanceStorage,
             gpuRequired: true,
             bandwidthSensitive: existing?.bandwidthSensitive,
+            bootStorageTier: existing?.bootStorageTier,
+            dataStorageTier: existing?.dataStorageTier,
             notes: existing?.notes,
             modifiedAt: now,
           };
         } else {
           if (existing) {
             const updated = { ...existing, gpuRequired: undefined, modifiedAt: now };
-            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
+            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.bootStorageTier && !updated.dataStorageTier && !updated.notes) {
               delete newOverrides[vmId];
             } else {
               newOverrides[vmId] = updated;
@@ -640,13 +670,15 @@ export function useVMOverrides(): UseVMOverridesReturn {
             instanceStorage: existing?.instanceStorage,
             gpuRequired: existing?.gpuRequired,
             bandwidthSensitive: true,
+            bootStorageTier: existing?.bootStorageTier,
+            dataStorageTier: existing?.dataStorageTier,
             notes: existing?.notes,
             modifiedAt: now,
           };
         } else {
           if (existing) {
             const updated = { ...existing, bandwidthSensitive: undefined, modifiedAt: now };
-            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
+            if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.bootStorageTier && !updated.dataStorageTier && !updated.notes) {
               delete newOverrides[vmId];
             } else {
               newOverrides[vmId] = updated;
@@ -672,7 +704,7 @@ export function useVMOverrides(): UseVMOverridesReturn {
 
         if (existing) {
           const updated = { ...existing, notes: notes || undefined, modifiedAt: now };
-          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.notes) {
+          if (!updated.excluded && !updated.forceIncluded && !updated.workloadType && !updated.burstableCandidate && !updated.instanceStorage && !updated.gpuRequired && !updated.bandwidthSensitive && !updated.bootStorageTier && !updated.dataStorageTier && !updated.notes) {
             delete newOverrides[vmId];
           } else {
             newOverrides[vmId] = updated;
@@ -771,6 +803,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
     setInstanceStorage,
     setGpuRequired,
     setBandwidthSensitive,
+    setBootStorageTier,
+    setDataStorageTier,
     setNotes,
     removeOverride,
     clearAllOverrides,
@@ -784,6 +818,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
     isInstanceStoragePreferred,
     isGpuRequired,
     isBandwidthSensitive,
+    getBootStorageTier,
+    getDataStorageTier,
     getNotes,
     hasOverride,
 
@@ -813,8 +849,8 @@ export function useVMOverrides(): UseVMOverridesReturn {
     storedEnvironmentFingerprint,
   }), [
     data.overrides,
-    setExcluded, setForceIncluded, setWorkloadType, setBurstableCandidate, setInstanceStorage, setGpuRequired, setBandwidthSensitive, setNotes, removeOverride, clearAllOverrides,
-    isExcluded, isForceIncluded, isEffectivelyExcluded, getWorkloadType, isBurstableCandidate, isInstanceStoragePreferred, isGpuRequired, isBandwidthSensitive, getNotes, hasOverride,
+    setExcluded, setForceIncluded, setWorkloadType, setBurstableCandidate, setInstanceStorage, setGpuRequired, setBandwidthSensitive, setBootStorageTier, setDataStorageTier, setNotes, removeOverride, clearAllOverrides,
+    isExcluded, isForceIncluded, isEffectivelyExcluded, getWorkloadType, isBurstableCandidate, isInstanceStoragePreferred, isGpuRequired, isBandwidthSensitive, getBootStorageTier, getDataStorageTier, getNotes, hasOverride,
     bulkSetExcluded, bulkSetForceIncluded, bulkSetWorkloadType, bulkSetBurstableCandidate, bulkSetInstanceStorage, bulkSetGpuRequired, bulkSetBandwidthSensitive, bulkSetNotes,
     excludedCount, forceIncludedCount, overrideCount,
     exportSettings, importSettings,

@@ -4,6 +4,7 @@ import { createLogger } from '@/utils/logger';
 import type { IBMCloudPricing, BareMetalProfile, VSIProfile, FileStorageIopsRate } from '@/services/pricing/pricingCache';
 import { getCurrentPricing, getStaticPricing } from '@/services/pricing/pricingCache';
 import { getRegionalPricing } from '@/services/pricing/regionalPricingResolver';
+import { getNfsIopsForTier } from '@/utils/workloadClassification';
 
 const logger = createLogger('CostEstimation');
 
@@ -54,7 +55,9 @@ export interface ROKSSizingInput {
   solutionType?: RoksSolutionType;
   /** @deprecated Use blockVolumeCapacityGiB for CSI solutions */
   bootStorageGiB?: number;
-  /** Data storage IOPS tier (for block storage solutions) */
+  /** Boot storage IOPS tier (block: IOPS/GB, NFS: mapped to dp2 IOPS) */
+  bootStorageTier?: StorageTierKey;
+  /** Data storage IOPS tier (block: IOPS/GB, NFS: mapped to dp2 IOPS) */
   dataStorageTier?: StorageTierKey;
   /** CSI: boot volume count (1 per VM, unitNumber 0) */
   bootVolumeCount?: number;
@@ -68,6 +71,8 @@ export interface ROKSSizingInput {
   fileStorageIops?: FileStorageIops;
   /** NFS CSI: file storage total capacity in GiB */
   fileStorageCapacityGiB?: number;
+  /** NFS CSI: data disks grouped by size for per-share pricing */
+  fileStorageDiskGroups?: { capacityGiB: number; count: number }[];
   odfProfile?: string;
   odfTier?: OdfTier;
   includeAcm?: boolean;
@@ -664,15 +669,17 @@ export function calculateROKSCost(
     const dataCount = input.dataVolumeCount ?? 0;
     const dataCapacityGB = input.dataVolumeCapacityGiB ?? (input.storageTiB ? input.storageTiB * 1024 : 0);
 
-    // Boot volumes — general-purpose (3 IOPS/GB)
+    // Boot volumes — block storage at boot tier (default general-purpose / 3 IOPS/GB)
+    const bootTier = input.bootStorageTier ?? 'general-purpose';
     if (bootCapacityGB > 0) {
-      const bootTierData = pricingToUse.blockStorage?.['general-purpose'];
-      const bootCostPerGB = regional.blockStorage['generalPurpose']?.costPerGBMonth
-        ?? regional.blockStorage['general-purpose']?.costPerGBMonth
+      const bootTierData = pricingToUse.blockStorage?.[bootTier];
+      const bootCostPerGB = regional.blockStorage[bootTier]?.costPerGBMonth
+        ?? regional.blockStorage[bootTier === 'general-purpose' ? 'generalPurpose' : bootTier]?.costPerGBMonth
         ?? bootTierData?.costPerGBMonth ?? 0.10;
+      const bootTierLabel = bootTierData?.tierName || bootTier;
       lineItems.push({
         category: 'Storage - Block',
-        description: 'Block Storage - Boot Volumes (3 IOPS/GB)',
+        description: `Block Storage - Boot Volumes (${bootTierLabel})`,
         quantity: bootCapacityGB,
         unit: 'GB',
         unitCost: bootCostPerGB,
@@ -773,53 +780,88 @@ export function calculateROKSCost(
       }
     }
   } else if (solutionType === 'bm-nfs-csi') {
-    // NFS CSI: boot volumes on block storage (300 IOPS = 3 IOPS/GB × 100GB), data on NFS file storage (dp2)
+    // NFS CSI: all storage via dp2 file storage — boot at fixed 500 IOPS, data at selectable IOPS
+    const dp2Tier = pricingToUse.fileStorage?.['dp2'];
+    const dp2CostPerGB = regional.fileStorage?.['dp2']?.costPerGBMonth ?? dp2Tier?.costPerGBMonth ?? 0.15155;
+    const defaultIopsRates: FileStorageIopsRate[] = [
+      { upTo: 5000, rate: 0.000138 },
+      { upTo: 20000, rate: 0.0000692 },
+      { upTo: 40000, rate: 0.0000277 },
+      { upTo: 96000, rate: 0.0000138 },
+    ];
+    const iopsRates = (dp2Tier as { iopsHourlyRates?: FileStorageIopsRate[] })?.iopsHourlyRates ?? defaultIopsRates;
+
+    // Boot volumes — NFS file storage, IOPS from boot tier (default general-purpose → 500)
     const bootCount = input.bootVolumeCount ?? 0;
     const bootCapacityGB = input.bootVolumeCapacityGiB ?? 0;
-
-    // Boot volumes — block storage, general-purpose (3 IOPS/GB)
-    if (bootCapacityGB > 0) {
-      const bootTierData = pricingToUse.blockStorage?.['general-purpose'];
-      const bootCostPerGB = regional.blockStorage['generalPurpose']?.costPerGBMonth
-        ?? regional.blockStorage['general-purpose']?.costPerGBMonth
-        ?? bootTierData?.costPerGBMonth ?? 0.10;
+    if (bootCapacityGB > 0 && bootCount > 0) {
+      const bootIops = getNfsIopsForTier(input.bootStorageTier ?? 'general-purpose');
+      // Each NFS share is billed independently: capacity + IOPS per share
+      const perShareCapacityGB = bootCapacityGB / bootCount;
+      const perShareCost = calculateDp2FileStorageMonthlyCost(perShareCapacityGB, bootIops, dp2CostPerGB, iopsRates);
+      const totalMonthlyCost = perShareCost.totalCost * bootCount;
       lineItems.push({
-        category: 'Storage - Block',
-        description: 'Block Storage - Boot Volumes (3 IOPS/GB)',
+        category: 'Storage - File',
+        description: `File Storage - Boot (dp2, ${bootIops} IOPS)`,
         quantity: bootCapacityGB,
         unit: 'GB',
-        unitCost: bootCostPerGB,
-        monthlyCost: bootCapacityGB * bootCostPerGB,
-        annualCost: bootCapacityGB * bootCostPerGB * 12,
-        notes: `${bootCount} boot volumes (300 IOPS each)`,
+        unitCost: perShareCost.totalCost / perShareCapacityGB,
+        monthlyCost: totalMonthlyCost,
+        annualCost: totalMonthlyCost * 12,
+        notes: `${bootCount} boot volumes via NFS dp2 at ${bootIops} IOPS each`,
       });
     }
 
-    // Data volumes — NFS file storage via dp2 CSI driver
-    const fileCapacityGiB = input.fileStorageCapacityGiB ?? (input.storageTiB ? input.storageTiB * 1024 : 0);
-    const fileIops = input.fileStorageIops ?? 500;
-    if (fileCapacityGiB > 0) {
-      const dp2Tier = pricingToUse.fileStorage?.['dp2'];
-      const dp2CostPerGB = regional.fileStorage?.['dp2']?.costPerGBMonth ?? dp2Tier?.costPerGBMonth ?? 0.15155;
-      const defaultIopsRates: FileStorageIopsRate[] = [
-        { upTo: 5000, rate: 0.000138 },
-        { upTo: 20000, rate: 0.0000692 },
-        { upTo: 40000, rate: 0.0000277 },
-        { upTo: 96000, rate: 0.0000138 },
-      ];
-      const iopsRates = (dp2Tier as { iopsHourlyRates?: FileStorageIopsRate[] })?.iopsHourlyRates ?? defaultIopsRates;
-      const dp2Cost = calculateDp2FileStorageMonthlyCost(fileCapacityGiB, fileIops, dp2CostPerGB, iopsRates);
-
-      lineItems.push({
-        category: 'Storage - File',
-        description: `File Storage - Data (dp2, ${fileIops.toLocaleString()} IOPS)`,
-        quantity: fileCapacityGiB,
-        unit: 'GB',
-        unitCost: dp2Cost.totalCost / fileCapacityGiB,
-        monthlyCost: dp2Cost.totalCost,
-        annualCost: dp2Cost.totalCost * 12,
-        notes: `NFS via dp2 CSI: $${dp2Cost.capacityCost.toFixed(2)}/mo capacity + $${dp2Cost.iopsCost.toFixed(2)}/mo IOPS`,
-      });
+    // Data volumes — NFS file storage, IOPS from data tier (mapped via getNfsIopsForTier)
+    const dataIops = getNfsIopsForTier(input.dataStorageTier ?? input.storageTier ?? 'general-purpose');
+    if (input.fileStorageDiskGroups && input.fileStorageDiskGroups.length > 0) {
+      // Per-size-group line items for accurate per-share pricing
+      for (const group of input.fileStorageDiskGroups) {
+        const perShareCost = calculateDp2FileStorageMonthlyCost(group.capacityGiB, dataIops, dp2CostPerGB, iopsRates);
+        const groupTotalGB = group.capacityGiB * group.count;
+        const groupMonthlyCost = perShareCost.totalCost * group.count;
+        lineItems.push({
+          category: 'Storage - File',
+          description: `File Storage - Data ${group.capacityGiB} GB (dp2, ${dataIops.toLocaleString()} IOPS)`,
+          quantity: groupTotalGB,
+          unit: 'GB',
+          unitCost: perShareCost.totalCost / group.capacityGiB,
+          monthlyCost: groupMonthlyCost,
+          annualCost: groupMonthlyCost * 12,
+          notes: `${group.count} × ${group.capacityGiB} GB volumes via NFS dp2 at ${dataIops.toLocaleString()} IOPS each`,
+        });
+      }
+    } else {
+      // Fallback: single aggregate line (storageTiB or flat capacity, no disk groups)
+      const fileCapacityGiB = input.fileStorageCapacityGiB ?? (input.storageTiB ? input.storageTiB * 1024 : 0);
+      const dataCount = input.dataVolumeCount ?? 0;
+      if (fileCapacityGiB > 0 && dataCount > 0) {
+        const perShareCapacityGB = fileCapacityGiB / dataCount;
+        const perShareCost = calculateDp2FileStorageMonthlyCost(perShareCapacityGB, dataIops, dp2CostPerGB, iopsRates);
+        const totalMonthlyCost = perShareCost.totalCost * dataCount;
+        lineItems.push({
+          category: 'Storage - File',
+          description: `File Storage - Data (dp2, ${dataIops.toLocaleString()} IOPS)`,
+          quantity: fileCapacityGiB,
+          unit: 'GB',
+          unitCost: perShareCost.totalCost / perShareCapacityGB,
+          monthlyCost: totalMonthlyCost,
+          annualCost: totalMonthlyCost * 12,
+          notes: `${dataCount} data volumes via NFS dp2 at ${dataIops.toLocaleString()} IOPS each`,
+        });
+      } else if (fileCapacityGiB > 0) {
+        const dp2Cost = calculateDp2FileStorageMonthlyCost(fileCapacityGiB, dataIops, dp2CostPerGB, iopsRates);
+        lineItems.push({
+          category: 'Storage - File',
+          description: `File Storage - Data (dp2, ${dataIops.toLocaleString()} IOPS)`,
+          quantity: fileCapacityGiB,
+          unit: 'GB',
+          unitCost: dp2Cost.totalCost / fileCapacityGiB,
+          monthlyCost: dp2Cost.totalCost,
+          annualCost: dp2Cost.totalCost * 12,
+          notes: `NFS dp2 at ${dataIops.toLocaleString()} IOPS`,
+        });
+      }
     }
   }
 

@@ -112,7 +112,7 @@ export function SizingProfileSection({
             ) : solutionType === 'bm-block-csi' ? (
               <><strong>Note:</strong> This profile uses VPC Block Storage via CSI driver. No local NVMe disks or ODF are required.</>
             ) : solutionType === 'bm-nfs-csi' ? (
-              <><strong>Note:</strong> This profile uses VPC File Storage (NFS) via dp2 CSI driver. Boot volumes use block storage. No local NVMe disks or ODF are required.</>
+              <><strong>Note:</strong> This profile uses VPC File Storage (NFS) via dp2 CSI driver for all storage. No local NVMe disks or ODF are required.</>
             ) : (
               <><strong>Note:</strong> This profile has no local NVMe storage. ODF (OpenShift Data Foundation) cannot be deployed on nodes without local storage. You will need to use external file storage.</>
             )}

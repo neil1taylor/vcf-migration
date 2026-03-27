@@ -773,7 +773,7 @@ describe('Cost Estimation Service', () => {
       expect(bootItem).toBeDefined();
       expect(bootItem!.quantity).toBe(12800);
       expect(bootItem!.notes).toContain('256 boot volumes');
-      expect(bootItem!.description).toContain('3 IOPS/GB');
+      expect(bootItem!.description).toContain('Boot');
 
       const dataItem = blockItems.find(item => item.description.includes('Data'));
       expect(dataItem).toBeDefined();
@@ -1009,7 +1009,50 @@ describe('Cost Estimation Service', () => {
       expect(odfItems).toHaveLength(0);
     });
 
-    it('should have boot block storage and data file storage line items', () => {
+    it('should group data volumes by disk size with per-share pricing', () => {
+      const input: ROKSSizingInput = {
+        computeNodes: 3,
+        computeProfile: 'bx2-metal-96x384',
+        solutionType: 'bm-nfs-csi',
+        bootVolumeCount: 50,
+        bootVolumeCapacityGiB: 5000,
+        fileStorageIops: 500,
+        fileStorageDiskGroups: [
+          { capacityGiB: 100, count: 50 },
+          { capacityGiB: 150, count: 100 },
+        ],
+      };
+      const cost = calculateROKSCost(input);
+
+      // No block storage
+      const blockItems = cost.lineItems.filter(item => item.category === 'Storage - Block');
+      expect(blockItems).toHaveLength(0);
+
+      const fileItems = cost.lineItems.filter(item => item.category === 'Storage - File');
+      // 1 boot + 2 data groups = 3 file storage lines
+      expect(fileItems).toHaveLength(3);
+
+      // Boot
+      const bootItem = fileItems.find(item => item.description.includes('Boot'));
+      expect(bootItem).toBeDefined();
+      expect(bootItem!.notes).toContain('50 boot volumes');
+
+      // Data groups — each has accurate per-share unit cost
+      const data100 = fileItems.find(item => item.description.includes('Data 100 GB'));
+      expect(data100).toBeDefined();
+      expect(data100!.quantity).toBe(5000); // 100 GB × 50
+      expect(data100!.notes).toContain('50 × 100 GB');
+
+      const data150 = fileItems.find(item => item.description.includes('Data 150 GB'));
+      expect(data150).toBeDefined();
+      expect(data150!.quantity).toBe(15000); // 150 GB × 100
+      expect(data150!.notes).toContain('100 × 150 GB');
+
+      // Unit cost per GB should differ (IOPS charge is fixed per share, capacity varies)
+      expect(data100!.unitCost).toBeGreaterThan(data150!.unitCost);
+    });
+
+    it('should fall back to aggregate line when no disk groups', () => {
       const input: ROKSSizingInput = {
         computeNodes: 3,
         computeProfile: 'bx2-metal-96x384',
@@ -1017,27 +1060,19 @@ describe('Cost Estimation Service', () => {
         bootVolumeCount: 100,
         bootVolumeCapacityGiB: 5000,
         fileStorageCapacityGiB: 20000,
-        fileStorageIops: 1000,
+        dataVolumeCount: 200,
+        dataStorageTier: '5iops', // maps to 1,000 IOPS via getNfsIopsForTier
       };
       const cost = calculateROKSCost(input);
 
-      // Boot volumes on block storage
-      const bootItems = cost.lineItems.filter(item => item.category === 'Storage - Block');
-      expect(bootItems).toHaveLength(1);
-      expect(bootItems[0].description).toContain('Boot');
-      expect(bootItems[0].description).toContain('3 IOPS/GB');
-      expect(bootItems[0].quantity).toBe(5000);
-      expect(bootItems[0].notes).toContain('100 boot volumes');
-
-      // Data volumes on file storage
       const fileItems = cost.lineItems.filter(item => item.category === 'Storage - File');
-      expect(fileItems).toHaveLength(1);
-      expect(fileItems[0].description).toContain('dp2');
-      expect(fileItems[0].description).toContain('1,000 IOPS');
-      expect(fileItems[0].quantity).toBe(20000);
-      expect(fileItems[0].monthlyCost).toBeGreaterThan(0);
-      expect(fileItems[0].notes).toContain('capacity');
-      expect(fileItems[0].notes).toContain('IOPS');
+      expect(fileItems).toHaveLength(2); // boot + 1 aggregate data
+
+      const dataItem = fileItems.find(item => item.description.includes('Data'));
+      expect(dataItem).toBeDefined();
+      expect(dataItem!.description).toContain('1,000 IOPS');
+      expect(dataItem!.quantity).toBe(20000);
+      expect(dataItem!.notes).toContain('200 data volumes');
     });
 
     it('should default file storage IOPS to 500', () => {

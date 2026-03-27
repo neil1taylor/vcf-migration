@@ -138,7 +138,7 @@ export function ClusterPage() {
   // CPU & Memory overcommitment by cluster
   // Primary: vHost totalCpuCores/vmCpuCount and memoryMiB/vmMemoryMiB
   // Fallback: host cores from cpuSockets*coresPerSocket, VM totals from vInfo
-  const { cpuOvercommitByCluster, memOvercommitByCluster } = useMemo(() => {
+  const { cpuOvercommitByCluster, memOvercommitByCluster, overcommitUsingFallback } = useMemo(() => {
     const cpuMap = new Map<string, { totalCores: number; vmCpus: number }>();
     const memMap = new Map<string, { hostMem: number; vmMem: number }>();
 

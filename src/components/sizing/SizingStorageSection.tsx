@@ -161,8 +161,8 @@ export function SizingStorageSection({
             {!hasOdf && solutionType === 'bm-nfs-csi' && (
             <div className="sizing-calculator__info-text" style={{ marginTop: '0.5rem', fontSize: '0.75rem' }}>
               <span className="label">VPC File Storage (NFS)</span><br />
-              &bull; NFS persistent volumes via dp2 CSI driver (500 / 1,000 / 3,000 IOPS)<br />
-              &bull; Boot volumes on block storage (300 IOPS)<br />
+              &bull; All storage via NFS dp2 CSI driver — no block storage<br />
+              &bull; Boot volumes at fixed 500 IOPS; data at selectable IOPS (500 / 1,000 / 3,000)<br />
               &bull; No software-defined storage overhead
             </div>
             )}

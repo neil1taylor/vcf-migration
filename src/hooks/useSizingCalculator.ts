@@ -956,8 +956,20 @@ export function useSizingCalculator({
             dataVolumeCapacityGiB: Math.ceil(dataDisks.reduce((sum, d) => sum + d.capacityMiB / 1024, 0)),
           };
           if (solutionType === 'bm-nfs-csi') {
-            // File storage capacity = data disk capacity (boot stays on block)
+            // File storage capacity = data disk capacity
             result.fileStorageCapacityGiB = result.dataVolumeCapacityGiB;
+            // Group data disks by size (rounded to nearest GiB) for per-share pricing
+            const sizeGroups = new Map<number, number>();
+            for (const d of dataDisks) {
+              const sizeGiB = Math.ceil(d.capacityMiB / 1024);
+              sizeGroups.set(sizeGiB, (sizeGroups.get(sizeGiB) ?? 0) + 1);
+            }
+            return {
+              ...result,
+              fileStorageDiskGroups: Array.from(sizeGroups.entries())
+                .sort((a, b) => a[0] - b[0])
+                .map(([capacityGiB, count]) => ({ capacityGiB, count })),
+            };
           }
           return result;
         })() : {}),
@@ -1016,6 +1028,16 @@ export function useSizingCalculator({
       };
     });
   }, [bareMetalProfiles, needsNvme]);
+
+  // When solution type changes, the filtered profile list changes.
+  // If the current profile isn't in the new list, auto-select a valid one.
+  useEffect(() => {
+    if (profileItems.length > 0 && !profileItems.some(p => p.id === selectedProfileName)) {
+      const target = bestValueProfileName || profileItems[0].id;
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- sync profile when solution type changes filter
+      setSelectedProfileName(target);
+    }
+  }, [profileItems, selectedProfileName, bestValueProfileName]);
 
   return {
     hasData,

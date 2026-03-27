@@ -4,6 +4,7 @@ import {
   getStorageTierForWorkload,
   getCategoryDisplayName,
   getStorageTierLabel,
+  getNfsIopsForTier,
 } from './workloadClassification';
 
 describe('workloadClassification', () => {
@@ -118,10 +119,18 @@ describe('workloadClassification', () => {
   });
 
   describe('getStorageTierLabel', () => {
-    it('should return human-readable labels', () => {
-      expect(getStorageTierLabel('general-purpose')).toBe('3 IOPS/GB');
-      expect(getStorageTierLabel('5iops')).toBe('5 IOPS/GB');
-      expect(getStorageTierLabel('10iops')).toBe('10 IOPS/GB');
+    it('should return short tier names', () => {
+      expect(getStorageTierLabel('general-purpose')).toBe('Standard');
+      expect(getStorageTierLabel('5iops')).toBe('Performance');
+      expect(getStorageTierLabel('10iops')).toBe('High Performance');
+    });
+  });
+
+  describe('getNfsIopsForTier', () => {
+    it('should map storage tiers to NFS dp2 IOPS values', () => {
+      expect(getNfsIopsForTier('general-purpose')).toBe(500);
+      expect(getNfsIopsForTier('5iops')).toBe(1000);
+      expect(getNfsIopsForTier('10iops')).toBe(3000);
     });
   });
 });

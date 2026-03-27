@@ -8,6 +8,7 @@ import { useData, useAllVMs, useCustomProfiles, usePreflightChecks, useMigration
 import { ROUTES, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
 import { formatNumber } from '@/utils/formatters';
 import { getVMIdentifier, getEnvironmentFingerprint } from '@/utils/vmIdentifier';
+import type { StorageTierType } from '@/utils/workloadClassification';
 import { MetricCard, NextStepBanner, SectionErrorBoundary } from '@/components/common';
 import { CostEstimation } from '@/components/cost';
 import { ComplexityAssessmentPanel, OSCompatibilityPanel, VSIPreFlightPanel, VSISizingPanel } from '@/components/migration';
@@ -81,6 +82,17 @@ export function VSIMigrationPage() {
     const vmId = getVMIdentifier(vm);
     return vmOverrides.isBandwidthSensitive(vmId);
   }, [allVmsRaw, vmOverrides]);
+
+  // Wrap getEffectiveStorageTier to check vmOverrides.dataStorageTier (from Discovery) first
+  const getEffectiveStorageTierWithOverrides = useCallback((vmName: string, autoTier: StorageTierType): StorageTierType => {
+    const vm = allVmsRaw.find(v => v.vmName === vmName);
+    if (vm) {
+      const vmId = getVMIdentifier(vm);
+      const discoveryTier = vmOverrides.getDataStorageTier(vmId);
+      if (discoveryTier) return discoveryTier as StorageTierType;
+    }
+    return getEffectiveStorageTier(vmName, autoTier);
+  }, [allVmsRaw, vmOverrides, getEffectiveStorageTier]);
 
   // Filter out excluded VMs using unified three-tier exclusion
   const vms = useMemo(() => {
@@ -221,7 +233,7 @@ export function VSIMigrationPage() {
     customProfiles,
     getEffectiveProfile,
     hasOverride,
-    getEffectiveStorageTier,
+    getEffectiveStorageTier: getEffectiveStorageTierWithOverrides,
     hasStorageTierOverride,
     isBurstableCandidate: isBurstableCandidateByName,
     isInstanceStoragePreferred: isInstanceStoragePreferredByName,

@@ -59,11 +59,20 @@ export function getCategoryDisplayName(categoryKey: string | null): string | nul
   return categories[categoryKey]?.name ?? null;
 }
 
-/** Human-readable label for a storage tier */
+/** Short human-readable label for a storage tier */
 export function getStorageTierLabel(tier: StorageTierType): string {
   switch (tier) {
-    case '10iops': return '10 IOPS/GB';
-    case '5iops': return '5 IOPS/GB';
-    case 'general-purpose': return '3 IOPS/GB';
+    case '10iops': return 'High Performance';
+    case '5iops': return 'Performance';
+    case 'general-purpose': return 'Standard';
+  }
+}
+
+/** Map a storage tier to the corresponding NFS dp2 IOPS value */
+export function getNfsIopsForTier(tier: StorageTierType): 500 | 1000 | 3000 {
+  switch (tier) {
+    case '10iops': return 3000;
+    case '5iops': return 1000;
+    case 'general-purpose': return 500;
   }
 }

@@ -59,6 +59,11 @@ export interface VMRow {
   gpuRequired: boolean;
   // Bandwidth sensitive
   bandwidthSensitive: boolean;
+  // Storage tiers
+  bootTier: string;
+  dataTier: string;
+  // Options summary (count of non-default settings for sorting)
+  options: string;
   // Sortable derived values
   status: string;
   actions: string;
