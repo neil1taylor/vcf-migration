@@ -47,8 +47,6 @@ export function VSIMigrationPage() {
     removeCustomProfile,
     setStorageTierOverride,
     removeStorageTierOverride,
-    getEffectiveStorageTier,
-    hasStorageTierOverride,
   } = useCustomProfiles();
 
   // Build vmName → vmId lookup for burstable candidate resolution

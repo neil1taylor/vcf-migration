@@ -72,13 +72,13 @@ export function SizingProfileSection({
           items={profileItems}
           selectedItem={selectedItem}
           itemToString={(item: ProfileItem | null) => item?.text || ''}
-          onChange={({ selectedItem: item }: { selectedItem: ProfileItem | null }) => {
+          onChange={({ selectedItem: item }: { selectedItem: ProfileItem | null | undefined }) => {
             if (item) {
               hasUserSelectedProfileRef.current = true;
               setSelectedProfileName(item.id);
             }
           }}
-          shouldFilterItem={({ item, inputValue }: { item: ProfileItem; inputValue: string }) =>
+          shouldFilterItem={({ item, inputValue }: { item: ProfileItem; inputValue: string | null }) =>
             !inputValue || item.text.toLowerCase().includes(inputValue.toLowerCase())
           }
         />

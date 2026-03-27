@@ -1,6 +1,31 @@
 {
   "releases": [
     {
+      "version": "2.6.0",
+      "date": "2026-03-27",
+      "sections": {
+        "added": [
+          "BM + NFS (CSI) solution type — bare metal with all storage via VPC File Storage (NFS) dp2 CSI driver, per-share pricing with disk size grouping",
+          "Unified storage IOPS tiers — Standard (3 IOPS/GB · 500 IOPS), Performance (5 IOPS/GB · 1,000 IOPS), High Performance (10 IOPS/GB · 3,000 IOPS) mapped to both block and NFS",
+          "Per-VM boot and data IOPS tier selection in Discovery workload table Options column",
+          "NFS IOPS mapping via getNfsIopsForTier() — converts storage tiers to dp2 IOPS values (500/1,000/3,000)",
+          "Consolidated VM Options column in Discovery table — replaces 6 separate columns (Burstable, Instance Storage, GPU, Bandwidth, Boot IOPS, Data IOPS) with a single column showing active overrides as compact tags with a Toggletip popover for editing",
+          "Storage tier legend above Discovery workload table explaining tier mappings and applicability"
+        ],
+        "changed": [
+          "Boot storage tier now overrideable for ROKS BM + Block and BM + NFS solutions (previously hardcoded to general-purpose)",
+          "Storage tier overrides unified between Discovery and VSI pages — both read/write the same vmOverrides.dataStorageTier",
+          "VSI cost estimation uses Discovery as single source of truth for storage tiers instead of independent workload auto-detection",
+          "Solution comparison panel includes all 6 architectures including BM + NFS (CSI)",
+          "DOCX export includes BM + NFS File Storage architecture in deployment options list"
+        ],
+        "fixed": [
+          "Empty compute profile ComboBox when switching solution types — auto-selects valid profile from filtered list",
+          "ODF controls (tuning profile, tier selector, storage sliders, redundancy validation) now correctly hidden for BM + NFS (CSI) solution type"
+        ]
+      }
+    },
+    {
       "version": "2.5.0",
       "date": "2026-03-24",
       "sections": {
