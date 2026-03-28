@@ -262,7 +262,7 @@ function buildMigrationProcess(s: number): DocumentContent[] {
       'RackWare is an IBM partner with extensive experience in cloud migration software.',
       'RackWare automates discovery, provisioning of target VSIs, disk transfer, and driver installation. It supports wave-based migration with delta synchronisation to minimise downtime.',
       'Additional proven methods are available for specific scenarios, including Wanclouds VPC+ and image-based import via IBM Cloud Object Storage, direct volume copy, and direct extraction from vCenter using the VMware VDDK toolkit.',
-      'All methods handle the necessary driver updates (such as virtio drivers for Linux and Windows) automatically, ensuring VMs boot correctly on the new platform.',
+      'All methods handle the necessary driver updates (such as virtio drivers for Linux and Windows) automatically for supported operating systems (Windows Server 2012 R2+, modern Linux distributions), ensuring VMs boot correctly on the new platform. Legacy OS versions (Windows Server 2008 R2 and earlier) may require manual driver injection or OS upgrades prior to migration.',
     ]),
     createDocLink(
       'For VPC migration methods and tooling options, see',

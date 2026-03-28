@@ -129,8 +129,17 @@
       "patterns": ["windows server 2008", "windows 2008", "microsoft windows server 2008", "win2008", "win 2008"],
       "status": "unsupported",
       "imageType": "none",
-      "notes": "End of life - not supported on IBM Cloud VPC",
+      "notes": "End of life (Jan 2020). Current VirtIO driver releases (virtio-win 0.1.215+) have dropped Windows Server 2008/2008 R2 support. IBM Cloud VPC requires virtio-win 1.9.24+ which does not include 2008 drivers — VMs will not boot. Requires OS upgrade before migration.",
       "eolDate": "2020-01-14"
+    },
+    {
+      "id": "windows-2003",
+      "displayName": "Windows Server 2003",
+      "patterns": ["windows server 2003", "windows 2003", "microsoft windows server 2003", "win2003", "win 2003"],
+      "status": "unsupported",
+      "imageType": "none",
+      "notes": "End of life (Jul 2015). No viable VirtIO drivers exist for Windows Server 2003 — VMs cannot boot on IBM Cloud VPC. Requires application modernization or re-platforming.",
+      "eolDate": "2015-07-14"
     },
     {
       "id": "windows-11",

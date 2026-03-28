@@ -326,7 +326,7 @@
       "compatibilityStatus": "supported-with-caveats",
       "compatibilityScore": 30,
       "supportTier": "known-to-work",
-      "notes": "Known to work in OpenShift Virtualization but not certified. Windows Server 2008 is EOL (Jan 2020) — upgrade strongly recommended",
+      "notes": "Known to work in OpenShift Virtualization but not certified. Windows Server 2008 is EOL (Jan 2020) — upgrade strongly recommended. VirtIO drivers for 2008 R2 were dropped from current virtio-win releases (last stable: 0.1.173.9). MTV/virt-v2v may inject older bundled drivers automatically, but this is not certified by Red Hat.",
       "recommendedUpgrade": "Must upgrade to Windows Server 2016 or later",
       "documentationLink": "https://access.redhat.com/articles/4234591"
     },
@@ -337,7 +337,7 @@
       "compatibilityStatus": "supported-with-caveats",
       "compatibilityScore": 20,
       "supportTier": "known-to-work",
-      "notes": "Known to work in OpenShift Virtualization but not certified. Windows Server 2003 is long EOL — upgrade strongly recommended",
+      "notes": "Known to work in OpenShift Virtualization but not certified. Windows Server 2003 is long EOL — upgrade strongly recommended. No reliable VirtIO drivers exist for 2003. MTV/virt-v2v may attempt driver injection but success is not guaranteed — very high risk of boot failure.",
       "recommendedUpgrade": "Must upgrade to Windows Server 2016 or later",
       "documentationLink": "https://access.redhat.com/articles/4234591"
     },

@@ -100,10 +100,10 @@
   {
     "id": "curated-technical-image",
     "category": "Technical",
-    "description": "Image Conversion / Boot Failure: Exporting VMDK and importing as VPC Custom Image fails because cloud-init or virtio drivers are missing. Legacy OS versions (Windows Server 2003/2008, RHEL 5/6) lack cloud-init/virtio support entirely and are high-risk for boot failure.",
+    "description": "Image Conversion / Boot Failure: Exporting VMDK and importing as VPC Custom Image fails because cloud-init or virtio drivers are missing. Windows Server 2003 has no viable VirtIO drivers and cannot boot on VPC. Windows Server 2008/2008 R2 VirtIO drivers were dropped from current virtio-win releases (last working version: 0.1.173.9, unsupported); IBM Cloud requires virtio-win 1.9.24+ which excludes 2008. RHEL 5/6 lack cloud-init/virtio support. All are high-risk for boot failure.",
     "impactArea": "Schedule",
     "defaultStatus": "amber",
-    "mitigationPlan": "Standardize a pre-migration script to inject necessary drivers into the OS before export."
+    "mitigationPlan": "For Windows Server 2012 R2+: standardize a pre-migration script to inject current virtio-win drivers. For Windows Server 2008 R2: archived virtio-win-0.1.173.9 may be manually injected but is unsupported and untested on current VPC firmware — OS upgrade to 2019/2022 strongly recommended. For Windows Server 2003: no viable drivers exist — requires OS upgrade or application re-platforming before migration."
   },
   {
     "id": "curated-technical-routing",

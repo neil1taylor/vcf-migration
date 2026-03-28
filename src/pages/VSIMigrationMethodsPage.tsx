@@ -219,7 +219,7 @@ const linuxPreparation = [
 ];
 
 const windowsPreparation = [
-  'Install virtio drivers from Red Hat virtio-win ISO (vioscsi, viostor, netkvm)',
+  'Install virtio drivers from Red Hat virtio-win ISO (vioscsi, viostor, netkvm) — current releases support Windows Server 2012 R2+; 2008 R2 requires archived virtio-win-0.1.173.9; 2003 has no viable drivers',
   'Update both boot disk and recovery image with virtio drivers',
   'Use either sysprep OR libguestfs approach for driver binding',
   'Install cloudbase-init for cloud initialization',
@@ -233,7 +233,7 @@ const limitations = [
   { item: 'No shared block volumes supported', severity: 'error' },
   { item: 'No warm migration available (cold migration only)', severity: 'info' },
   { item: 'VSI boot disk uses virtio-SCSI, data volumes use virtio-blk', severity: 'info' },
-  { item: 'Red Hat virtio drivers support Windows Server 2008 R2 through 2025, Windows 7-11', severity: 'info' },
+  { item: 'Current Red Hat virtio-win drivers (0.1.215+) support Windows Server 2012 R2 through 2025 and Windows 10-11. Windows Server 2008 R2 requires archived virtio-win-0.1.173.9 (unsupported, not included in IBM Cloud required virtio-win 1.9.24+). Windows Server 2003 has no viable VirtIO drivers.', severity: 'warning' },
 ];
 
 const tools = [
@@ -277,7 +277,7 @@ const rackwareSupportedOS = {
     'Rocky Linux 8, 9',
   ],
   windows: [
-    'Windows Server 2008 R2',
+    'Windows Server 2008 R2 (RackWare supports migration, but VPC target requires VirtIO drivers no longer available in current releases — high risk of boot failure)',
     'Windows Server 2012, 2016, 2019, 2022',
   ],
 };
@@ -563,8 +563,8 @@ export function VSIMigrationMethodsPage() {
                   <h4>Windows-Specific Considerations</h4>
                   <UnorderedList>
                     <ListItem>VSI presents boot disk as virtio SCSI but other volumes as virtio block devices</ListItem>
-                    <ListItem>Red Hat virtio drivers support Windows Server 2008 R2 through 2025</ListItem>
-                    <ListItem>Windows 7 through Windows 11 desktop versions supported</ListItem>
+                    <ListItem>Current Red Hat virtio-win drivers support Windows Server 2012 R2 through 2025 (2008 R2 dropped from current releases)</ListItem>
+                    <ListItem>Windows 10 and Windows 11 desktop versions supported (Windows 7-8.1 dropped from current virtio-win)</ListItem>
                     <ListItem>RHEL libguestfs lacks --block-driver virtio-scsi option</ListItem>
                     <ListItem>Ubuntu libguestfs supports virtio-scsi but lacks VDDK plugin</ListItem>
                   </UnorderedList>
