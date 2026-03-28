@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "version": "2.6.2",
+      "date": "2026-03-28",
+      "sections": {
+        "added": [
+          "Cost Comparison tab on Migration Review page — side-by-side comparison of source VMware BOM vs all 6 ROKS architectures (full + ROVe variants) and VPC VSI costs",
+          "Category-level expandable rows (Compute, Storage, Networking, Licensing, ODF) with line-item detail and delta tags showing savings or cost increase relative to source",
+          "Summary tiles showing source monthly cost, cheapest ROKS/ROVe architecture, VPC VSI cost, and best savings percentage"
+        ]
+      }
+    },
+    {
       "version": "2.6.1",
       "date": "2026-03-28",
       "sections": {

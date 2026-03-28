@@ -29,10 +29,11 @@ Get started in 5 simple steps:
 9. [Network Design](#9-network-design)
 10. [Migration Assessment](#10-migration-assessment)
 11. [Wave Planning](#11-wave-planning)
-12. [Cost Estimation](#12-cost-estimation)
-13. [AI Features (Optional)](#13-ai-features-optional)
-14. [Generating Reports](#14-generating-reports)
-15. [Reference Documentation](#15-reference-documentation)
+12. [Cost Comparison](#12-cost-comparison)
+13. [Cost Estimation](#13-cost-estimation)
+14. [AI Features (Optional)](#14-ai-features-optional)
+15. [Generating Reports](#15-generating-reports)
+16. [Reference Documentation](#16-reference-documentation)
 
 ---
 
@@ -699,7 +700,53 @@ VMs are automatically grouped by migration complexity:
 
 ---
 
-## 12. Cost Estimation
+## 12. Cost Comparison
+
+Compare your source VMware infrastructure costs against all IBM Cloud target options in a single view.
+
+### Accessing Cost Comparison
+
+Navigate to **Migration Assessment** > **Migration Review** > **Cost Comparison** tab.
+
+### Summary Tiles
+
+The top of the tab displays five summary tiles:
+
+| Tile | Description |
+|------|-------------|
+| **Source Monthly** | Total monthly cost of your current VMware infrastructure on IBM Cloud Classic bare metal |
+| **Cheapest ROKS** | Lowest-cost ROKS architecture (with architecture name) |
+| **Cheapest ROVe** | Lowest-cost ROVe architecture (with architecture name) |
+| **VPC VSI** | Total monthly cost for VPC Virtual Server Instances |
+| **Best Savings** | Best savings percentage across all target options relative to source |
+
+### Comparison Table
+
+The main table compares costs by category with the source BOM as the baseline:
+
+- **Sticky columns**: Category name and Source BOM cost remain visible while scrolling
+- **Target columns**: All 6 ROKS architecture variants (NVMe Converged, Hybrid BM+VSI, BM+Block CSI, BM+Block+ODF, BM Disaggregated, BM+NFS CSI) × 2 licensing variants (ROKS and ROVe) plus VPC VSI
+- **Category rows**: Compute, Storage, Networking, Licensing, ODF, ACM — click to expand and see individual line items
+- **Delta tags**: Green tags show savings, red tags show cost increases relative to the source
+- **Future architectures**: Shown at 50% opacity with a purple "Future" tag (not yet available)
+
+### How It Works
+
+- The source BOM is computed from your RVTools host and datastore data, matching each ESXi host to the smallest adequate IBM Cloud Classic bare metal profile
+- ROKS estimates use the best-value bare metal profile for each solution architecture
+- VSI estimates map each VM to the best-fit VPC VSI profile based on vCPU and memory requirements, with storage tiers derived from workload classification
+- Region and discount settings are inherited from your current selections (Discovery Infrastructure tab and Cost Settings)
+
+### Tips
+
+1. Expand category rows to understand where cost differences originate
+2. "Future" architectures (BM+Block CSI, BM+Block+ODF) are included for reference but not yet available
+3. The source BOM requires vHost data in your RVTools export — if unavailable, the Source column shows "N/A"
+4. Change your target region on the Discovery Infrastructure tab to see how regional pricing affects the comparison
+
+---
+
+## 13. Cost Estimation
 
 Estimate monthly and annual costs for your IBM Cloud deployment.
 
@@ -756,7 +803,7 @@ The pricing indicator shows the data source:
 
 ---
 
-## 13. AI Features (Optional)
+## 14. AI Features (Optional)
 
 The application includes optional AI-powered features using IBM watsonx.ai (Granite models). AI features are **disabled by default** and must be enabled in the Settings page.
 
@@ -813,7 +860,7 @@ All AI-generated content is marked with a watsonx.ai disclaimer.
 
 ---
 
-## 14. Generating Reports
+## 15. Generating Reports
 
 Export your analysis in multiple formats for stakeholders and planning.
 
@@ -922,7 +969,7 @@ For automated migration with RackWare:
 
 ---
 
-## 15. Reference Documentation
+## 16. Reference Documentation
 
 ### In-App Reference Pages
 

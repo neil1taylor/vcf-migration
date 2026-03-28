@@ -6,7 +6,7 @@ import {
 } from '@carbon/react';
 import { Reset } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
-import { useData, useAllVMs, useVMOverrides, useAutoExclusion, useTargetAssignments, usePlatformSelection, useMigrationAssessment, useWavePlanning } from '@/hooks';
+import { useData, useAllVMs, useVMOverrides, useAutoExclusion, useTargetAssignments, usePlatformSelection, useMigrationAssessment, useWavePlanning, useDynamicPricing, useCostSettings } from '@/hooks';
 import { useTimelineConfig } from '@/hooks/useTimelineConfig';
 import { useRiskAssessment } from '@/hooks/useRiskAssessment';
 import { ROUTES } from '@/utils/constants';
@@ -18,7 +18,9 @@ import {
   RecommendationBanner,
   VMAssignmentTable,
   PlatformSelectionPanel,
+  CostComparisonPanel,
 } from '@/components/comparison';
+import { useCostComparison } from '@/hooks/useCostComparison';
 import { WavePlanningPanel } from '@/components/migration';
 import { GanttTimeline } from '@/components/charts/GanttTimeline';
 import { AIWaveAnalysisPanel } from '@/components/ai/AIWaveAnalysisPanel';
@@ -80,6 +82,11 @@ export function MigrationComparisonPage() {
   const disks = useMemo(() => rawData?.vDisk ?? [], [rawData?.vDisk]);
   const networks = useMemo(() => rawData?.vNetwork ?? [], [rawData?.vNetwork]);
   const poweredOnVMs = useMemo(() => vms.filter(vm => vm.powerState === 'poweredOn'), [vms]);
+
+  // Cost comparison — source BOM vs all ROKS/ROVe vs VSI
+  const { pricing } = useDynamicPricing();
+  const { region, discountType } = useCostSettings();
+  const costComparison = useCostComparison(rawData, vms, disks, pricing, region, discountType);
 
   // Migration assessment (needed for complexity scores)
   const { complexityScores } = useMigrationAssessment({
@@ -195,6 +202,7 @@ export function MigrationComparisonPage() {
               <Tab>VM Assignments</Tab>
               <Tab>Migration Planning</Tab>
               <Tab>Risk Assessment</Tab>
+              <Tab>Cost Comparison</Tab>
             </TabList>
             <TabPanels>
               <TabPanel>
@@ -373,6 +381,11 @@ export function MigrationComparisonPage() {
                     />
                   </Column>
                 </Grid>
+              </TabPanel>
+              <TabPanel>
+                <SectionErrorBoundary sectionName="Cost Comparison">
+                  <CostComparisonPanel comparison={costComparison} />
+                </SectionErrorBoundary>
               </TabPanel>
             </TabPanels>
           </Tabs>

@@ -564,8 +564,58 @@ export function UserGuidePage() {
               </div>
             </AccordionItem>
 
+            {/* Cost Comparison */}
+            <AccordionItem title="12. Cost Comparison">
+              <div className="user-guide-page__section">
+                <Tile className="user-guide-page__card">
+                  <h4>Overview</h4>
+                  <p>Compare your source VMware infrastructure costs against all IBM Cloud target options. Navigate to <strong>Migration Review</strong> &gt; <strong>Cost Comparison</strong> tab.</p>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>Summary Tiles</h4>
+                  <table className="user-guide-page__table">
+                    <thead>
+                      <tr>
+                        <th>Tile</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>Source Monthly</td><td>Total monthly cost of VMware on IBM Cloud Classic bare metal</td></tr>
+                      <tr><td>Cheapest ROKS</td><td>Lowest-cost ROKS architecture with name</td></tr>
+                      <tr><td>Cheapest ROVe</td><td>Lowest-cost ROVe architecture with name</td></tr>
+                      <tr><td>VPC VSI</td><td>Total monthly cost for VPC Virtual Server Instances</td></tr>
+                      <tr><td>Best Savings</td><td>Best savings percentage across all targets vs source</td></tr>
+                    </tbody>
+                  </table>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>Comparison Table</h4>
+                  <UnorderedList>
+                    <ListItem><strong>Source BOM column</strong> stays pinned while scrolling through 13 target columns</ListItem>
+                    <ListItem><strong>Target columns</strong> include all 6 ROKS architectures (full + ROVe) plus VPC VSI</ListItem>
+                    <ListItem><strong>Category rows</strong> (Compute, Storage, Networking, Licensing, ODF) — click to expand line items</ListItem>
+                    <ListItem><strong>Delta tags</strong> show green for savings, red for cost increases relative to source</ListItem>
+                    <ListItem><strong>Future architectures</strong> shown at reduced opacity with purple tag</ListItem>
+                  </UnorderedList>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>Tips</h4>
+                  <OrderedList>
+                    <ListItem>Expand category rows to see where cost differences originate</ListItem>
+                    <ListItem>Source BOM requires vHost data in your RVTools export</ListItem>
+                    <ListItem>Change your target region on the Discovery Infrastructure tab to see regional pricing effects</ListItem>
+                    <ListItem>Region and discount settings are inherited from your current selections</ListItem>
+                  </OrderedList>
+                </Tile>
+              </div>
+            </AccordionItem>
+
             {/* Cost Estimation */}
-            <AccordionItem title="12. Cost Estimation">
+            <AccordionItem title="13. Cost Estimation">
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>Configuration Options</h4>
@@ -614,7 +664,7 @@ export function UserGuidePage() {
             </AccordionItem>
 
             {/* AI Features */}
-            <AccordionItem title="13. AI Features (Optional)">
+            <AccordionItem title="14. AI Features (Optional)">
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>Overview</h4>
@@ -673,7 +723,7 @@ export function UserGuidePage() {
             </AccordionItem>
 
             {/* Generating Reports */}
-            <AccordionItem title="14. Generating Reports">
+            <AccordionItem title="15. Generating Reports">
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>PDF Reports</h4>
@@ -728,7 +778,7 @@ export function UserGuidePage() {
             </AccordionItem>
 
             {/* Reference Documentation */}
-            <AccordionItem title="15. Reference Documentation">
+            <AccordionItem title="16. Reference Documentation">
               <div className="user-guide-page__section">
                 <Tile className="user-guide-page__card">
                   <h4>In-App Reference Pages</h4>

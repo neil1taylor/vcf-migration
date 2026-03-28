@@ -114,7 +114,7 @@ Navigate to **Assess** in the sidebar:
 Navigate to either:
 - **ROKS Migration** — For OpenShift Virtualization with MTV
 - **VPC VSI Migration** — For traditional VM-to-VSI migration
-- **Migration Review** — Side-by-side ROKS vs VSI vs PowerVS analysis with platform selection questionnaire defaults and recommendations
+- **Migration Review** — Side-by-side ROKS vs VSI vs PowerVS analysis with platform selection questionnaire, VM assignments, wave planning, risk assessment, and cost comparison (source VMware BOM vs all target architectures)
 
 ### 4. Review Readiness
 

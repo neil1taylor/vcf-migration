@@ -370,7 +370,7 @@ Maps VMware port groups to IBM Cloud VPC subnets. Distributes across 3 zones. Ge
 
 ### Migration Review (under Migration Assessment)
 
-Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 4-tab analysis (Platform Selection, VM Assignments, Migration Planning, Risk Assessment). Route: `/migration-comparison`. The Migration Planning tab integrates wave planning (from `useWavePlanning` hook) with the timeline — wave count from active waves drives timeline phases. Platform-specific sections (VSI workflow, RackWare export) appear conditionally based on platform selection leaning.
+Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 5-tab analysis (Platform Selection, VM Assignments, Migration Planning, Risk Assessment, Cost Comparison). Route: `/migration-comparison`. The Migration Planning tab integrates wave planning (from `useWavePlanning` hook) with the timeline — wave count from active waves drives timeline phases. Platform-specific sections (VSI workflow, RackWare export) appear conditionally based on platform selection leaning. The Cost Comparison tab shows source VMware BOM alongside all 6 ROKS architectures (full + ROVe variants) and VPC VSI costs with category-level expandable rows and delta tags.
 
 **Target Assignment** — Default platform comes from the Platform Selection questionnaire's `leaning` (`roks`/`vsi`/`neutral`). SAP/Oracle VMs (enterprise workload + SAP/HANA name patterns, or database workload + Oracle name patterns) default to PowerVS. When leaning is `neutral`, falls back to data-driven auto-classification rules (`targetClassificationRules.json`). Users can override any VM's target via dropdown and edit the reason text inline. The VM Assignment table shows: VM Name, Workload Type, Target (dropdown), and Reason (editable text). Recommendation: >70% one target → recommend that target; else split.
 
@@ -383,8 +383,9 @@ Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 4-tab ana
 | `src/hooks/useTargetAssignments.ts` | Accepts `platformLeaning`, SAP/Oracle→PowerVS, localStorage `vcf-target-assignments`, env fingerprinting, user overrides with editable reasons |
 | `src/data/platformSelectionFactors.json` | Platform selection factors including dynamic cost factor (`target: "dynamic"`, `dynamicResolver: "cost"`) |
 | `src/hooks/usePlatformSelection.ts` | Platform selection with optional `costData` param — resolves dynamic cost factor at runtime |
-| `src/pages/MigrationComparisonPage.tsx` | Main page with 4 tabs (Platform Selection, VM Assignments, Migration Timeline, Risk Assessment) |
-| `src/components/comparison/` | RecommendationBanner, VMAssignmentTable, PlatformSelectionPanel (includes cost tiles) |
+| `src/pages/MigrationComparisonPage.tsx` | Main page with 5 tabs (Platform Selection, VM Assignments, Migration Planning, Risk Assessment, Cost Comparison) |
+| `src/components/comparison/` | RecommendationBanner, VMAssignmentTable, PlatformSelectionPanel, CostComparisonPanel |
+| `src/hooks/useCostComparison.ts` | Orchestrates source BOM + all ROKS/ROVe + VSI cost estimates for Cost Comparison tab |
 | `src/types/timeline.ts` | Phase types, config, totals, colors/defaults |
 | `src/services/migration/timelineEstimation.ts` | `buildDefaultTimeline()`, `calculateTimelineTotals()`, `formatTimelineForExport()` |
 | `src/hooks/useTimelineConfig.ts` | localStorage `vcf-timeline-config`, env fingerprinting |
