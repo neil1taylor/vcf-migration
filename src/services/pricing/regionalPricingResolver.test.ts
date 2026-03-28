@@ -61,6 +61,38 @@ describe('regionalPricingResolver', () => {
       expect(result.vsi['bx2-2x8'].monthlyRate).toBe(75.60);
     });
 
+    it('should backfill bare metal profiles missing from regional data', () => {
+      const pricing = {
+        regionalPricing: mockRegionalPricing,
+        bareMetal: {
+          'bx2d-metal-96x384': { hourlyRate: 3.90, monthlyRate: 2847.00 },
+          'mx3de-metal-64x512': { hourlyRate: 22.6149, monthlyRate: 16508.88, isCustom: true },
+        },
+        vsi: {},
+      } as unknown as IBMCloudPricing;
+      const result = getRegionalPricing(pricing, 'eu-gb');
+      // Standard profile keeps its regional rate
+      expect(result.bareMetal['bx2d-metal-96x384'].monthlyRate).toBe(2993.00);
+      // Custom/future profile backfilled from base
+      expect(result.bareMetal['mx3de-metal-64x512'].monthlyRate).toBe(16508.88);
+    });
+
+    it('should backfill VSI profiles missing from regional data', () => {
+      const pricing = {
+        regionalPricing: mockRegionalPricing,
+        bareMetal: {},
+        vsi: {
+          'bx2-2x8': { hourlyRate: 0.1036, monthlyRate: 75.60 },
+          'cx2-4x8': { hourlyRate: 0.15, monthlyRate: 109.50 },
+        },
+      } as unknown as IBMCloudPricing;
+      const result = getRegionalPricing(pricing, 'eu-gb');
+      // Standard profile keeps its regional rate
+      expect(result.vsi['bx2-2x8'].monthlyRate).toBe(80.30);
+      // Missing profile backfilled from base
+      expect(result.vsi['cx2-4x8'].monthlyRate).toBe(109.50);
+    });
+
     it('should fall back to base fields when regionalPricing is absent', () => {
       const staticPricing = getStaticPricing();
       delete (staticPricing as Record<string, unknown>).regionalPricing;

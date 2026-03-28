@@ -12,9 +12,30 @@ export function getRegionalPricing(
   pricing: IBMCloudPricing,
   region: string,
 ): RegionalPricingData {
-  return pricing.regionalPricing?.[region]
+  const regional = pricing.regionalPricing?.[region]
     ?? pricing.regionalPricing?.['us-south']
     ?? buildFallbackFromBase(pricing);
+
+  // Backfill bare metal profiles missing from regional data (e.g. custom/future profiles)
+  // using their base rates from pricing.bareMetal
+  if (pricing.bareMetal) {
+    for (const [name, profile] of Object.entries(pricing.bareMetal)) {
+      if (!regional.bareMetal[name]) {
+        regional.bareMetal[name] = { hourlyRate: profile.hourlyRate, monthlyRate: profile.monthlyRate };
+      }
+    }
+  }
+
+  // Backfill VSI profiles missing from regional data
+  if (pricing.vsi) {
+    for (const [name, profile] of Object.entries(pricing.vsi)) {
+      if (!regional.vsi[name]) {
+        regional.vsi[name] = { hourlyRate: profile.hourlyRate, monthlyRate: profile.monthlyRate };
+      }
+    }
+  }
+
+  return regional;
 }
 
 /**

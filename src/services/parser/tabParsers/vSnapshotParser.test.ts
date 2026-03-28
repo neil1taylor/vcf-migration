@@ -75,9 +75,9 @@ describe('parseVSnapshot', () => {
     it('calculates snapshot age in days', () => {
       const headers = ['VM', 'Snapshot', 'Date / time', 'Datacenter', 'Cluster', 'Host', 'Folder'];
       const rows = [
-        ['vm1', 'snap1', '2024-06-14T12:00:00', 'DC1', 'C1', 'H1', 'F1'], // 1 day old
-        ['vm2', 'snap2', '2024-06-10T12:00:00', 'DC1', 'C1', 'H1', 'F1'], // 5 days old
-        ['vm3', 'snap3', '2024-05-15T12:00:00', 'DC1', 'C1', 'H1', 'F1'], // 31 days old
+        ['vm1', 'snap1', '2024-06-14T12:00:00Z', 'DC1', 'C1', 'H1', 'F1'], // 1 day old
+        ['vm2', 'snap2', '2024-06-10T12:00:00Z', 'DC1', 'C1', 'H1', 'F1'], // 5 days old
+        ['vm3', 'snap3', '2024-05-15T12:00:00Z', 'DC1', 'C1', 'H1', 'F1'], // 31 days old
       ];
 
       const sheet = createMockSheet(headers, rows);
