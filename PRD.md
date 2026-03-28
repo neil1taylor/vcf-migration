@@ -435,8 +435,8 @@ Recommended Profiles:
   - Ubuntu 20.04 LTS, 22.04 LTS, 24.04 LTS
   - Debian 10, 11, 12
   - SLES 15 SP3+
-  - Windows Server 2016, 2019, 2022 (with VirtIO drivers)
-  - Windows 10/11 (with VirtIO drivers)
+  - Windows Server 2016, 2019, 2022 (with current VirtIO drivers, virtio-win 0.1.215+)
+  - Windows 10/11 (with current VirtIO drivers)
   - Assign compatibility score: 90-100
 
 - **Supported with Caveats:**
@@ -448,6 +448,8 @@ Recommended Profiles:
 
 - **Unsupported/Problematic Scenarios (per Red Hat documentation):**
   - Windows Server 2012 and earlier (requires upgrade path to 2016+)
+  - Windows Server 2008/2008 R2 (EOL Jan 2020, VirtIO drivers dropped from current virtio-win releases — last working version 0.1.173.9, unsupported)
+  - Windows Server 2003 (EOL Jul 2015, no viable VirtIO drivers exist — cannot boot on KVM/VPC)
   - Legacy Linux distributions (RHEL 6, CentOS 6, Ubuntu 16.04)
   - Solaris, FreeBSD, or other Unix variants (not supported)
   - VMs with GPU pass-through (not supported in OpenShift Virtualization)
@@ -1424,8 +1426,8 @@ function calculateMTVStatus(vm): 'ready' | 'prep' | 'blocker' {
 | RHEL 8.x, 9.x | 100 | Optimal for OpenShift Virtualization |
 | CentOS Stream 8, 9 | 95 | Fully supported |
 | Ubuntu 20.04+, 22.04+, 24.04+ | 95 | LTS versions fully supported |
-| Windows Server 2019, 2022 | 95 | Fully supported with VirtIO drivers |
-| Windows Server 2016 | 85 | Supported, recommend newer version |
+| Windows Server 2019, 2022 | 95 | Fully supported with current VirtIO drivers (virtio-win 0.1.215+) |
+| Windows Server 2016 | 85 | Supported with current VirtIO drivers, recommend newer version |
 
 **Supported with Caveats (Score: 60-89):**
 
@@ -1441,7 +1443,9 @@ function calculateMTVStatus(vm): 'ready' | 'prep' | 'blocker' {
 | OS | Score | Notes |
 |----|-------|-------|
 | RHEL 6.x | 20 | EOL, must upgrade |
-| Windows Server 2012 and earlier | 10 | Unsupported |
+| Windows Server 2012 and earlier | 10 | Unsupported — upgrade to 2016+ required |
+| Windows Server 2008/2008 R2 | 10 | EOL (Jan 2020), VirtIO drivers dropped from current virtio-win (last stable: 0.1.173.9) |
+| Windows Server 2003 | 5 | EOL (Jul 2015), no viable VirtIO drivers — cannot boot on KVM |
 | Solaris, FreeBSD, AIX | 0 | Not supported in OpenShift Virtualization |
 
 ### 10.6 Red Hat Reference Architectures and Resources
@@ -1474,7 +1478,7 @@ function calculateMTVStatus(vm): 'ready' | 'prep' | 'blocker' {
     "displayName": "Windows Server 2022",
     "compatibilityStatus": "fully-supported",
     "compatibilityScore": 95,
-    "notes": "Fully supported with VirtIO drivers",
+    "notes": "Fully supported with current VirtIO drivers (virtio-win 0.1.215+)",
     "docLink": "https://docs.openshift.com/container-platform/latest/virt/"
   }
 }
@@ -1545,7 +1549,7 @@ function calculateMTVStatus(vm): 'ready' | 'prep' | 'blocker' {
 | RWO | ReadWriteOnce - volume access mode (single pod) |
 | RWX | ReadWriteMany - volume access mode (multiple pods) |
 | Multus | CNI plugin for multiple network interfaces |
-| VirtIO | Paravirtualized device drivers for KVM |
+| VirtIO | Paravirtualized device drivers for KVM — current virtio-win releases (0.1.215+) support Windows Server 2012 R2+; legacy OS support dropped |
 
 ### VMware Terms
 

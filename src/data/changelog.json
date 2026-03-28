@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "2.6.1",
+      "date": "2026-03-28",
+      "sections": {
+        "fixed": [
+          "Corrected VirtIO driver compatibility claims — current virtio-win (0.1.215+) supports Windows Server 2012 R2+; 2008 R2 and earlier dropped from current releases",
+          "Added explicit Windows Server 2003 entry to IBM Cloud OS compatibility data (no viable VirtIO drivers, cannot boot on VPC)",
+          "Enhanced Windows Server 2008 OS compatibility notes with VirtIO driver version context for both VPC and ROKS targets",
+          "Updated remediation guidance with version-specific VirtIO driver instructions and archive download links",
+          "Updated migration risk matrix with differentiated mitigation for legacy Windows versions"
+        ]
+      }
+    },
+    {
       "version": "2.6.0",
       "date": "2026-03-27",
       "sections": {

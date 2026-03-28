@@ -572,6 +572,18 @@ The tool validates guest operating systems against the Red Hat certified guest O
 - **Supported with Caveats** (yellow) - May need additional configuration
 - **Unsupported** (red) - Not certified, may still work
 
+**Legacy Windows VirtIO Driver Constraints:**
+
+VirtIO drivers are required for KVM-based platforms. Current Red Hat virtio-win releases (0.1.215+) support Windows Server 2012 R2 and later. Legacy Windows versions have limited or no driver availability:
+
+| OS | VirtIO Status | ROKS/MTV Impact |
+|----|--------------|-----------------|
+| Windows Server 2012 R2+ | Current drivers available | Fully supported via MTV/virt-v2v |
+| Windows Server 2008/2008 R2 | Dropped from current releases (last stable: 0.1.173.9) | MTV may inject older bundled drivers, but not certified by Red Hat |
+| Windows Server 2003 | No viable drivers exist | Very high risk of boot failure — upgrade required |
+
+For legacy Windows VMs, upgrade to Windows Server 2019 or 2022 before migration.
+
 #### Worker Node Sizing
 
 Navigate to **ROKS Migration** > **Sizing** tab.
@@ -612,6 +624,19 @@ VSI-specific checks include:
 | Disk Count | Warning | Maximum 12 disks per VSI |
 | Memory Limits | Warning | Check against profile maximums |
 | OS Support | Varies | IBM Cloud stock image availability |
+| VirtIO Drivers | Unknown | Required for VPC boot — cannot verify from RVTools |
+
+**VirtIO Driver Requirements for VPC VSI:**
+
+IBM Cloud VPC requires VirtIO drivers (vioscsi, viostor, netkvm) in custom images. Driver availability varies by Windows version:
+
+| OS | VirtIO Driver Availability | Migration Impact |
+|----|---------------------------|-----------------|
+| Windows Server 2012 R2+ | Current virtio-win (0.1.215+) | Use standard pre-migration driver injection |
+| Windows Server 2008/2008 R2 | Archived virtio-win-0.1.173.9 only (unsupported) | IBM Cloud requires virtio-win 1.9.24+ which excludes 2008 — high risk of boot failure |
+| Windows Server 2003 | No viable drivers | Cannot boot on VPC — OS upgrade or re-platforming required |
+
+Linux VMs (RHEL 7+, Ubuntu 18.04+) typically include VirtIO drivers by default. Migration tools like RackWare and virt-v2v can inject drivers automatically for supported OS versions.
 
 #### Profile Selection
 
