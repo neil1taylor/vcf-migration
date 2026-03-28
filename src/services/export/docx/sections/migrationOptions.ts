@@ -492,9 +492,9 @@ function buildPartnerEngagementSection(s: number): DocumentContent[] {
     ),
     ...createBulletList([
       'Complimentary assessment — IBM\'s CoE Solutioning Architect assesses your environment, sizes the target, and produces the initial migration design at no cost.',
-      'Free Proof of Concept environment — up to 10% of your VMware footprint provisioned on IBM Cloud for 90 days to validate the migration approach.',
+      'No-cost Proof of Concept environment — up to 10% of your VMware footprint provisioned on IBM Cloud for 90 days to validate the migration approach.',
       'Dual-run credits — 90 days of credits to cover the cost of running workloads on both VMware and IBM Cloud during the transition period.',
-      'Free migration services — specialist migration partner assigned to execute the migration at no additional cost.',
+      'No-cost migration services — specialist migration partner assigned to execute the migration at no additional cost.',
       'Continuous engagement — your assigned IBM resource remains throughout the migration until steady state is achieved.',
     ]),
 
