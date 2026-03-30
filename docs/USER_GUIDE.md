@@ -123,10 +123,11 @@ The billing file should be the IBM Cloud Classic Infrastructure billing export c
 #### What happens when billing data is loaded
 
 - ESXi host costs are matched to billing server hostnames (exact match, then FQDN-prefix match)
-- Matched hosts show actual invoiced costs instead of list-price estimates
+- Matched hosts show actual invoiced costs with an **Actual** tag; unmatched RVTools hosts fall back to list-price estimates with an **Estimated** tag
+- The match rate is based on RVTools hosts matched (not total billing servers), since billing exports typically include non-ESXi infrastructure
+- Non-ESXi billing servers (backup vaults, gateways, firewalls, network appliances) are shown as an informational note and their costs appear under **Additional Costs**
 - Additional cost categories appear: networking, OS licensing, software, virtual servers
-- Cost Comparison tab automatically uses actual source costs
-- "Actual" and "Estimated" tags distinguish cost sources throughout
+- Cost Comparison tab automatically uses actual source costs with an **Actual** tag on the Source BOM column
 
 ### What Data Is Extracted
 
@@ -757,7 +758,8 @@ The main table compares costs by category with the source BOM as the baseline:
 When IBM Cloud billing data has been uploaded (see [Importing Data](#2-importing-data)):
 
 - The **Source BOM column** displays an **"Actual" tag** (green) indicating costs come from your real billing data
-- Matched hosts use actual invoiced costs; unmatched hosts fall back to list-price estimates
+- Matched ESXi hosts use actual invoiced costs; unmatched RVTools hosts fall back to list-price estimates
+- Non-ESXi billing servers (backup vaults, gateways, firewalls) appear under **Additional Costs** with an informational note — these are expected to be unmatched
 - Additional cost categories from the billing data (networking, OS licensing, software) appear as extra line items in the source
 - Without billing data, the column shows an "Estimated" tag and uses catalog list prices
 

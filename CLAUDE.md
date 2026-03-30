@@ -426,19 +426,22 @@ Optional import of IBM Cloud Classic billing exports (`.xls`) to replace estimat
 
 ### Data Flow
 
-1. User uploads billing `.xls` via Source BOM tab or main drop zone
+1. User uploads billing `.xls` via Source BOM tab (Tile + "Upload Billing File" button) or main drop zone
 2. `isClassicBillingFormat()` detects billing format → `parseClassicBilling()` extracts data
 3. Billing data stored in `DataContext` (`billingData` state, `SET_BILLING_DATA` action)
 4. `useSourceBOM` hook receives billing data → calls `matchBillingToHosts()` then `buildSourceBOMWithBilling()`
-5. Matched hosts get actual costs; unmatched hosts keep estimated costs
-6. Additional billing categories (networking, OS, software) appear as new line items
-7. Cost Comparison tab automatically uses actual source costs
+5. Matched ESXi hosts get actual invoiced costs; unmatched RVTools hosts keep estimated costs
+6. Unmatched billing servers (non-ESXi infrastructure: backup vaults, gateways, firewalls) are shown as an info notification and their costs flow into the "Additional Costs" section
+7. Additional billing categories (networking, OS, software) appear as new line items
+8. Cost Comparison tab automatically uses actual source costs
 
 ### Host Matching
 
 Billing hostnames (FQDNs like `green01esx000.green01.greencore.vcs`) matched to RVTools vHost names in two passes:
 1. **Exact match** (case-insensitive)
 2. **FQDN prefix match** (first segment before `.`)
+
+Match rate is calculated as matched hosts / total RVTools hosts (not total billing servers), since billing includes non-ESXi infrastructure that is not expected to match. Unmatched billing servers are displayed as informational (not warnings) with their costs included under Additional Costs.
 
 ### Billing File Structure
 

@@ -136,7 +136,7 @@ export function UserGuidePage() {
                     <ListItem><strong>Main drop zone</strong> — Drop a billing file after loading RVTools data and it will be auto-detected</ListItem>
                     <ListItem><strong>Source BOM tab</strong> — Navigate to Discovery &gt; Source BOM and click "Upload Billing File" in the banner</ListItem>
                   </UnorderedList>
-                  <p style={{ marginTop: '0.5rem' }}>When billing data is loaded, matched hosts show <Tag type="green" size="sm">Actual</Tag> costs and unmatched hosts show <Tag type="gray" size="sm">Estimated</Tag> costs. Additional categories (networking, OS, software) from the billing data are surfaced as new line items.</p>
+                  <p style={{ marginTop: '0.5rem' }}>When billing data is loaded, matched ESXi hosts show <Tag type="green" size="sm">Actual</Tag> costs and unmatched RVTools hosts show <Tag type="gray" size="sm">Estimated</Tag> costs. The match rate is based on RVTools hosts (not total billing servers). Non-ESXi billing servers (backup vaults, gateways, firewalls) are shown as informational and their costs appear under Additional Costs. Additional categories (networking, OS, software) are surfaced as new line items.</p>
                 </Tile>
 
                 <Tile className="user-guide-page__card">

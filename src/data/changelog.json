@@ -6,10 +6,11 @@
       "sections": {
         "added": [
           "IBM Cloud Classic billing data import — upload billing export (.xls) to replace estimated Source BOM costs with actual invoiced amounts",
-          "Auto-detection of billing files on the main drop zone and dedicated upload on Source BOM tab",
-          "Host matching between billing server hostnames and RVTools vHost names (exact + FQDN prefix matching)",
+          "Auto-detection of billing files on the main drop zone and dedicated upload button on Source BOM tab",
+          "Host matching between billing server hostnames and RVTools vHost names (exact + FQDN prefix matching) with match rate based on RVTools hosts",
           "Actual/Estimated cost source tags on host mapping table and Cost Summary",
           "Additional billing cost categories (networking, OS, software, virtual servers) surfaced when billing data loaded",
+          "Non-ESXi billing servers (backup vaults, gateways, firewalls) shown as informational with costs under Additional Costs",
           "Billing data flows into Cost Comparison tab with 'Actual' tag on Source BOM column"
         ]
       }
