@@ -1,6 +1,17 @@
 {
   "releases": [
     {
+      "version": "2.6.4",
+      "date": "2026-03-30",
+      "sections": {
+        "fixed": [
+          "Billing upload now uses explicit button on Source BOM tab instead of notification action",
+          "Match rate calculated from RVTools hosts (not total billing servers) for accurate reporting",
+          "Non-ESXi billing servers (backup vaults, gateways, firewalls) shown as info instead of warnings"
+        ]
+      }
+    },
+    {
       "version": "2.6.3",
       "date": "2026-03-30",
       "sections": {
