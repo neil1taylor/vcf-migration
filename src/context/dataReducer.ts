@@ -1,5 +1,6 @@
 // Data reducer for state management
 import type { RVToolsData, AnalysisResults } from '@/types';
+import type { ClassicBillingData } from '@/services/billing/types';
 
 // Chart filter for drill-down functionality
 export interface ChartFilter {
@@ -26,6 +27,7 @@ export interface DataState {
   calculatedCosts: CalculatedCosts | null;
   originalFileBuffer: ArrayBuffer | null;
   originalFileName: string | null;
+  billingData: ClassicBillingData | null;
 }
 
 // Action types
@@ -37,6 +39,8 @@ export type DataAction =
   | { type: 'SET_CHART_FILTER'; payload: ChartFilter | null }
   | { type: 'SET_CALCULATED_COSTS'; payload: CalculatedCosts }
   | { type: 'SET_ORIGINAL_FILE'; payload: { buffer: ArrayBuffer; fileName: string } }
+  | { type: 'SET_BILLING_DATA'; payload: ClassicBillingData }
+  | { type: 'CLEAR_BILLING_DATA' }
   | { type: 'CLEAR_DATA' };
 
 // Initial state
@@ -50,6 +54,7 @@ export const initialState: DataState = {
   calculatedCosts: null,
   originalFileBuffer: null,
   originalFileName: null,
+  billingData: null,
 };
 
 // Reducer function
@@ -100,6 +105,18 @@ export function dataReducer(state: DataState, action: DataAction): DataState {
         ...state,
         originalFileBuffer: action.payload.buffer,
         originalFileName: action.payload.fileName,
+      };
+
+    case 'SET_BILLING_DATA':
+      return {
+        ...state,
+        billingData: action.payload,
+      };
+
+    case 'CLEAR_BILLING_DATA':
+      return {
+        ...state,
+        billingData: null,
       };
 
     case 'CLEAR_DATA':

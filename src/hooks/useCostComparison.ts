@@ -24,6 +24,7 @@ import { getVMWorkloadCategory, getStorageTierForWorkload } from '@/utils/worklo
 import type { StorageTierType } from '@/utils/workloadClassification';
 import { mibToGiB } from '@/utils/formatters';
 import { VPC_DATA_VOLUME_MIN_GB } from '@/services/migration/remediation';
+import type { ClassicBillingData } from '@/services/billing/types';
 import { useSourceBOM } from './useSourceBOM';
 
 // ===== TYPES =====
@@ -68,6 +69,7 @@ export interface CostComparisonResult {
   discountType: string;
   pricingVersion: string | null;
   sourceWarnings: string[];
+  sourceCostSource: 'estimated' | 'actual' | 'mixed';
 }
 
 // ===== HELPERS =====
@@ -222,9 +224,10 @@ export function useCostComparison(
   pricing: IBMCloudPricing | null,
   region: RegionCode,
   discountType: DiscountType,
+  billingData?: ClassicBillingData | null,
 ): CostComparisonResult {
   // Source BOM
-  const sourceBOMResult = useSourceBOM(rawData, region, pricing);
+  const sourceBOMResult = useSourceBOM(rawData, region, pricing, billingData);
 
   // ROKS/ROVe estimates for all 6 solution types × 2 variants
   const roksEstimates = useMemo<RoksEstimateEntry[]>(() => {
@@ -386,5 +389,6 @@ export function useCostComparison(
     discountType,
     pricingVersion,
     sourceWarnings,
+    sourceCostSource: sourceBOMResult?.costSource ?? 'estimated',
   };
 }

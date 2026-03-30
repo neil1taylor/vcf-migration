@@ -98,13 +98,35 @@ For full analysis capabilities, ensure these sheets are included:
 
 ### Supported File Formats
 
-- `.xlsx` - Excel 2007+ format (recommended)
-- `.xls` - Legacy Excel format
+| Format | Extension | Description |
+|--------|-----------|-------------|
+| RVTools Export | `.xlsx`, `.xls` | VMware vCenter inventory export (recommended) |
+| vInventory Export | `.xlsx`, `.xls` | PowerShell-based VMware inventory (auto-detected and converted) |
+| IBM Cloud Billing | `.xls` | IBM Cloud Classic infrastructure billing report (optional, enhances Source BOM) |
+
+The tool auto-detects the file type based on sheet names. You can drop any supported file on the upload area.
 
 ### File Size Limits
 
 - Maximum file size: **50 MB**
 - Large environments (10,000+ VMs) may take longer to parse
+
+### IBM Cloud Billing Data (Optional)
+
+If you have your IBM Cloud Classic billing export (`.xls`), you can upload it to replace estimated Source BOM costs with actual invoiced amounts:
+
+1. **On the main drop zone**: If you drop a billing file after RVTools data is already loaded, it will be automatically detected and parsed. If no RVTools data is loaded yet, you'll be prompted to upload RVTools first.
+2. **On the Source BOM tab**: After loading RVTools data, navigate to **Discovery** > **Source BOM** tab and click the "Upload Billing File" button in the banner.
+
+The billing file should be the IBM Cloud Classic Infrastructure billing export containing sheets: Summary, Bare Metal Servers, Virtual Servers, and Detailed Billing.
+
+#### What happens when billing data is loaded
+
+- ESXi host costs are matched to billing server hostnames (exact match, then FQDN-prefix match)
+- Matched hosts show actual invoiced costs instead of list-price estimates
+- Additional cost categories appear: networking, OS licensing, software, virtual servers
+- Cost Comparison tab automatically uses actual source costs
+- "Actual" and "Estimated" tags distinguish cost sources throughout
 
 ### What Data Is Extracted
 
@@ -296,7 +318,7 @@ Navigate to **Workload Discovery** in the sidebar.
 - **Infrastructure** - Source data center selector, target IBM Cloud MZR dropdown, environment summary (vCenter, clusters, hosts, datastores)
 - **Workload** - VM workload classification with auto-detection, per-VM Options (burstable, GPU, storage IOPS tiers), and manual overrides
 - **Networks** - Port group and subnet mapping from vNetwork data
-- **Source BOM** - Source infrastructure costing (IBM Cloud bare metal, VCF licensing, storage pricing)
+- **Source BOM** - Source infrastructure costing (IBM Cloud bare metal, VCF licensing, storage pricing). Upload an IBM Cloud billing export to replace estimates with actual invoiced costs — see [Importing Data](#2-importing-data) for details.
 
 ### Using Discovery Data
 
@@ -730,9 +752,18 @@ The main table compares costs by category with the source BOM as the baseline:
 - **Delta tags**: Green tags show savings, red tags show cost increases relative to the source
 - **Future architectures**: Shown at 50% opacity with a purple "Future" tag (not yet available)
 
+### Actual vs Estimated Costs
+
+When IBM Cloud billing data has been uploaded (see [Importing Data](#2-importing-data)):
+
+- The **Source BOM column** displays an **"Actual" tag** (green) indicating costs come from your real billing data
+- Matched hosts use actual invoiced costs; unmatched hosts fall back to list-price estimates
+- Additional cost categories from the billing data (networking, OS licensing, software) appear as extra line items in the source
+- Without billing data, the column shows an "Estimated" tag and uses catalog list prices
+
 ### How It Works
 
-- The source BOM is computed from your RVTools host and datastore data, matching each ESXi host to the smallest adequate IBM Cloud Classic bare metal profile
+- The source BOM is computed from your RVTools host and datastore data, matching each ESXi host to the smallest adequate IBM Cloud Classic bare metal profile. When billing data is uploaded, actual invoiced per-host costs replace the estimates for matched hosts.
 - ROKS estimates use the best-value bare metal profile for each solution architecture
 - VSI estimates map each VM to the best-fit VPC VSI profile based on vCPU and memory requirements, with storage tiers derived from workload classification
 - Region and discount settings are inherited from your current selections (Discovery Infrastructure tab and Cost Settings)
@@ -800,6 +831,7 @@ The cost summary shows:
 The pricing indicator shows the data source:
 - **Live API** (green) - Real-time IBM Cloud Global Catalog pricing
 - **Cache** (gray) - Locally cached or static bundled pricing
+- **Actual Billing** (green tag on Source BOM) - Real invoiced costs from IBM Cloud billing export (see [Importing Data](#2-importing-data))
 
 ---
 

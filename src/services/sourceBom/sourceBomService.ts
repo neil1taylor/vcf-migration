@@ -9,7 +9,9 @@ import type {
   DatastoreStorageTarget,
   SourceBOMInput,
   SourceBOMResult,
+  AdditionalBillingCosts,
 } from './types';
+import type { ClassicBillingData, BillingMatchResult } from '@/services/billing/types';
 
 /**
  * Match a single ESXi host to the best-fit Classic bare metal CPU and RAM components.
@@ -85,6 +87,7 @@ export function matchHostToClassicBM(
       profileMonthlyCost: totalMonthlyCost,
       overProvisionCoresPct,
       overProvisionMemoryPct,
+      costSource: 'estimated',
     },
     warning: warnings.length > 0 ? warnings.join('; ') : undefined,
   };
@@ -298,5 +301,210 @@ export function buildSourceBOM(input: SourceBOMInput): SourceBOMResult {
     vcfLicensing,
     estimate,
     warnings,
+    costSource: 'estimated',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Billing-enhanced BOM
+// ---------------------------------------------------------------------------
+
+/** Categories from Detailed Billing that map to networking */
+const NETWORK_CATEGORIES = new Set([
+  'uplink port speeds', 'public network port', 'public bandwidth',
+  'primary ip addresses', 'network vlan',
+  'private (only) secondary vlan ip addresses',
+  'public (only) secondary vlan ip addresses',
+  'network interconnect',
+]);
+
+/** Categories from Detailed Billing that map to storage */
+const STORAGE_CATEGORIES = new Set([
+  'file storage', 'block storage', 'storage as a service',
+  'storage space', 'storage tier level', 'storage snapshot space',
+  'storage replication',
+]);
+
+/** Categories that map to OS / software */
+const SOFTWARE_CATEGORIES = new Set([
+  'operating system', 'software license', 'vmware vsan node',
+  'bare metal gateway license', 'sriov enabled',
+]);
+
+function categorizeDetailItems(
+  billingData: ClassicBillingData,
+  matchedHostnames: Set<string>,
+): AdditionalBillingCosts {
+  const lineItems: CostLineItem[] = [];
+  const buckets: Record<string, number> = {};
+
+  for (const item of billingData.detailedLineItems) {
+    // Skip items belonging to matched hosts — their total cost is already captured
+    if (matchedHostnames.has(item.serverOrServiceName)) continue;
+
+    const catLower = item.category.toLowerCase();
+    let bucket: string;
+
+    if (NETWORK_CATEGORIES.has(catLower)) bucket = 'Network';
+    else if (STORAGE_CATEGORIES.has(catLower)) bucket = 'Storage';
+    else if (SOFTWARE_CATEGORIES.has(catLower)) bucket = 'Software';
+    else bucket = 'Other Services';
+
+    buckets[bucket] = (buckets[bucket] ?? 0) + item.recurringFee;
+  }
+
+  // Add virtual server costs
+  const virtualServerTotal = billingData.virtualServers.reduce(
+    (sum, s) => sum + s.totalRecurringFee, 0,
+  );
+  if (virtualServerTotal > 0) {
+    buckets['Virtual Servers'] = virtualServerTotal;
+  }
+
+  // Convert buckets to line items
+  for (const [category, monthlyCost] of Object.entries(buckets)) {
+    if (monthlyCost <= 0) continue;
+    const rounded = Math.round(monthlyCost * 100) / 100;
+    lineItems.push({
+      category,
+      description: `${category} (from billing)`,
+      quantity: 1,
+      unit: 'month',
+      unitCost: rounded,
+      monthlyCost: rounded,
+      annualCost: Math.round(rounded * 12 * 100) / 100,
+      notes: 'Actual billing data',
+    });
+  }
+
+  const totalMonthly = Math.round(
+    lineItems.reduce((sum, li) => sum + li.monthlyCost, 0) * 100,
+  ) / 100;
+
+  return { lineItems, totalMonthly };
+}
+
+/**
+ * Build a Source BOM using actual billing data where available,
+ * falling back to estimates for unmatched hosts.
+ */
+export function buildSourceBOMWithBilling(
+  input: SourceBOMInput,
+  billingData: ClassicBillingData,
+  matchResult: BillingMatchResult,
+): SourceBOMResult {
+  // Start with the estimated BOM as a baseline
+  const baseBOM = buildSourceBOM(input);
+
+  // Build a lookup: RVTools hostname → billing match
+  const billingByRvtools = new Map(
+    matchResult.matched.map(m => [m.rvtoolsHostname!, m]),
+  );
+
+  // Overlay actual costs onto matched hosts
+  let hasEstimated = false;
+  let hasActual = false;
+  const matchedBillingHostnames = new Set<string>();
+
+  const updatedMappings = baseBOM.hostMappings.map(mapping => {
+    const match = billingByRvtools.get(mapping.hostName);
+    if (match) {
+      hasActual = true;
+      matchedBillingHostnames.add(match.billingHostname);
+      return {
+        ...mapping,
+        actualMonthlyCost: match.totalRecurringFee,
+        costSource: 'actual' as const,
+      };
+    }
+    hasEstimated = true;
+    return mapping;
+  });
+
+  // Determine overall cost source
+  const costSource = hasActual && hasEstimated
+    ? 'mixed'
+    : hasActual
+      ? 'actual'
+      : 'estimated';
+
+  // Build additional costs from unmatched billing items
+  const additionalBillingCosts = categorizeDetailItems(billingData, matchedBillingHostnames);
+
+  // Rebuild estimate with actual costs
+  const lineItems: CostLineItem[] = [];
+
+  // Compute: one line item per host with actual or estimated cost
+  const actualComputeTotal = updatedMappings.reduce(
+    (sum, m) => sum + (m.actualMonthlyCost ?? m.profileMonthlyCost), 0,
+  );
+  lineItems.push({
+    category: 'Compute',
+    description: costSource === 'actual'
+      ? 'Bare Metal Servers (actual billing)'
+      : 'Bare Metal Servers (actual + estimated)',
+    quantity: updatedMappings.length,
+    unit: 'servers',
+    unitCost: Math.round((actualComputeTotal / Math.max(updatedMappings.length, 1)) * 100) / 100,
+    monthlyCost: Math.round(actualComputeTotal * 100) / 100,
+    annualCost: Math.round(actualComputeTotal * 12 * 100) / 100,
+    notes: costSource === 'actual'
+      ? 'All host costs from billing data'
+      : `${matchResult.matched.length} actual, ${matchResult.unmatchedRvtools.length} estimated`,
+  });
+
+  // Include additional billing costs as line items
+  lineItems.push(...additionalBillingCosts.lineItems);
+
+  // Keep VCF licensing from estimate (unless already in billing)
+  lineItems.push({
+    category: 'Licensing',
+    description: 'VMware Cloud Foundation (VCF)',
+    quantity: baseBOM.vcfLicensing.totalPhysicalCores,
+    unit: 'cores',
+    unitCost: baseBOM.vcfLicensing.perCoreMonthly,
+    monthlyCost: baseBOM.vcfLicensing.totalMonthly,
+    annualCost: Math.round(baseBOM.vcfLicensing.totalMonthly * 12 * 100) / 100,
+    notes: 'Estimated — per physical core per month',
+  });
+
+  const subtotalMonthly = Math.round(
+    lineItems.reduce((sum, li) => sum + li.monthlyCost, 0) * 100,
+  ) / 100;
+
+  const estimate: CostEstimate = {
+    architecture: 'source-vcf',
+    region: input.region,
+    regionName: input.regionName,
+    discountType: 'none',
+    discountPct: 0,
+    lineItems,
+    subtotalMonthly,
+    subtotalAnnual: Math.round(subtotalMonthly * 12 * 100) / 100,
+    discountAmountMonthly: 0,
+    discountAmountAnnual: 0,
+    totalMonthly: subtotalMonthly,
+    totalAnnual: Math.round(subtotalMonthly * 12 * 100) / 100,
+    metadata: {
+      pricingVersion: new Date().toISOString().split('T')[0],
+      generatedAt: new Date().toISOString(),
+      notes: [
+        'Source infrastructure BOM with actual IBM Cloud billing data',
+        `${matchResult.matched.length}/${updatedMappings.length} hosts matched to billing data`,
+        ...matchResult.warnings,
+      ],
+    },
+  };
+
+  return {
+    hostMappings: updatedMappings,
+    hostGroups: baseBOM.hostGroups,
+    storageItems: baseBOM.storageItems,
+    vcfLicensing: baseBOM.vcfLicensing,
+    estimate,
+    warnings: [...baseBOM.warnings, ...matchResult.warnings],
+    costSource,
+    additionalBillingCosts,
+    billingMatchResult: matchResult,
   };
 }

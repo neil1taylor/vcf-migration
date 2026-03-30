@@ -2,10 +2,16 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { DataProvider } from '@/context/DataContext';
 import { FileUpload } from '@/components/upload/FileUpload';
 import { DropZone } from '@/components/upload/DropZone';
 import { validateFile, parseRVToolsFile } from '@/services/parser/excelParser';
 import type { RVToolsData, ParseResult } from '@/types';
+
+// Helper to wrap components that require DataProvider
+function renderWithProvider(ui: React.ReactElement) {
+  return render(<DataProvider>{ui}</DataProvider>);
+}
 
 // Mock the parser module
 vi.mock('@/services/parser/excelParser', async (importOriginal) => {
@@ -289,7 +295,7 @@ describe('File Upload E2E Tests', () => {
   describe('FileUpload Component', () => {
     it('should render in idle state initially', () => {
       const onDataParsed = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} />);
 
       expect(screen.getByText(/drag and drop/i)).toBeInTheDocument();
     });
@@ -305,7 +311,7 @@ describe('File Upload E2E Tests', () => {
       });
 
       const onDataParsed = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} />);
 
       const file = createValidExcelFile();
       const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
@@ -327,7 +333,7 @@ describe('File Upload E2E Tests', () => {
 
     it('should call onDataParsed callback when parsing completes successfully', async () => {
       const onDataParsed = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} />);
 
       const file = createValidExcelFile();
       const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
@@ -360,7 +366,7 @@ describe('File Upload E2E Tests', () => {
         warnings: [],
       });
 
-      render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       const file = createValidExcelFile();
       const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
@@ -383,7 +389,7 @@ describe('File Upload E2E Tests', () => {
 
       const onDataParsed = vi.fn();
       const onError = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       const file = createValidExcelFile();
       const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
@@ -408,7 +414,7 @@ describe('File Upload E2E Tests', () => {
 
       const onDataParsed = vi.fn();
       const onError = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       const file = createValidExcelFile();
       const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
@@ -432,7 +438,7 @@ describe('File Upload E2E Tests', () => {
 
       const onDataParsed = vi.fn();
       const onError = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       // First, trigger an error
       const file = createValidExcelFile();
@@ -454,7 +460,7 @@ describe('File Upload E2E Tests', () => {
 
     it('should show upload different file button after successful upload', async () => {
       const onDataParsed = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} />);
 
       const file = createValidExcelFile();
       const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
@@ -472,7 +478,7 @@ describe('File Upload E2E Tests', () => {
 
     it('should reset and show dropzone when upload different file is clicked', async () => {
       const onDataParsed = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} />);
 
       const file = createValidExcelFile();
       const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
@@ -505,7 +511,7 @@ describe('File Upload E2E Tests', () => {
       });
 
       const onDataParsed = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} />);
 
       const file = createValidExcelFile();
       const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
@@ -525,7 +531,7 @@ describe('File Upload E2E Tests', () => {
   describe('Full Upload Flow Integration', () => {
     it('should complete full upload flow: select file -> parse -> display success', async () => {
       const onDataParsed = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} />);
 
       // Step 1: Initial state - drop zone visible
       expect(screen.getByText(/drag and drop/i)).toBeInTheDocument();
@@ -562,7 +568,7 @@ describe('File Upload E2E Tests', () => {
 
       const onDataParsed = vi.fn();
       const onError = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       // Step 1: Drop file (valid extension but parse will fail)
       const file = createValidExcelFile();
@@ -594,7 +600,7 @@ describe('File Upload E2E Tests', () => {
 
       const onDataParsed = vi.fn();
       const onError = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       const file = createValidExcelFile();
       const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });
@@ -611,7 +617,7 @@ describe('File Upload E2E Tests', () => {
 
     it('should handle multiple file uploads in sequence', async () => {
       const onDataParsed = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} />);
 
       // First upload
       const file1 = createValidExcelFile('first.xlsx');
@@ -647,7 +653,7 @@ describe('File Upload E2E Tests', () => {
 
       const onDataParsed = vi.fn();
       const onError = vi.fn();
-      render(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
+      renderWithProvider(<FileUpload onDataParsed={onDataParsed} onError={onError} />);
 
       const file = createValidExcelFile();
       const dropZone = screen.getByRole('button', { name: /upload rvtools or vinventory excel file/i });

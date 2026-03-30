@@ -111,11 +111,32 @@ export function UserGuidePage() {
 
                 <Tile className="user-guide-page__card">
                   <h4>Supported File Formats</h4>
-                  <UnorderedList>
-                    <ListItem><code>.xlsx</code> - Excel 2007+ format (recommended)</ListItem>
-                    <ListItem><code>.xls</code> - Legacy Excel format</ListItem>
-                  </UnorderedList>
+                  <p>The tool auto-detects the file type based on sheet names. You can drop any supported file on the upload area.</p>
+                  <table className="user-guide-page__table" style={{ marginTop: '0.5rem' }}>
+                    <thead>
+                      <tr>
+                        <th>Format</th>
+                        <th>Extensions</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr><td>RVTools Export</td><td><code>.xlsx</code>, <code>.xls</code></td><td>VMware vCenter inventory export (recommended)</td></tr>
+                      <tr><td>vInventory Export</td><td><code>.xlsx</code>, <code>.xls</code></td><td>PowerShell-based VMware inventory (auto-detected and converted)</td></tr>
+                      <tr><td>IBM Cloud Billing</td><td><code>.xls</code></td><td>IBM Cloud Classic billing report (optional, enhances Source BOM)</td></tr>
+                    </tbody>
+                  </table>
                   <p style={{ marginTop: '1rem' }}><strong>Maximum file size:</strong> 50 MB</p>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>IBM Cloud Billing Data (Optional)</h4>
+                  <p>Upload your IBM Cloud Classic billing export to replace estimated Source BOM costs with actual invoiced amounts:</p>
+                  <UnorderedList>
+                    <ListItem><strong>Main drop zone</strong> — Drop a billing file after loading RVTools data and it will be auto-detected</ListItem>
+                    <ListItem><strong>Source BOM tab</strong> — Navigate to Discovery &gt; Source BOM and click "Upload Billing File" in the banner</ListItem>
+                  </UnorderedList>
+                  <p style={{ marginTop: '0.5rem' }}>When billing data is loaded, matched hosts show <Tag type="green" size="sm">Actual</Tag> costs and unmatched hosts show <Tag type="gray" size="sm">Estimated</Tag> costs. Additional categories (networking, OS, software) from the billing data are surfaced as new line items.</p>
                 </Tile>
 
                 <Tile className="user-guide-page__card">
@@ -594,7 +615,7 @@ export function UserGuidePage() {
                 <Tile className="user-guide-page__card">
                   <h4>Comparison Table</h4>
                   <UnorderedList>
-                    <ListItem><strong>Source BOM column</strong> stays pinned while scrolling through 13 target columns</ListItem>
+                    <ListItem><strong>Source BOM column</strong> stays pinned while scrolling through 13 target columns. Shows <Tag type="green" size="sm">Actual</Tag> tag when billing data is loaded, <Tag type="gray" size="sm">Estimated</Tag> otherwise.</ListItem>
                     <ListItem><strong>Target columns</strong> include all 6 ROKS architectures (full + ROVe) plus VPC VSI</ListItem>
                     <ListItem><strong>Category rows</strong> (Compute, Storage, Networking, Licensing, ODF) — click to expand line items</ListItem>
                     <ListItem><strong>Delta tags</strong> show green for savings, red for cost increases relative to source</ListItem>
@@ -607,6 +628,7 @@ export function UserGuidePage() {
                   <OrderedList>
                     <ListItem>Expand category rows to see where cost differences originate</ListItem>
                     <ListItem>Source BOM requires vHost data in your RVTools export</ListItem>
+                    <ListItem>Upload your IBM Cloud billing export on the Source BOM tab to replace estimates with actual invoiced costs — the Cost Comparison automatically uses actuals when available</ListItem>
                     <ListItem>Change your target region on the Discovery Infrastructure tab to see regional pricing effects</ListItem>
                     <ListItem>Region and discount settings are inherited from your current selections</ListItem>
                   </OrderedList>

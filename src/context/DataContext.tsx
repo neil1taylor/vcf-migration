@@ -3,6 +3,7 @@
 import { createContext, useReducer, useCallback, type ReactNode } from 'react';
 import { dataReducer, initialState, type DataState, type DataAction, type ChartFilter, type CalculatedCosts } from './dataReducer';
 import type { RVToolsData, AnalysisResults } from '@/types';
+import type { ClassicBillingData } from '@/services/billing/types';
 
 // Context value interface
 interface DataContextValue extends DataState {
@@ -14,6 +15,8 @@ interface DataContextValue extends DataState {
   clearChartFilter: () => void;
   setCalculatedCosts: (costs: CalculatedCosts) => void;
   setOriginalFile: (buffer: ArrayBuffer, fileName: string) => void;
+  setBillingData: (billing: ClassicBillingData) => void;
+  clearBillingData: () => void;
   clearData: () => void;
   dispatch: React.Dispatch<DataAction>;
 }
@@ -63,6 +66,14 @@ export function DataProvider({ children }: DataProviderProps) {
     dispatch({ type: 'SET_ORIGINAL_FILE', payload: { buffer, fileName } });
   }, []);
 
+  const setBillingData = useCallback((billing: ClassicBillingData) => {
+    dispatch({ type: 'SET_BILLING_DATA', payload: billing });
+  }, []);
+
+  const clearBillingData = useCallback(() => {
+    dispatch({ type: 'CLEAR_BILLING_DATA' });
+  }, []);
+
   const clearData = useCallback(() => {
     dispatch({ type: 'CLEAR_DATA' });
   }, []);
@@ -77,6 +88,8 @@ export function DataProvider({ children }: DataProviderProps) {
     clearChartFilter,
     setCalculatedCosts,
     setOriginalFile,
+    setBillingData,
+    clearBillingData,
     clearData,
     dispatch,
   };

@@ -15,6 +15,7 @@ This section covers how to use the VCF Migration application for migration plann
 ### Data Import & Analysis
 - **RVTools Import** — Parse and analyze RVTools Excel exports (only vInfo required; vDisk, vDatastore, vNetwork, vHost, vCluster recommended for full analysis)
 - **vInventory Support** — Convert vInventory (PowerShell-based) Excel exports to RVTools format using the included [converter script](scripts/convert_vinventory.py)
+- **IBM Cloud Billing Import** — Upload IBM Cloud Classic billing exports (`.xls`) to replace estimated Source BOM costs with actual invoiced amounts. Auto-detected on the main drop zone or uploaded from the Source BOM tab. Billing hostnames are matched to RVTools ESXi hosts via exact and FQDN-prefix matching, surfacing actual per-host costs plus additional categories (networking, OS, software) the estimate never captures.
 - **Environment Overview** — Dashboard with VM counts, resource utilization, and health metrics
 - **Inventory Visualization** — Interactive charts and tables for exploring your VMware environment
 
@@ -51,6 +52,7 @@ This section covers how to use the VCF Migration application for migration plann
 - **Regional Pricing** — Support for all IBM Cloud regions with regional multipliers
 - **Discount Options** — On-Demand, 1-Year Reserved, and 3-Year Reserved pricing
 - **Cost Breakdown** — Detailed line-item costs for compute, licensing (OCP), storage (including ODF), and networking
+- **Actual Billing Data** — When IBM Cloud billing data is uploaded, Source BOM and Cost Comparison use actual invoiced costs instead of list-price estimates, with "Actual" / "Estimated" tags on each host and column
 - **Monthly/Annual Projections** — Cost forecasting for budget planning
 - **Custom Profiles** — Override auto-mapped VSI profiles or define custom profiles with specific vCPUs, memory, and pricing
 

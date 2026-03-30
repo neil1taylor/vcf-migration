@@ -1,10 +1,14 @@
 // Main file upload component combining DropZone and progress
 import { useState, useCallback } from 'react';
-import { Button } from '@carbon/react';
+import { Button, InlineNotification } from '@carbon/react';
 import { TrashCan, Restart } from '@carbon/icons-react';
+import * as XLSX from 'xlsx';
 import { DropZone } from './DropZone';
 import { UploadProgress } from './UploadProgress';
 import { parseRVToolsFile, validateFile, type ParsingProgress } from '@/services/parser/excelParser';
+import { detectFileType } from '@/services/parser/fileDetector';
+import { parseClassicBilling } from '@/services/billing';
+import { useData } from '@/hooks/useData';
 import type { RVToolsData } from '@/types';
 import './FileUpload.scss';
 
@@ -21,9 +25,13 @@ export function FileUpload({ onDataParsed, onError }: FileUploadProps) {
   const [progress, setProgress] = useState<ParsingProgress | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
+  const [billingNotice, setBillingNotice] = useState<string | null>(null);
+  const { rawData, setBillingData } = useData();
 
   const handleFileDrop = useCallback(
     async (file: File) => {
+      setBillingNotice(null);
+
       // Validate file first
       const validation = validateFile(file);
       if (!validation.valid) {
@@ -31,6 +39,32 @@ export function FileUpload({ onDataParsed, onError }: FileUploadProps) {
         setState('error');
         onError?.([validation.error || 'Invalid file']);
         return;
+      }
+
+      // Check if it's a billing file
+      try {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const fileType = detectFileType(workbook);
+
+        if (fileType === 'classic-billing') {
+          if (rawData) {
+            // RVTools already loaded — parse and store billing data
+            const billing = parseClassicBilling(workbook, file.name);
+            setBillingData(billing);
+            setBillingNotice(
+              `Billing data loaded from "${file.name}" — ${billing.bareMetalServers.length} bare metal servers found. View the Source BOM tab to see actual costs.`
+            );
+          } else {
+            // No RVTools data yet — prompt user
+            setBillingNotice(
+              'This looks like an IBM Cloud billing export. Please upload your RVTools or vInventory file first, then add billing data from the Source BOM tab in the Discovery page.'
+            );
+          }
+          return;
+        }
+      } catch {
+        // If detection fails, fall through to normal parsing
       }
 
       setFileName(file.name);
@@ -59,7 +93,7 @@ export function FileUpload({ onDataParsed, onError }: FileUploadProps) {
         onError?.([errorMessage]);
       }
     },
-    [onDataParsed, onError]
+    [onDataParsed, onError, rawData, setBillingData]
   );
 
   const handleReset = useCallback(() => {
@@ -68,10 +102,22 @@ export function FileUpload({ onDataParsed, onError }: FileUploadProps) {
     setProgress(null);
     setErrors([]);
     setWarnings([]);
+    setBillingNotice(null);
   }, []);
 
   return (
     <div className="file-upload">
+      {billingNotice && (
+        <InlineNotification
+          kind={rawData ? 'success' : 'info'}
+          title={rawData ? 'Billing data loaded' : 'Billing file detected'}
+          subtitle={billingNotice}
+          lowContrast
+          onClose={() => setBillingNotice(null)}
+          style={{ marginBottom: '1rem' }}
+        />
+      )}
+
       {state === 'idle' && (
         <DropZone onFileDrop={handleFileDrop} />
       )}

@@ -1,5 +1,6 @@
 import type { VHostInfo, VDatastoreInfo } from '@/types/rvtools';
-import type { CostEstimate } from '@/services/costEstimation';
+import type { CostEstimate, CostLineItem } from '@/services/costEstimation';
+import type { BillingMatchResult } from '@/services/billing/types';
 
 export interface ClassicBareMetalCpu {
   keyName: string;
@@ -34,6 +35,8 @@ export interface HostMapping {
   profileMonthlyCost: number;
   overProvisionCoresPct: number;
   overProvisionMemoryPct: number;
+  actualMonthlyCost?: number;
+  costSource: 'estimated' | 'actual';
 }
 
 export interface HostGroupLineItem {
@@ -69,6 +72,12 @@ export interface SourceBOMInput {
   vcfPerCoreMonthly: number;
 }
 
+/** Additional cost categories surfaced only when billing data is loaded */
+export interface AdditionalBillingCosts {
+  lineItems: CostLineItem[];
+  totalMonthly: number;
+}
+
 export interface SourceBOMResult {
   hostMappings: HostMapping[];
   hostGroups: HostGroupLineItem[];
@@ -80,4 +89,7 @@ export interface SourceBOMResult {
   };
   estimate: CostEstimate;
   warnings: string[];
+  costSource: 'estimated' | 'actual' | 'mixed';
+  additionalBillingCosts?: AdditionalBillingCosts;
+  billingMatchResult?: BillingMatchResult;
 }

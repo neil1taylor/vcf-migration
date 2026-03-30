@@ -64,8 +64,9 @@ export function LandingPage() {
           <div className="landing-page__header">
             <h1>RVTools Analysis & Migration Assessment</h1>
             <p className="landing-page__description">
-              Upload your RVTools Excel export to analyze your VMware infrastructure
+              Upload your RVTools or vInventory Excel export to analyze your VMware infrastructure
               and assess migration readiness for IBM Cloud (ROKS + OpenShift Virtualization).
+              You can also upload an IBM Cloud billing export to enhance Source BOM with actual costs.
             </p>
             <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem', justifyContent: 'center' }}>
               <Button

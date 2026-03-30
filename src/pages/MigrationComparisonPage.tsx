@@ -40,7 +40,7 @@ function formatStorageGiB(gib: number): string {
 
 
 export function MigrationComparisonPage() {
-  const { rawData, calculatedCosts } = useData();
+  const { rawData, calculatedCosts, billingData } = useData();
   const allVmsRaw = useAllVMs();
   const vmOverrides = useVMOverrides();
   const { getAutoExclusionById } = useAutoExclusion();
@@ -86,7 +86,7 @@ export function MigrationComparisonPage() {
   // Cost comparison — source BOM vs all ROKS/ROVe vs VSI
   const { pricing } = useDynamicPricing();
   const { region, discountType } = useCostSettings();
-  const costComparison = useCostComparison(rawData, vms, disks, pricing, region, discountType);
+  const costComparison = useCostComparison(rawData, vms, disks, pricing, region, discountType, billingData);
 
   // Migration assessment (needed for complexity scores)
   const { complexityScores } = useMigrationAssessment({

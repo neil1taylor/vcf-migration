@@ -128,7 +128,7 @@ Because a core use case for this application is **ingesting and interpreting exp
 
 **SheetJS (xlsx)** is a popular JavaScript library for reading and writing spreadsheet formats, including `.xlsx`, `.xls`, and other Excel variants directly in the browser or Node. For RVTools exports in Excel, SheetJS lets you parse sheets into JSON arrays or other programmatic data structures for UI consumption.
 
-SheetJS is particularly useful when RVTools exports have multiple tabs (e.g. `vInfo`, `vCPU`, `vDisk`, etc.), enabling fine-grained control over how inventory data is consumed and presented.
+SheetJS is particularly useful when RVTools exports have multiple tabs (e.g. `vInfo`, `vCPU`, `vDisk`, etc.), enabling fine-grained control over how inventory data is consumed and presented. It also powers the IBM Cloud Classic billing parser (`src/services/billing/billingParser.ts`), which reads billing export `.xls` files to extract per-server costs and detailed line items.
 
 🔗 https://sheetjs.com/
 
@@ -169,6 +169,7 @@ Enterprise-scale exports like those from RVTools can be *large* and *tabular*, w
 - Support for Excel formats (.xlsx, .xls)
 - Mapping tabs to specific inventory views
 - Safe, asynchronous handling of large files
+- Auto-detection of file types (RVTools, vInventory, IBM Cloud billing) based on sheet names
 
 This parsing layer is one of the hearts of the app’s ability to turn infrastructure snapshots into actionable UI data.
 
@@ -393,6 +394,8 @@ This technology stack combines a modern React frontend with strong typing, fast 
 |----------------|------------|
 | Read file from user device | FileReader API |
 | Parse Excel/Sheets | SheetJS (`xlsx`) |
+| Auto-detect file type | `fileDetector.ts` (RVTools, vInventory, IBM Cloud billing) |
+| Parse IBM Cloud billing | `billingParser.ts` (Summary, Bare Metal, Detailed Billing sheets) |
 | Transform & normalize | JavaScript / Utility libs |
 
 ### Export & Reporting

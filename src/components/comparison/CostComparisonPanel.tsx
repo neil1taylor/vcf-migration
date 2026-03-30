@@ -219,7 +219,12 @@ export function CostComparisonPanel({ comparison }: CostComparisonPanelProps) {
                 {/* Header row 1: solution type labels */}
                 <tr style={{ borderBottom: '2px solid var(--cds-border-strong)' }}>
                   <th style={{ ...stickyCol, textAlign: 'left', padding: '0.5rem', fontWeight: 600 }}>Category</th>
-                  <th style={{ ...stickyCol2, textAlign: 'right', padding: '0.5rem', fontWeight: 600 }}>Source BOM</th>
+                  <th style={{ ...stickyCol2, textAlign: 'right', padding: '0.5rem', fontWeight: 600 }}>
+                    Source BOM
+                    {comparison.sourceCostSource !== 'estimated' && (
+                      <Tag type="green" size="sm" style={{ marginLeft: '0.25rem' }}>Actual</Tag>
+                    )}
+                  </th>
                   {columns.map(col => (
                     <th
                       key={col.key}

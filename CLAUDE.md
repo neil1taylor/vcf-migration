@@ -406,6 +406,48 @@ Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 5-tab ana
 | `src/services/export/docx/sections/networkDesign.ts` | Subnet mapping, SG summary |
 | `src/services/export/docx/sections/platformSelection.ts` | Score summary, per-factor responses |
 
+## IBM Cloud Classic Billing Import
+
+Optional import of IBM Cloud Classic billing exports (`.xls`) to replace estimated Source BOM costs with actual invoiced amounts.
+
+### File Detection
+
+`src/services/parser/fileDetector.ts` — `detectFileType(workbook)` returns `'classic-billing' | 'vinventory' | 'rvtools' | 'unknown'`. Billing files detected by presence of `Summary` + `Detailed Billing` sheets and absence of `vInfo`/`vmInfo`.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/services/billing/types.ts` | `ClassicBillingData`, `BillingServerSummary`, `BillingDetailLineItem`, `BillingHostMatch`, `BillingMatchResult` |
+| `src/services/billing/billingDetector.ts` | `isClassicBillingFormat(workbook)` — sheet-name-based detection |
+| `src/services/billing/billingParser.ts` | `parseClassicBilling(workbook, fileName)` — parses Summary, Bare Metal, Virtual Servers, Detailed Billing sheets |
+| `src/services/billing/billingHostMatcher.ts` | `matchBillingToHosts(billing, rvtoolsHostnames)` — exact + FQDN prefix matching |
+| `src/services/parser/fileDetector.ts` | `detectFileType(workbook)` — unified file type detection |
+
+### Data Flow
+
+1. User uploads billing `.xls` via Source BOM tab or main drop zone
+2. `isClassicBillingFormat()` detects billing format → `parseClassicBilling()` extracts data
+3. Billing data stored in `DataContext` (`billingData` state, `SET_BILLING_DATA` action)
+4. `useSourceBOM` hook receives billing data → calls `matchBillingToHosts()` then `buildSourceBOMWithBilling()`
+5. Matched hosts get actual costs; unmatched hosts keep estimated costs
+6. Additional billing categories (networking, OS, software) appear as new line items
+7. Cost Comparison tab automatically uses actual source costs
+
+### Host Matching
+
+Billing hostnames (FQDNs like `green01esx000.green01.greencore.vcs`) matched to RVTools vHost names in two passes:
+1. **Exact match** (case-insensitive)
+2. **FQDN prefix match** (first segment before `.`)
+
+### Billing File Structure
+
+IBM Cloud Classic billing exports have 4 sheets:
+- **Summary**: Hierarchical category totals (Bare Metal, Virtual Servers, Unattached Services, Platform Services)
+- **Bare Metal Servers**: Server hostname + total recurring fee per server
+- **Virtual Servers**: VM hostname + total recurring fee
+- **Detailed Billing**: Per-server line items grouped by server name (categories: Server, RAM, Hard Drives, Operating System, Network, etc.)
+
 ## Subnet Management
 
 Inline editing of subnet values for network port groups. Multi-CIDR support (comma-separated). Auto-guessing from VM IPs with "Guessed" tag. Stored in localStorage (`vcf-subnet-overrides`). Validation: `isValidCIDR()`, `isValidCIDRList()`, `parseCIDRList()` in `src/hooks/useSubnetOverrides.ts`.

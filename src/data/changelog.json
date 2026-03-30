@@ -1,6 +1,20 @@
 {
   "releases": [
     {
+      "version": "2.6.3",
+      "date": "2026-03-30",
+      "sections": {
+        "added": [
+          "IBM Cloud Classic billing data import — upload billing export (.xls) to replace estimated Source BOM costs with actual invoiced amounts",
+          "Auto-detection of billing files on the main drop zone and dedicated upload on Source BOM tab",
+          "Host matching between billing server hostnames and RVTools vHost names (exact + FQDN prefix matching)",
+          "Actual/Estimated cost source tags on host mapping table and Cost Summary",
+          "Additional billing cost categories (networking, OS, software, virtual servers) surfaced when billing data loaded",
+          "Billing data flows into Cost Comparison tab with 'Actual' tag on Source BOM column"
+        ]
+      }
+    },
+    {
       "version": "2.6.2",
       "date": "2026-03-28",
       "sections": {

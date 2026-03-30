@@ -1,4 +1,4 @@
-export { buildSourceBOM, matchHostToClassicBM, groupHostMappings, classifyDatastoreStorage } from './sourceBomService';
+export { buildSourceBOM, buildSourceBOMWithBilling, matchHostToClassicBM, groupHostMappings, classifyDatastoreStorage } from './sourceBomService';
 export type {
   ClassicBareMetalCpu,
   ClassicBareMetalRam,
@@ -8,4 +8,5 @@ export type {
   DatastoreStorageTarget,
   SourceBOMInput,
   SourceBOMResult,
+  AdditionalBillingCosts,
 } from './types';

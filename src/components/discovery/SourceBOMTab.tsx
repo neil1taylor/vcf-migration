@@ -1,15 +1,19 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback, useRef, useState } from 'react';
+import * as XLSX from 'xlsx';
 import {
-  Grid, Column, Tile,
+  Grid, Column, Tile, Tag, Button,
   DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
-  InlineNotification,
+  InlineNotification, ActionableNotification,
 } from '@carbon/react';
+import { TrashCan } from '@carbon/icons-react';
 import { MetricCard } from '@/components/common';
 import { useTargetLocation } from '@/hooks/useTargetLocation';
 import { useDynamicPricing } from '@/hooks/useDynamicPricing';
 import { useSourceBOM } from '@/hooks/useSourceBOM';
+import { useData } from '@/hooks/useData';
 import { formatNumber } from '@/utils/formatters';
 import { formatCurrency } from '@/services/costEstimation';
+import { isClassicBillingFormat, parseClassicBilling } from '@/services/billing';
 import type { RVToolsData } from '@/types/rvtools';
 
 interface SourceBOMTabProps {
@@ -26,6 +30,7 @@ const hostMappingHeaders = [
   { key: 'matchedCpuCores', header: 'BM Cores' },
   { key: 'matchedRam', header: 'Classic BM RAM' },
   { key: 'monthlyCost', header: 'Monthly Cost' },
+  { key: 'costSource', header: 'Source' },
 ];
 
 const storageHeaders = [
@@ -55,7 +60,34 @@ const TARGET_LABELS: Record<string, string> = {
 export function SourceBOMTab({ rawData }: SourceBOMTabProps) {
   const { targetMzr } = useTargetLocation();
   const { pricing } = useDynamicPricing();
-  const bom = useSourceBOM(rawData, targetMzr ?? 'us-south', pricing);
+  const { billingData, setBillingData, clearBillingData } = useData();
+  const bom = useSourceBOM(rawData, targetMzr ?? 'us-south', pricing, billingData);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [billingError, setBillingError] = useState<string | null>(null);
+
+  const handleBillingUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBillingError(null);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: 'array' });
+
+      if (!isClassicBillingFormat(workbook)) {
+        setBillingError('This file does not appear to be an IBM Cloud Classic billing export. Expected sheets: Summary, Detailed Billing.');
+        return;
+      }
+
+      const billing = parseClassicBilling(workbook, file.name);
+      setBillingData(billing);
+    } catch (err) {
+      setBillingError(`Failed to parse billing file: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+
+    // Reset input so the same file can be re-selected
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  }, [setBillingData]);
 
   const hostRows = useMemo(() => {
     if (!bom) return [];
@@ -69,7 +101,8 @@ export function SourceBOMTab({ rawData }: SourceBOMTabProps) {
       matchedCpu: m.matchedCpu,
       matchedCpuCores: formatNumber(m.matchedCpuCores),
       matchedRam: m.matchedRam,
-      monthlyCost: formatCurrency(m.profileMonthlyCost),
+      monthlyCost: formatCurrency(m.actualMonthlyCost ?? m.profileMonthlyCost),
+      costSource: m.costSource,
     }));
   }, [bom]);
 
@@ -107,11 +140,75 @@ export function SourceBOMTab({ rawData }: SourceBOMTabProps) {
     );
   }
 
-  const computeMonthly = bom.hostGroups.reduce((sum, g) => sum + g.totalMonthlyCost, 0);
+  const hasBilling = bom.costSource !== 'estimated';
+  const computeMonthly = hasBilling
+    ? bom.hostMappings.reduce((sum, m) => sum + (m.actualMonthlyCost ?? m.profileMonthlyCost), 0)
+    : bom.hostGroups.reduce((sum, g) => sum + g.totalMonthlyCost, 0);
   const storageMonthly = bom.storageItems.reduce((sum, s) => sum + s.monthlyCost, 0);
+
+  // Headers for host table — hide "Source" column when no billing data
+  const activeHostHeaders = hasBilling
+    ? hostMappingHeaders
+    : hostMappingHeaders.filter(h => h.key !== 'costSource');
 
   return (
     <div style={{ marginTop: '1rem' }}>
+      {/* Hidden file input for billing upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".xls,.xlsx"
+        style={{ display: 'none' }}
+        onChange={handleBillingUpload}
+      />
+
+      {/* Billing upload banner (when no billing data) */}
+      {!billingData && (
+        <ActionableNotification
+          kind="info"
+          title="Enhance with actual billing data"
+          subtitle="Upload your IBM Cloud Classic billing export to replace estimated costs with actual invoiced amounts."
+          actionButtonLabel="Upload Billing File"
+          onActionButtonClick={() => fileInputRef.current?.click()}
+          lowContrast
+          hideCloseButton
+          style={{ marginBottom: '1rem' }}
+        />
+      )}
+
+      {/* Billing loaded indicator */}
+      {billingData && (
+        <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <Tag type="green" size="sm">Actual Billing</Tag>
+          <span style={{ fontSize: '0.875rem', color: '#525252' }}>
+            {billingData.fileName}
+            {bom.billingMatchResult && (
+              <> — {bom.billingMatchResult.matched.length}/{bom.hostMappings.length} hosts matched</>
+            )}
+          </span>
+          <Button
+            kind="ghost"
+            size="sm"
+            renderIcon={TrashCan}
+            iconDescription="Remove billing data"
+            onClick={clearBillingData}
+            hasIconOnly
+          />
+        </div>
+      )}
+
+      {/* Billing parse/detection error */}
+      {billingError && (
+        <InlineNotification
+          kind="error"
+          title="Billing file error"
+          subtitle={billingError}
+          lowContrast
+          onClose={() => setBillingError(null)}
+          style={{ marginBottom: '1rem' }}
+        />
+      )}
+
       {/* Summary Metrics */}
       <Grid narrow>
         <Column lg={4} md={4} sm={4} style={{ marginBottom: '1rem' }}>
@@ -168,7 +265,7 @@ export function SourceBOMTab({ rawData }: SourceBOMTabProps) {
       {/* Host-to-Bare-Metal Mapping */}
       <Tile style={{ marginBottom: '1rem' }}>
         <h4 style={{ marginBottom: '1rem' }}>Host-to-Classic-Bare-Metal Mapping</h4>
-        <DataTable rows={hostRows} headers={hostMappingHeaders}>
+        <DataTable rows={hostRows} headers={activeHostHeaders}>
           {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
             <Table {...getTableProps()} size="md">
               <TableHead>
@@ -184,7 +281,15 @@ export function SourceBOMTab({ rawData }: SourceBOMTabProps) {
                 {rows.map(row => (
                   <TableRow {...getRowProps({ row })} key={row.id}>
                     {row.cells.map(cell => (
-                      <TableCell key={cell.id}>{cell.value}</TableCell>
+                      <TableCell key={cell.id}>
+                        {cell.info.header === 'costSource' ? (
+                          <Tag type={cell.value === 'actual' ? 'green' : 'gray'} size="sm">
+                            {cell.value === 'actual' ? 'Actual' : 'Estimated'}
+                          </Tag>
+                        ) : (
+                          cell.value
+                        )}
+                      </TableCell>
                     ))}
                   </TableRow>
                 ))}
@@ -227,7 +332,11 @@ export function SourceBOMTab({ rawData }: SourceBOMTabProps) {
 
       {/* Cost Summary */}
       <Tile style={{ marginBottom: '1rem' }}>
-        <h4 style={{ marginBottom: '1rem' }}>Cost Summary</h4>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+          <h4>Cost Summary</h4>
+          {hasBilling && <Tag type="green" size="sm">Actual Billing</Tag>}
+          {!hasBilling && <Tag type="gray" size="sm">Estimated (List Pricing)</Tag>}
+        </div>
         <DataTable rows={lineItemRows} headers={lineItemHeaders}>
           {({ rows, headers, getTableProps, getHeaderProps, getRowProps }) => (
             <Table {...getTableProps()} size="md">
