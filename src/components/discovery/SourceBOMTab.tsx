@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx';
 import {
   Grid, Column, Tile, Tag, Button,
   DataTable, Table, TableHead, TableRow, TableHeader, TableBody, TableCell,
-  InlineNotification, ActionableNotification,
+  InlineNotification,
 } from '@carbon/react';
 import { TrashCan } from '@carbon/icons-react';
 import { MetricCard } from '@/components/common';
@@ -164,16 +164,21 @@ export function SourceBOMTab({ rawData }: SourceBOMTabProps) {
 
       {/* Billing upload banner (when no billing data) */}
       {!billingData && (
-        <ActionableNotification
-          kind="info"
-          title="Enhance with actual billing data"
-          subtitle="Upload your IBM Cloud Classic billing export to replace estimated costs with actual invoiced amounts."
-          actionButtonLabel="Upload Billing File"
-          onActionButtonClick={() => fileInputRef.current?.click()}
-          lowContrast
-          hideCloseButton
-          style={{ marginBottom: '1rem' }}
-        />
+        <Tile style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <h4 style={{ marginBottom: '0.25rem' }}>Enhance with actual billing data</h4>
+            <p style={{ fontSize: '0.875rem', color: '#525252' }}>
+              Upload your IBM Cloud Classic billing export (.xls) to replace estimated costs with actual invoiced amounts.
+            </p>
+          </div>
+          <Button
+            kind="tertiary"
+            size="md"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Upload Billing File
+          </Button>
+        </Tile>
       )}
 
       {/* Billing loaded indicator */}
