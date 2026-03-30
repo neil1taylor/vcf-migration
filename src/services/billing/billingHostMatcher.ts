@@ -75,19 +75,15 @@ export function matchBillingToHosts(
   // Build unmatched lists
   const unmatchedRvtools = Array.from(rvtoolsRemaining);
 
-  if (unmatchedBilling.length > 0) {
-    warnings.push(
-      `${unmatchedBilling.length} billing server(s) could not be matched to RVTools hosts: ${unmatchedBilling.map(s => s.hostname).join(', ')}`,
-    );
-  }
   if (unmatchedRvtools.length > 0) {
     warnings.push(
       `${unmatchedRvtools.length} RVTools host(s) have no billing data (estimated costs used): ${unmatchedRvtools.join(', ')}`,
     );
   }
 
-  const totalBilling = billing.bareMetalServers.length;
-  const matchRate = totalBilling > 0 ? matched.length / totalBilling : 0;
+  // Match rate based on RVTools hosts matched (what matters for Source BOM accuracy)
+  const totalRvtools = rvtoolsHostnames.length;
+  const matchRate = totalRvtools > 0 ? matched.length / totalRvtools : 0;
 
   return {
     matched,

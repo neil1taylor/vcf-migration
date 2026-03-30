@@ -183,22 +183,36 @@ export function SourceBOMTab({ rawData }: SourceBOMTabProps) {
 
       {/* Billing loaded indicator */}
       {billingData && (
-        <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <Tag type="green" size="sm">Actual Billing</Tag>
-          <span style={{ fontSize: '0.875rem', color: '#525252' }}>
-            {billingData.fileName}
-            {bom.billingMatchResult && (
-              <> — {bom.billingMatchResult.matched.length}/{bom.hostMappings.length} hosts matched</>
-            )}
-          </span>
-          <Button
-            kind="ghost"
-            size="sm"
-            renderIcon={TrashCan}
-            iconDescription="Remove billing data"
-            onClick={clearBillingData}
-            hasIconOnly
-          />
+        <div style={{ marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+            <Tag type="green" size="sm">Actual Billing</Tag>
+            <span style={{ fontSize: '0.875rem', color: '#525252' }}>
+              {billingData.fileName}
+              {bom.billingMatchResult && (
+                <> — {bom.billingMatchResult.matched.length}/{bom.hostMappings.length} ESXi hosts matched to billing data
+                  ({Math.round(bom.billingMatchResult.matchRate * 100)}%)
+                </>
+              )}
+            </span>
+            <Button
+              kind="ghost"
+              size="sm"
+              renderIcon={TrashCan}
+              iconDescription="Remove billing data"
+              onClick={clearBillingData}
+              hasIconOnly
+            />
+          </div>
+          {bom.billingMatchResult && bom.billingMatchResult.unmatchedBilling.length > 0 && (
+            <InlineNotification
+              kind="info"
+              title={`${bom.billingMatchResult.unmatchedBilling.length} additional billing server(s)`}
+              subtitle={`Not ESXi hosts — costs included under Additional Costs: ${bom.billingMatchResult.unmatchedBilling.filter(s => s.totalRecurringFee > 0).map(s => s.hostname).join(', ')}`}
+              lowContrast
+              hideCloseButton
+              style={{ marginBottom: '0' }}
+            />
+          )}
         </div>
       )}
 

@@ -64,8 +64,9 @@ describe('matchBillingToHosts', () => {
     expect(result.matched).toHaveLength(1);
     expect(result.unmatchedBilling).toHaveLength(1);
     expect(result.unmatchedBilling[0].hostname).toBe('host02.com');
-    expect(result.matchRate).toBe(0.5);
-    expect(result.warnings.length).toBeGreaterThan(0);
+    // Match rate based on RVTools hosts: 1/1 = 100%
+    expect(result.matchRate).toBe(1);
+    expect(result.warnings).toHaveLength(0);
   });
 
   it('reports unmatched RVTools hosts', () => {
@@ -83,6 +84,7 @@ describe('matchBillingToHosts', () => {
 
     expect(result.matched).toHaveLength(0);
     expect(result.unmatchedRvtools).toEqual(['host01.com']);
+    // Match rate based on RVTools hosts: 0/1 = 0%
     expect(result.matchRate).toBe(0);
   });
 
