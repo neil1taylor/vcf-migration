@@ -83,8 +83,8 @@ export function buildMigrationStrategy(
   _rawData: RVToolsData,
   aiInsights?: MigrationInsights | null,
   wavePlanningPreference?: WavePlanningPreference | null,
-  _includeROKS: boolean = true,
-  _includeVSI: boolean = true,
+  _includeROKS?: boolean,
+  _includeVSI?: boolean,
   sectionNum?: number,
 ): DocumentContent[] {
   const s = sectionNum != null ? sectionNum : 5;

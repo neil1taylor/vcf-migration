@@ -138,7 +138,7 @@ const testDisks = [
 const mockPricing = {
   pricingVersion: '2026-03-24',
   regions: { 'us-south': { name: 'Dallas' } },
-} as any;
+} as unknown as import('@/services/pricing/pricingCache').IBMCloudPricing;
 
 const mockRawData = {
   vInfo: testVMs,

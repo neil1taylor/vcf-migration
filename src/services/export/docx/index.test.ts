@@ -128,7 +128,6 @@ import { generateDocxReport } from './index';
 import {
   buildROKSOverview,
   buildVSIOverview,
-  buildPlatformSelectionSection,
   buildRiskAssessmentSection,
   buildTimelineSection,
   buildComplexityAssessment,

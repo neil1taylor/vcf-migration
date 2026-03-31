@@ -61,6 +61,64 @@ export function ClusterPage() {
     return vms.filter(vm => vm.cluster === selectedCluster);
   }, [vms, selectedCluster]);
 
+  // CPU & Memory overcommitment by cluster
+  // Primary: vHost totalCpuCores/vmCpuCount and memoryMiB/vmMemoryMiB
+  // Fallback: host cores from cpuSockets*coresPerSocket, VM totals from vInfo
+  const { cpuOvercommitByCluster, memOvercommitByCluster, overcommitUsingFallback } = useMemo(() => {
+    const cpuMap = new Map<string, { totalCores: number; vmCpus: number }>();
+    const memMap = new Map<string, { hostMem: number; vmMem: number }>();
+
+    const ensureCpu = (c: string) => { if (!cpuMap.has(c)) cpuMap.set(c, { totalCores: 0, vmCpus: 0 }); return cpuMap.get(c)!; };
+    const ensureMem = (c: string) => { if (!memMap.has(c)) memMap.set(c, { hostMem: 0, vmMem: 0 }); return memMap.get(c)!; };
+
+    // Gather host-side totals
+    hosts.forEach(host => {
+      const cluster = host.cluster || 'No Cluster';
+      const cpu = ensureCpu(cluster);
+      cpu.totalCores += host.totalCpuCores || (host.cpuSockets || 0) * (host.coresPerSocket || 0);
+      cpu.vmCpus += host.vmCpuCount || 0;
+
+      const mem = ensureMem(cluster);
+      mem.hostMem += host.memoryMiB || 0;
+      mem.vmMem += host.vmMemoryMiB || 0;
+    });
+
+    // Check if vHost had the VM-side columns
+    const hasHostVmCpus = Array.from(cpuMap.values()).some(d => d.vmCpus > 0);
+    const hasHostVmMem = Array.from(memMap.values()).some(d => d.vmMem > 0);
+
+    // Fallback: sum VM resources from vInfo when vHost lacks those columns
+    if (!hasHostVmCpus || !hasHostVmMem) {
+      vms.forEach(vm => {
+        const cluster = vm.cluster || 'No Cluster';
+        if (!hasHostVmCpus) {
+          const cpu = ensureCpu(cluster);
+          cpu.vmCpus += vm.cpus || 0;
+        }
+        if (!hasHostVmMem) {
+          const mem = ensureMem(cluster);
+          mem.vmMem += vm.memory || 0;
+        }
+      });
+    }
+
+    const cpuResult = Array.from(cpuMap.entries())
+      .filter(([, d]) => d.totalCores > 0 && d.vmCpus > 0)
+      .map(([label, d]) => ({ label, value: parseFloat((d.vmCpus / d.totalCores).toFixed(2)) }))
+      .sort((a, b) => b.value - a.value);
+
+    const memResult = Array.from(memMap.entries())
+      .filter(([, d]) => d.hostMem > 0 && d.vmMem > 0)
+      .map(([label, d]) => ({ label, value: parseFloat((d.vmMem / d.hostMem).toFixed(2)) }))
+      .sort((a, b) => b.value - a.value);
+
+    return {
+      cpuOvercommitByCluster: cpuResult,
+      memOvercommitByCluster: memResult,
+      overcommitUsingFallback: !hasHostVmCpus || !hasHostVmMem,
+    };
+  }, [hosts, vms]);
+
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
   }
@@ -134,64 +192,6 @@ export function ClusterPage() {
     }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 15);
-
-  // CPU & Memory overcommitment by cluster
-  // Primary: vHost totalCpuCores/vmCpuCount and memoryMiB/vmMemoryMiB
-  // Fallback: host cores from cpuSockets*coresPerSocket, VM totals from vInfo
-  const { cpuOvercommitByCluster, memOvercommitByCluster, overcommitUsingFallback } = useMemo(() => {
-    const cpuMap = new Map<string, { totalCores: number; vmCpus: number }>();
-    const memMap = new Map<string, { hostMem: number; vmMem: number }>();
-
-    const ensureCpu = (c: string) => { if (!cpuMap.has(c)) cpuMap.set(c, { totalCores: 0, vmCpus: 0 }); return cpuMap.get(c)!; };
-    const ensureMem = (c: string) => { if (!memMap.has(c)) memMap.set(c, { hostMem: 0, vmMem: 0 }); return memMap.get(c)!; };
-
-    // Gather host-side totals
-    hosts.forEach(host => {
-      const cluster = host.cluster || 'No Cluster';
-      const cpu = ensureCpu(cluster);
-      cpu.totalCores += host.totalCpuCores || (host.cpuSockets || 0) * (host.coresPerSocket || 0);
-      cpu.vmCpus += host.vmCpuCount || 0;
-
-      const mem = ensureMem(cluster);
-      mem.hostMem += host.memoryMiB || 0;
-      mem.vmMem += host.vmMemoryMiB || 0;
-    });
-
-    // Check if vHost had the VM-side columns
-    const hasHostVmCpus = Array.from(cpuMap.values()).some(d => d.vmCpus > 0);
-    const hasHostVmMem = Array.from(memMap.values()).some(d => d.vmMem > 0);
-
-    // Fallback: sum VM resources from vInfo when vHost lacks those columns
-    if (!hasHostVmCpus || !hasHostVmMem) {
-      vms.forEach(vm => {
-        const cluster = vm.cluster || 'No Cluster';
-        if (!hasHostVmCpus) {
-          const cpu = ensureCpu(cluster);
-          cpu.vmCpus += vm.cpus || 0;
-        }
-        if (!hasHostVmMem) {
-          const mem = ensureMem(cluster);
-          mem.vmMem += vm.memory || 0;
-        }
-      });
-    }
-
-    const cpuResult = Array.from(cpuMap.entries())
-      .filter(([, d]) => d.totalCores > 0 && d.vmCpus > 0)
-      .map(([label, d]) => ({ label, value: parseFloat((d.vmCpus / d.totalCores).toFixed(2)) }))
-      .sort((a, b) => b.value - a.value);
-
-    const memResult = Array.from(memMap.entries())
-      .filter(([, d]) => d.hostMem > 0 && d.vmMem > 0)
-      .map(([label, d]) => ({ label, value: parseFloat((d.vmMem / d.hostMem).toFixed(2)) }))
-      .sort((a, b) => b.value - a.value);
-
-    return {
-      cpuOvercommitByCluster: cpuResult,
-      memOvercommitByCluster: memResult,
-      overcommitUsingFallback: !hasHostVmCpus || !hasHostVmMem,
-    };
-  }, [hosts, vms]);
 
   // EVC Mode distribution
   const evcModes = clusters.reduce((acc, cluster) => {

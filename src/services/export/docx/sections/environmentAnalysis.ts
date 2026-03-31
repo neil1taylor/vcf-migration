@@ -108,7 +108,7 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData, sectionNum?
     createTableLabel(templates.tableDescriptions.infrastructureOverview.title),
 
     // Source environment enrichment: vCenter, ESXi versions, host hardware
-    ...buildSourceEnvironmentDetails(sourceEnv, sectionNum),
+    ...buildSourceEnvironmentDetails(sourceEnv),
 
     new Paragraph({ spacing: { before: 240 } }),
     createHeading((sectionNum != null ? `${sectionNum}.2 ` : '2.2 ') + envTemplates.sections.compute.title, HeadingLevel.HEADING_2),
@@ -178,7 +178,7 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData, sectionNum?
     createFigureLabel(templates.figureDescriptions.storageByType.title),
 
     // Datastore utilization detail table and overcommit analysis
-    ...buildStorageAndOvercommitDetails(sourceEnv, sectionNum),
+    ...buildStorageAndOvercommitDetails(sourceEnv),
 
     new Paragraph({ spacing: { before: 240 } }),
     createHeading((sectionNum != null ? `${sectionNum}.4 ` : '2.4 ') + envTemplates.sections.network.title, HeadingLevel.HEADING_2),
@@ -205,7 +205,7 @@ export async function buildEnvironmentAnalysis(rawData: RVToolsData, sectionNum?
 }
 
 /** Build vCenter/ESXi/hardware details if source environment data is available */
-function buildSourceEnvironmentDetails(sourceEnv?: SourceEnvironmentExport | null, _sectionNum?: number): DocumentContent[] {
+function buildSourceEnvironmentDetails(sourceEnv?: SourceEnvironmentExport | null): DocumentContent[] {
   if (!sourceEnv) return [];
   const elements: DocumentContent[] = [];
 
@@ -257,7 +257,7 @@ function buildSourceEnvironmentDetails(sourceEnv?: SourceEnvironmentExport | nul
 }
 
 /** Build overcommit analysis and datastore utilization detail tables */
-function buildStorageAndOvercommitDetails(sourceEnv?: SourceEnvironmentExport | null, _sectionNum?: number): DocumentContent[] {
+function buildStorageAndOvercommitDetails(sourceEnv?: SourceEnvironmentExport | null): DocumentContent[] {
   if (!sourceEnv) return [];
   const elements: DocumentContent[] = [];
 

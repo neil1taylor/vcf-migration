@@ -334,16 +334,15 @@ export function useSizingCalculator({
     return fallback?.name || '';
   }, [bareMetalProfiles, pricing]);
 
-  // Load persisted sizing settings (once, via lazy initializer)
-  const storedSizingRef = useRef(loadSizingSettings());
+  // Load persisted sizing settings (once, via memo with empty deps)
+  const storedSizing = useMemo(() => loadSizingSettings(), []);
 
   // Store only the profile NAME (string) to avoid object reference issues
   const [selectedProfileName, setSelectedProfileName] = useState<string>(() => {
-    const stored = storedSizingRef.current;
-    if (stored?.selectedProfileName) return stored.selectedProfileName;
+    if (storedSizing?.selectedProfileName) return storedSizing.selectedProfileName;
     return defaultProfileName;
   });
-  const hasUserSelectedProfileRef = useRef(storedSizingRef.current?.selectedProfileName != null);
+  const hasUserSelectedProfileRef = useRef(storedSizing?.selectedProfileName != null);
 
 
   // Apply requested profile from parent (e.g., clicking a tile in Cost Estimation)
@@ -361,7 +360,7 @@ export function useSizingCalculator({
     return bareMetalProfiles.find(p => p.name === selectedProfileName) || bareMetalProfiles[0];
   }, [bareMetalProfiles, selectedProfileName]);
 
-  const ss = storedSizingRef.current; // shorthand for stored settings
+  const ss = storedSizing; // shorthand for stored settings
 
   // Solution type state — persisted to localStorage
   const [solutionType, setSolutionType] = useState<RoksSolutionType>(
@@ -373,7 +372,7 @@ export function useSizingCalculator({
 
   // Storage pool profile (bm-disaggregated only) — NVMe profiles for dedicated ODF nodes
   const [selectedStorageProfileName, setSelectedStorageProfileName] = useState<string>(() => {
-    const stored = storedSizingRef.current;
+    const stored = storedSizing;
     if (stored?.selectedStorageProfileName) return stored.selectedStorageProfileName;
     // Default: cheapest NVMe ROKS-supported profile
     const nvmeDefault = bareMetalProfiles.find(p => p.hasNvme && p.roksSupported);

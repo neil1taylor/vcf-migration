@@ -36,6 +36,27 @@ export function ComputePage() {
   const vms = useVMs();
   const { chartFilter, setFilter, clearFilter } = useChartFilter();
 
+  // Host overcommitment heatmap data — must be before early return to satisfy hooks rules
+  const hosts = useMemo(() => rawData?.vHost || [], [rawData?.vHost]);
+
+  // Fallback: derive per-host VM CPU/memory from vInfo when vHost lacks those columns
+  const hostVmTotals = useMemo(() => {
+    const hasVmCpuCol = hosts.some(h => h.vmCpuCount > 0);
+    const hasVmMemCol = hosts.some(h => h.vmMemoryMiB > 0);
+    if (hasVmCpuCol && hasVmMemCol) return null;
+
+    const totals = new Map<string, { cpus: number; memMiB: number }>();
+    (rawData?.vInfo || []).filter(vm => !vm.template).forEach(vm => {
+      const hostName = vm.host;
+      if (!hostName) return;
+      if (!totals.has(hostName)) totals.set(hostName, { cpus: 0, memMiB: 0 });
+      const entry = totals.get(hostName)!;
+      if (!hasVmCpuCol) entry.cpus += vm.cpus || 0;
+      if (!hasVmMemCol) entry.memMiB += vm.memory || 0;
+    });
+    return { map: totals, hasVmCpuCol, hasVmMemCol };
+  }, [hosts, rawData?.vInfo]);
+
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
   }
@@ -124,27 +145,6 @@ export function ComputePage() {
       setFilter('memoryBucket', label, 'memoryDistribution');
     }
   };
-
-  // Host overcommitment heatmap data
-  const hosts = rawData.vHost || [];
-
-  // Fallback: derive per-host VM CPU/memory from vInfo when vHost lacks those columns
-  const hostVmTotals = useMemo(() => {
-    const hasVmCpuCol = hosts.some(h => h.vmCpuCount > 0);
-    const hasVmMemCol = hosts.some(h => h.vmMemoryMiB > 0);
-    if (hasVmCpuCol && hasVmMemCol) return null;
-
-    const totals = new Map<string, { cpus: number; memMiB: number }>();
-    (rawData.vInfo || []).filter(vm => !vm.template).forEach(vm => {
-      const hostName = vm.host;
-      if (!hostName) return;
-      if (!totals.has(hostName)) totals.set(hostName, { cpus: 0, memMiB: 0 });
-      const entry = totals.get(hostName)!;
-      if (!hasVmCpuCol) entry.cpus += vm.cpus || 0;
-      if (!hasVmMemCol) entry.memMiB += vm.memory || 0;
-    });
-    return { map: totals, hasVmCpuCol, hasVmMemCol };
-  }, [hosts, rawData.vInfo]);
 
   const hostOvercommitData: HeatmapCell[] = hosts
     .filter(host => {

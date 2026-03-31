@@ -28,14 +28,6 @@ const SOFTLAYER_BASE = 'https://api.softlayer.com/rest/v3.1';
 const PACKAGE_ID = 200; // Bare Metal Server (Classic)
 const CONFIG_PATH = path.join(__dirname, '..', 'src', 'data', 'ibmCloudConfig.json');
 
-interface SLItem {
-  id: number;
-  keyName: string;
-  description: string;
-  capacity?: number | string;
-  itemCategory?: { categoryCode: string };
-}
-
 interface SLItemPrice {
   id: number;
   recurringFee: string | null;

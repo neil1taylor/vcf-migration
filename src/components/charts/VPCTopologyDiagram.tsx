@@ -75,8 +75,8 @@ export function VPCTopologyDiagram({
   title = 'VPC Topology',
   subtitle,
   design,
-  // @ts-expect-error height is part of the public API but not yet used in the component body
-  height = 500,
+  // height is part of the public API but not yet used in the component body
+  height: _height = 500, // eslint-disable-line @typescript-eslint/no-unused-vars
   onSubnetClick,
 }: VPCTopologyDiagramProps) {
   // Collect unique workload types for legend
