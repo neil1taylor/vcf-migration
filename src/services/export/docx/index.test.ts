@@ -24,6 +24,7 @@ vi.mock('./sections', () => ({
   buildOSCompatibilitySection: vi.fn(() => []),
   buildWorkloadClassification: vi.fn(() => []),
   buildPlatformRecommendation: vi.fn(() => []),
+  buildRemediationPlanSection: vi.fn(() => []),
 }));
 
 // Mock utility functions

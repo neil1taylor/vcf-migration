@@ -44,6 +44,7 @@ import {
   buildWorkloadClassification,
   buildPlatformRecommendation,
   buildSourceBOMSection,
+  buildRemediationPlanSection,
 } from './sections';
 
 // Re-export types for consumers
@@ -175,9 +176,12 @@ export async function generateDocxReport(
     sections.push(...buildWorkloadClassification(finalOptions.workloadClassification, sec.next()));
   }
 
+  // Migration Scope & Remediation Plan
+  const remediationLeaning = finalOptions.platformSelection?.score?.leaning || 'vsi';
   sections.push(
     ...buildOSCompatibilitySection(filteredRawData, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §6
-    ...buildMigrationOptions(sec.next()),                                   // §7 (with PowerVS column)
+    ...buildRemediationPlanSection(filteredRawData, remediationLeaning, sec.next()),  // §7
+    ...buildMigrationOptions(sec.next()),                                   // §8 (with PowerVS column)
   );
 
   // §8 Platform Recommendation (NEW — moved up, before platform deep-dives)

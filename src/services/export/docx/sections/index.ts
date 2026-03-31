@@ -22,3 +22,4 @@ export { buildOSCompatibilitySection } from './osCompatibility';
 export { buildWorkloadClassification } from './workloadClassification';
 export { buildPlatformRecommendation } from './platformRecommendation';
 export { buildSourceBOMSection } from './sourceBom';
+export { buildRemediationPlanSection } from './remediationPlan';
