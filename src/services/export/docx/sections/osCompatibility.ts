@@ -1,7 +1,8 @@
 // OS Compatibility Matrix Section
 
-import { Paragraph, PageBreak, HeadingLevel, AlignmentType } from 'docx';
+import { Paragraph, PageBreak, HeadingLevel, AlignmentType, ExternalHyperlink, TextRun } from 'docx';
 import type { DocumentContent } from '../types';
+import { STYLES, FONT_FAMILY } from '../types';
 import type { RVToolsData } from '@/types/rvtools';
 import {
   getVSIOSCompatibility,
@@ -22,6 +23,10 @@ interface OSGroup {
   vmCount: number;
   status: string;
   notes: string;
+  documentationLink?: string;
+  additionalLinks?: Record<string, string>;
+  eolDate?: string;
+  recommendedUpgrade?: string;
 }
 
 function groupByOSFamily<T>(
@@ -30,6 +35,7 @@ function groupByOSFamily<T>(
   getKey: (c: T) => string,
   getStatus: (c: T) => string,
   getNotes: (c: T) => string,
+  getExtra?: (c: T) => Partial<Pick<OSGroup, 'documentationLink' | 'additionalLinks' | 'eolDate' | 'recommendedUpgrade'>>,
 ): OSGroup[] {
   const groups = new Map<string, OSGroup>();
 
@@ -40,16 +46,81 @@ function groupByOSFamily<T>(
     if (existing) {
       existing.vmCount++;
     } else {
+      const extra = getExtra?.(compat) ?? {};
       groups.set(key, {
         displayName: key,
         vmCount: 1,
         status: getStatus(compat),
         notes: getNotes(compat),
+        ...extra,
       });
     }
   }
 
   return [...groups.values()].sort((a, b) => b.vmCount - a.vmCount);
+}
+
+function buildRemediationSubsection(
+  groups: OSGroup[],
+  platformLabel: string,
+): DocumentContent[] {
+  const needsRemediation = groups.filter(g => g.status === 'Unsupported' || g.status === 'BYOL');
+  if (needsRemediation.length === 0) return [];
+
+  const items: DocumentContent[] = [
+    createHeading('Remediation Required', HeadingLevel.HEADING_3),
+    createParagraph(
+      `The following operating systems require remediation before migration to ${platformLabel}. OS upgrades, re-platforming, and licence compliance activities are the client's responsibility to complete prior to migration. The Migration Partner will provide guidance and validate completion.`
+    ),
+  ];
+
+  for (const group of needsRemediation) {
+    items.push(
+      createHeading(`${group.displayName} (${group.vmCount} VM${group.vmCount !== 1 ? 's' : ''})`, HeadingLevel.HEADING_4),
+      createParagraph(group.notes),
+    );
+    if (group.eolDate) {
+      items.push(createParagraph(`End of Life: ${group.eolDate}`));
+    }
+    if (group.recommendedUpgrade) {
+      items.push(createParagraph(`Upgrade Path: ${group.recommendedUpgrade}`));
+    }
+    const links: { label: string; url: string }[] = [];
+    if (group.documentationLink) {
+      links.push({ label: 'Platform Documentation', url: group.documentationLink });
+    }
+    if (group.additionalLinks) {
+      const linkLabels: Record<string, string> = {
+        virtioDriverEOL: 'VirtIO Driver Status',
+        microsoftLifecycle: 'Microsoft Lifecycle',
+        ibmCloudEOSConsiderations: 'IBM Cloud EOS Considerations',
+        vmCompatibilityChecker: 'Red Hat VM Compatibility Checker',
+        vendorLifecycle: 'Vendor Lifecycle',
+      };
+      for (const [key, url] of Object.entries(group.additionalLinks)) {
+        links.push({ label: linkLabels[key] || key, url });
+      }
+    }
+    if (links.length > 0) {
+      for (const link of links) {
+        items.push(
+          new Paragraph({
+            spacing: { before: 60, after: 60 },
+            children: [
+              new TextRun({ text: `${link.label}: `, size: STYLES.smallSize, color: STYLES.secondaryColor, font: FONT_FAMILY }),
+              new ExternalHyperlink({
+                link: link.url,
+                children: [
+                  new TextRun({ text: link.url, style: 'Hyperlink', size: STYLES.smallSize, color: STYLES.primaryColor, underline: {}, font: FONT_FAMILY }),
+                ],
+              }),
+            ],
+          })
+        );
+      }
+    }
+  }
+  return items;
 }
 
 export function buildOSCompatibilitySection(
@@ -81,6 +152,7 @@ export function buildOSCompatibilitySection(
       c => c.displayName,
       c => c.status === 'supported' ? 'Supported' : c.status === 'byol' ? 'BYOL' : 'Unsupported',
       c => c.notes,
+      c => ({ documentationLink: c.documentationLink, additionalLinks: c.additionalLinks, eolDate: c.eolDate }),
     );
 
     const statusLabel: Record<string, string> = {
@@ -106,6 +178,7 @@ export function buildOSCompatibilitySection(
       ),
       createTableLabel('VSI OS Compatibility'),
     );
+    sections.push(...buildRemediationSubsection(vsiGroups, 'IBM Cloud VPC VSI'));
   }
 
   // ROKS compatibility table
@@ -118,6 +191,7 @@ export function buildOSCompatibilitySection(
         : c.compatibilityStatus === 'supported-with-caveats' ? 'Supported (Caveats)'
         : 'Unsupported',
       c => c.notes,
+      c => ({ documentationLink: c.documentationLink, additionalLinks: c.additionalLinks, eolDate: c.eolDate, recommendedUpgrade: c.recommendedUpgrade }),
     );
 
     const roksRows = roksGroups.map(g => [
@@ -137,6 +211,7 @@ export function buildOSCompatibilitySection(
       ),
       createTableLabel('ROKS OS Compatibility'),
     );
+    sections.push(...buildRemediationSubsection(roksGroups, 'ROKS / OpenShift Virtualization'));
   }
 
   // Recommendations

@@ -5,8 +5,9 @@ import { describe, it, expect, vi } from 'vitest';
 vi.mock('docx', () => ({
   Paragraph: class { constructor(public opts?: any) {} },
   PageBreak: class { constructor() {} },
-  HeadingLevel: { HEADING_1: 'heading1', HEADING_2: 'heading2' },
+  HeadingLevel: { HEADING_1: 'heading1', HEADING_2: 'heading2', HEADING_3: 'heading3', HEADING_4: 'heading4' },
   TextRun: class { constructor() {} },
+  ExternalHyperlink: class { constructor() {} },
   Table: class { constructor() {} },
   TableRow: class { constructor() {} },
   TableCell: class { constructor() {} },
@@ -108,5 +109,48 @@ describe('buildOSCompatibilitySection', () => {
 
     // Should have heading, intro, "no VMs" paragraph, page break
     expect(result.length).toBe(4);
+  });
+
+  it('includes remediation subsection when unsupported OS VMs exist for VSI', () => {
+    const vms = [
+      makeVM({ vmName: 'legacy-vm', guestOS: 'Microsoft Windows Server 2003' }),
+      makeVM({ vmName: 'modern-vm', guestOS: 'Red Hat Enterprise Linux 9' }),
+    ];
+    const rawData = makeRawData(vms);
+    const result = buildOSCompatibilitySection(rawData, { includeROKS: false, includeVSI: true });
+    const cleanResult = buildOSCompatibilitySection(
+      makeRawData([makeVM({ guestOS: 'Red Hat Enterprise Linux 9' })]),
+      { includeROKS: false, includeVSI: true },
+    );
+    expect(result.length).toBeGreaterThan(cleanResult.length);
+  });
+
+  it('includes remediation subsection when unsupported OS VMs exist for ROKS', () => {
+    const vms = [
+      makeVM({ vmName: 'legacy-vm', guestOS: 'Microsoft Windows Server 2003' }),
+      makeVM({ vmName: 'modern-vm', guestOS: 'Red Hat Enterprise Linux 9' }),
+    ];
+    const rawData = makeRawData(vms);
+    const result = buildOSCompatibilitySection(rawData, { includeROKS: true, includeVSI: false });
+    const cleanResult = buildOSCompatibilitySection(
+      makeRawData([makeVM({ guestOS: 'Red Hat Enterprise Linux 9' })]),
+      { includeROKS: true, includeVSI: false },
+    );
+    expect(result.length).toBeGreaterThan(cleanResult.length);
+  });
+
+  it('does not include remediation subsection when all OSes are supported', () => {
+    const vms = [
+      makeVM({ vmName: 'vm-1', guestOS: 'Red Hat Enterprise Linux 9' }),
+      makeVM({ vmName: 'vm-2', guestOS: 'Microsoft Windows Server 2022' }),
+    ];
+    const rawData = makeRawData(vms);
+    const resultClean = buildOSCompatibilitySection(rawData, { includeROKS: true, includeVSI: true });
+    const vmsUnsupported = [
+      ...vms,
+      makeVM({ vmName: 'legacy-vm', guestOS: 'Microsoft Windows Server 2003' }),
+    ];
+    const resultUnsupported = buildOSCompatibilitySection(makeRawData(vmsUnsupported), { includeROKS: true, includeVSI: true });
+    expect(resultUnsupported.length).toBeGreaterThan(resultClean.length);
   });
 });
