@@ -24,9 +24,9 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:generate-fixture": "npx tsx e2e/fixtures/generate-fixture.ts",
     "convert:vinventory": "python3 scripts/convert_vinventory.py",
-    "preview:pptx": "npx vite-node --config scripts/vite-preview.config.ts scripts/preview-pptx.ts",
-    "preview:docx": "npx vite-node --config scripts/vite-preview.config.ts scripts/preview-docx.ts",
-    "mcp:ai-proxy": "npx vite-node --config mcp/ai-proxy/vite-mcp.config.ts mcp/ai-proxy/index.ts"
+    "preview:pptx": "vite-node --config scripts/vite-preview.config.ts scripts/preview-pptx.ts",
+    "preview:docx": "vite-node --config scripts/vite-preview.config.ts scripts/preview-docx.ts",
+    "mcp:ai-proxy": "vite-node --config mcp/ai-proxy/vite-mcp.config.ts mcp/ai-proxy/index.ts"
   },
   "dependencies": {
     "@carbon/icons-react": "^11.71.0",
@@ -75,6 +75,7 @@
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
+    "vite-node": "^6.0.0",
     "vitest": "^4.0.16"
   }
 }
