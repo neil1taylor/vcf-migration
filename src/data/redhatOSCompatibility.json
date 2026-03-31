@@ -40,7 +40,10 @@
       "notes": "Certified for OpenShift Virtualization. RHEL 7 reached EOL June 2024 — recommend upgrade to RHEL 8/9",
       "recommendedUpgrade": "Upgrade to RHEL 8.x or 9.x",
       "documentationLink": "https://access.redhat.com/articles/4234591",
-      "eolDate": "2024-06-30"
+      "eolDate": "2024-06-30",
+      "additionalLinks": {
+        "vendorLifecycle": "https://access.redhat.com/support/policy/updates/errata"
+      }
     },
     {
       "id": "rhel-6",
@@ -93,7 +96,10 @@
       "notes": "Community supported in OpenShift Virtualization. CentOS 7 reached EOL June 2024 — migrate to CentOS Stream or RHEL",
       "recommendedUpgrade": "Migrate to CentOS Stream 9 or RHEL 9",
       "documentationLink": "https://access.redhat.com/articles/4234591",
-      "eolDate": "2024-06-30"
+      "eolDate": "2024-06-30",
+      "additionalLinks": {
+        "vendorLifecycle": "https://www.centos.org/centos-linux-eol/"
+      }
     },
     {
       "id": "ubuntu-25",
@@ -306,7 +312,10 @@
       "notes": "Known to work in OpenShift Virtualization but not certified. Extended support ended Oct 2023 — upgrade recommended",
       "recommendedUpgrade": "Upgrade to Windows Server 2019 or later",
       "documentationLink": "https://access.redhat.com/articles/4234591",
-      "eolDate": "2023-10-10"
+      "eolDate": "2023-10-10",
+      "additionalLinks": {
+        "microsoftLifecycle": "https://learn.microsoft.com/en-us/lifecycle/products/windows-server-2012-r2"
+      }
     },
     {
       "id": "windows-2012",
@@ -323,23 +332,33 @@
       "id": "windows-2008",
       "displayName": "Windows Server 2008/2008 R2",
       "patterns": ["windows server 2008", "microsoft windows server 2008"],
-      "compatibilityStatus": "supported-with-caveats",
-      "compatibilityScore": 30,
-      "supportTier": "known-to-work",
-      "notes": "Known to work in OpenShift Virtualization but not certified. Windows Server 2008 is EOL (Jan 2020) — upgrade strongly recommended. VirtIO drivers for 2008 R2 were dropped from current virtio-win releases (last stable: 0.1.173.9). MTV/virt-v2v may inject older bundled drivers automatically, but this is not certified by Red Hat.",
+      "compatibilityStatus": "unsupported",
+      "compatibilityScore": 10,
+      "notes": "Not supported by MTV/virt-v2v. Windows Server 2008 is EOL (Jan 2020). VirtIO drivers for 2008 R2 were dropped from virtio-win releases (last buildable: 0.1.173, Dec 2021). Current MTV tooling does not ship these drivers — migration will fail at the virt-v2v conversion stage. Requires OS upgrade to Windows Server 2016+ before migration.",
       "recommendedUpgrade": "Must upgrade to Windows Server 2016 or later",
-      "documentationLink": "https://access.redhat.com/articles/4234591"
+      "eolDate": "2020-01-14",
+      "documentationLink": "https://access.redhat.com/articles/4234591",
+      "additionalLinks": {
+        "virtioDriverEOL": "https://github.com/virtio-win/kvm-guest-drivers-windows/releases/tag/02.12.2021-last-buildable-point-Win7",
+        "microsoftLifecycle": "https://learn.microsoft.com/en-us/troubleshoot/windows-server/windows-server-eos-faq/end-of-support-windows-server-2008-2008r2",
+        "vmCompatibilityChecker": "https://access.redhat.com/articles/7074700"
+      }
     },
     {
       "id": "windows-2003",
       "displayName": "Windows Server 2003",
       "patterns": ["windows server 2003", "microsoft windows server 2003"],
-      "compatibilityStatus": "supported-with-caveats",
-      "compatibilityScore": 20,
-      "supportTier": "known-to-work",
-      "notes": "Known to work in OpenShift Virtualization but not certified. Windows Server 2003 is long EOL — upgrade strongly recommended. No reliable VirtIO drivers exist for 2003. MTV/virt-v2v may attempt driver injection but success is not guaranteed — very high risk of boot failure.",
+      "compatibilityStatus": "unsupported",
+      "compatibilityScore": 5,
+      "notes": "Not supported by MTV/virt-v2v. Windows Server 2003 is long EOL (Jul 2015). No VirtIO drivers exist in any current virtio-win release (last buildable: Aug 2021). MTV migration will fail — no driver injection possible. Requires application modernization or re-platforming.",
       "recommendedUpgrade": "Must upgrade to Windows Server 2016 or later",
-      "documentationLink": "https://access.redhat.com/articles/4234591"
+      "eolDate": "2015-07-14",
+      "documentationLink": "https://access.redhat.com/articles/4234591",
+      "additionalLinks": {
+        "virtioDriverEOL": "https://github.com/virtio-win/kvm-guest-drivers-windows/releases/tag/08.03.2021-last-buldable-point-XP",
+        "microsoftLifecycle": "https://learn.microsoft.com/en-us/lifecycle/products/windows-server-2003-",
+        "vmCompatibilityChecker": "https://access.redhat.com/articles/7074700"
+      }
     },
     {
       "id": "windows-11",

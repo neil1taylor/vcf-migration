@@ -179,8 +179,8 @@ export const CHECK_DEFINITIONS: CheckDefinition[] = [
     name: 'OS Compatible',
     shortName: 'OS',
     category: 'os',
-    severity: 'warning',
-    description: 'Operating system compatibility with OpenShift Virtualization',
+    severity: 'blocker',
+    description: 'Operating system compatibility with OpenShift Virtualization — unsupported OS will fail MTV migration',
     modes: ['roks'],
   },
 
@@ -841,6 +841,10 @@ export function derivePreflightCounts(
     const vmsWithInvalidHostnameList = failedVMs('hostname-valid');
     counts.vmsWithInvalidHostname = vmsWithInvalidHostnameList.length;
     counts.vmsWithInvalidHostnameList = vmsWithInvalidHostnameList;
+
+    const vmsWithUnsupportedROKSOSList = failedVMs('os-compatible');
+    counts.vmsWithUnsupportedROKSOS = vmsWithUnsupportedROKSOSList.length;
+    counts.vmsWithUnsupportedROKSOSList = vmsWithUnsupportedROKSOSList;
   }
 
   return counts;

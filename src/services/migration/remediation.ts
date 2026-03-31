@@ -74,6 +74,8 @@ export interface PreflightCheckCounts {
   vmsWithInvalidHostnameList?: string[];
   vmsStaticIPPoweredOff?: number;
   vmsStaticIPPoweredOffList?: string[];
+  vmsWithUnsupportedROKSOS?: number;
+  vmsWithUnsupportedROKSOSList?: string[];
 }
 
 /**
@@ -319,6 +321,19 @@ export function generateROKSRemediationItems(counts: PreflightCheckCounts): Reme
       documentationLink: mtvRequirements.checks['independent-disk'].documentationLink,
       affectedCount: counts.vmsWithIndependentDisks,
       affectedVMs: counts.vmsWithIndependentDisksList || [],
+    });
+  }
+
+  if (counts.vmsWithUnsupportedROKSOS && counts.vmsWithUnsupportedROKSOS > 0) {
+    items.push({
+      id: 'unsupported-roks-os',
+      name: 'Unsupported Operating System',
+      severity: 'blocker',
+      description: 'These VMs have operating systems not supported by MTV/virt-v2v for migration to OpenShift Virtualization. VirtIO drivers required for migration are not available for these OS versions — migration will fail at the virt-v2v conversion stage.',
+      remediation: 'Upgrade the operating system before migration. Windows Server 2008 and earlier require upgrade to Windows Server 2016+. Other unsupported OSes should be upgraded to a version listed in the Red Hat certified guest OS matrix.',
+      documentationLink: 'https://access.redhat.com/articles/4234591',
+      affectedCount: counts.vmsWithUnsupportedROKSOS,
+      affectedVMs: counts.vmsWithUnsupportedROKSOSList || [],
     });
   }
 

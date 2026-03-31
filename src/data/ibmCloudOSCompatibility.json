@@ -31,7 +31,10 @@
       "status": "byol",
       "imageType": "custom",
       "notes": "End of standard support June 2024 - BYOL custom image only. Upgrade to RHEL 8/9 recommended. Extended Life Cycle Support (ELS) available from Red Hat",
-      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-byol-vpc-about"
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-byol-vpc-about",
+      "additionalLinks": {
+        "vendorLifecycle": "https://access.redhat.com/support/policy/updates/errata"
+      }
     },
     {
       "id": "ubuntu-24",
@@ -67,7 +70,8 @@
       "status": "unsupported",
       "imageType": "none",
       "notes": "End of standard support - upgrade to Ubuntu 20.04 or later recommended",
-      "eolDate": "2023-05-31"
+      "eolDate": "2023-05-31",
+      "documentationLink": "https://ubuntu.com/about/release-cycle"
     },
     {
       "id": "ubuntu-generic",
@@ -112,7 +116,10 @@
       "status": "byol",
       "imageType": "custom",
       "notes": "BYOL only - extended security updates may apply. Upgrade to Windows Server 2019/2022 recommended",
-      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images",
+      "additionalLinks": {
+        "microsoftLifecycle": "https://learn.microsoft.com/en-us/lifecycle/products/windows-server-2012-r2"
+      }
     },
     {
       "id": "windows-2012",
@@ -121,7 +128,10 @@
       "status": "byol",
       "imageType": "custom",
       "notes": "BYOL only - end of extended support. Upgrade to Windows Server 2019/2022 strongly recommended",
-      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images",
+      "additionalLinks": {
+        "microsoftLifecycle": "https://learn.microsoft.com/en-us/lifecycle/products/windows-server-2012"
+      }
     },
     {
       "id": "windows-2008",
@@ -130,7 +140,13 @@
       "status": "unsupported",
       "imageType": "none",
       "notes": "End of life (Jan 2020). Current VirtIO driver releases (virtio-win 0.1.215+) have dropped Windows Server 2008/2008 R2 support. IBM Cloud VPC requires virtio-win 1.9.24+ which does not include 2008 drivers — VMs will not boot. Requires OS upgrade before migration.",
-      "eolDate": "2020-01-14"
+      "eolDate": "2020-01-14",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-create-windows-custom-image",
+      "additionalLinks": {
+        "virtioDriverEOL": "https://github.com/virtio-win/kvm-guest-drivers-windows/releases/tag/02.12.2021-last-buildable-point-Win7",
+        "microsoftLifecycle": "https://learn.microsoft.com/en-us/troubleshoot/windows-server/windows-server-eos-faq/end-of-support-windows-server-2008-2008r2",
+        "ibmCloudEOSConsiderations": "https://cloud.ibm.com/docs/vpc?topic=vpc-eos-os-considerations-intro"
+      }
     },
     {
       "id": "windows-2003",
@@ -139,7 +155,13 @@
       "status": "unsupported",
       "imageType": "none",
       "notes": "End of life (Jul 2015). No viable VirtIO drivers exist for Windows Server 2003 — VMs cannot boot on IBM Cloud VPC. Requires application modernization or re-platforming.",
-      "eolDate": "2015-07-14"
+      "eolDate": "2015-07-14",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-create-windows-custom-image",
+      "additionalLinks": {
+        "virtioDriverEOL": "https://github.com/virtio-win/kvm-guest-drivers-windows/releases/tag/08.03.2021-last-buldable-point-XP",
+        "microsoftLifecycle": "https://learn.microsoft.com/en-us/lifecycle/products/windows-server-2003-",
+        "ibmCloudEOSConsiderations": "https://cloud.ibm.com/docs/vpc?topic=vpc-eos-os-considerations-intro"
+      }
     },
     {
       "id": "windows-11",
@@ -184,7 +206,8 @@
       "status": "unsupported",
       "imageType": "none",
       "notes": "End of general support - upgrade to SLES 15 recommended",
-      "eolDate": "2022-03-31"
+      "eolDate": "2022-03-31",
+      "documentationLink": "https://www.suse.com/lifecycle/"
     },
     {
       "id": "debian-12",
@@ -220,7 +243,8 @@
       "status": "unsupported",
       "imageType": "none",
       "notes": "End of life - upgrade to Debian 11 or later recommended",
-      "eolDate": "2022-06-30"
+      "eolDate": "2022-06-30",
+      "documentationLink": "https://wiki.debian.org/DebianReleases"
     },
     {
       "id": "centos-stream-9",
@@ -247,7 +271,8 @@
       "status": "unsupported",
       "imageType": "none",
       "notes": "End of life Dec 2021 - migrate to CentOS Stream, Rocky Linux, or AlmaLinux",
-      "eolDate": "2021-12-31"
+      "eolDate": "2021-12-31",
+      "documentationLink": "https://www.centos.org/centos-linux-eol/"
     },
     {
       "id": "centos-7",
@@ -257,7 +282,10 @@
       "imageType": "custom",
       "notes": "End of life June 2024 - BYOL custom image only. Migrate to CentOS Stream 9, Rocky Linux 9, or AlmaLinux 9 recommended",
       "eolDate": "2024-06-30",
-      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images"
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-planning-custom-images",
+      "additionalLinks": {
+        "vendorLifecycle": "https://www.centos.org/centos-linux-eol/"
+      }
     },
     {
       "id": "rocky-9",
@@ -346,7 +374,8 @@
       "patterns": ["freebsd"],
       "status": "unsupported",
       "imageType": "none",
-      "notes": "Not supported on IBM Cloud VPC"
+      "notes": "Not supported on IBM Cloud VPC",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
     },
     {
       "id": "openbsd",
@@ -354,7 +383,8 @@
       "patterns": ["openbsd"],
       "status": "unsupported",
       "imageType": "none",
-      "notes": "Not supported on IBM Cloud VPC"
+      "notes": "Not supported on IBM Cloud VPC",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
     },
     {
       "id": "solaris",
@@ -362,7 +392,8 @@
       "patterns": ["solaris", "sunos", "sun solaris"],
       "status": "unsupported",
       "imageType": "none",
-      "notes": "Not supported on IBM Cloud VPC - x86 architecture only"
+      "notes": "Not supported on IBM Cloud VPC - x86 architecture only",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
     },
     {
       "id": "aix",
@@ -370,7 +401,8 @@
       "patterns": ["aix", "ibm aix"],
       "status": "unsupported",
       "imageType": "none",
-      "notes": "Not supported on IBM Cloud VPC - use IBM Power Virtual Server for AIX workloads"
+      "notes": "Not supported on IBM Cloud VPC - use IBM Power Virtual Server for AIX workloads",
+      "documentationLink": "https://cloud.ibm.com/docs/power-iaas?topic=power-iaas-getting-started"
     },
     {
       "id": "hpux",
@@ -378,7 +410,8 @@
       "patterns": ["hp-ux", "hpux", "hp ux"],
       "status": "unsupported",
       "imageType": "none",
-      "notes": "Not supported on IBM Cloud VPC"
+      "notes": "Not supported on IBM Cloud VPC",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
     },
     {
       "id": "vmware-photon",
@@ -386,7 +419,8 @@
       "patterns": ["photon", "vmware photon"],
       "status": "unsupported",
       "imageType": "none",
-      "notes": "Not supported on IBM Cloud VPC - migrate to supported Linux distribution"
+      "notes": "Not supported on IBM Cloud VPC - migrate to supported Linux distribution",
+      "documentationLink": "https://cloud.ibm.com/docs/vpc?topic=vpc-about-images"
     },
     {
       "id": "esxi",
