@@ -3,38 +3,7 @@
 import type PptxGenJS from 'pptxgenjs';
 import { COLORS, FONTS } from '../types';
 import { addSlideTitle } from '../utils';
-
-const PHASES: { heading: string; bullets: string[] }[] = [
-  {
-    heading: 'Discover',
-    bullets: [
-      'Discover all VLANs, bare metals, VSIs, file/block storage, DNS, and security groups in IBM Cloud Classic',
-      'Discover all ESXi hosts, vSphere clusters, NSX networking, vSAN/NFS datastores, and VM inventory',
-    ],
-  },
-  {
-    heading: 'Design & Configure',
-    bullets: [
-      'Design the target VPC environment (subnets, security groups, routing, transit gateways)',
-      'Configure IAM policies, access groups, and service-to-service authorizations',
-      'Translate NSX firewall rules and micro-segmentation to VPC security groups and ACLs',
-      'Map source VLANs and port groups to target VPC subnets and address ranges',
-      'Assess application readiness and dependency mapping for migration wave planning',
-      'Reconcile Classic and VMware configurations into a unified target architecture',
-    ],
-  },
-  {
-    heading: 'Migration',
-    bullets: [
-      'Migrate bare metal and VSI workloads from Classic infrastructure to VPC',
-      'Migrate SQL databases and application data with minimal downtime',
-      'Migrate VMware Classic VMs to VPC VSIs using RackWare or similar tooling',
-      'Migrate Classic VMware workloads to IBM Cloud for VMware as a Service (VCF as a Service)',
-      'Map and validate infrastructure configurations (DNS, load balancers, certificates)',
-      'Leverage IBM Migration Partner automation suite for repeatable, auditable migrations',
-    ],
-  },
-];
+import { MIGRATION_PHASES } from '@/data/migrationPhases';
 
 export function addMigrationExecutionSlide(pres: PptxGenJS): void {
   const slide = pres.addSlide({ masterName: 'CONTENT' });
@@ -66,8 +35,8 @@ export function addMigrationExecutionSlide(pres: PptxGenJS): void {
   const startY = 3.87;
   const accentH = 0.13;
 
-  for (let i = 0; i < PHASES.length; i++) {
-    const phase = PHASES[i];
+  for (let i = 0; i < MIGRATION_PHASES.length; i++) {
+    const phase = MIGRATION_PHASES[i];
     const colX = startX + i * (colWidth + gap);
 
     // Phase number label (e.g. "Phase 1")
@@ -127,7 +96,7 @@ export function addMigrationExecutionSlide(pres: PptxGenJS): void {
     });
 
     // Add flow arrow between columns (except after last)
-    if (i < PHASES.length - 1) {
+    if (i < MIGRATION_PHASES.length - 1) {
       const arrowX = colX + colWidth + (gap / 2) - (arrowW / 2);
       // Arrow triangle pointing right
       slide.addShape('triangle' as PptxGenJS.ShapeType, {
