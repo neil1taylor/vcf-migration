@@ -13,6 +13,7 @@ export interface VSIOSCompatibility {
   notes: string;
   documentationLink?: string;
   eolDate?: string;
+  additionalLinks?: Record<string, string>;
 }
 
 export type ROKSSupportTier = 'certified' | 'vendor-supported' | 'community-supported' | 'known-to-work';
@@ -28,6 +29,7 @@ export interface ROKSOSCompatibility {
   documentationLink?: string;
   recommendedUpgrade?: string;
   eolDate?: string;
+  additionalLinks?: Record<string, string>;
 }
 
 /**
@@ -46,6 +48,7 @@ export function getVSIOSCompatibility(guestOS: string): VSIOSCompatibility {
         notes: entry.notes,
         documentationLink: entry.documentationLink,
         eolDate: (entry as { eolDate?: string }).eolDate,
+        additionalLinks: (entry as { additionalLinks?: Record<string, string> }).additionalLinks,
       };
     }
   }
@@ -80,6 +83,7 @@ export function getROKSOSCompatibility(guestOS: string): ROKSOSCompatibility {
         documentationLink: entry.documentationLink,
         recommendedUpgrade: (entry as { recommendedUpgrade?: string }).recommendedUpgrade,
         eolDate: (entry as { eolDate?: string }).eolDate,
+        additionalLinks: (entry as { additionalLinks?: Record<string, string> }).additionalLinks,
       };
     }
   }
