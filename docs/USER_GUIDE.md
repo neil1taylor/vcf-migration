@@ -586,27 +586,29 @@ The tool checks for:
 | RDM Disks | Blocker | Raw device mappings not supported |
 | Shared Disks | Warning | Multi-writer disks need special handling |
 | CD-ROM Connected | Warning | Should be disconnected before migration |
-| OS Compatibility | Varies | Based on Red Hat compatibility matrix |
+| OS Compatibility | Blocker | Unsupported OS will fail migration — upgrade required |
 
 #### OS Compatibility
 
-The tool validates guest operating systems against the Red Hat certified guest OS matrix:
+The tool validates guest operating systems against platform compatibility matrices for both VPC VSI and ROKS:
 
-- **Fully Supported** (green) - Certified for OpenShift Virtualization
-- **Supported with Caveats** (yellow) - May need additional configuration
-- **Unsupported** (red) - Not certified, may still work
+- **Supported** (green) — Stock image available (VSI) or certified (ROKS)
+- **BYOL / Supported with Caveats** (yellow) — Custom image required or additional configuration needed
+- **Unsupported** (red) — **Blocker** — migration will fail, OS upgrade required before migration
+
+Unsupported OS is a **blocker on both platforms**. VMs with unsupported operating systems cannot be migrated and must be upgraded by the client before migration.
 
 **Legacy Windows VirtIO Driver Constraints:**
 
-VirtIO drivers are required for KVM-based platforms. Current Red Hat virtio-win releases (0.1.215+) support Windows Server 2012 R2 and later. Legacy Windows versions have limited or no driver availability:
+VirtIO drivers are required for both IBM Cloud VPC and KVM-based platforms (ROKS/OpenShift Virtualization). Current virtio-win releases have dropped support for legacy Windows:
 
-| OS | VirtIO Status | ROKS/MTV Impact |
-|----|--------------|-----------------|
-| Windows Server 2012 R2+ | Current drivers available | Fully supported via MTV/virt-v2v |
-| Windows Server 2008/2008 R2 | Dropped from current releases (last stable: 0.1.173.9) | MTV may inject older bundled drivers, but not certified by Red Hat |
-| Windows Server 2003 | No viable drivers exist | Very high risk of boot failure — upgrade required |
+| OS | VirtIO Status | Impact |
+|----|--------------|--------|
+| Windows Server 2012 R2+ | Current drivers available | Fully supported on both VSI and ROKS |
+| Windows Server 2008/2008 R2 | Dropped from virtio-win (last buildable: Dec 2021) | **Blocker** — VMs will not boot on VPC; MTV migration will fail |
+| Windows Server 2003 | No drivers exist (last buildable: Aug 2021) | **Blocker** — requires application modernization or re-platforming |
 
-For legacy Windows VMs, upgrade to Windows Server 2019 or 2022 before migration.
+For legacy Windows VMs, upgrade to Windows Server 2016 or later before migration. The generated reports include per-OS remediation guidance with documentation links.
 
 #### Worker Node Sizing
 
@@ -932,10 +934,27 @@ Comprehensive migration assessment documents:
 - Formatted for editing and customization
 - Tables and charts included
 - Ready for stakeholder review
+- **Migration Scope & Remediation Plan** section — Migration Partner scope (Discover, Design & Configure, Migration phases) and Client Pre-Migration Remediation with per-blocker detail, documentation links, and affected VM lists
+- **OS Compatibility remediation** subsections with per-OS upgrade paths, EOL dates, and clickable documentation links
+- Remediation items clearly state that pre-migration remediation is the **client's responsibility**
 
 **To export:**
 1. Click **Export Word** on any migration page
 2. DOCX file downloads
+
+#### PowerPoint Presentations
+
+Stakeholder-ready slide decks with:
+- Executive summary and environment overview
+- Migration readiness with color-coded pre-flight checks
+- **Remediation Actions** slide — blocker/warning table with severity, affected VM counts, and truncated remediation text. Footer notes that remediation is the client's responsibility
+- Migration execution phases (Discover, Design & Configure, Migration)
+- Cost estimation and wave planning
+- Next steps
+
+**To export:**
+1. Click **Export PPTX** on any migration page
+2. PPTX file downloads
 
 #### Bill of Materials (BOM)
 

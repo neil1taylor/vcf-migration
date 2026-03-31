@@ -509,8 +509,8 @@ export function UserGuidePage() {
                   <h4>ROKS Migration (OpenShift Virtualization)</h4>
                   <p>Plan migrations to Red Hat OpenShift on IBM Cloud using MTV (Migration Toolkit for Virtualization).</p>
                   <UnorderedList>
-                    <ListItem><strong>Pre-Flight Checks</strong> - VMware Tools, hardware version, snapshots, RDM disks, OS compatibility</ListItem>
-                    <ListItem><strong>OS Compatibility</strong> - Validation against Red Hat certified guest OS matrix. Legacy Windows note: current VirtIO drivers (virtio-win 0.1.215+) support Windows Server 2012 R2+; Windows 2008/2008 R2 drivers dropped from current releases; Windows 2003 has no viable drivers</ListItem>
+                    <ListItem><strong>Pre-Flight Checks</strong> - VMware Tools, hardware version, snapshots, RDM disks, OS compatibility (unsupported OS is a blocker)</ListItem>
+                    <ListItem><strong>OS Compatibility</strong> - Validation against Red Hat certified guest OS matrix. Unsupported OS (e.g. Windows Server 2003, 2008) is a migration blocker — MTV/virt-v2v cannot inject VirtIO drivers for these versions. Upgrade to Windows Server 2016+ required before migration</ListItem>
                     <ListItem><strong>Worker Node Sizing</strong> - Bare metal profile selection and capacity planning</ListItem>
                     <ListItem><strong>6 Solution Architectures</strong> - NVMe Converged, Hybrid (BM+VSI), BM + Block Storage, BM + Block + ODF, BM Disaggregated, BM + NFS (CSI)</ListItem>
                     <ListItem><strong>Storage IOPS Tiers</strong> - Standard (3 IOPS/GB · 500 IOPS), Performance (5 IOPS/GB · 1,000 IOPS), High Performance (10 IOPS/GB · 3,000 IOPS)</ListItem>
@@ -521,8 +521,8 @@ export function UserGuidePage() {
                   <h4>VSI Migration (VPC Virtual Servers)</h4>
                   <p>Plan lift-and-shift migrations to IBM Cloud VPC Virtual Server Instances.</p>
                   <UnorderedList>
-                    <ListItem><strong>Pre-Flight Checks</strong> - Boot disk size (10-250GB), disk count (max 12), memory limits, VirtIO driver readiness</ListItem>
-                    <ListItem><strong>VirtIO Drivers</strong> - Required for VPC boot. Current virtio-win supports Windows Server 2012 R2+. Windows 2008 R2 requires archived drivers (unsupported). Windows 2003 has no viable drivers and cannot boot on VPC.</ListItem>
+                    <ListItem><strong>Pre-Flight Checks</strong> - Boot disk size (10-250GB), disk count (max 12), memory limits, OS compatibility (unsupported OS is a blocker)</ListItem>
+                    <ListItem><strong>VirtIO Drivers</strong> - Required for VPC boot. IBM Cloud VPC requires virtio-win 1.9.24+ which supports Windows Server 2012 R2+. Windows 2008/2008 R2 and 2003 are unsupported — no VirtIO drivers available, VMs will not boot. Upgrade required before migration.</ListItem>
                     <ListItem><strong>Profile Selection</strong> - Automatic mapping to Balanced (bx2), Compute (cx2), or Memory (mx2) families</ListItem>
                     <ListItem><strong>VM-to-Profile Mapping</strong> - Table showing source specs, recommended profile, and cost</ListItem>
                     <ListItem><strong>Custom Profiles</strong> - Override auto-selected profiles or define custom ones</ListItem>
@@ -764,7 +764,12 @@ export function UserGuidePage() {
 
                 <Tile className="user-guide-page__card">
                   <h4>Word Documents</h4>
-                  <p>Comprehensive migration assessment documents formatted for editing and stakeholder review.</p>
+                  <p>Comprehensive migration assessment documents formatted for editing and stakeholder review. Includes a &quot;Migration Scope &amp; Remediation Plan&quot; section with Migration Partner scope (3 phases) and client pre-migration remediation detail with per-blocker documentation links and affected VM lists. OS Compatibility section includes per-OS remediation subsections with upgrade paths, EOL dates, and clickable documentation links.</p>
+                </Tile>
+
+                <Tile className="user-guide-page__card">
+                  <h4>PowerPoint Presentations</h4>
+                  <p>Stakeholder-ready slide decks with executive summary, migration readiness checks, a &quot;Remediation Actions&quot; slide showing blocker/warning items with severity and affected VM counts, migration execution phases, and cost estimation.</p>
                 </Tile>
 
                 <Tile className="user-guide-page__card">

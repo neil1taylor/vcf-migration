@@ -1,6 +1,26 @@
 {
   "releases": [
     {
+      "version": "2.6.5",
+      "date": "2026-03-31",
+      "sections": {
+        "added": [
+          "New 'Migration Scope & Remediation Plan' section in DOCX export with partner scope (3 phases) and client remediation detail",
+          "New 'Remediation Actions' slide in PPTX export with color-coded severity table and client responsibility footer",
+          "OS remediation subsections in DOCX OS Compatibility section with per-OS upgrade paths, EOL dates, and documentation links",
+          "Documentation URLs added to OS compatibility data for unsupported, BYOL, and EOL operating systems"
+        ],
+        "changed": [
+          "Windows Server 2003 and 2008 now marked as 'unsupported' on ROKS (was 'supported-with-caveats') — MTV/virt-v2v cannot migrate these",
+          "ROKS pre-flight OS compatibility check upgraded from warning to blocker for unsupported operating systems",
+          "Migration phases data shared between DOCX and PPTX exports for consistency"
+        ],
+        "fixed": [
+          "Preview scripts (preview:docx, preview:pptx) no longer rely on npx cache — vite-node installed as local dev dependency"
+        ]
+      }
+    },
+    {
       "version": "2.6.4",
       "date": "2026-03-30",
       "sections": {

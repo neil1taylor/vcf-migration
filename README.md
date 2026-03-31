@@ -22,8 +22,8 @@ This section covers how to use the VCF Migration application for migration plann
 ### Migration Targets
 
 #### ROKS (Red Hat OpenShift on IBM Cloud)
-- **MTV Compatibility Analysis** — Pre-flight checks against Migration Toolkit for Virtualization requirements
-- **OS Compatibility Matrix** — Red Hat OS support validation with detailed compatibility status
+- **MTV Compatibility Analysis** — Pre-flight checks against Migration Toolkit for Virtualization requirements (unsupported OS is a blocker)
+- **OS Compatibility Matrix** — Red Hat OS support validation with detailed compatibility status, upgrade paths, and documentation links
 - **Bare Metal Sizing** — Automatic calculation of required bare metal nodes for OpenShift Virtualization
 - **6 Solution Architectures** — Select the storage architecture that fits your requirements:
   - **NVMe Converged** — BM with local NVMe + ODF on same nodes (highest performance)
@@ -86,7 +86,8 @@ This section covers how to use the VCF Migration application for migration plann
 ### Migration Planning
 - **Wave Planning** — Network-based or complexity-based migration grouping
 - **Complexity Scoring** — Automatic assessment of migration difficulty per VM
-- **Remediation Guidance** — Actionable recommendations for migration blockers
+- **Remediation Guidance** — Actionable recommendations for migration blockers with per-OS upgrade paths, documentation links, and client responsibility framing
+- **Migration Scope & Remediation Plan** — DOCX/PPTX exports include Migration Partner scope (3 phases) and detailed client pre-migration remediation
 
 ---
 

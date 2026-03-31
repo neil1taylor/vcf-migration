@@ -31,7 +31,7 @@ npm run test:e2e:generate-fixture # Regenerate test Excel fixture
 npm run convert:vinventory -- input.xlsx [output.xlsx]  # Convert vInventory to RVTools format
 npm run preview:pptx    # Generate PPTX from test fixture + convert slides to PNGs for visual inspection
 npm run preview:docx    # Generate DOCX from test fixture for visual inspection
-npm run mcp:ai-proxy    # Start the MCP server for automated AI proxy testing
+npm run mcp:ai-proxy    # Start the MCP server for automated AI proxy testing (vite-node, local dev dep)
 ```
 
 ## Testing Requirements
@@ -143,6 +143,10 @@ Define custom profiles in `src/data/ibmCloudConfig.json` under `customBareMetalP
 ## OS Compatibility Data
 
 Manually maintained in `src/data/ibmCloudOSCompatibility.json` (VPC VSI) and `src/data/redhatOSCompatibility.json` (ROKS). Update when IBM Cloud/Red Hat changes supported OS versions. The `patterns` array contains lowercase strings matched against RVTools "Guest OS" field (case-insensitive substring matching in `src/services/migration/osCompatibility.ts`).
+
+Each OS entry can include: `documentationLink` (primary URL), `additionalLinks` (Record of key→URL for VirtIO driver status, vendor lifecycle pages, etc.), `eolDate`, and `recommendedUpgrade`. These fields are exposed through `getVSIOSCompatibility()` and `getROKSOSCompatibility()` and rendered in the DOCX OS Compatibility remediation subsections.
+
+**Unsupported OS is a blocker on both platforms:** Windows Server 2003/2008 are marked `unsupported` on both VSI (no VirtIO drivers) and ROKS (MTV/virt-v2v cannot inject drivers). The `os-compatible` pre-flight check has severity `blocker` for both modes.
 
 ## vInventory Converter
 
@@ -405,6 +409,12 @@ Side-by-side ROKS vs VSI vs PowerVS comparison with user overrides and 5-tab ana
 | `src/services/export/docx/sections/timelineEstimation.ts` | Phase table (with Source/VMs columns), pilot description, duration formula, total duration |
 | `src/services/export/docx/sections/networkDesign.ts` | Subnet mapping, SG summary |
 | `src/services/export/docx/sections/platformSelection.ts` | Score summary, per-factor responses |
+| `src/services/export/docx/sections/remediationPlan.ts` | Migration Partner scope (3 phases from shared `migrationPhases.ts`) + Client Pre-Migration Remediation (blocker/warning summary table, per-item detail with documentation links and affected VMs) |
+| `src/services/export/docx/sections/osCompatibility.ts` | OS tables per platform + "Remediation Required" subsection with per-OS upgrade paths, EOL dates, and clickable documentation links |
+
+### Migration Phases Data
+
+Shared migration phase definitions in `src/data/migrationPhases.ts` (`MIGRATION_PHASES` constant). Used by both DOCX (`remediationPlan.ts`) and PPTX (`migrationExecutionSlide.ts`) exports for consistent three-phase (Discover, Design & Configure, Migration) content.
 
 ## IBM Cloud Classic Billing Import
 
