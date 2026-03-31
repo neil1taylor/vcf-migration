@@ -12,6 +12,7 @@ import {
   addAgendaSlide,
   addExecutiveSummarySlide,
   addMigrationStatsSlide,
+  addRemediationActionsSlide,
   addExcludedVMsSlide,
   addPlatformRecommendationSlide,
   addCostEstimationSlide,
@@ -95,6 +96,7 @@ export async function generatePptxReport(
   // Content slides — source sections use rawData, target sections use filteredRawData
   addExecutiveSummarySlide(pres, rawData);
   addMigrationStatsSlide(pres, filteredRawData, finalOptions.platformSelection?.score?.leaning ?? 'neutral');
+  addRemediationActionsSlide(pres, filteredRawData, finalOptions.platformSelection?.score?.leaning ?? 'neutral');
   addExcludedVMsSlide(pres, rawData);
   addPlatformRecommendationSlide(pres, finalOptions);
 

@@ -7,6 +7,7 @@ vi.mock('./sections', () => ({
   addAgendaSlide: vi.fn(),
   addExecutiveSummarySlide: vi.fn(),
   addMigrationStatsSlide: vi.fn(),
+  addRemediationActionsSlide: vi.fn(),
   addExcludedVMsSlide: vi.fn(),
   addPlatformRecommendationSlide: vi.fn(),
   addCostEstimationSlide: vi.fn(),

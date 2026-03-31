@@ -38,6 +38,110 @@ function severityFillColor(severity: string): string {
   }
 }
 
+export function addRemediationActionsSlide(
+  pres: PptxGenJS,
+  rawData: RVToolsData,
+  leaning: string
+): void {
+  const mode: MigrationMode = leaning === 'roks' ? 'roks' : 'vsi';
+
+  const checkResults = runPreFlightChecks(rawData, mode);
+  const counts = derivePreflightCounts(checkResults, mode);
+  const includeAllChecks = mode === 'vsi';
+  const items = generateRemediationItems(counts, mode, includeAllChecks);
+
+  const actionableItems = items.filter(
+    item => !item.isUnverifiable && (item.severity === 'blocker' || item.severity === 'warning') && item.affectedCount > 0
+  );
+
+  if (actionableItems.length === 0) return;
+
+  const slide = pres.addSlide({ masterName: 'CONTENT' });
+  addSlideTitle(slide, 'Remediation Actions');
+
+  slide.addText('Required actions before migration', {
+    x: 1.33, y: 1.25, w: 24.0, h: 0.93,
+    fontSize: FONTS.bodySize,
+    fontFace: FONTS.face,
+    color: COLORS.ibmBlue,
+    bold: true,
+  });
+
+  const headerOpts = {
+    bold: true,
+    fill: { color: COLORS.ibmBlue },
+    color: COLORS.white,
+    fontSize: 24,
+    fontFace: FONTS.face,
+    valign: 'middle' as const,
+    align: 'left' as const,
+  };
+
+  const tableRows: PptxGenJS.TableRow[] = [];
+
+  tableRows.push([
+    { text: 'Check', options: headerOpts },
+    { text: 'Severity', options: headerOpts },
+    { text: 'VMs', options: headerOpts },
+    { text: 'Remediation', options: headerOpts },
+  ]);
+
+  for (let i = 0; i < actionableItems.length; i++) {
+    const item = actionableItems[i];
+    const rowFill = i % 2 === 0 ? COLORS.white : COLORS.lightGray;
+    const baseCellOpts = {
+      fontSize: 21,
+      fontFace: FONTS.face,
+      color: COLORS.darkGray,
+      fill: { color: rowFill },
+      valign: 'middle' as const,
+      align: 'left' as const,
+    };
+
+    const truncatedRemediation = item.remediation.length > 80
+      ? item.remediation.substring(0, 77) + '...'
+      : item.remediation;
+
+    tableRows.push([
+      { text: item.name, options: baseCellOpts },
+      {
+        text: item.severity === 'blocker' ? 'Blocker' : 'Warning',
+        options: {
+          fontSize: 21,
+          fontFace: FONTS.face,
+          color: COLORS.white,
+          bold: true,
+          fill: { color: severityFillColor(item.severity) },
+          valign: 'middle' as const,
+          align: 'center' as const,
+        },
+      },
+      { text: `${item.affectedCount}`, options: { ...baseCellOpts, align: 'right' as const } },
+      { text: truncatedRemediation, options: baseCellOpts },
+    ]);
+  }
+
+  slide.addTable(tableRows, {
+    x: 1.33,
+    y: 2.67,
+    w: 24.0,
+    colW: [5.33, 3.33, 2.67, 12.67],
+    border: { type: 'solid', pt: 0.5, color: COLORS.mediumGray },
+    autoPage: false,
+  });
+
+  slide.addText(
+    'Remediation is the client\'s responsibility prior to migration. See detailed assessment report (DOCX) for full guidance.',
+    {
+      x: 1.33, y: 13.07, w: 24.0, h: 0.67,
+      fontSize: 18,
+      fontFace: FONTS.face,
+      color: COLORS.mediumGray,
+      italic: true,
+    },
+  );
+}
+
 export function addMigrationStatsSlide(
   pres: PptxGenJS,
   rawData: RVToolsData,
