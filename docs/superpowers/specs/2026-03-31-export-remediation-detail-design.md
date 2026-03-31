@@ -34,37 +34,68 @@ The `additionalLinks` field exists in both OS compatibility JSON files but isn't
 
 **Data flow:** The existing `groupByOSFamily` function groups VMs by OS. Enhance the group interface to carry through `documentationLink`, `additionalLinks`, `eolDate`, and `recommendedUpgrade` from the compatibility result. Filter to only unsupported/BYOL groups for the remediation subsection.
 
-### 3. DOCX: New "Pre-Migration Remediation Plan" Section
+### 3. DOCX: New "Migration Scope & Remediation Plan" Section
 
 **New file:** `src/services/export/docx/sections/remediationPlan.ts`
 
-A consolidated section covering ALL blocker types (not just OS). Appears after Migration Readiness in the document.
+A section that first establishes the migration partner's scope (what they do), then details client remediation responsibilities (what the client must do before migration can proceed). Appears after Migration Readiness in the document.
 
 **Structure:**
 
 ```
-§X. Pre-Migration Remediation Plan
+§X. Migration Scope & Remediation Plan
 
-  Introduction paragraph — states that remediation items identified in this
-  section are the CLIENT's responsibility to complete prior to migration.
-  The migration partner will provide guidance and validate completion, but
-  the client team must execute the remediation work (OS upgrades, snapshot
-  cleanup, storage reconfiguration, etc.) on their source environment.
+  §X.1 Migration Partner Scope
+    Introduction paragraph — the migration follows a structured three-phase
+    approach. Each phase builds on the outputs of the previous stage.
 
-  §X.1 Remediation Summary
-    Table: Check Name | Severity | Affected VMs | Remediation Action
-    One row per blocker/warning from RemediationItem[] (skip passed/info/success)
+    §X.1.1 Phase 1: Discover
+      Bullet list (reuse content from existing PPTX migrationExecutionSlide.ts PHASES data):
+      - Discover all VLANs, bare metals, VSIs, file/block storage, DNS, and security groups in IBM Cloud Classic
+      - Discover all ESXi hosts, vSphere clusters, NSX networking, vSAN/NFS datastores, and VM inventory
 
-  §X.2 Detailed Remediation Actions
-    For each blocker/warning item with affectedCount > 0:
-      Heading 3: "{Check Name} ({N} VMs)"
-      Paragraph: description
-      Paragraph: "Remediation: " + remediation text
-      Paragraph: "Documentation: " + clickable hyperlink (if documentationLink present)
-      Bullet list: affected VM names (capped at 10, "and X more..." if overflow)
+    §X.1.2 Phase 2: Design & Configure
+      Bullet list (reuse from PHASES data):
+      - Design the target VPC environment (subnets, security groups, routing, transit gateways)
+      - Configure IAM policies, access groups, and service-to-service authorizations
+      - Translate NSX firewall rules and micro-segmentation to VPC security groups and ACLs
+      - Map source VLANs and port groups to target VPC subnets and address ranges
+      - Assess application readiness and dependency mapping for migration wave planning
+      - Reconcile Classic and VMware configurations into a unified target architecture
+
+    §X.1.3 Phase 3: Migration
+      Bullet list (reuse from PHASES data):
+      - Migrate bare metal and VSI workloads from Classic infrastructure to VPC
+      - Migrate SQL databases and application data with minimal downtime
+      - Migrate VMware Classic VMs to VPC VSIs using RackWare or similar tooling
+      - Migrate Classic VMware workloads to IBM Cloud for VMware as a Service (VCF as a Service)
+      - Map and validate infrastructure configurations (DNS, load balancers, certificates)
+      - Leverage IBM Migration Partner automation suite for repeatable, auditable migrations
+
+  §X.2 Client Pre-Migration Remediation
+    Introduction paragraph — the following items must be resolved by the
+    client prior to Phase 3 (Migration). The Migration Partner will identify
+    these items during Phase 1 (Discover) and provide guidance during
+    Phase 2 (Design & Configure), but the client team is responsible for
+    executing the remediation work (OS upgrades, snapshot cleanup, storage
+    reconfiguration, etc.) on their source environment.
+
+    §X.2.1 Remediation Summary
+      Table: Check Name | Severity | Affected VMs | Remediation Action
+      One row per blocker/warning from RemediationItem[] (skip passed/info/success)
+
+    §X.2.2 Detailed Remediation Actions
+      For each blocker/warning item with affectedCount > 0:
+        Heading 4: "{Check Name} ({N} VMs)"
+        Paragraph: description
+        Paragraph: "Remediation: " + remediation text
+        Paragraph: "Documentation: " + clickable hyperlink (if documentationLink present)
+        Bullet list: affected VM names (capped at 10, "and X more..." if overflow)
 ```
 
-**Data source:** Calls `runPreFlightChecks()` and `derivePreflightCounts()` from the shared preflight service, then `generateRemediationItems()` — same pipeline the PPTX slide and UI use. Mode determined by platform leaning.
+**Data sources:**
+- Migration Partner Scope: reuse the `PHASES` constant from `src/services/export/pptx/sections/migrationExecutionSlide.ts` — extract to a shared data file so both PPTX and DOCX reference the same content.
+- Client Remediation: calls `runPreFlightChecks()` and `derivePreflightCounts()` from the shared preflight service, then `generateRemediationItems()` — same pipeline the PPTX slide and UI use. Mode determined by platform leaning.
 
 **Integration:** Add to the DOCX orchestrator (`src/services/export/docx/index.ts`) as a new section, positioned after Migration Readiness. Section numbering follows the existing auto-numbering pattern.
 
@@ -90,10 +121,12 @@ Add a second slide after the existing Migration Readiness slide. Only generated 
 | File | Change |
 |------|--------|
 | `src/services/migration/osCompatibility.ts` | Add `additionalLinks` to interfaces and mapping |
+| `src/data/migrationPhases.ts` | **New file** — shared `PHASES` data extracted from PPTX slide, used by both DOCX and PPTX |
 | `src/services/export/docx/sections/osCompatibility.ts` | Add "Remediation Required" subsection with per-OS detail and links |
-| `src/services/export/docx/sections/remediationPlan.ts` | **New file** — consolidated remediation plan section |
+| `src/services/export/docx/sections/remediationPlan.ts` | **New file** — migration scope + client remediation plan section |
 | `src/services/export/docx/sections/index.ts` | Export new section builder |
 | `src/services/export/docx/index.ts` | Wire in remediation plan section |
+| `src/services/export/pptx/sections/migrationExecutionSlide.ts` | Import `PHASES` from shared data instead of inline constant |
 | `src/services/export/pptx/sections/migrationStatsSlide.ts` | Add remediation actions slide |
 
 ## Testing
