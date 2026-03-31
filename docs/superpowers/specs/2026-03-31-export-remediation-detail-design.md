@@ -24,7 +24,7 @@ The `additionalLinks` field exists in both OS compatibility JSON files but isn't
 
 **File:** `src/services/export/docx/sections/osCompatibility.ts`
 
-**2a. Add "Remediation Required" subsection** below each platform table (VSI and ROKS). Only appears if unsupported or BYOL entries exist. For each affected OS family:
+**2a. Add "Remediation Required" subsection** below each platform table (VSI and ROKS). Only appears if unsupported or BYOL entries exist. Opens with a note that OS remediation (upgrades, re-platforming) must be completed by the client prior to migration. For each affected OS family:
 
 - OS display name, affected VM count, status
 - Full notes text (not truncated — the 60-char ROKS truncation stays in the summary table but full text appears here)
@@ -45,7 +45,11 @@ A consolidated section covering ALL blocker types (not just OS). Appears after M
 ```
 §X. Pre-Migration Remediation Plan
 
-  Introduction paragraph.
+  Introduction paragraph — states that remediation items identified in this
+  section are the CLIENT's responsibility to complete prior to migration.
+  The migration partner will provide guidance and validate completion, but
+  the client team must execute the remediation work (OS upgrades, snapshot
+  cleanup, storage reconfiguration, etc.) on their source environment.
 
   §X.1 Remediation Summary
     Table: Check Name | Severity | Affected VMs | Remediation Action
@@ -78,7 +82,7 @@ Add a second slide after the existing Migration Readiness slide. Only generated 
 - Only blocker and warning items (filter out passed/info/success/unverifiable)
 - Severity column color-coded same as existing slide (red for blocker, orange for warning)
 - Remediation text truncated to ~80 chars to fit the slide
-- Footer note: *"See detailed assessment report (DOCX) for full remediation guidance with documentation links."*
+- Footer note: *"Remediation is the client's responsibility prior to migration. See detailed assessment report (DOCX) for full guidance."*
 - If no blockers/warnings exist, skip the slide entirely
 
 ## Files Changed
