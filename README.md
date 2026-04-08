@@ -44,7 +44,7 @@ This section covers how to use the VCF Migration application for migration plann
 #### VPC VSI (Virtual Server Instances)
 - **VSI Profile Mapping** — Automatic mapping of VMs to appropriate IBM Cloud VSI profiles
 - **Profile Family Selection** — Support for Balanced (bx2), Compute (cx2), and Memory (mx2) families
-- **Burstable / Instance Storage Toggles** — Per-VM toggles to select burstable (flex) profiles or NVMe instance storage (d-suffix) variants
+- **Flex / Instance Storage Toggles** — Per-VM toggles to select flex profiles or NVMe instance storage (d-suffix) variants
 - **OS Support Analysis** — IBM Cloud VPC supported operating system validation
 
 ### Cost Estimation

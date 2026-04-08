@@ -49,12 +49,12 @@ export function VSIMigrationPage() {
     removeStorageTierOverride,
   } = useCustomProfiles();
 
-  // Build vmName → vmId lookup for burstable candidate resolution
-  const isBurstableCandidateByName = useCallback((vmName: string): boolean => {
+  // Build vmName → vmId lookup for flex candidate resolution
+  const isFlexCandidateByName = useCallback((vmName: string): boolean => {
     const vm = allVmsRaw.find(v => v.vmName === vmName);
     if (!vm) return false;
     const vmId = getVMIdentifier(vm);
-    return vmOverrides.isBurstableCandidate(vmId);
+    return vmOverrides.isFlexCandidate(vmId);
   }, [allVmsRaw, vmOverrides]);
 
   // Build vmName → vmId lookup for instance storage preference
@@ -259,7 +259,7 @@ export function VSIMigrationPage() {
     hasOverride,
     getEffectiveStorageTier: getEffectiveStorageTierUnified,
     hasStorageTierOverride: hasStorageTierOverrideUnified,
-    isBurstableCandidate: isBurstableCandidateByName,
+    isFlexCandidate: isFlexCandidateByName,
     isInstanceStoragePreferred: isInstanceStoragePreferredByName,
     isGpuRequired: isGpuRequiredByName,
     isBandwidthSensitive: isBandwidthSensitiveByName,

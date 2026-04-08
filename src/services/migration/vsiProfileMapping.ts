@@ -20,7 +20,7 @@ export interface CustomProfile {
   bandwidth?: number;
 }
 
-export type ProfileRecommendation = 'burstable' | 'standard';
+export type ProfileRecommendation = 'flex' | 'standard';
 
 export interface VMClassification {
   recommendation: ProfileRecommendation;
@@ -36,7 +36,7 @@ export interface VMProfileMapping {
   guestOS: string;
   firmwareType: string | null;
   autoProfile: VSIProfile;
-  burstableProfile: VSIProfile | null;
+  flexProfile: VSIProfile | null;
   profile: VSIProfile;
   effectiveProfileName: string;
   isOverridden: boolean;
@@ -100,9 +100,9 @@ const ENTERPRISE_APP_PATTERNS = [
 ];
 
 /**
- * Classify a VM to determine if burstable profiles are suitable
+ * Classify a VM to determine if flex profiles are suitable
  */
-export function classifyVMForBurstable(
+export function classifyVMForFlex(
   vmName: string,
   nics: number
 ): VMClassification {
@@ -139,9 +139,9 @@ export function classifyVMForBurstable(
   }
 
   return {
-    recommendation: 'burstable',
+    recommendation: 'flex',
     reasons: [],
-    note: 'Burstable profile recommended — shared CPU, lower cost. Suitable for variable workloads without sustained high CPU demand.',
+    note: 'Flex profile recommended — shared CPU, lower cost. Suitable for variable workloads without sustained high CPU demand.',
   };
 }
 
@@ -167,19 +167,19 @@ export function isZSeriesProfile(profileName: string): boolean {
 }
 
 /**
- * Check if a profile is a burstable/flex profile
+ * Check if a profile is a flex profile (shared CPU, bxf/cxf/mxf)
  */
-export function isBurstableProfile(profileName: string): boolean {
+export function isFlexProfile(profileName: string): boolean {
   const prefix = profileName.split('-')[0];
   // Flex profiles: bxf (balanced flex), cxf (compute flex), mxf (memory flex)
   return prefix.endsWith('f') && (prefix.startsWith('bx') || prefix.startsWith('cx') || prefix.startsWith('mx'));
 }
 
 /**
- * Check if a profile is a standard (non-burstable, non-z-series) profile
+ * Check if a profile is a standard (non-flex, non-z-series) profile
  */
 export function isStandardProfile(profileName: string): boolean {
-  return !isBurstableProfile(profileName) && !isZSeriesProfile(profileName);
+  return !isFlexProfile(profileName) && !isZSeriesProfile(profileName);
 }
 
 /**
@@ -207,20 +207,20 @@ export function determineProfileFamily(vcpus: number, memoryGiB: number): Profil
 }
 
 /**
- * Find the best-fit burstable (flex) profile for given requirements
+ * Find the best-fit flex profile for given requirements
  */
-export function findBurstableProfile(vcpus: number, memoryGiB: number): VSIProfile | null {
+export function findFlexProfile(vcpus: number, memoryGiB: number): VSIProfile | null {
   const vsiProfiles = getVSIProfiles();
   const family = determineProfileFamily(vcpus, memoryGiB);
   const profiles = vsiProfiles[family];
 
-  // Filter to only burstable profiles, sorted by vcpus
-  const burstableProfiles = profiles
-    .filter(p => isBurstableProfile(p.name))
+  // Filter to only flex profiles, sorted by vcpus
+  const flexProfiles = profiles
+    .filter(p => isFlexProfile(p.name))
     .sort((a, b) => a.vcpus - b.vcpus || a.memoryGiB - b.memoryGiB);
 
   // Find first profile that meets requirements
-  const bestFit = burstableProfiles.find(p => p.vcpus >= vcpus && p.memoryGiB >= memoryGiB);
+  const bestFit = flexProfiles.find(p => p.vcpus >= vcpus && p.memoryGiB >= memoryGiB);
   return bestFit || null;
 }
 
@@ -303,7 +303,7 @@ export function findBandwidthUpgrade(profile: VSIProfile): VSIProfile {
 }
 
 /**
- * Find the best-fit standard (non-burstable) profile for given requirements.
+ * Find the best-fit standard (non-flex) profile for given requirements.
  * Prefers gen3 (Sapphire Rapids) over gen2 (Cascade Lake).
  * Falls back to gen2 only when no gen3 profile can fit the requirements.
  *
@@ -315,7 +315,7 @@ export function findStandardProfile(vcpus: number, memoryGiB: number, firmwareTy
   const family = determineProfileFamily(vcpus, memoryGiB);
   const profiles = vsiProfiles[family];
 
-  // Filter to only standard x86 profiles (excludes z-series and burstable)
+  // Filter to only standard x86 profiles (excludes z-series and flex)
   // When specs are equal, prefer profiles without instance storage (d-suffix)
   // since NVMe instance storage is ephemeral and unnecessary for most workloads
   const standardProfiles = profiles
@@ -393,10 +393,10 @@ export function getProfileFamilyFromName(profileName: string): string {
 }
 
 /**
- * Get profile type (burstable vs standard) from profile name
+ * Get profile type (flex vs standard) from profile name
  */
-export function getProfileTypeFromName(profileName: string): 'Burstable' | 'Standard' {
-  return isBurstableProfile(profileName) ? 'Burstable' : 'Standard';
+export function getProfileTypeFromName(profileName: string): 'Flex' | 'Standard' {
+  return isFlexProfile(profileName) ? 'Flex' : 'Standard';
 }
 
 /**
@@ -406,7 +406,7 @@ export function getProfileTypeFromName(profileName: string): 'Burstable' | 'Stan
 export function hasInstanceStorage(profileName: string): boolean {
   const prefix = profileName.split('-')[0];
   // d-suffix profiles (bx2d, bx3d, bx3dc, mx2d, etc.) have NVMe, but flex profiles (bxf) do not
-  if (isBurstableProfile(profileName)) return false;
+  if (isFlexProfile(profileName)) return false;
   return prefix.includes('d');
 }
 
@@ -444,16 +444,16 @@ export function createVMProfileMappings(
     const guestOS = vm.guestOS ?? '';
     const firmwareType = vm.firmwareType ?? null;
 
-    // Classify VM for burstable eligibility
-    const classification = classifyVMForBurstable(vm.vmName, nics);
+    // Classify VM for flex eligibility
+    const classification = classifyVMForFlex(vm.vmName, nics);
 
-    // Get both standard and burstable profiles (firmware-aware)
+    // Get both standard and flex profiles (firmware-aware)
     const standardProfile = findStandardProfile(vm.cpus, memoryGiB, firmwareType);
-    const burstableProfile = findBurstableProfile(vm.cpus, memoryGiB);
+    const flexProfile = findFlexProfile(vm.cpus, memoryGiB);
 
     // Default auto profile based on classification
-    const autoProfile = classification.recommendation === 'burstable' && burstableProfile
-      ? burstableProfile
+    const autoProfile = classification.recommendation === 'flex' && flexProfile
+      ? flexProfile
       : standardProfile;
 
     const effectiveProfileName = getEffectiveProfile(vm.vmName, autoProfile.name);
@@ -488,7 +488,7 @@ export function createVMProfileMappings(
       guestOS,
       firmwareType,
       autoProfile,
-      burstableProfile,
+      flexProfile,
       profile: effectiveProfile,
       effectiveProfileName,
       isOverridden,

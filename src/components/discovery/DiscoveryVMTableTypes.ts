@@ -51,8 +51,8 @@ export interface VMRow {
   exclusionSource: 'auto' | 'manual' | 'none';
   hasNotes: boolean;
   notes: string;
-  // Burstable candidate
-  burstable: boolean;
+  // Flex candidate
+  flex: boolean;
   // Instance storage (NVMe)
   instanceStorage: boolean;
   // GPU required

@@ -300,9 +300,9 @@
           "useCase": "Largest SAP configurations and extreme in-memory workloads"
         },
         {
-          "name": "Burstable (bxf, cxf, mxf)",
+          "name": "Flex (bxf, cxf, mxf)",
           "ratio": "Varies",
-          "useCase": "Flex profiles with burstable CPU for variable workloads without sustained high CPU demand"
+          "useCase": "Flex profiles with shared CPU for variable workloads without sustained high CPU demand"
         }
       ]
     },

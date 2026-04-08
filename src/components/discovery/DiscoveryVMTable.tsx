@@ -168,14 +168,14 @@ export function DiscoveryVMTable({
         exclusionSource,
         hasNotes: notes.length > 0,
         notes,
-        burstable: vmOverrides.isBurstableCandidate(vmId),
+        flex: vmOverrides.isFlexCandidate(vmId),
         instanceStorage: vmOverrides.isInstanceStoragePreferred(vmId),
         gpuRequired: vmOverrides.isGpuRequired(vmId),
         bandwidthSensitive: vmOverrides.isBandwidthSensitive(vmId),
         bootTier: vmOverrides.getBootStorageTier(vmId) || 'general-purpose',
         dataTier: vmOverrides.getDataStorageTier(vmId) || getStorageTierForWorkload(category === '_unclassified' ? null : category),
         options: [
-          vmOverrides.isBurstableCandidate(vmId) ? 'Burst' : '',
+          vmOverrides.isFlexCandidate(vmId) ? 'Flex' : '',
           vmOverrides.isInstanceStoragePreferred(vmId) ? 'NVMe' : '',
           vmOverrides.isGpuRequired(vmId) ? 'GPU' : '',
           vmOverrides.isBandwidthSensitive(vmId) ? 'BW' : '',
@@ -440,7 +440,7 @@ export function DiscoveryVMTable({
               description={
                   <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
                     <li>Click VM Name for details. Ensure Workload Type is correct.</li>
-                    <li><strong>Burstable</strong> — set for workloads suitable for shared-CPU VSIs.</li>
+                    <li><strong>Flex</strong> — set for workloads suitable for shared-CPU VSIs.</li>
                     <li><strong>Instance Storage</strong> — set to NVMe for fast local I/O (e.g. DB scratch, Kafka).</li>
                     <li><strong>GPU</strong> — set for workloads requiring GPU acceleration (ML/AI, CUDA).</li>
                     <li><strong>Bandwidth</strong> — set to High BW for network-throughput-bound workloads.</li>
@@ -479,10 +479,10 @@ export function DiscoveryVMTable({
                         const orig = paginatedRows.find(pr => pr.id === r.id);
                         return orig ? { vmId: orig.id, vmName: orig.vmName } : null;
                       }).filter(Boolean) as Array<{ vmId: string; vmName: string }>;
-                      vmOverrides.bulkSetBurstableCandidate(selected, true);
+                      vmOverrides.bulkSetFlexCandidate(selected, true);
                     }}
                   >
-                    Mark as Burstable
+                    Mark as Flex
                   </TableBatchAction>
                   <TableBatchAction
                     tabIndex={batchActionProps.shouldShowBatchActions ? 0 : -1}
@@ -492,7 +492,7 @@ export function DiscoveryVMTable({
                         const orig = paginatedRows.find(pr => pr.id === r.id);
                         return orig ? { vmId: orig.id, vmName: orig.vmName } : null;
                       }).filter(Boolean) as Array<{ vmId: string; vmName: string }>;
-                      vmOverrides.bulkSetBurstableCandidate(selected, false);
+                      vmOverrides.bulkSetFlexCandidate(selected, false);
                     }}
                   >
                     Mark as Standard
@@ -617,7 +617,7 @@ export function DiscoveryVMTable({
                                   ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', color: 'var(--cds-text-secondary)' }}><Settings size={14} /> Defaults</span>
                                   : <>
                                       <Settings size={14} />
-                                      {originalRow.burstable && <Tag type="cyan" size="sm">Burst</Tag>}
+                                      {originalRow.flex && <Tag type="cyan" size="sm">Flex</Tag>}
                                       {originalRow.instanceStorage && <Tag type="teal" size="sm">NVMe</Tag>}
                                       {originalRow.gpuRequired && <Tag type="purple" size="sm">GPU</Tag>}
                                       {originalRow.bandwidthSensitive && <Tag type="cyan" size="sm">BW</Tag>}
@@ -630,8 +630,8 @@ export function DiscoveryVMTable({
                             <ToggletipContent>
                               <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '0.5rem 1rem', alignItems: 'center', padding: '0.25rem 0' }}>
                                 <span style={{ fontSize: '0.75rem' }}>Profile</span>
-                                <Tag type={originalRow.burstable ? 'cyan' : 'outline'} size="sm" onClick={() => vmOverrides.setBurstableCandidate(originalRow.id, originalRow.vmName, !originalRow.burstable)} style={{ cursor: 'pointer' }}>
-                                  {originalRow.burstable ? 'Burstable' : 'Standard'}
+                                <Tag type={originalRow.flex ? 'cyan' : 'outline'} size="sm" onClick={() => vmOverrides.setFlexCandidate(originalRow.id, originalRow.vmName, !originalRow.flex)} style={{ cursor: 'pointer' }}>
+                                  {originalRow.flex ? 'Flex' : 'Standard'}
                                 </Tag>
                                 <span style={{ fontSize: '0.75rem' }}>Storage</span>
                                 <Tag type={originalRow.instanceStorage ? 'teal' : 'outline'} size="sm" onClick={() => vmOverrides.setInstanceStorage(originalRow.id, originalRow.vmName, !originalRow.instanceStorage)} style={{ cursor: 'pointer' }}>

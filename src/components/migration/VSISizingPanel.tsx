@@ -10,7 +10,7 @@ import { DoughnutChart, HorizontalBarChart } from '@/components/charts';
 import { EnhancedDataTable } from '@/components/tables';
 import { MetricCard, RedHatDocLink } from '@/components/common';
 import { ProfileSelector, StorageTierSelector } from '@/components/sizing';
-import { isBurstableProfile, hasInstanceStorage, getProfileGeneration, isBIOSFirmware, isGpuProfile } from '@/services/migration';
+import { isFlexProfile, hasInstanceStorage, getProfileGeneration, isBIOSFirmware, isGpuProfile } from '@/services/migration';
 import { ROUTES } from '@/utils/constants';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { VMProfileMapping } from '@/services/migration';
@@ -77,12 +77,12 @@ export function VSISizingPanel({
       id: 'recommendation',
       header: 'Recommendation',
       enableSorting: true,
-      accessorFn: (row) => isBurstableProfile(row.profile.name) ? 'burstable' : 'standard',
+      accessorFn: (row) => isFlexProfile(row.profile.name) ? 'flex' : 'standard',
       cell: ({ row }) => {
         const { recommendation: heuristicRecommendation, reasons } = row.original.classification;
-        // User's burstable selection (from Discovery) is the primary indicator
-        const currentIsBurstable = isBurstableProfile(row.original.profile.name);
-        const isBurstable = currentIsBurstable;
+        // User's flex selection (from Discovery) is the primary indicator
+        const currentIsFlex = isFlexProfile(row.original.profile.name);
+        const isFlex = currentIsFlex;
 
         const reasonExplanations: Record<string, string> = {
           'Network appliance': 'VM name indicates a network device (firewall, load balancer, etc.) requiring consistent CPU',
@@ -100,28 +100,28 @@ export function VSISizingPanel({
         return (
           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', flexWrap: 'wrap' }}>
             <Toggletip align="bottom" autoAlign>
-              <ToggletipButton label={isBurstable ? 'Burstable' : 'Standard'}>
+              <ToggletipButton label={isFlex ? 'Flex' : 'Standard'}>
                 <Tag
-                  type={isBurstable ? 'cyan' : 'purple'}
+                  type={isFlex ? 'cyan' : 'purple'}
                   size="sm"
                 >
-                  {isBurstable ? 'Burstable' : 'Standard'}
+                  {isFlex ? 'Flex' : 'Standard'}
                 </Tag>
               </ToggletipButton>
               <ToggletipContent>
                 <div>
                   <p style={{ margin: '0 0 0.5rem 0' }}>
-                    <strong>{isBurstable ? 'Burstable' : 'Standard'}</strong>
+                    <strong>{isFlex ? 'Flex' : 'Standard'}</strong>
                     {' — '}
-                    {isBurstable
+                    {isFlex
                       ? 'Shared CPU, lower cost for variable workloads'
                       : 'Dedicated CPU for sustained workloads'}
                   </p>
                   <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: 'var(--cds-text-secondary)' }}>
-                    Heuristic: {heuristicRecommendation === 'burstable' ? 'Burstable' : 'Standard'}
+                    Heuristic: {heuristicRecommendation === 'flex' ? 'Flex' : 'Standard'}
                     {reasons.length > 0 && ` (${reasons.join(', ')})`}
                   </p>
-                  {!isBurstable && reasons.length > 0 && (
+                  {!isFlex && reasons.length > 0 && (
                     <ul style={{ margin: 0, paddingLeft: '1rem' }}>
                       {reasons.map((reason, i) => (
                         <li key={i} style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>
@@ -133,10 +133,10 @@ export function VSISizingPanel({
                 </div>
               </ToggletipContent>
             </Toggletip>
-            {isBurstable && (
+            {isFlex && (
               <Tag type="cyan" size="sm">User</Tag>
             )}
-            {!isBurstable && reasons.length > 0 && (
+            {!isFlex && reasons.length > 0 && (
               <Tag type="gray" size="sm">
                 {reasons[0]}
               </Tag>
@@ -361,8 +361,8 @@ export function VSISizingPanel({
               <span className="migration-page__recommendation-value">GPU-accelerated — ML/AI inference, CUDA workloads, video transcoding</span>
             </div>
             <div className="migration-page__recommendation-item">
-              <span className="migration-page__recommendation-key">Burstable (bxf, cxf, mxf)</span>
-              <span className="migration-page__recommendation-value">Flex profiles with burstable CPU — Cost-effective for variable workloads without sustained high CPU demand</span>
+              <span className="migration-page__recommendation-key">Flex (bxf, cxf, mxf)</span>
+              <span className="migration-page__recommendation-value">Flex profiles with shared CPU — Cost-effective for variable workloads without sustained high CPU demand</span>
             </div>
           </div>
           <div style={{ marginTop: '1rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>

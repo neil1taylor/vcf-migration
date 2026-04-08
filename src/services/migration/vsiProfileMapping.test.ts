@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import {
-  isBurstableProfile,
+  isFlexProfile,
   isStandardProfile,
   isZSeriesProfile,
   isPreferredGeneration,
   determineProfileFamily,
   findStandardProfile,
-  findBurstableProfile,
+  findFlexProfile,
   mapVMToVSIProfile,
-  classifyVMForBurstable,
+  classifyVMForFlex,
   hasInstanceStorage,
   getProfileGeneration,
   isBIOSFirmware,
@@ -38,17 +38,17 @@ describe('vsiProfileMapping', () => {
     });
   });
 
-  describe('isBurstableProfile', () => {
-    it('should identify flex/burstable profiles', () => {
-      expect(isBurstableProfile('bxf-2x8')).toBe(true);
-      expect(isBurstableProfile('cxf-2x4')).toBe(true);
-      expect(isBurstableProfile('mxf-2x16')).toBe(true);
+  describe('isFlexProfile', () => {
+    it('should identify flex profiles', () => {
+      expect(isFlexProfile('bxf-2x8')).toBe(true);
+      expect(isFlexProfile('cxf-2x4')).toBe(true);
+      expect(isFlexProfile('mxf-2x16')).toBe(true);
     });
 
-    it('should not flag standard profiles as burstable', () => {
-      expect(isBurstableProfile('bx2-2x8')).toBe(false);
-      expect(isBurstableProfile('bx3d-4x20')).toBe(false);
-      expect(isBurstableProfile('cx2d-4x8')).toBe(false);
+    it('should not flag standard profiles as flex', () => {
+      expect(isFlexProfile('bx2-2x8')).toBe(false);
+      expect(isFlexProfile('bx3d-4x20')).toBe(false);
+      expect(isFlexProfile('cx2d-4x8')).toBe(false);
     });
   });
 
@@ -60,7 +60,7 @@ describe('vsiProfileMapping', () => {
       expect(isStandardProfile('mx2d-2x16')).toBe(true);
     });
 
-    it('should exclude burstable profiles', () => {
+    it('should exclude flex profiles', () => {
       expect(isStandardProfile('bxf-2x8')).toBe(false);
       expect(isStandardProfile('cxf-2x4')).toBe(false);
     });
@@ -133,7 +133,7 @@ describe('vsiProfileMapping', () => {
       expect(profile.name).not.toMatch(/z2/);
     });
 
-    it('should never return a burstable profile', () => {
+    it('should never return a flex profile', () => {
       const profile = findStandardProfile(2, 8);
       expect(profile.name).not.toMatch(/xf-/);
     });
@@ -152,23 +152,23 @@ describe('vsiProfileMapping', () => {
     });
   });
 
-  describe('findBurstableProfile', () => {
-    it('should return a burstable profile', () => {
-      const profile = findBurstableProfile(2, 8);
+  describe('findFlexProfile', () => {
+    it('should return a flex profile', () => {
+      const profile = findFlexProfile(2, 8);
       expect(profile).not.toBeNull();
       expect(profile!.name).toMatch(/xf-/);
     });
 
     it('should never return a z-series profile', () => {
-      const profile = findBurstableProfile(2, 8);
+      const profile = findFlexProfile(2, 8);
       if (profile) {
         expect(profile.name).not.toMatch(/z2/);
       }
     });
 
-    it('should return null when no burstable profile fits', () => {
-      // Very large requirements - no burstable profile will fit
-      const profile = findBurstableProfile(256, 1024);
+    it('should return null when no flex profile fits', () => {
+      // Very large requirements - no flex profile will fit
+      const profile = findFlexProfile(256, 1024);
       expect(profile).toBeNull();
     });
   });
@@ -190,59 +190,59 @@ describe('vsiProfileMapping', () => {
     });
   });
 
-  describe('classifyVMForBurstable', () => {
+  describe('classifyVMForFlex', () => {
     it('should recommend standard for network appliances', () => {
-      const result = classifyVMForBurstable('firewall-01', 1);
+      const result = classifyVMForFlex('firewall-01', 1);
       expect(result.recommendation).toBe('standard');
       expect(result.reasons).toContain('Network appliance');
     });
 
     it('should recommend standard for enterprise apps', () => {
-      const result = classifyVMForBurstable('oracle-db-01', 1);
+      const result = classifyVMForFlex('oracle-db-01', 1);
       expect(result.recommendation).toBe('standard');
       expect(result.reasons).toContain('Enterprise app');
     });
 
     it('should recommend standard for multi-NIC VMs', () => {
-      const result = classifyVMForBurstable('web-01', 4);
+      const result = classifyVMForFlex('web-01', 4);
       expect(result.recommendation).toBe('standard');
       expect(result.reasons).toContain('Multiple NICs (4)');
     });
 
-    it('should recommend burstable for simple VMs', () => {
-      const result = classifyVMForBurstable('web-01', 1);
-      expect(result.recommendation).toBe('burstable');
+    it('should recommend flex for simple VMs', () => {
+      const result = classifyVMForFlex('web-01', 1);
+      expect(result.recommendation).toBe('flex');
       expect(result.reasons).toEqual([]);
     });
 
     it('should not flag VMs with "sap" as a substring (e.g. bfabpsapp01)', () => {
-      const result = classifyVMForBurstable('bfabpsapp01', 1);
-      expect(result.recommendation).toBe('burstable');
+      const result = classifyVMForFlex('bfabpsapp01', 1);
+      expect(result.recommendation).toBe('flex');
     });
 
     it('should still flag actual SAP VMs with separator', () => {
-      expect(classifyVMForBurstable('sap-app-01', 1).recommendation).toBe('standard');
-      expect(classifyVMForBurstable('SAP_HANA_01', 1).recommendation).toBe('standard');
+      expect(classifyVMForFlex('sap-app-01', 1).recommendation).toBe('standard');
+      expect(classifyVMForFlex('SAP_HANA_01', 1).recommendation).toBe('standard');
     });
 
     it('should NOT use enterprise OS as a reason for standard recommendation', () => {
-      // A RHEL VM with no other signals should be burstable
-      const result = classifyVMForBurstable('web-app-01', 1);
-      expect(result.recommendation).toBe('burstable');
+      // A RHEL VM with no other signals should be flex
+      const result = classifyVMForFlex('web-app-01', 1);
+      expect(result.recommendation).toBe('flex');
       // Enterprise OS is not a classification factor — OS doesn't determine CPU patterns
     });
 
     it('should include descriptive note for standard recommendation', () => {
-      const result = classifyVMForBurstable('oracle-db-01', 4);
+      const result = classifyVMForFlex('oracle-db-01', 4);
       expect(result.note).toContain('Standard profile recommended');
       expect(result.note).toContain('dedicated CPU');
       expect(result.note).toContain('Enterprise app');
       expect(result.note).toContain('Multiple NICs (4)');
     });
 
-    it('should include descriptive note for burstable recommendation', () => {
-      const result = classifyVMForBurstable('web-01', 1);
-      expect(result.note).toContain('Burstable profile recommended');
+    it('should include descriptive note for flex recommendation', () => {
+      const result = classifyVMForFlex('web-01', 1);
+      expect(result.note).toContain('Flex profile recommended');
       expect(result.note).toContain('shared CPU');
     });
   });
@@ -265,7 +265,7 @@ describe('vsiProfileMapping', () => {
       expect(hasInstanceStorage('mx2-16x128')).toBe(false);
     });
 
-    it('should return false for burstable profiles', () => {
+    it('should return false for flex profiles', () => {
       expect(hasInstanceStorage('bxf-2x8')).toBe(false);
       expect(hasInstanceStorage('cxf-4x8')).toBe(false);
       expect(hasInstanceStorage('mxf-2x16')).toBe(false);

@@ -136,7 +136,7 @@ export function VSIProfileGuidePage() {
                   <StructuredListCell>gx2-8x64x1v100, gx3-16x80x1l4</StructuredListCell>
                 </StructuredListRow>
                 <StructuredListRow>
-                  <StructuredListCell><strong>Burstable</strong></StructuredListCell>
+                  <StructuredListCell><strong>Flex</strong></StructuredListCell>
                   <StructuredListCell>bxf, cxf, mxf</StructuredListCell>
                   <StructuredListCell>Varies</StructuredListCell>
                   <StructuredListCell>Variable workloads with avg CPU &lt;20% and spikes &lt;30 min; dev/test, internal tooling, jump hosts</StructuredListCell>
@@ -200,7 +200,7 @@ export function VSIProfileGuidePage() {
               <ul>
                 <li><strong>d</strong> — NVMe instance storage included (ephemeral on stop/start)</li>
                 <li><strong>dc</strong> — NVMe instance storage with crypto acceleration (Intel QAT)</li>
-                <li><strong>f</strong> — Flex/burstable profile with shared CPU</li>
+                <li><strong>f</strong> — Flex profile with shared CPU</li>
               </ul>
             </div>
 
@@ -267,26 +267,26 @@ export function VSIProfileGuidePage() {
           </Tile>
         </Column>
 
-        {/* When to Use Burstable Profiles */}
+        {/* When to Use Flex Profiles */}
         <Column lg={8} md={8} sm={4}>
           <Tile className="overhead-reference-page__section">
             <div className="overhead-reference-page__section-header">
               <h2>Assessing Your Workload</h2>
-              <Tag type="cyan" size="md">Burstable Guidance</Tag>
+              <Tag type="cyan" size="md">Flex Guidance</Tag>
             </div>
             <p className="overhead-reference-page__section-desc">
-              RVTools does not include CPU utilization history. To assess burstable suitability, pull metrics from vCenter performance charts or your monitoring tools (e.g., vROps, Datadog, Prometheus).
+              RVTools does not include CPU utilization history. To assess flex suitability, pull metrics from vCenter performance charts or your monitoring tools (e.g., vROps, Datadog, Prometheus).
             </p>
 
             <h4>What to Check</h4>
             <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
-              <li>Average CPU utilization over a representative week (&lt;20% suggests burstable)</li>
+              <li>Average CPU utilization over a representative week (&lt;20% suggests flex)</li>
               <li>Peak duration — individual spikes should last &lt;30 minutes</li>
               <li>Spike frequency and time-of-day patterns</li>
               <li>Whether the workload is in the path of end-user transactions</li>
             </ul>
 
-            <h4>Good Fit for Burstable</h4>
+            <h4>Good Fit for Flex</h4>
             <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', marginBottom: '1rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
               <li>Dev/test environments</li>
               <li>Internal tooling and admin portals</li>
@@ -295,7 +295,7 @@ export function VSIProfileGuidePage() {
               <li>Short scheduled batch jobs</li>
             </ul>
 
-            <h4>Not Suitable for Burstable</h4>
+            <h4>Not Suitable for Flex</h4>
             <ul style={{ listStyleType: 'disc', paddingLeft: '1.5rem', fontSize: '0.875rem', color: 'var(--cds-text-secondary)' }}>
               <li>Production databases</li>
               <li>Stream processors (Kafka, Flink)</li>
@@ -312,7 +312,7 @@ export function VSIProfileGuidePage() {
               <Tag type="cyan" size="md">Heuristic-Based</Tag>
             </div>
             <p className="overhead-reference-page__section-desc">
-              Without CPU utilization data in RVTools, the app uses heuristic signals to classify VMs as burstable or standard.
+              Without CPU utilization data in RVTools, the app uses heuristic signals to classify VMs as flex or standard.
             </p>
 
             <h4>What Triggers &quot;Standard&quot;</h4>
@@ -324,7 +324,7 @@ export function VSIProfileGuidePage() {
 
             <h4>Default Classification</h4>
             <p style={{ fontSize: '0.875rem', color: 'var(--cds-text-secondary)', marginBottom: '1rem' }}>
-              All other VMs default to <strong>Burstable</strong>. This is a conservative starting point that optimizes for cost — most VMware VMs are significantly over-provisioned for their actual utilization.
+              All other VMs default to <strong>Flex</strong>. This is a conservative starting point that optimizes for cost — most VMware VMs are significantly over-provisioned for their actual utilization.
             </p>
 
             <div className="overhead-reference-page__notes">
@@ -338,12 +338,12 @@ export function VSIProfileGuidePage() {
           </Tile>
         </Column>
 
-        {/* Burstable Rule of Thumb */}
+        {/* Flex Rule of Thumb */}
         <Column lg={16} md={8} sm={4}>
           <InlineNotification
             kind="info"
             title="Practical rule of thumb"
-            subtitle="If average CPU over a representative week is below 20%, individual spikes last less than 30 minutes, and the workload is not in the path of end-user transactions where latency degradation would be noticed — burstable is likely appropriate. If any of those is a no, use a standard (fixed) profile."
+            subtitle="If average CPU over a representative week is below 20%, individual spikes last less than 30 minutes, and the workload is not in the path of end-user transactions where latency degradation would be noticed — flex is likely appropriate. If any of those is a no, use a standard (fixed) profile."
             hideCloseButton
             lowContrast
             style={{ maxWidth: '100%', marginBottom: '1rem' }}
@@ -415,7 +415,7 @@ export function VSIProfileGuidePage() {
               <li>Start with peak concurrency + 20% headroom</li>
               <li>Consider actual CPU utilization from monitoring data if available</li>
               <li>Many VMware VMs are over-provisioned — right-sizing can reduce costs</li>
-              <li>Burstable profiles are suitable when average utilization is below 20%</li>
+              <li>Flex profiles are suitable when average utilization is below 20%</li>
             </ul>
 
             <h4>Memory Sizing</h4>

@@ -84,11 +84,11 @@ export {
   getTopProfiles,
   getFamilyChartData,
   calculateProfileTotals,
-  // Burstable profile support
-  classifyVMForBurstable,
-  isBurstableProfile,
+  // Flex profile support
+  classifyVMForFlex,
+  isFlexProfile,
   isStandardProfile,
-  findBurstableProfile,
+  findFlexProfile,
   findStandardProfile,
   hasInstanceStorage,
   findInstanceStorageVariant,

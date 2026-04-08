@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { mibToGiB } from '@/utils/formatters';
 import { VPC_DATA_VOLUME_MIN_GB } from '@/services/migration/remediation';
 import { isAIProxyConfigured } from '@/services/ai/aiProxyClient';
-import { mapVMToVSIProfile, getVSIProfiles, classifyVMForBurstable, findBurstableProfile, findInstanceStorageVariant, findGpuProfile, findBandwidthUpgrade, getProfileFamilyFromName } from '@/services/migration';
+import { mapVMToVSIProfile, getVSIProfiles, classifyVMForFlex, findFlexProfile, findInstanceStorageVariant, findGpuProfile, findBandwidthUpgrade, getProfileFamilyFromName } from '@/services/migration';
 import type { VSIProfile, VMProfileMapping, VMClassification } from '@/services/migration';
 import type { VSISizingInput } from '@/services/costEstimation';
 import type { VMDetail } from '@/services/export';
@@ -32,7 +32,7 @@ export interface UseVSIPageDataConfig {
   hasOverride: (vmName: string) => boolean;
   getEffectiveStorageTier: (vmName: string, autoTier: StorageTierType) => StorageTierType;
   hasStorageTierOverride: (vmName: string) => boolean;
-  isBurstableCandidate?: (vmName: string) => boolean;
+  isFlexCandidate?: (vmName: string) => boolean;
   isInstanceStoragePreferred?: (vmName: string) => boolean;
   isGpuRequired?: (vmName: string) => boolean;
   isBandwidthSensitive?: (vmName: string) => boolean;
@@ -80,7 +80,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
     hasOverride,
     getEffectiveStorageTier,
     hasStorageTierOverride,
-    isBurstableCandidate,
+    isFlexCandidate,
     isInstanceStoragePreferred,
     isGpuRequired,
     isBandwidthSensitive,
@@ -106,17 +106,17 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
     return poweredOnVMs.map(vm => {
       const memoryGiB = mibToGiB(vm.memory);
 
-      // Classify VM for burstable eligibility (kept for transparency in tooltips)
-      const classification: VMClassification = classifyVMForBurstable(vm.vmName, vm.nics);
+      // Classify VM for flex eligibility (kept for transparency in tooltips)
+      const classification: VMClassification = classifyVMForFlex(vm.vmName, vm.nics);
 
-      // Get both standard and burstable profiles (firmware-aware: BIOS → Gen2)
+      // Get both standard and flex profiles (firmware-aware: BIOS → Gen2)
       const standardProfile: VSIProfile = mapVMToVSIProfile(vm.cpus, memoryGiB, vm.firmwareType);
-      const burstableProfile = findBurstableProfile(vm.cpus, memoryGiB);
+      const flexProfile = findFlexProfile(vm.cpus, memoryGiB);
 
-      // User's explicit burstable selection drives the profile default
-      const isBurstable = isBurstableCandidate?.(vm.vmName) ?? false;
-      let autoProfile = isBurstable && burstableProfile
-        ? burstableProfile
+      // User's explicit flex selection drives the profile default
+      const isFlex = isFlexCandidate?.(vm.vmName) ?? false;
+      let autoProfile = isFlex && flexProfile
+        ? flexProfile
         : standardProfile;
 
       // User's explicit instance storage selection: switch to d-suffix variant
@@ -181,7 +181,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
         guestOS: vm.guestOS,
         firmwareType: vm.firmwareType,
         autoProfile,
-        burstableProfile,
+        flexProfile,
         profile: effectiveProfile,
         effectiveProfileName,
         isOverridden,
@@ -196,7 +196,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
         bandwidthSensitive: needsBandwidth,
       };
     });
-  }, [poweredOnVMs, customProfiles, getEffectiveProfile, hasOverride, getEffectiveStorageTier, hasStorageTierOverride, isBurstableCandidate, isInstanceStoragePreferred, isGpuRequired, isBandwidthSensitive, vsiProfiles, disks]);
+  }, [poweredOnVMs, customProfiles, getEffectiveProfile, hasOverride, getEffectiveStorageTier, hasStorageTierOverride, isFlexCandidate, isInstanceStoragePreferred, isGpuRequired, isBandwidthSensitive, vsiProfiles, disks]);
 
   // ===== PROFILE COUNTS & CHART DATA =====
   const profileCounts = useMemo(() => vmProfileMappings.reduce((acc, mapping) => {

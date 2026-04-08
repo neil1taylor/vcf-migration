@@ -75,13 +75,13 @@ vi.mock('@/services/migration', () => ({
     compute: [],
     memory: [],
   })),
-  classifyVMForBurstable: vi.fn(() => ({
+  classifyVMForFlex: vi.fn(() => ({
     classification: 'standard',
     reason: 'Test classification',
-    burstableEligible: false,
+    flexEligible: false,
   })),
-  mapVMToBurstableProfile: vi.fn(() => null),
-  findBurstableProfile: vi.fn(() => null),
+  mapVMToFlexProfile: vi.fn(() => null),
+  findFlexProfile: vi.fn(() => null),
 }));
 
 // Mock components

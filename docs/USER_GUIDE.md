@@ -317,7 +317,7 @@ Navigate to **Workload Discovery** in the sidebar.
 ### Tabs Overview
 
 - **Infrastructure** - Source data center selector, target IBM Cloud MZR dropdown, environment summary (vCenter, clusters, hosts, datastores)
-- **Workload** - VM workload classification with auto-detection, per-VM Options (burstable, GPU, storage IOPS tiers), and manual overrides
+- **Workload** - VM workload classification with auto-detection, per-VM Options (flex, GPU, storage IOPS tiers), and manual overrides
 - **Networks** - Port group and subnet mapping from vNetwork data
 - **Source BOM** - Source infrastructure costing (IBM Cloud bare metal, VCF licensing, storage pricing). Upload an IBM Cloud billing export to replace estimates with actual invoiced costs — see [Importing Data](#2-importing-data) for details.
 
@@ -359,11 +359,11 @@ Navigate to **Workload Discovery** > **VMs** tab.
 2. Select from predefined categories or type a custom value
 3. Custom workload types appear in the "Custom" tab
 
-#### VM Options (Burstable, Instance Storage, GPU, Bandwidth, Storage Tiers)
+#### VM Options (Flex, Instance Storage, GPU, Bandwidth, Storage Tiers)
 
 The **Options** column consolidates per-VM settings into a compact view. Click the settings icon to open a popover with all options:
 
-1. **Profile** — `Standard` or `Burstable` (shared CPU, lower cost)
+1. **Profile** — `Standard` or `Flex` (shared CPU, lower cost)
 2. **Storage** — `Block` (persistent, tiered) or `NVMe` (fast local I/O, ephemeral)
 3. **GPU** — `Standard` or `GPU` (requires GPU-enabled profiles)
 4. **Bandwidth** — `Standard` or `High BW` (network-throughput-bound workloads)
@@ -398,7 +398,7 @@ Three unified tiers apply to both block storage (IOPS/GB) and NFS file storage (
 All VM customizations are saved to browser localStorage:
 - Exclusions persist across sessions
 - Workload overrides are remembered
-- Burstable and instance storage selections are remembered
+- Flex and instance storage selections are remembered
 - Notes are preserved
 
 ### Export/Import Settings
@@ -674,7 +674,7 @@ Navigate to **VSI Migration** > **Sizing** tab.
    - **Compute (cx2)** - Higher vCPU ratio
    - **Memory (mx2)** - Higher memory ratio
 3. Profile selection follows the decision tree in `public/vpc_vsi_profile_selection.svg`:
-   - **Burstable** toggle (set in Discovery VM table) → selects flex (f-suffix) profiles for variable workloads
+   - **Flex** toggle (set in Discovery VM table) → selects flex (f-suffix) profiles for variable workloads
    - **Instance Storage** toggle (set in Discovery VM table) → selects NVMe (d-suffix) profiles for workloads needing fast local I/O (e.g., DB scratch, Kafka)
    - Gen3 profiles (Sapphire Rapids) are preferred; BIOS firmware VMs fall back to Gen2
 4. Click the edit icon to override the auto-selected profile

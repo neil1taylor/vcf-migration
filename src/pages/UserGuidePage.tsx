@@ -363,10 +363,10 @@ export function UserGuidePage() {
                 </Tile>
 
                 <Tile className="user-guide-page__card">
-                  <h4>VM Options (Storage IOPS, Burstable, GPU, etc.)</h4>
+                  <h4>VM Options (Storage IOPS, Flex, GPU, etc.)</h4>
                   <p>The <strong>Options</strong> column shows per-VM settings. Click the settings icon to open a popover with all options:</p>
                   <UnorderedList>
-                    <ListItem><strong>Profile</strong> — Standard or Burstable (shared CPU)</ListItem>
+                    <ListItem><strong>Profile</strong> — Standard or Flex (shared CPU)</ListItem>
                     <ListItem><strong>Storage</strong> — Block (persistent) or NVMe (ephemeral, fast I/O)</ListItem>
                     <ListItem><strong>GPU / Bandwidth</strong> — Flag VMs requiring GPU or high bandwidth profiles</ListItem>
                     <ListItem><strong>Boot IOPS</strong> — Storage tier for boot volumes (Standard by default)</ListItem>
