@@ -1,6 +1,16 @@
 {
   "releases": [
     {
+      "version": "2.6.6",
+      "date": "2026-04-08",
+      "sections": {
+        "changed": [
+          "Renamed 'Burstable' to 'Flex' across all UI labels, code, and documentation to align with IBM Cloud's official naming for shared-CPU VSI profiles (bxf/cxf/mxf)",
+          "localStorage VM overrides migrated from v2 to v3 — existing 'burstableCandidate' fields automatically renamed to 'flexCandidate' on load"
+        ]
+      }
+    },
+    {
       "version": "2.6.5",
       "date": "2026-03-31",
       "sections": {
