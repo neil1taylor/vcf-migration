@@ -66,7 +66,7 @@ export function calculateOdfReservation(
   htMultiplier: number,
   useHyperthreading: boolean,
 ): OdfReservation {
-  const profileData = odfConfig.profiles[profile];
+  const profileData = odfConfig.profiles[profile] ?? odfConfig.profiles['balanced'];
   const counts = odfConfig.clusterWideCounts;
 
   // ODF requires minimum 3 nodes for quorum

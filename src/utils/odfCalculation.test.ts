@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateOdfReservation, getOdfProfiles } from './odfCalculation';
+import { calculateOdfReservation, getOdfProfiles, type OdfTuningProfile } from './odfCalculation';
 
 describe('calculateOdfReservation', () => {
   // balanced + 8 NVMe + 3 nodes, no RGW, vCPU mode
@@ -109,6 +109,13 @@ describe('calculateOdfReservation', () => {
     const threeNodes = calculateOdfReservation('balanced', 8, 3, false, 'vcpu', 1.25, true);
     // With 2 nodes, should still use 3 as minimum
     expect(twoNodes.totalCpu).toBeCloseTo(threeNodes.totalCpu, 5);
+  });
+
+  it('falls back to balanced for invalid profile', () => {
+    const invalid = calculateOdfReservation('invalid' as OdfTuningProfile, 8, 3, false, 'vcpu', 1.25, true);
+    const balanced = calculateOdfReservation('balanced', 8, 3, false, 'vcpu', 1.25, true);
+    expect(invalid.totalCpu).toBeCloseTo(balanced.totalCpu, 5);
+    expect(invalid.totalMemoryGiB).toBeCloseTo(balanced.totalMemoryGiB, 5);
   });
 
   // Large cluster (40 nodes) — cluster-wide overhead is negligible

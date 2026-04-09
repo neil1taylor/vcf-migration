@@ -129,7 +129,7 @@ function buildROKSSizingFromVMs(
       replicaFactor: 3,
       cephOverhead: 0.33,
       operationalCapacity: 0.75,
-      odfTuningProfile: 'default',
+      odfTuningProfile: 'balanced',
       odfCpuUnitMode: 'physical',
       htMultiplier: 2,
       useHyperthreading: true,
