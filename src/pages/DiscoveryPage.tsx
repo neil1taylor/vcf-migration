@@ -68,32 +68,46 @@ function matchesAuthoritativeRule(vmName: string, rule: AuthoritativeRule): bool
   return false;
 }
 
+// Escape special regex characters in a string
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Pre-compiled word-boundary regexes for pattern matching (built once at module load)
+const compiledPatternCategories = (() => {
+  const categories = workloadPatterns.categories as Record<string, CategoryDef>;
+  return Object.entries(categories).map(([key, cat]) => ({
+    key,
+    name: cat.name,
+    patterns: cat.patterns.map(p => ({
+      raw: p,
+      regex: new RegExp(`\\b${escapeRegExp(p)}\\b`, 'i'),
+    })),
+  }));
+})();
+
 // Detect workloads from VM names and annotations
 function detectWorkloads(vms: { vmName: string; annotation: string | null }[]): WorkloadMatch[] {
   const matches: WorkloadMatch[] = [];
-  const categories = workloadPatterns.categories as Record<string, CategoryDef>;
 
   for (const vm of vms) {
-    const vmNameLower = vm.vmName.toLowerCase();
-    const annotationLower = (vm.annotation || '').toLowerCase();
-
-    for (const [categoryKey, category] of Object.entries(categories)) {
-      for (const pattern of category.patterns) {
-        if (vmNameLower.includes(pattern)) {
+    for (const { key, name, patterns } of compiledPatternCategories) {
+      for (const { raw, regex } of patterns) {
+        if (regex.test(vm.vmName)) {
           matches.push({
             vmName: vm.vmName,
-            category: categoryKey,
-            categoryName: category.name,
-            matchedPattern: pattern,
+            category: key,
+            categoryName: name,
+            matchedPattern: raw,
             source: 'name',
           });
           break;
-        } else if (annotationLower.includes(pattern)) {
+        } else if (vm.annotation && regex.test(vm.annotation)) {
           matches.push({
             vmName: vm.vmName,
-            category: categoryKey,
-            categoryName: category.name,
-            matchedPattern: pattern,
+            category: key,
+            categoryName: name,
+            matchedPattern: raw,
             source: 'annotation',
           });
           break;

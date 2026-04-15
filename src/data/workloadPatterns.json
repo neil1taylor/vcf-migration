@@ -79,6 +79,13 @@
         "patterns": ["xcat", "xtr"],
         "category": "extremeScale",
         "description": "Extreme scale servers (xCAT/xtr) — always classify as Extreme Scale Servers"
+      },
+      {
+        "id": "database-servers",
+        "match": "regex",
+        "patterns": ["db\\d"],
+        "category": "databases",
+        "description": "Servers with DB followed by digits (e.g., GCGMDB002A) — always classify as Databases"
       }
     ]
   },
