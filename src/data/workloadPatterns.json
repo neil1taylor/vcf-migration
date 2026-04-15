@@ -335,6 +335,13 @@
         "description": "vCenter VMs using vc-vc naming convention"
       },
       {
+        "id": "vmware-vc-suffix",
+        "label": "VMware Infrastructure",
+        "match": "regex",
+        "patterns": ["-vc$", "-vc-"],
+        "description": "vCenter VMs using -vc suffix naming convention (e.g., green01-vc, green01-vc-Passive)"
+      },
+      {
         "id": "vmware-aria-operations",
         "label": "VMware Infrastructure",
         "match": "contains",

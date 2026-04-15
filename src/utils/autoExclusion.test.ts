@@ -137,6 +137,31 @@ describe('getAutoExclusion', () => {
     expect(result.isAutoExcluded).toBe(false);
   });
 
+  it('excludes vCenter VMs with -vc suffix (e.g., green01-vc)', () => {
+    const vm = createVM({ vmName: 'green01-vc' });
+    const result = getAutoExclusion(vm);
+
+    expect(result.isAutoExcluded).toBe(true);
+    expect(result.reasons).toContain('vmware-vc-suffix');
+    expect(result.labels).toContain('VMware Infrastructure');
+  });
+
+  it('excludes vCenter VMs with -vc- infix (e.g., green01-vc-Passive)', () => {
+    const vm = createVM({ vmName: 'green01-vc-Passive' });
+    const result = getAutoExclusion(vm);
+
+    expect(result.isAutoExcluded).toBe(true);
+    expect(result.reasons).toContain('vmware-vc-suffix');
+    expect(result.labels).toContain('VMware Infrastructure');
+  });
+
+  it('does not exclude VMs with vc in the middle of a word (e.g., invoicing-app)', () => {
+    const vm = createVM({ vmName: 'invoicing-app' });
+    const result = getAutoExclusion(vm);
+
+    expect(result.isAutoExcluded).toBe(false);
+  });
+
   it('excludes VMware Aria Operations appliances', () => {
     const vm = createVM({ vmName: 'VMware-Aria-Operations-abc123' });
     const result = getAutoExclusion(vm);
