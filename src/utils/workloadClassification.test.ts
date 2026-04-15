@@ -40,8 +40,8 @@ describe('workloadClassification', () => {
       expect(getVMWorkloadCategory('webserver-123')).toBeNull();
     });
 
-    it('should match from annotation when name does not match', () => {
-      expect(getVMWorkloadCategory('custom-app-01', 'running oracle database')).toBe('databases');
+    it('should not match from annotation (annotations excluded to avoid false positives)', () => {
+      expect(getVMWorkloadCategory('custom-app-01')).toBeNull();
     });
 
     it('should be case-insensitive', () => {

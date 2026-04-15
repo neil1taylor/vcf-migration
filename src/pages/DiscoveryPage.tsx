@@ -86,8 +86,9 @@ const compiledPatternCategories = (() => {
   }));
 })();
 
-// Detect workloads from VM names and annotations
-function detectWorkloads(vms: { vmName: string; annotation: string | null }[]): WorkloadMatch[] {
+// Detect workloads from VM names (annotations excluded — they contain
+// backup metadata and operational notes that cause false positives)
+function detectWorkloads(vms: { vmName: string }[]): WorkloadMatch[] {
   const matches: WorkloadMatch[] = [];
 
   for (const vm of vms) {
@@ -100,15 +101,6 @@ function detectWorkloads(vms: { vmName: string; annotation: string | null }[]): 
             categoryName: name,
             matchedPattern: raw,
             source: 'name',
-          });
-          break;
-        } else if (vm.annotation && regex.test(vm.annotation)) {
-          matches.push({
-            vmName: vm.vmName,
-            category: key,
-            categoryName: name,
-            matchedPattern: raw,
-            source: 'annotation',
           });
           break;
         }
@@ -170,7 +162,6 @@ export function DiscoveryPage() {
   const ruleBasedMatches = useMemo(() => {
     return detectWorkloads(poweredOnVMs.map(vm => ({
       vmName: vm.vmName,
-      annotation: vm.annotation,
     })));
   }, [poweredOnVMs]);
 

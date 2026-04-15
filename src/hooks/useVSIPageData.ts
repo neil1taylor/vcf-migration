@@ -161,7 +161,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
       }
 
       // Workload category (for display, not storage tier)
-      const workloadCategory = getVMWorkloadCategory(vm.vmName, vm.annotation ?? null);
+      const workloadCategory = getVMWorkloadCategory(vm.vmName);
 
       // Storage tier — Discovery is the single source of truth.
       // Default is general-purpose; overrides come from vmOverrides.dataStorageTier (set in Discovery or VSI table).
@@ -317,7 +317,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
     // Build workload classification breakdown from VM names
     const workloadClassificationBreakdown: Record<string, number> = {};
     for (const vm of poweredOnVMs) {
-      const categoryKey = getVMWorkloadCategory(vm.vmName, vm.annotation);
+      const categoryKey = getVMWorkloadCategory(vm.vmName);
       const displayName = getCategoryDisplayName(categoryKey) || 'Unclassified';
       workloadClassificationBreakdown[displayName] = (workloadClassificationBreakdown[displayName] || 0) + 1;
     }

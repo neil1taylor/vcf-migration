@@ -84,7 +84,7 @@ export function buildInsightsInput(rawData: RVToolsData, enrichment?: InsightsEn
     // Auto-classify from VM names using pattern matching
     const breakdown: Record<string, number> = {};
     for (const vm of poweredOnVMs) {
-      const categoryKey = getVMWorkloadCategory(vm.vmName, vm.annotation);
+      const categoryKey = getVMWorkloadCategory(vm.vmName);
       const displayName = getCategoryDisplayName(categoryKey) || 'Unclassified';
       breakdown[displayName] = (breakdown[displayName] || 0) + 1;
     }

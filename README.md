@@ -563,7 +563,7 @@ Match types: `contains`, `startsWith`, `endsWith`, `exact`, `regex`. The `catego
 
 ### Workload Types (`categories`)
 
-Defines the available workload types (e.g., Databases, Middleware) with fallback pattern matching. Patterns are used **only when AI is not available** and no authoritative rule matched.
+Defines the available workload types (e.g., Databases, Middleware) with fallback pattern matching. Patterns are matched against VM names only (not annotations) using word-boundary matching to prevent false positives. Used **only when AI is not available** and no authoritative rule matched.
 
 ### Auto-Exclusion Rules (`autoExclusionRules`)
 

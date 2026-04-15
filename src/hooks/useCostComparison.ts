@@ -187,7 +187,7 @@ function buildVSISizingFromVMs(
     // Data disks: use VM's workload-based storage tier
     const dataDisks = sorted.slice(1);
     if (dataDisks.length > 0) {
-      const category = getVMWorkloadCategory(vm.vmName, vm.annotation ?? null);
+      const category = getVMWorkloadCategory(vm.vmName);
       const tier: StorageTierType = getStorageTierForWorkload(category);
       const dataGiB = dataDisks.reduce(
         (sum, d) => sum + Math.max(Math.round(mibToGiB(d.capacityMiB)), VPC_DATA_VOLUME_MIN_GB),

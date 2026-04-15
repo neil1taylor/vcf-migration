@@ -26,16 +26,16 @@ const compiledCategories = Object.entries(categories).map(([key, cat]) => ({
 }));
 
 /**
- * Detect a VM's workload category from its name and optional annotation.
+ * Detect a VM's workload category from its name.
  * Returns the category key (e.g., 'databases', 'middleware') or null if unclassified.
  * Uses word-boundary matching to avoid false positives from short patterns.
+ * Annotations are intentionally excluded — they contain backup metadata and
+ * operational notes that cause false positives.
  */
-export function getVMWorkloadCategory(vmName: string, annotation?: string | null): string | null {
-  const text = annotation ? `${vmName} ${annotation}` : vmName;
-
+export function getVMWorkloadCategory(vmName: string): string | null {
   for (const { key, patterns } of compiledCategories) {
     for (const re of patterns) {
-      if (re.test(text)) return key;
+      if (re.test(vmName)) return key;
     }
   }
 

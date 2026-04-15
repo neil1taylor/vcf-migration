@@ -11,7 +11,7 @@
     "categories": {
       "purpose": "Defines workload types (e.g., Databases, Middleware) and FALLBACK pattern matching. Patterns here are used when AI is not available and no maintainer authoritative rule matched.",
       "priority": "Lowest classification priority — only used as fallback when AI is unavailable.",
-      "howToAdd": "Add a new key under 'categories' with name, icon, description, and patterns array. Patterns are matched case-insensitively against VM names and annotations."
+      "howToAdd": "Add a new key under 'categories' with name, icon, description, and patterns array. Patterns are matched case-insensitively against VM names using word-boundary matching (annotations are excluded to avoid false positives from backup metadata)."
     },
     "autoExclusionRules": {
       "purpose": "Migration SCOPE — determines which VMs are auto-excluded from migration (e.g., templates, powered-off, VMware infrastructure).",

@@ -453,7 +453,7 @@ export function getTargetAssignmentsExport(rawData: RVToolsData): TargetAssignme
   const workloadTypes = new Map<string, string>();
   for (const vm of poweredOnVMs) {
     const vmId = getVMIdentifier(vm);
-    const cat = getVMWorkloadCategory(vm.vmName, vm.annotation);
+    const cat = getVMWorkloadCategory(vm.vmName);
     if (cat) {
       workloadTypes.set(vmId, getCategoryDisplayName(cat) || cat);
     }
@@ -524,7 +524,7 @@ export function getWorkloadClassificationExport(rawData: RVToolsData): WorkloadC
   let classifiedCount = 0;
 
   for (const vm of poweredOnVMs) {
-    const cat = getVMWorkloadCategory(vm.vmName, vm.annotation);
+    const cat = getVMWorkloadCategory(vm.vmName);
     const displayName = cat ? (getCategoryDisplayName(cat) || cat) : 'Unclassified';
     categoryCounts.set(displayName, (categoryCounts.get(displayName) || 0) + 1);
     if (cat) classifiedCount++;

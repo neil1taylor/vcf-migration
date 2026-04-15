@@ -70,7 +70,7 @@ export function MigrationComparisonPage() {
     const map = new Map<string, string>();
     for (const vm of vms) {
       const vmId = getVMIdentifier(vm);
-      const category = getVMWorkloadCategory(vm.vmName, vm.annotation ?? null);
+      const category = getVMWorkloadCategory(vm.vmName);
       if (category) map.set(vmId, category);
     }
     return map;

@@ -188,7 +188,7 @@ export function useTargetAssignments(
       if (userWorkloadType) {
         map.set(vmId, userWorkloadType);
       } else {
-        const category = getVMWorkloadCategory(vm.vmName, vm.annotation ?? null);
+        const category = getVMWorkloadCategory(vm.vmName);
         if (category) {
           map.set(vmId, category);
         }

@@ -405,7 +405,7 @@ export function useDashboardData(): DashboardData {
     // Build workload classification breakdown from VM names
     const workloadClassificationBreakdown: Record<string, number> = {};
     for (const vm of vms) {
-      const categoryKey = getVMWorkloadCategory(vm.vmName, vm.annotation);
+      const categoryKey = getVMWorkloadCategory(vm.vmName);
       const displayName = getCategoryDisplayName(categoryKey) || 'Unclassified';
       workloadClassificationBreakdown[displayName] = (workloadClassificationBreakdown[displayName] || 0) + 1;
     }

@@ -336,7 +336,7 @@ Prices the source VMware environment using IBM Cloud bare metal, VCF licensing, 
 1. **User override** (cyan `User` tag) — highest priority
 2. **Maintainer authoritative** (teal `Maintainer` tag, from `authoritativeClassifications` in `workloadPatterns.json`) — AI cannot override
 3. **AI classification** — overrides pattern matching when available
-4. **Rule-based detection** — fallback pattern matching from `categories` in `workloadPatterns.json`
+4. **Rule-based detection** — fallback word-boundary pattern matching against VM names from `categories` in `workloadPatterns.json` (annotations excluded to avoid false positives from backup metadata)
 
 Classification and auto-exclusion are independent. Each VM has exactly one workload type (4-pass merge with dedup).
 
