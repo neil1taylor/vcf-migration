@@ -39,6 +39,20 @@
         "description": "VMware Aria Operations — always classify as VMware Infrastructure"
       },
       {
+        "id": "vmware-vrealize",
+        "match": "contains",
+        "patterns": ["vRealize-"],
+        "category": "virtualization",
+        "description": "VMware vRealize Suite (Log Insight, Operations) — always classify as VMware Infrastructure"
+      },
+      {
+        "id": "vmware-vsan-witness",
+        "match": "contains",
+        "patterns": ["vsanwitness"],
+        "category": "virtualization",
+        "description": "vSAN Witness appliances — always classify as VMware Infrastructure"
+      },
+      {
         "id": "vmware-vcvc",
         "match": "contains",
         "patterns": ["vc-vc"],
@@ -319,6 +333,20 @@
         "match": "contains",
         "patterns": ["VMware-Aria-Operations"],
         "description": "VMware Aria Operations (monitoring/management) appliances"
+      },
+      {
+        "id": "vmware-vrealize",
+        "label": "VMware Infrastructure",
+        "match": "contains",
+        "patterns": ["vRealize-"],
+        "description": "VMware vRealize Suite (Log Insight, Operations Manager) appliances"
+      },
+      {
+        "id": "vmware-vsan-witness",
+        "label": "VMware Infrastructure",
+        "match": "contains",
+        "patterns": ["vsanwitness"],
+        "description": "vSAN Witness appliances"
       },
       {
         "id": "network-edge-appliance",

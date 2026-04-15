@@ -47,6 +47,46 @@ describe('workloadClassification', () => {
     it('should be case-insensitive', () => {
       expect(getVMWorkloadCategory('PROD-ORACLE-DB01')).toBe('databases');
     });
+
+    it('should not false-positive on substring matches for short patterns', () => {
+      // "aws" should not match words that merely contain the letters
+      expect(getVMWorkloadCategory('laws-server')).toBeNull();
+      expect(getVMWorkloadCategory('drawstring-vm')).toBeNull();
+
+      // "ad" should not match words containing the substring
+      expect(getVMWorkloadCategory('administrator')).toBeNull();
+      expect(getVMWorkloadCategory('loadbalancer-01')).toBeNull();
+
+      // "oci" should not match words containing the substring
+      expect(getVMWorkloadCategory('invoicing-app')).toBeNull();
+      expect(getVMWorkloadCategory('social-media-vm')).toBeNull();
+
+      // "mq" should not match embedded substring
+      expect(getVMWorkloadCategory('headquarters-01')).toBeNull();
+
+      // "lb" should not match embedded substring
+      expect(getVMWorkloadCategory('album-service')).toBeNull();
+
+      // "fw" should not match embedded substring
+      expect(getVMWorkloadCategory('software-build')).toBeNull();
+
+      // "sso" should not match embedded substring
+      expect(getVMWorkloadCategory('assessor-vm')).toBeNull();
+    });
+
+    it('should match short patterns when they appear as whole words', () => {
+      // Hyphen-separated (common VM naming convention)
+      expect(getVMWorkloadCategory('prod-aws-proxy')).toBe('cloud');
+      expect(getVMWorkloadCategory('ad-server-01')).toBe('identity');
+      expect(getVMWorkloadCategory('prod-mq-01')).toBe('messaging');
+      expect(getVMWorkloadCategory('corp-lb-01')).toBe('network');
+      expect(getVMWorkloadCategory('edge-fw-01')).toBe('network');
+
+      // At start or end of string
+      expect(getVMWorkloadCategory('aws-gateway')).toBe('cloud');
+      expect(getVMWorkloadCategory('gateway-aws')).toBe('cloud');
+      expect(getVMWorkloadCategory('ad')).toBe('identity');
+    });
   });
 
   describe('getStorageTierForWorkload', () => {
