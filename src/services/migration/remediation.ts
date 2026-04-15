@@ -52,6 +52,8 @@ export interface PreflightCheckCounts {
   vmsWithVeryLargeMemoryList?: string[];
   vmsWithUnsupportedOS?: number;
   vmsWithUnsupportedOSList?: string[];
+  vmsWithBYOLOS?: number;
+  vmsWithBYOLOSList?: string[];
   vmsWithSmallDataDisk?: number;
   vmsWithSmallDataDiskList?: string[];
 
@@ -76,6 +78,8 @@ export interface PreflightCheckCounts {
   vmsStaticIPPoweredOffList?: string[];
   vmsWithUnsupportedROKSOS?: number;
   vmsWithUnsupportedROKSOSList?: string[];
+  vmsWithCaveatsOS?: number;
+  vmsWithCaveatsOSList?: string[];
 }
 
 /**
@@ -178,6 +182,19 @@ export function generateVSIRemediationItems(counts: PreflightCheckCounts): Remed
   }
 
   // WARNINGS
+
+  if (counts.vmsWithBYOLOS && counts.vmsWithBYOLOS > 0) {
+    items.push({
+      id: 'byol-os',
+      name: 'BYOL Operating System',
+      severity: 'warning',
+      description: 'These VMs have operating systems that require Bring Your Own License (BYOL) custom images. IBM does not provide stock images for these OS versions, but they can run on VPC VSIs using customer-imported images.',
+      remediation: 'Import a custom image for these operating systems. Customer is responsible for licensing, image preparation, and validation of functionality on VPC VSI.',
+      documentationLink: VPC_DOCS.ibmVpcImages,
+      affectedCount: counts.vmsWithBYOLOS,
+      affectedVMs: counts.vmsWithBYOLOSList || [],
+    });
+  }
 
   if (counts.vmsWithoutTools > 0) {
     items.push({
@@ -338,6 +355,19 @@ export function generateROKSRemediationItems(counts: PreflightCheckCounts): Reme
   }
 
   // WARNINGS
+
+  if (counts.vmsWithCaveatsOS && counts.vmsWithCaveatsOS > 0) {
+    items.push({
+      id: 'caveats-os',
+      name: 'OS Supported with Caveats',
+      severity: 'warning',
+      description: 'These VMs have operating systems that are supported by OpenShift Virtualization but may require additional configuration or have known limitations.',
+      remediation: 'Review the Red Hat certified guest OS matrix for specific caveats and required configurations for these OS versions.',
+      documentationLink: 'https://access.redhat.com/articles/4234591',
+      affectedCount: counts.vmsWithCaveatsOS,
+      affectedVMs: counts.vmsWithCaveatsOSList || [],
+    });
+  }
 
   if (counts.vmsWithToolsNotRunning > 0) {
     items.push({
@@ -727,6 +757,31 @@ export function generateVSIAllChecks(counts: PreflightCheckCounts): RemediationI
       severity: 'success',
       description: 'All VMs have operating systems with IBM stock images available. Most 64-bit x86-64 operating systems can run on VPC VSIs. IBM provides and validates support for a set of stock x86-64 OS images tested to boot and operate on VSIs.',
       remediation: 'No action required. All detected operating systems have IBM stock images available. While you can also import custom images, IBM stock images are recommended for validated compatibility and support.',
+      documentationLink: VPC_DOCS.ibmVpcImages,
+      affectedCount: 0,
+      affectedVMs: [],
+    });
+  }
+
+  // BYOL Operating System
+  if ((counts.vmsWithBYOLOS || 0) > 0) {
+    items.push({
+      id: 'byol-os',
+      name: 'BYOL Operating System',
+      severity: 'warning',
+      description: 'These VMs have operating systems that require Bring Your Own License (BYOL) custom images. IBM does not provide stock images for these OS versions, but they can run on VPC VSIs using customer-imported images.',
+      remediation: 'Import a custom image for these operating systems. Customer is responsible for licensing, image preparation, and validation of functionality on VPC VSI.',
+      documentationLink: VPC_DOCS.ibmVpcImages,
+      affectedCount: counts.vmsWithBYOLOS || 0,
+      affectedVMs: counts.vmsWithBYOLOSList || [],
+    });
+  } else {
+    items.push({
+      id: 'byol-os',
+      name: 'BYOL Operating System',
+      severity: 'success',
+      description: 'No VMs require Bring Your Own License (BYOL) custom images. All operating systems have IBM stock images available.',
+      remediation: 'No action required. All detected operating systems have IBM stock images available.',
       documentationLink: VPC_DOCS.ibmVpcImages,
       affectedCount: 0,
       affectedVMs: [],

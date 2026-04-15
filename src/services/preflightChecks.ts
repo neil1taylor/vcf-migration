@@ -758,6 +758,12 @@ export function derivePreflightCounts(
       .filter(r => r.checks[checkId]?.status === 'fail')
       .map(r => r.vmName);
 
+  // Helper: collect VM names where a specific check returned 'warn' status
+  const warnedVMs = (checkId: string): string[] =>
+    results
+      .filter(r => r.checks[checkId]?.status === 'warn')
+      .map(r => r.vmName);
+
   const vmsWithoutToolsList = failedVMs(mode === 'vsi' ? 'vsi-tools' : 'tools-installed');
   const vmsWithToolsNotRunningList = failedVMs('tools-running');
   const vmsWithOldSnapshotsList = failedVMs('old-snapshots');
@@ -811,6 +817,10 @@ export function derivePreflightCounts(
     const vmsWithSmallDataDiskList = failedVMs('data-disk-size-min');
     counts.vmsWithSmallDataDisk = vmsWithSmallDataDiskList.length;
     counts.vmsWithSmallDataDiskList = vmsWithSmallDataDiskList;
+
+    const vmsWithBYOLOSList = warnedVMs('vsi-os');
+    counts.vmsWithBYOLOS = vmsWithBYOLOSList.length;
+    counts.vmsWithBYOLOSList = vmsWithBYOLOSList;
   }
 
   if (mode === 'roks') {
@@ -845,6 +855,10 @@ export function derivePreflightCounts(
     const vmsWithUnsupportedROKSOSList = failedVMs('os-compatible');
     counts.vmsWithUnsupportedROKSOS = vmsWithUnsupportedROKSOSList.length;
     counts.vmsWithUnsupportedROKSOSList = vmsWithUnsupportedROKSOSList;
+
+    const vmsWithCaveatsOSList = warnedVMs('os-compatible');
+    counts.vmsWithCaveatsOS = vmsWithCaveatsOSList.length;
+    counts.vmsWithCaveatsOSList = vmsWithCaveatsOSList;
   }
 
   return counts;

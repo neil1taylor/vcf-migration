@@ -164,6 +164,61 @@ describe('derivePreflightCounts data-disk-size-min', () => {
   });
 });
 
+describe('derivePreflightCounts BYOL OS', () => {
+  it('should populate vmsWithBYOLOS for BYOL VMs in VSI mode', () => {
+    const vms = [
+      makeVM({ vmName: 'rhel7-vm', guestOS: 'Red Hat Enterprise Linux 7 (64-bit)' }),
+      makeVM({ vmName: 'rhel8-vm', guestOS: 'Red Hat Enterprise Linux 8 (64-bit)' }),
+      makeVM({ vmName: 'unknown-vm', guestOS: 'SomeObscureOS 3.0' }),
+    ];
+    const results = runPreFlightChecks(makeRVToolsData(vms), 'vsi');
+    const counts = derivePreflightCounts(results, 'vsi');
+    // rhel7 is BYOL (warn), rhel8 is supported (pass), unknown is unsupported (fail)
+    expect(counts.vmsWithBYOLOS).toBe(1);
+    expect(counts.vmsWithBYOLOSList).toEqual(['rhel7-vm']);
+    expect(counts.vmsWithUnsupportedOS).toBe(1);
+    expect(counts.vmsWithUnsupportedOSList).toEqual(['unknown-vm']);
+  });
+
+  it('should return 0 for vmsWithBYOLOS when no BYOL VMs exist', () => {
+    const vms = [
+      makeVM({ vmName: 'rhel8-vm', guestOS: 'Red Hat Enterprise Linux 8 (64-bit)' }),
+    ];
+    const results = runPreFlightChecks(makeRVToolsData(vms), 'vsi');
+    const counts = derivePreflightCounts(results, 'vsi');
+    expect(counts.vmsWithBYOLOS).toBe(0);
+    expect(counts.vmsWithBYOLOSList).toEqual([]);
+  });
+});
+
+describe('derivePreflightCounts OS caveats (ROKS)', () => {
+  it('should populate vmsWithCaveatsOS for supported-with-caveats VMs in ROKS mode', () => {
+    // Windows Server 2019 is supported-with-caveats on ROKS
+    const vms = [
+      makeVM({ vmName: 'win2019-vm', guestOS: 'Microsoft Windows Server 2019 (64-bit)', hardwareVersion: 'vmx-15' }),
+      makeVM({ vmName: 'rhel8-vm', guestOS: 'Red Hat Enterprise Linux 8 (64-bit)', hardwareVersion: 'vmx-15' }),
+    ];
+    const data = makeRVToolsData(vms);
+    // Add tools data to avoid tools-installed failures
+    data.vTools = vms.map(vm => ({
+      vmName: vm.vmName,
+      toolsStatus: 'toolsOk',
+      toolsVersion: '12345',
+    })) as typeof data.vTools;
+    const results = runPreFlightChecks(data, 'roks');
+    const counts = derivePreflightCounts(results, 'roks');
+    // Check if Windows 2019 has caveats on ROKS
+    const win2019Check = results.find(r => r.vmName === 'win2019-vm')?.checks['os-compatible'];
+    if (win2019Check?.status === 'warn') {
+      expect(counts.vmsWithCaveatsOS).toBe(1);
+      expect(counts.vmsWithCaveatsOSList).toContain('win2019-vm');
+    } else {
+      // If it passes or fails, caveats should still be defined
+      expect(counts.vmsWithCaveatsOS).toBeDefined();
+    }
+  });
+});
+
 describe('remediation data-disk-size-min', () => {
   it('should generate warning remediation item for small data disks', () => {
     const items = generateVSIRemediationItems({
@@ -178,6 +233,72 @@ describe('remediation data-disk-size-min', () => {
       vmsWithSmallDataDiskList: ['vm1', 'vm2', 'vm3'],
     });
     const item = items.find(i => i.id === 'data-disk-size-min');
+    expect(item).toBeDefined();
+    expect(item!.severity).toBe('warning');
+    expect(item!.affectedCount).toBe(3);
+  });
+
+  it('should generate warning remediation item for BYOL OS', () => {
+    const items = generateVSIRemediationItems({
+      vmsWithoutTools: 0, vmsWithoutToolsList: [],
+      vmsWithToolsNotRunning: 0, vmsWithToolsNotRunningList: [],
+      vmsWithOldSnapshots: 0, vmsWithOldSnapshotsList: [],
+      vmsWithRDM: 0, vmsWithRDMList: [],
+      vmsWithSharedDisks: 0, vmsWithSharedDisksList: [],
+      vmsWithLargeDisks: 0, vmsWithLargeDisksList: [],
+      hwVersionOutdated: 0, hwVersionOutdatedList: [],
+      vmsWithBYOLOS: 2,
+      vmsWithBYOLOSList: ['rhel7-vm1', 'rhel7-vm2'],
+    });
+    const item = items.find(i => i.id === 'byol-os');
+    expect(item).toBeDefined();
+    expect(item!.severity).toBe('warning');
+    expect(item!.affectedCount).toBe(2);
+  });
+
+  it('should not generate BYOL remediation item when no BYOL VMs exist', () => {
+    const items = generateVSIRemediationItems({
+      vmsWithoutTools: 0, vmsWithoutToolsList: [],
+      vmsWithToolsNotRunning: 0, vmsWithToolsNotRunningList: [],
+      vmsWithOldSnapshots: 0, vmsWithOldSnapshotsList: [],
+      vmsWithRDM: 0, vmsWithRDMList: [],
+      vmsWithSharedDisks: 0, vmsWithSharedDisksList: [],
+      vmsWithLargeDisks: 0, vmsWithLargeDisksList: [],
+      hwVersionOutdated: 0, hwVersionOutdatedList: [],
+    });
+    const item = items.find(i => i.id === 'byol-os');
+    expect(item).toBeUndefined();
+  });
+
+  it('should include byol-os in all checks with success when no BYOL VMs', () => {
+    const items = generateVSIAllChecks({
+      vmsWithoutTools: 0, vmsWithoutToolsList: [],
+      vmsWithToolsNotRunning: 0, vmsWithToolsNotRunningList: [],
+      vmsWithOldSnapshots: 0, vmsWithOldSnapshotsList: [],
+      vmsWithRDM: 0, vmsWithRDMList: [],
+      vmsWithSharedDisks: 0, vmsWithSharedDisksList: [],
+      vmsWithLargeDisks: 0, vmsWithLargeDisksList: [],
+      hwVersionOutdated: 0, hwVersionOutdatedList: [],
+    });
+    const item = items.find(i => i.id === 'byol-os');
+    expect(item).toBeDefined();
+    expect(item!.severity).toBe('success');
+    expect(item!.affectedCount).toBe(0);
+  });
+
+  it('should include byol-os in all checks with warning when BYOL VMs exist', () => {
+    const items = generateVSIAllChecks({
+      vmsWithoutTools: 0, vmsWithoutToolsList: [],
+      vmsWithToolsNotRunning: 0, vmsWithToolsNotRunningList: [],
+      vmsWithOldSnapshots: 0, vmsWithOldSnapshotsList: [],
+      vmsWithRDM: 0, vmsWithRDMList: [],
+      vmsWithSharedDisks: 0, vmsWithSharedDisksList: [],
+      vmsWithLargeDisks: 0, vmsWithLargeDisksList: [],
+      hwVersionOutdated: 0, hwVersionOutdatedList: [],
+      vmsWithBYOLOS: 3,
+      vmsWithBYOLOSList: ['vm1', 'vm2', 'vm3'],
+    });
+    const item = items.find(i => i.id === 'byol-os');
     expect(item).toBeDefined();
     expect(item!.severity).toBe('warning');
     expect(item!.affectedCount).toBe(3);

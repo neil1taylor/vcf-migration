@@ -410,11 +410,25 @@ export function exportPreFlightExcel(
     [''],
     ['Check Failure Summary', ''],
     ['Check Name', 'Failures', 'Severity'],
-    ...checksForMode.map((c) => [
-      c.name,
-      results.filter((r) => r.checks[c.id]?.status === 'fail' || r.checks[c.id]?.status === 'warn').length,
-      c.severity.charAt(0).toUpperCase() + c.severity.slice(1),
-    ]),
+    ...checksForMode.flatMap((c) => {
+      const failCount = results.filter((r) => r.checks[c.id]?.status === 'fail').length;
+      const warnCount = results.filter((r) => r.checks[c.id]?.status === 'warn').length;
+      const rows: (string | number)[][] = [[
+        c.name,
+        failCount + (c.severity !== 'blocker' ? warnCount : 0),
+        c.severity.charAt(0).toUpperCase() + c.severity.slice(1),
+      ]];
+      // Add separate warning row for blocker-severity checks that also have warn results (e.g. BYOL OS, supported-with-caveats)
+      if (c.severity === 'blocker' && warnCount > 0) {
+        const warnLabel = c.id === 'vsi-os' ? `${c.name} (BYOL)` : `${c.name} (Caveats)`;
+        rows.push([
+          warnLabel,
+          warnCount,
+          'Warning',
+        ]);
+      }
+      return rows;
+    }),
   ];
 
   const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);

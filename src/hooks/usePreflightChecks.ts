@@ -191,6 +191,14 @@ export function usePreflightChecks(config: UsePreflightChecksConfig): UsePreflig
       }).map(vm => vm.vmName);
       checkCounts.vmsWithUnsupportedOS = vmsWithUnsupportedOSList.length;
       checkCounts.vmsWithUnsupportedOSList = vmsWithUnsupportedOSList;
+
+      // BYOL OS check (warn status from vsi-os evaluator)
+      const vmsWithBYOLOSList = poweredOnVMs.filter(vm => {
+        const compat = getVSIOSCompatibility(vm.guestOS);
+        return compat.status === 'byol';
+      }).map(vm => vm.vmName);
+      checkCounts.vmsWithBYOLOS = vmsWithBYOLOSList.length;
+      checkCounts.vmsWithBYOLOSList = vmsWithBYOLOSList;
     }
 
     // ROKS-specific checks
