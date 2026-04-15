@@ -148,6 +148,22 @@ Each OS entry can include: `documentationLink` (primary URL), `additionalLinks` 
 
 **Unsupported OS is a blocker on both platforms:** Windows Server 2003/2008 are marked `unsupported` on both VSI (no VirtIO drivers) and ROKS (MTV/virt-v2v cannot inject drivers). The `os-compatible` pre-flight check has severity `blocker` for both modes.
 
+**BYOL OS is a warning on VSI:** Operating systems without IBM stock images (e.g. RHEL 7, older Windows) return `status: 'byol'` from `getVSIOSCompatibility()` and `status: 'warn'` from the `vsi-os` check evaluator. These are counted separately from unsupported OS (`vmsWithBYOLOS` in `PreflightCheckCounts`) and appear as a distinct warning row in exports. Similarly, ROKS has `vmsWithCaveatsOS` for `supported-with-caveats` operating systems.
+
+### Pre-Flight Check Architecture
+
+`runPreFlightChecks()` in `src/services/preflightChecks.ts` is the **single source of truth** for all check evaluation. Every consumer uses it:
+
+| Consumer | Path |
+|----------|------|
+| Pre-Flight Report page | `runPreFlightChecks()` directly |
+| `usePreflightChecks` hook (VSI/ROKS pages) | `runPreFlightChecks()` → `derivePreflightCounts()` → `generateRemediationItems()` |
+| PPTX export | `runPreFlightChecks()` → `derivePreflightCounts()` → `generateRemediationItems()` |
+| XLSX export | `runPreFlightChecks()` directly (per-VM results) |
+| DOCX export | `runPreFlightChecks()` → `calculateVMReadiness()` |
+
+`derivePreflightCounts()` translates per-VM `VMCheckResults[]` into aggregate `PreflightCheckCounts` (counts + VM name lists). It captures both `status === 'fail'` and `status === 'warn'` results. Never add a new check evaluation path — always use `runPreFlightChecks()`.
+
 ## vInventory Converter
 
 Standalone Python script (`scripts/convert_vinventory.py`) that converts vInventory Excel exports to RVTools-compatible format for ingestion by the app.

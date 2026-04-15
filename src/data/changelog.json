@@ -1,6 +1,19 @@
 {
   "releases": [
     {
+      "version": "2.6.8",
+      "date": "2026-04-15",
+      "sections": {
+        "fixed": [
+          "PPTX and XLSX exports now correctly separate BYOL OS (warning) from unsupported OS (blocker) — previously BYOL VMs were either missing from warning counts or lumped into blocker counts",
+          "XLSX Check Failure Summary splits BYOL into a separate warning row instead of combining with unsupported OS blocker count"
+        ],
+        "changed": [
+          "Pre-flight check hook consolidated to delegate to canonical runPreFlightChecks() service — eliminates duplicated check logic and ensures all consumers (UI, PPTX, XLSX, DOCX) use the same calculation path"
+        ]
+      }
+    },
+    {
       "version": "2.6.7",
       "date": "2026-04-09",
       "sections": {
