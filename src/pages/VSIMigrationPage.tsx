@@ -16,6 +16,9 @@ import { ComplexityAssessmentPanel, OSCompatibilityPanel, VSIPreFlightPanel, VSI
 import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel';
 import { AICostAnalysisPanel } from '@/components/ai/AICostAnalysisPanel';
 import { getVSIProfiles } from '@/services/migration';
+import { getProfileFamilyFromName } from '@/services/migration/vsiProfileMapping';
+import type { VSIMapping } from '@/types/exportSizing';
+import { BOOT_DISK_SIZE_GIB, BOOT_STORAGE_COST_PER_GB, DATA_STORAGE_COST_PER_GB } from '@/services/export/docx/types';
 
 // Lazy load heavy components
 const LazyNetworkDesignPanel = lazy(() =>
@@ -272,6 +275,37 @@ export function VSIMigrationPage() {
     remediationItems,
   });
 
+  // VSI mapping summary for export cache — built from profile mappings already computed by useVSIPageData
+  const vsiMappingSummary = useMemo<VSIMapping[] | undefined>(() => {
+    if (!vmProfileMappings || vmProfileMappings.length === 0) return undefined;
+    return vmProfileMappings.map(m => {
+      const totalStorageGiB = m.inUseStorageGiB || m.provisionedStorageGiB;
+      const computeCost = m.profile.monthlyRate;
+      const bootDiskGiB = Math.min(BOOT_DISK_SIZE_GIB, Math.max(10, totalStorageGiB * 0.2));
+      const bootStorageCost = bootDiskGiB * BOOT_STORAGE_COST_PER_GB;
+      const dataDiskGiB = Math.max(0, totalStorageGiB - bootDiskGiB);
+      const dataStorageCost = dataDiskGiB * DATA_STORAGE_COST_PER_GB;
+      const storageCost = bootStorageCost + dataStorageCost;
+      return {
+        vmName: m.vmName,
+        sourceVcpus: m.vcpus,
+        sourceMemoryGiB: m.memoryGiB,
+        sourceStorageGiB: Math.round(totalStorageGiB),
+        bootDiskGiB: Math.round(bootDiskGiB),
+        dataDiskGiB: Math.round(dataDiskGiB),
+        profile: m.profile.name,
+        profileVcpus: m.profile.vcpus,
+        profileMemoryGiB: m.profile.memoryGiB,
+        family: getProfileFamilyFromName(m.profile.name),
+        computeCost,
+        bootStorageCost,
+        dataStorageCost,
+        storageCost,
+        monthlyCost: computeCost + storageCost,
+      };
+    });
+  }, [vmProfileMappings]);
+
   // Early return if no data - placed after all hooks
   if (!rawData) {
     return <Navigate to={ROUTES.home} replace />;
@@ -386,7 +420,7 @@ export function VSIMigrationPage() {
               <TabPanel>
                 <Grid className="migration-page__tab-content">
                   <Column lg={16} md={8} sm={4}>
-                    <CostEstimation type="vsi" vsiSizing={vsiSizing} vmDetails={vmDetails} title="VPC VSI Cost Estimation" onEstimateChange={handleVsiEstimateChange} />
+                    <CostEstimation type="vsi" vsiSizing={vsiSizing} vmDetails={vmDetails} vsiMappingSummary={vsiMappingSummary} title="VPC VSI Cost Estimation" onEstimateChange={handleVsiEstimateChange} />
                   </Column>
                   <Column lg={16} md={8} sm={4}>
                     <SectionErrorBoundary sectionName="AI Cost Optimization">

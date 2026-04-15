@@ -9,6 +9,14 @@ import osCompatibilityData from '@/data/redhatOSCompatibility.json';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import type { VMCheckResults, CheckMode } from '@/services/preflightChecks';
 import { getChecksForMode, derivePreflightCounts } from '@/services/preflightChecks';
+import type { ROKSSizing, VSIMapping } from '@/types/exportSizing';
+
+export interface ExcelExportOptions {
+  /** ROKS sizing summary from BOM cache */
+  roksSizingSummary?: ROKSSizing | null;
+  /** Per-VM VSI mapping from BOM cache */
+  vsiMappingSummary?: VSIMapping[] | null;
+}
 
 // OS Compatibility lookup
 function getOSCompatibility(guestOS: string) {
@@ -38,7 +46,7 @@ function mapVMToVSIProfile(vcpus: number, memoryGiB: number) {
   return bestFit || profiles[profiles.length - 1];
 }
 
-export function generateExcelReport(rawData: RVToolsData, aiInsights?: MigrationInsights | null): XLSX.WorkBook {
+export function generateExcelReport(rawData: RVToolsData, aiInsights?: MigrationInsights | null, excelOptions?: ExcelExportOptions): XLSX.WorkBook {
   const workbook = XLSX.utils.book_new();
 
   // Filter to non-template VMs, excluding VMware infrastructure (edges, NSX controllers, vCenter, etc.)
@@ -119,45 +127,13 @@ export function generateExcelReport(rawData: RVToolsData, aiInsights?: Migration
   XLSX.utils.book_append_sheet(workbook, migrationSheet, 'Migration Readiness');
 
   // ===== ROKS Bare Metal Sizing Sheet =====
-  const { odfSizing, ocpVirtSizing, bareMetalProfiles: bmProfiles } = ibmCloudConfig;
-  // Flatten bare metal profiles from family-organized structure
-  const bareMetalProfiles = [
-    ...bmProfiles.balanced,
-    ...bmProfiles.compute,
-    ...bmProfiles.memory,
-  ];
+  // Use cached sizing summary from the UI sizing calculator when available
+  const roksSizing = excelOptions?.roksSizingSummary;
   const totalVCPUs = poweredOnVMs.reduce((sum: number, vm: VirtualMachine) => sum + vm.cpus, 0);
   const totalMemoryGiB = poweredOnVMs.reduce((sum: number, vm: VirtualMachine) => sum + mibToGiB(vm.memory), 0);
   const totalStorageGiB = poweredOnVMs.reduce((sum: number, vm: VirtualMachine) => sum + mibToGiB(vm.provisionedMiB), 0);
 
-  // ODF sizing calculations
-  const replicaFactor = odfSizing.replicaFactor;
-  const operationalCapacity = odfSizing.operationalCapacityPercent / 100;
-  const cephEfficiency = 1 - (odfSizing.cephOverheadPercent / 100);
-  const requiredRawStorageGiB = Math.ceil(totalStorageGiB * replicaFactor / operationalCapacity / cephEfficiency);
-
-  const adjustedVCPUs = Math.ceil(totalVCPUs / ocpVirtSizing.cpuOvercommitConservative);
-
-  const recommendedProfile = bareMetalProfiles.find((p: { name: string }) =>
-    p.name === 'bx2d.metal.96x384'
-  ) || bareMetalProfiles[0];
-
-  const usableThreadsPerNode = Math.floor(recommendedProfile.vcpus * 0.85);
-  const usableMemoryPerNode = recommendedProfile.memoryGiB - ocpVirtSizing.systemReservedMemoryGiB;
-  const usableNvmePerNode = recommendedProfile.totalNvmeGiB || 0;
-
-  const nodesForCPU = Math.ceil(adjustedVCPUs / usableThreadsPerNode);
-  const nodesForMemory = Math.ceil(totalMemoryGiB / usableMemoryPerNode);
-  const nodesForStorage = usableNvmePerNode > 0 ? Math.ceil(requiredRawStorageGiB / usableNvmePerNode) : 0;
-  const baseNodeCount = Math.max(odfSizing.minOdfNodes, nodesForCPU, nodesForMemory, nodesForStorage);
-  // ODF rack fault domain requires nodes in multiples of 3 (racks 0-2)
-  const roundUpToRackGroup = (n: number) => Math.ceil(n / 3) * 3;
-  const recommendedWorkers = roundUpToRackGroup(baseNodeCount + ocpVirtSizing.nodeRedundancy);
-
-  const totalClusterNvmeGiB = recommendedWorkers * (recommendedProfile.totalNvmeGiB || 0);
-  const odfActualUsableTiB = ((totalClusterNvmeGiB / replicaFactor) * operationalCapacity * cephEfficiency / 1024).toFixed(1);
-
-  const roksData = [
+  const roksData: (string | number)[][] = [
     ['ROKS Bare Metal Cluster Sizing', ''],
     [''],
     ['Source Environment', ''],
@@ -166,42 +142,53 @@ export function generateExcelReport(rawData: RVToolsData, aiInsights?: Migration
     ['Total Memory (GiB)', Math.round(totalMemoryGiB)],
     ['Total Storage (GiB)', Math.round(totalStorageGiB)],
     [''],
-    ['Adjusted Requirements', ''],
-    ['Adjusted vCPUs (1.8:1 ratio)', adjustedVCPUs],
-    ['VM Memory (no overcommit)', Math.round(totalMemoryGiB)],
-    ['Required Raw NVMe (TiB)', Math.round(requiredRawStorageGiB / 1024)],
-    [''],
-    ['ODF Storage Sizing', ''],
-    ['Replica Factor', '3x mirroring'],
-    ['Operational Capacity', '75%'],
-    ['Ceph Overhead', '~15%'],
-    ['ODF Usable Capacity (TiB)', odfActualUsableTiB],
-    [''],
-    ['Recommended Bare Metal Configuration', ''],
-    ['Node Profile', recommendedProfile.name],
-    ['Worker Nodes', recommendedWorkers],
-    ['Total Physical Cores', recommendedWorkers * recommendedProfile.physicalCores],
-    ['Total Threads', recommendedWorkers * recommendedProfile.vcpus],
-    ['Total Memory (GiB)', recommendedWorkers * recommendedProfile.memoryGiB],
-    ['Total Raw NVMe (TiB)', Math.round(totalClusterNvmeGiB / 1024)],
   ];
+
+  if (roksSizing) {
+    roksData.push(
+      ['Recommended Bare Metal Configuration', ''],
+      ['Node Profile', roksSizing.profileName],
+      ['Worker Nodes', roksSizing.workerNodes],
+      ['CPU Overcommit Ratio', `${roksSizing.cpuOvercommit}:1`],
+      ['Total Physical Cores', roksSizing.totalCores],
+      ['Total Threads', roksSizing.totalThreads],
+      ['Total Memory (GiB)', roksSizing.totalMemoryGiB],
+      ['Total Raw NVMe (TiB)', roksSizing.totalNvmeTiB],
+      ['ODF Usable Capacity (TiB)', roksSizing.odfUsableTiB],
+    );
+  } else {
+    roksData.push(['(Configure sizing on the ROKS Migration page for detailed data)', '']);
+  }
+
   const roksSheet = XLSX.utils.aoa_to_sheet(roksData);
   XLSX.utils.book_append_sheet(workbook, roksSheet, 'ROKS Sizing');
 
   // ===== VPC VSI Mapping Sheet =====
-  const vsiMappingData = poweredOnVMs.map((vm: VirtualMachine) => {
-    const profile = mapVMToVSIProfile(vm.cpus, mibToGiB(vm.memory));
-    return {
-      'VM Name': vm.vmName,
-      'Source vCPUs': vm.cpus,
-      'Source Memory (GiB)': Math.round(mibToGiB(vm.memory)),
-      'Recommended Profile': profile.name,
-      'Profile vCPUs': profile.vcpus,
-      'Profile Memory (GiB)': profile.memoryGiB,
-      'Profile Family': profile.name.startsWith('bx2') ? 'Balanced' :
-                        profile.name.startsWith('cx2') ? 'Compute' : 'Memory',
-    };
-  });
+  // Use cached VSI mappings from the UI when available, fall back to local mapping
+  const vsiMappings = excelOptions?.vsiMappingSummary;
+  const vsiMappingData = vsiMappings
+    ? vsiMappings.map(m => ({
+        'VM Name': m.vmName,
+        'Source vCPUs': m.sourceVcpus,
+        'Source Memory (GiB)': m.sourceMemoryGiB,
+        'Recommended Profile': m.profile,
+        'Profile vCPUs': m.profileVcpus,
+        'Profile Memory (GiB)': m.profileMemoryGiB,
+        'Profile Family': m.family,
+      }))
+    : poweredOnVMs.map((vm: VirtualMachine) => {
+        const profile = mapVMToVSIProfile(vm.cpus, mibToGiB(vm.memory));
+        return {
+          'VM Name': vm.vmName,
+          'Source vCPUs': vm.cpus,
+          'Source Memory (GiB)': Math.round(mibToGiB(vm.memory)),
+          'Recommended Profile': profile.name,
+          'Profile vCPUs': profile.vcpus,
+          'Profile Memory (GiB)': profile.memoryGiB,
+          'Profile Family': profile.name.startsWith('bx2') ? 'Balanced' :
+                            profile.name.startsWith('cx2') ? 'Compute' : 'Memory',
+        };
+      });
   const vsiSheet = XLSX.utils.json_to_sheet(vsiMappingData);
   XLSX.utils.book_append_sheet(workbook, vsiSheet, 'VPC VSI Mapping');
 
@@ -322,8 +309,8 @@ export function generateExcelReport(rawData: RVToolsData, aiInsights?: Migration
   return workbook;
 }
 
-export function downloadExcel(rawData: RVToolsData, filename = 'rvtools-analysis.xlsx', aiInsights?: MigrationInsights | null): void {
-  const workbook = generateExcelReport(rawData, aiInsights);
+export function downloadExcel(rawData: RVToolsData, filename = 'rvtools-analysis.xlsx', aiInsights?: MigrationInsights | null, excelOptions?: ExcelExportOptions): void {
+  const workbook = generateExcelReport(rawData, aiInsights, excelOptions);
   XLSX.writeFile(workbook, filename);
 }
 

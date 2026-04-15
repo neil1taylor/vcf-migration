@@ -4,6 +4,7 @@ import type { CostEstimate } from '@/services/costEstimation';
 import type { RVToolsData } from '@/types/rvtools';
 import type { TimelinePhase } from '@/types/timeline';
 import type { PlatformSelectionExport, VMReadiness, WavePlanningPreference } from '../docx/types';
+import type { ROKSSizing, VSIMapping } from '@/types/exportSizing';
 export type { PlatformSelectionExport, VMReadiness, WavePlanningPreference };
 
 export interface PptxExportOptions {
@@ -25,6 +26,10 @@ export interface PptxExportOptions {
   timelinePhases?: TimelinePhase[] | null;
   /** Start date for timeline date range display */
   timelineStartDate?: Date;
+  /** ROKS sizing summary from BOM cache */
+  roksSizingSummary?: ROKSSizing | null;
+  /** Per-VM VSI mapping from BOM cache */
+  vsiMappingSummary?: VSIMapping[] | null;
 }
 
 // 16:9 slide layout (inches) — matches IBM reference deck dimensions

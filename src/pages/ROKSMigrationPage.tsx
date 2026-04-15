@@ -22,6 +22,7 @@ import type { InsightsInput, NetworkSummaryForAI, RemediationInput } from '@/ser
 import type { ROKSSizingInput, RoksSolutionType } from '@/services/costEstimation';
 import { calculateROKSCost as calcROKSCost, FUTURE_SOLUTION_TYPES } from '@/services/costEstimation';
 import type { ROKSNodeDetail } from '@/services/export';
+import type { ROKSSizing } from '@/types/exportSizing';
 import { MTVYAMLGenerator, downloadBlob } from '@/services/export';
 import { SolutionComparisonPanel } from '@/components/comparison/SolutionComparisonPanel';
 import type { MTVExportOptions } from '@/types/mtvYaml';
@@ -232,6 +233,32 @@ export function ROKSMigrationPage() {
     }
     return nodes;
   }, [roksSizing]);
+
+  // ROKS sizing summary for export cache — built from data already computed by the sizing calculator
+  const roksSizingSummary = useMemo<ROKSSizing | undefined>(() => {
+    if (!calculatorSizing?.profileSpecs) return undefined;
+    const specs = calculatorSizing.profileSpecs;
+    const nodes = roksSizing.computeNodes;
+    const totalClusterNvmeGiB = nodes * specs.totalNvmeGiB;
+    const odfUsablePerNode = calculatorSizing.odfUsableStoragePerNodeGiB ?? 0;
+    return {
+      workerNodes: nodes,
+      profileName: roksSizing.computeProfile,
+      totalCores: nodes * specs.physicalCores,
+      totalThreads: nodes * specs.vcpus,
+      totalMemoryGiB: nodes * specs.memoryGiB,
+      totalNvmeTiB: Math.round(totalClusterNvmeGiB / 1024),
+      odfUsableTiB: parseFloat(((odfUsablePerNode * nodes) / 1024).toFixed(1)),
+      monthlyCost: 0, // filled from CostEstimate.totalMonthly at cache time
+      cpuOvercommit: calculatorSizing.odfSettings?.cpuOvercommit ?? 5,
+      solutionType: roksSizing.solutionType,
+      ...(roksSizing.storageNodes && roksSizing.storageProfile && calculatorSizing.storageProfileSpecs ? {
+        storageNodes: roksSizing.storageNodes,
+        storageProfileName: roksSizing.storageProfile,
+        storageTotalNvmeTiB: Math.round((roksSizing.storageNodes * calculatorSizing.storageProfileSpecs.totalNvmeGiB) / 1024),
+      } : {}),
+    };
+  }, [calculatorSizing, roksSizing]);
 
   // ===== AI INSIGHTS DATA =====
   const insightsData = useMemo<InsightsInput | null>(() => {
@@ -609,7 +636,7 @@ export function ROKSMigrationPage() {
               <TabPanel>
                 <Grid className="migration-page__tab-content">
                   <Column lg={16} md={8} sm={4}>
-                    <CostEstimation type="roks" roksSizing={roksSizing} roksNodeDetails={roksNodeDetails} title="ROKS Cluster Cost Estimation" onProfileSelect={handleProfileSelect} onEstimateChange={handleRoksEstimateChange} onOdfTierChange={setOdfTier} onIncludeAcmChange={setIncludeAcm} roksVariant={platformScore.roksVariant} />
+                    <CostEstimation type="roks" roksSizing={roksSizing} roksNodeDetails={roksNodeDetails} roksSizingSummary={roksSizingSummary} title="ROKS Cluster Cost Estimation" onProfileSelect={handleProfileSelect} onEstimateChange={handleRoksEstimateChange} onOdfTierChange={setOdfTier} onIncludeAcmChange={setIncludeAcm} roksVariant={platformScore.roksVariant} />
                   </Column>
                   <Column lg={16} md={8} sm={4}>
                     <Tile className="migration-page__cost-tile">

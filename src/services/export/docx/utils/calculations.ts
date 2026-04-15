@@ -1,4 +1,10 @@
 // DOCX Data Calculation Functions
+//
+// IMPORTANT: calculateROKSSizing() and calculateVSIMappings() are FALLBACK paths only.
+// The primary data source is the BOM cache (roksSizingSummary / vsiMappingSummary),
+// which is populated by the UI sizing pages. These functions are only called when
+// the cache is empty (user exported without visiting the sizing pages).
+// See: docx/index.ts and pptx/index.ts for the cache-first logic.
 
 import type { RVToolsData, VirtualMachine } from '@/types/rvtools';
 import { mibToGiB } from '@/utils/formatters';

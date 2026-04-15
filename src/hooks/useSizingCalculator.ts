@@ -1001,6 +1001,21 @@ export function useSizingCalculator({
           systemReservedMemory,
           odfReservedMemory,
         },
+        profileSpecs: {
+          physicalCores: selectedProfile.physicalCores,
+          vcpus: selectedProfile.vcpus,
+          memoryGiB: selectedProfile.memoryGiB,
+          totalNvmeGiB: selectedProfile.totalNvmeGiB ?? 0,
+        },
+        ...(selectedStorageProfile ? {
+          storageProfileSpecs: {
+            physicalCores: selectedStorageProfile.physicalCores,
+            vcpus: selectedStorageProfile.vcpus,
+            memoryGiB: selectedStorageProfile.memoryGiB,
+            totalNvmeGiB: selectedStorageProfile.totalNvmeGiB ?? 0,
+          },
+        } : {}),
+        odfUsableStoragePerNodeGiB: nodeCapacity.usableStorageGiB,
       };
       // Only call parent if values actually changed
       const sizingKey = `${newSizing.computeNodes}-${newSizing.computeProfile}-${newSizing.storageTiB}-${solutionType}-${filteredDisks.length}-${odfTuningProfile}-${odfCpuUnitMode}-${htMultiplier}-${useHyperthreading}-${includeRgw}-${systemReservedCpu}-${cpuOvercommit}-${evictionThreshold}-${nodeRedundancy}-${memoryOvercommit}-${replicaFactor}-${cephOverhead}-${operationalCapacity}-${systemReservedMemory}-${odfReservedMemory}-${storageNodeCount}-${selectedStorageProfileName}`;
@@ -1009,7 +1024,7 @@ export function useSizingCalculator({
         onSizingChange(newSizing);
       }
     }
-  }, [nodeRequirements, selectedProfileName, onSizingChange, solutionType, odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw, systemReservedCpu, cpuOvercommit, evictionThreshold, nodeRedundancy, memoryOvercommit, replicaFactor, cephOverhead, operationalCapacity, systemReservedMemory, odfReservedMemory, storageNodeCount, selectedStorageProfileName, selectedStorageProfile]);
+  }, [nodeRequirements, selectedProfileName, onSizingChange, solutionType, odfTuningProfile, odfCpuUnitMode, htMultiplier, useHyperthreading, includeRgw, systemReservedCpu, cpuOvercommit, evictionThreshold, nodeRedundancy, memoryOvercommit, replicaFactor, cephOverhead, operationalCapacity, systemReservedMemory, odfReservedMemory, storageNodeCount, selectedStorageProfileName, selectedStorageProfile, selectedProfile, nodeCapacity.usableStorageGiB]);
 
   // Profile dropdown items - memoized to maintain stable references for Carbon Dropdown
   // Filter by solution type: NVMe profiles for nvme-converged/hybrid, diskless for others

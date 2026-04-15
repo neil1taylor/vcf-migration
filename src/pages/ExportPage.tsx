@@ -299,7 +299,12 @@ export function ExportPage() {
       aiInsights = insights;
       if (warning) setAIWarning(warning);
     }
-    exportExcel(rawData, sanitizeFilename(excelFilename, '.xlsx'), aiInsights);
+    const roksBOMExcel = getCachedBOM('roks');
+    const vsiBOMExcel = getCachedBOM('vsi');
+    exportExcel(rawData, sanitizeFilename(excelFilename, '.xlsx'), aiInsights, {
+      roksSizingSummary: roksBOMExcel?.roksSizingSummary ?? null,
+      vsiMappingSummary: vsiBOMExcel?.vsiMappingSummary ?? null,
+    });
     markExportComplete();
   }, [rawData, exportExcel, aiAvailable, markExportComplete, excelFilename]);
 
@@ -340,6 +345,8 @@ export function ExportPage() {
       roksCostEstimate: roksBOM?.estimate ?? null,
       vsiCostEstimate: vsiBOM?.estimate ?? null,
       sourceBOM: sourceBOM ?? null,
+      roksSizingSummary: roksBOM?.roksSizingSummary ?? null,
+      vsiMappingSummary: vsiBOM?.vsiMappingSummary ?? null,
     }, sanitizeFilename(docxFilename, '.docx'));
     markExportComplete();
   }, [rawData, filteredRawData, exportDocx, aiAvailable, markExportComplete, docxFilename, includeAppendices, timelinePhases, timelineStartDate, sourceBOM]);
@@ -357,6 +364,8 @@ export function ExportPage() {
       vsiCostEstimate: vsiBOMPptx?.estimate ?? null,
       timelinePhases: timelinePhases.length > 0 ? timelinePhases : null,
       timelineStartDate,
+      roksSizingSummary: roksBOMPptx?.roksSizingSummary ?? null,
+      vsiMappingSummary: vsiBOMPptx?.vsiMappingSummary ?? null,
     }, sanitizeFilename(pptxFilename, '.pptx'));
     markExportComplete();
   }, [rawData, filteredRawData, exportPptx, markExportComplete, answers, score, pptxFilename, timelinePhases, timelineStartDate]);

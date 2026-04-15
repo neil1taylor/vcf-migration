@@ -4,6 +4,7 @@ import { Paragraph, Table, AlignmentType, HeadingLevel } from 'docx';
 import type { MigrationInsights } from '@/services/ai/types';
 import type { CostEstimate } from '@/services/costEstimation';
 import type { RVToolsData } from '@/types/rvtools';
+import type { ROKSSizing, VSIMapping } from '@/types/exportSizing';
 import type { RiskTableData, RiskTableOverrides } from '@/types/riskAssessment';
 import type { TimelinePhase, TimelineConfig } from '@/types/timeline';
 import type { VPCDesign, VPCDesignData } from '@/types/vpcDesign';
@@ -64,6 +65,10 @@ export interface DocxExportOptions {
   vsiCostEstimate?: CostEstimate | null;
   /** Source infrastructure BOM result for current VMware environment costing */
   sourceBOM?: import('@/services/sourceBom').SourceBOMResult | null;
+  /** ROKS sizing summary from BOM cache — computed by the sizing calculator, not exports */
+  roksSizingSummary?: ROKSSizing | null;
+  /** Per-VM VSI mapping from BOM cache — computed by the VSI page, not exports */
+  vsiMappingSummary?: VSIMapping[] | null;
 }
 
 export interface TargetAssignmentExport {
@@ -109,40 +114,8 @@ export interface VMReadiness {
   issues: string[];
 }
 
-export interface ROKSSizing {
-  workerNodes: number;
-  profileName: string;
-  totalCores: number;
-  totalThreads: number;
-  totalMemoryGiB: number;
-  totalNvmeTiB: number;
-  odfUsableTiB: number;
-  monthlyCost: number;
-  cpuOvercommit: number;
-  // bm-disaggregated: dedicated storage pool details
-  storageNodes?: number;
-  storageProfileName?: string;
-  storageTotalNvmeTiB?: number;
-  solutionType?: string;
-}
-
-export interface VSIMapping {
-  vmName: string;
-  sourceVcpus: number;
-  sourceMemoryGiB: number;
-  sourceStorageGiB: number;
-  bootDiskGiB: number;
-  dataDiskGiB: number;
-  profile: string;
-  profileVcpus: number;
-  profileMemoryGiB: number;
-  family: string;
-  computeCost: number;
-  bootStorageCost: number;
-  dataStorageCost: number;
-  storageCost: number;
-  monthlyCost: number;
-}
+// Re-export from shared location (avoids circular deps: docx/types → bomCache → docx/types)
+export type { ROKSSizing, VSIMapping } from '@/types/exportSizing';
 
 export interface NetworkWave {
   portGroup: string;

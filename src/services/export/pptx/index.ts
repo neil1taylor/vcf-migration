@@ -34,7 +34,7 @@ export async function generatePptxReport(
   // filteredRawData: pre-filtered by exclusion model for target/migration sections
   const filteredRawData = options.filteredRawData ?? rawData;
 
-  const finalOptions: Required<Omit<PptxExportOptions, 'filteredRawData'>> = {
+  const finalOptions: Required<Omit<PptxExportOptions, 'filteredRawData' | 'roksSizingSummary' | 'vsiMappingSummary'>> = {
     clientName: options.clientName || reportTemplates.placeholders.clientName,
     preparedBy: options.preparedBy || reportTemplates.placeholders.preparedBy,
     companyName: options.companyName || reportTemplates.placeholders.companyName,
@@ -64,9 +64,10 @@ export async function generatePptxReport(
   // Define master slides (theme)
   defineMasterSlides(pres);
 
-  // Calculate data using filtered data (target sections)
-  const roksSizing = calculateROKSSizing(filteredRawData);
-  const vsiMappings = calculateVSIMappings(filteredRawData);
+  // Use cached summaries from the UI pages when available (single calculation path).
+  // Fall back to local calculations only when cache is empty.
+  const roksSizing = options.roksSizingSummary ?? calculateROKSSizing(filteredRawData);
+  const vsiMappings = options.vsiMappingSummary ?? calculateVSIMappings(filteredRawData);
 
   // Build content titles for agenda (based on which slides are included)
   const contentTitles: string[] = [

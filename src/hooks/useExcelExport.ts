@@ -3,18 +3,19 @@ import { useState, useCallback } from 'react';
 import { downloadExcel } from '@/services/export';
 import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
+import type { ExcelExportOptions } from '@/services/export/excelGenerator';
 
 export interface UseExcelExportReturn {
   isExporting: boolean;
   error: string | null;
-  exportExcel: (data: RVToolsData, filename?: string, aiInsights?: MigrationInsights | null) => void;
+  exportExcel: (data: RVToolsData, filename?: string, aiInsights?: MigrationInsights | null, excelOptions?: ExcelExportOptions) => void;
 }
 
 export function useExcelExport(): UseExcelExportReturn {
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const exportExcel = useCallback((data: RVToolsData, filename?: string, aiInsights?: MigrationInsights | null) => {
+  const exportExcel = useCallback((data: RVToolsData, filename?: string, aiInsights?: MigrationInsights | null, excelOptions?: ExcelExportOptions) => {
     setIsExporting(true);
     setError(null);
 
@@ -24,7 +25,7 @@ export function useExcelExport(): UseExcelExportReturn {
       const finalFilename = filename || `rvtools-analysis_${date}.xlsx`;
 
       // Download Excel file
-      downloadExcel(data, finalFilename, aiInsights);
+      downloadExcel(data, finalFilename, aiInsights, excelOptions);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to generate Excel file';
       setError(message);

@@ -31,6 +31,22 @@ export interface SizingResult {
   storageNodes?: number;
   /** bm-disaggregated: NVMe storage pool profile name */
   storageProfile?: string;
+  /** Selected compute profile specs — for building sizing summary without re-lookup */
+  profileSpecs?: {
+    physicalCores: number;
+    vcpus: number;
+    memoryGiB: number;
+    totalNvmeGiB: number;
+  };
+  /** Selected storage profile specs (bm-disaggregated only) */
+  storageProfileSpecs?: {
+    physicalCores: number;
+    vcpus: number;
+    memoryGiB: number;
+    totalNvmeGiB: number;
+  };
+  /** ODF usable storage per node in GiB — from nodeCapacity.usableStorageGiB */
+  odfUsableStoragePerNodeGiB?: number;
   /** CSI: boot disk count and capacity (unitNumber 0 per VM) */
   bootVolumeCount?: number;
   bootVolumeCapacityGiB?: number;

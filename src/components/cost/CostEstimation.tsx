@@ -41,6 +41,7 @@ import { calculateOdfReservation } from '@/utils/odfCalculation';
 import type { OdfTuningProfile, OdfCpuUnitMode } from '@/utils/odfCalculation';
 import { calculateNodesForProfile } from '@/utils/nodeCalculation';
 import { cacheBOMData } from '@/services/bomCache';
+import type { ROKSSizing, VSIMapping } from '@/types/exportSizing';
 import { sortProfileCosts, findBestValueProfileId } from './profileCostSort';
 import './CostEstimation.scss';
 
@@ -57,9 +58,13 @@ interface CostEstimationProps {
   onOdfTierChange?: (tier: 'advanced' | 'essentials') => void;
   onIncludeAcmChange?: (include: boolean) => void;
   roksVariant?: 'full' | 'rov';
+  /** ROKS sizing summary for export cache — built by ROKSMigrationPage */
+  roksSizingSummary?: ROKSSizing;
+  /** VSI mapping summary for export cache — built by VSIMigrationPage */
+  vsiMappingSummary?: VSIMapping[];
 }
 
-export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true, onProfileSelect, onEstimateChange, onOdfTierChange, onIncludeAcmChange, roksVariant = 'full' }: CostEstimationProps) {
+export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true, onProfileSelect, onEstimateChange, onOdfTierChange, onIncludeAcmChange, roksVariant = 'full', roksSizingSummary, vsiMappingSummary }: CostEstimationProps) {
   const { targetMzr } = useTargetLocation();
 
   // Initialize region from Discovery's MZR selection, validated against available regions
@@ -145,9 +150,13 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
   useEffect(() => {
     const estimateToCache = type === 'roks' && roksVariant === 'rov' && rovEstimate ? rovEstimate : estimate;
     if (estimateToCache) {
-      cacheBOMData(type, estimateToCache, vmDetails, roksNodeDetails, region, discountType, roksSizing?.solutionType);
+      // Fill monthlyCost from the actual estimate (it's 0 when the summary is built pre-estimate)
+      const sizingSummary = roksSizingSummary
+        ? { ...roksSizingSummary, monthlyCost: estimateToCache.totalMonthly }
+        : undefined;
+      cacheBOMData(type, estimateToCache, vmDetails, roksNodeDetails, region, discountType, roksSizing?.solutionType, sizingSummary, vsiMappingSummary);
     }
-  }, [estimate, rovEstimate, roksVariant, type, vmDetails, roksNodeDetails, region, discountType, roksSizing?.solutionType]);
+  }, [estimate, rovEstimate, roksVariant, type, vmDetails, roksNodeDetails, region, discountType, roksSizing?.solutionType, roksSizingSummary, vsiMappingSummary]);
 
   // Calculate costs for all bare metal profiles (ROKS only)
   const allProfileCosts = useMemo(() => {

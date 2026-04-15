@@ -63,7 +63,7 @@ export async function generateDocxReport(
   // Falls back to rawData when not provided (backward compat)
   const filteredRawData = options.filteredRawData ?? rawData;
 
-  const finalOptions: Required<Omit<DocxExportOptions, 'filteredRawData'>> = {
+  const finalOptions: Required<Omit<DocxExportOptions, 'filteredRawData' | 'roksSizingSummary' | 'vsiMappingSummary'>> = {
     clientName: options.clientName || reportTemplates.placeholders.clientName,
     preparedBy: options.preparedBy || reportTemplates.placeholders.preparedBy,
     companyName: options.companyName || reportTemplates.placeholders.companyName,
@@ -90,13 +90,14 @@ export async function generateDocxReport(
   // Reset caption counters for fresh document
   resetCaptionCounters();
 
-  // Calculate all data using filtered data (target sections)
+  // Use cached summaries from the UI pages when available (single calculation path).
+  // Fall back to local calculations only when cache is empty (e.g. user skipped sizing pages).
   const readiness = calculateVMReadiness(filteredRawData, {
     includeROKS: finalOptions.includeROKS,
     includeVSI: finalOptions.includeVSI,
   });
-  const roksSizing = calculateROKSSizing(filteredRawData);
-  const vsiMappings = calculateVSIMappings(filteredRawData);
+  const roksSizing = options.roksSizingSummary ?? calculateROKSSizing(filteredRawData);
+  const vsiMappings = options.vsiMappingSummary ?? calculateVSIMappings(filteredRawData);
 
   // Section numbering counter — incremented for each H1 section
   const sec = createSectionCounter();
