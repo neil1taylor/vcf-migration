@@ -5,6 +5,7 @@ import { Grid, Column, Tile, Tabs, TabList, Tab, TabPanels, TabPanel, Loading, T
 import { Navigate } from 'react-router-dom';
 import { Information, Report } from '@carbon/icons-react';
 import { useData, useAllVMs, useCustomProfiles, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides, useAIRightsizing, useAutoExclusion, useVSIPageData } from '@/hooks';
+import { filterRawDataByExclusions } from '@/utils/filterRawData';
 import { ROUTES, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
 import { formatNumber } from '@/utils/formatters';
 import { getVMIdentifier, getEnvironmentFingerprint } from '@/utils/vmIdentifier';
@@ -141,6 +142,12 @@ export function VSIMigrationPage() {
     });
   }, [setCalculatedCosts, calculatedCosts?.roksMonthlyCost, calculatedCosts?.rovMonthlyCost]);
 
+  // Filtered raw data for pre-flight checks (applies exclusion model to all VM-scoped sheets)
+  const filteredRawData = useMemo(() => {
+    if (!rawData) return null;
+    return filterRawDataByExclusions(rawData, allVmsRaw, vmOverrides, { getAutoExclusionById });
+  }, [rawData, allVmsRaw, vmOverrides, getAutoExclusionById]);
+
   // Derive data from rawData - these are used by hooks below
   const snapshots = useMemo(() => rawData?.vSnapshot ?? [], [rawData?.vSnapshot]);
   const tools = useMemo(() => rawData?.vTools ?? [], [rawData?.vTools]);
@@ -186,12 +193,7 @@ export function VSIMigrationPage() {
     hwVersionCounts,
   } = usePreflightChecks({
     mode: 'vsi',
-    vms: poweredOnVMs,
-    allVms: vms,
-    disks: disks,
-    snapshots: snapshots,
-    tools: tools,
-    networks: networks,
+    filteredRawData: filteredRawData!,
     includeAllChecks: true, // Show all VPC checks as dropdowns
   });
 

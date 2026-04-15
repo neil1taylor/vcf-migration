@@ -5,6 +5,7 @@ import { Grid, Column, Tile, Tag, Tabs, TabList, Tab, TabPanels, TabPanel, Unord
 import { Download, Information, VirtualMachine } from '@carbon/icons-react';
 import { Navigate } from 'react-router-dom';
 import { useData, useAllVMs, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides, useAutoExclusion, useCostSettings, usePlatformSelection } from '@/hooks';
+import { filterRawDataByExclusions } from '@/utils/filterRawData';
 import { ROUTES, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS, HW_VERSION_MINIMUM, HW_VERSION_RECOMMENDED } from '@/utils/constants';
 import { formatNumber, mibToGiB } from '@/utils/formatters';
 import { getVMWorkloadCategory, getCategoryDisplayName } from '@/utils/workloadClassification';
@@ -52,10 +53,15 @@ export function ROKSMigrationPage() {
     });
   }, [allVmsRaw, vmOverrides, getAutoExclusionById]);
 
+  // Filtered raw data for pre-flight checks (applies exclusion model to all VM-scoped sheets)
+  const filteredRawData = useMemo(() => {
+    if (!rawData) return null;
+    return filterRawDataByExclusions(rawData, allVmsRaw, vmOverrides, { getAutoExclusionById });
+  }, [rawData, allVmsRaw, vmOverrides, getAutoExclusionById]);
+
   // Derive data from rawData - these are used by hooks below
   const snapshots = useMemo(() => rawData?.vSnapshot ?? [], [rawData?.vSnapshot]);
   const tools = useMemo(() => rawData?.vTools ?? [], [rawData?.vTools]);
-  const cdDrives = useMemo(() => rawData?.vCD ?? [], [rawData?.vCD]);
   const disks = useMemo(() => rawData?.vDisk ?? [], [rawData?.vDisk]);
   const networks = useMemo(() => rawData?.vNetwork ?? [], [rawData?.vNetwork]);
   const poweredOnVMs = useMemo(() => vms.filter(vm => vm.powerState === 'poweredOn'), [vms]);
@@ -69,15 +75,7 @@ export function ROKSMigrationPage() {
     hwVersionCounts,
   } = usePreflightChecks({
     mode: 'roks',
-    vms: poweredOnVMs,
-    allVms: vms,
-    disks: disks,
-    snapshots: snapshots,
-    tools: tools,
-    networks: networks,
-    cdDrives: cdDrives,
-    cpuInfo: rawData?.vCPU ?? [],
-    memoryInfo: rawData?.vMemory ?? [],
+    filteredRawData: filteredRawData!,
   });
 
   // ===== MIGRATION ASSESSMENT (using hook) =====
