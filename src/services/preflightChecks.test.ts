@@ -219,6 +219,56 @@ describe('derivePreflightCounts OS caveats (ROKS)', () => {
   });
 });
 
+describe('derivePreflightCounts summary aggregates', () => {
+  it('should correctly compute totalVMs, vmsWithBlockers, vmsWithWarningsOnly, vmsReady', () => {
+    const vms = [
+      // VM with blocker (unsupported OS)
+      makeVM({ vmName: 'blocked-vm', guestOS: 'FreeBSD 12 (64-bit)' }),
+      // VM with warning only (BYOL OS) — still ready
+      makeVM({ vmName: 'warn-vm', guestOS: 'Red Hat Enterprise Linux 7 (64-bit)' }),
+      // Clean VM — ready, no warnings
+      makeVM({ vmName: 'clean-vm', guestOS: 'Red Hat Enterprise Linux 8 (64-bit)' }),
+    ];
+    const data = makeRVToolsData(vms);
+    // Provide tools data for warn-vm and clean-vm to avoid tools warnings
+    data.vTools = [
+      { vmName: 'warn-vm', toolsStatus: 'toolsOk', toolsVersion: '12345' },
+      { vmName: 'clean-vm', toolsStatus: 'toolsOk', toolsVersion: '12345' },
+    ] as typeof data.vTools;
+    const results = runPreFlightChecks(data, 'vsi');
+    const counts = derivePreflightCounts(results, 'vsi');
+
+    expect(counts.totalVMs).toBe(3);
+    expect(counts.vmsWithBlockers).toBe(1);
+    expect(counts.vmsWithWarningsOnly).toBe(1);
+    // Ready = no blockers (warnings OK)
+    expect(counts.vmsReady).toBe(2);
+    expect(counts.readinessPercentage).toBeCloseTo((2 / 3) * 100, 1);
+  });
+
+  it('should count VM with both blockers and warnings only in vmsWithBlockers', () => {
+    // VM with unsupported OS (blocker) + no tools (warning on VSI)
+    const vms = [
+      makeVM({ vmName: 'both-vm', guestOS: 'FreeBSD 12 (64-bit)' }),
+    ];
+    const results = runPreFlightChecks(makeRVToolsData(vms), 'vsi');
+    const counts = derivePreflightCounts(results, 'vsi');
+
+    expect(counts.vmsWithBlockers).toBe(1);
+    expect(counts.vmsWithWarningsOnly).toBe(0);
+    expect(counts.vmsReady).toBe(0);
+  });
+
+  it('should handle empty results', () => {
+    const counts = derivePreflightCounts([], 'vsi');
+    expect(counts.totalVMs).toBe(0);
+    expect(counts.vmsWithBlockers).toBe(0);
+    expect(counts.vmsWithWarningsOnly).toBe(0);
+    expect(counts.vmsReady).toBe(0);
+    expect(counts.readinessPercentage).toBe(0);
+  });
+});
+
 describe('remediation data-disk-size-min', () => {
   it('should generate warning remediation item for small data disks', () => {
     const items = generateVSIRemediationItems({

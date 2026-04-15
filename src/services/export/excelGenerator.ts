@@ -8,7 +8,7 @@ import { isVMwareInfrastructureVM } from '@/utils/autoExclusion';
 import osCompatibilityData from '@/data/redhatOSCompatibility.json';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
 import type { VMCheckResults, CheckMode } from '@/services/preflightChecks';
-import { getChecksForMode } from '@/services/preflightChecks';
+import { getChecksForMode, derivePreflightCounts } from '@/services/preflightChecks';
 
 // OS Compatibility lookup
 function getOSCompatibility(guestOS: string) {
@@ -389,9 +389,7 @@ export function exportPreFlightExcel(
   XLSX.utils.book_append_sheet(workbook, mainSheet, `${mode.toUpperCase()} Pre-Flight`);
 
   // ===== Summary Sheet =====
-  const vmsWithBlockers = results.filter((r) => r.blockerCount > 0).length;
-  const vmsWithWarningsOnly = results.filter((r) => r.warningCount > 0 && r.blockerCount === 0).length;
-  const vmsReady = results.filter((r) => r.blockerCount === 0 && r.warningCount === 0).length;
+  const counts = derivePreflightCounts(results, mode);
 
   const summaryData = [
     ['Pre-Flight Check Summary', ''],
@@ -402,11 +400,11 @@ export function exportPreFlightExcel(
     ['Total Checks per VM', checksForMode.length],
     [''],
     ['VM Summary', ''],
-    ['Total VMs Analyzed', results.length],
-    ['VMs with Blockers', vmsWithBlockers],
-    ['VMs with Warnings Only', vmsWithWarningsOnly],
-    ['VMs Ready to Migrate', vmsReady],
-    ['Readiness Percentage', `${((vmsReady / results.length) * 100).toFixed(1)}%`],
+    ['Total VMs Analyzed', counts.totalVMs],
+    ['VMs with Blockers', counts.vmsWithBlockers],
+    ['VMs with Warnings Only', counts.vmsWithWarningsOnly],
+    ['VMs Ready to Migrate', counts.vmsReady],
+    ['Readiness Percentage', `${counts.readinessPercentage.toFixed(1)}%`],
     [''],
     ['Check Failure Summary', ''],
     ['Check Name', 'Failures', 'Severity'],

@@ -772,7 +772,18 @@ export function derivePreflightCounts(
   const vmsWithLargeDisksList = failedVMs('large-disks');
   const hwVersionOutdatedList = failedVMs('hw-version');
 
+  // Summary aggregates
+  const totalVMs = results.length;
+  const vmsWithBlockers = results.filter(r => r.blockerCount > 0).length;
+  const vmsWithWarningsOnly = results.filter(r => r.warningCount > 0 && r.blockerCount === 0).length;
+  const vmsReady = results.filter(r => r.blockerCount === 0).length;
+
   const counts: import('@/services/migration/remediation').PreflightCheckCounts = {
+    totalVMs,
+    vmsWithBlockers,
+    vmsWithWarningsOnly,
+    vmsReady,
+    readinessPercentage: totalVMs > 0 ? (vmsReady / totalVMs) * 100 : 0,
     vmsWithoutTools: vmsWithoutToolsList.length,
     vmsWithoutToolsList,
     vmsWithToolsNotRunning: vmsWithToolsNotRunningList.length,

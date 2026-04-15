@@ -32,6 +32,7 @@ import { ROUTES } from '@/utils/constants';
 import { MetricCard, CheckResultCell } from '@/components/common';
 import {
   runPreFlightChecks,
+  derivePreflightCounts,
   getChecksForMode,
   type CheckMode,
   type CheckResult,
@@ -128,15 +129,12 @@ export function PreFlightReportPage() {
     return processedResults.slice(start, start + pageSize);
   }, [processedResults, page, pageSize]);
 
-  // Calculate summary metrics
-  const totalVMs = checkResults.length;
-  const vmsWithBlockers = checkResults.filter((r) => r.blockerCount > 0).length;
-  const vmsWithWarningsOnly = checkResults.filter(
-    (r) => r.warningCount > 0 && r.blockerCount === 0
-  ).length;
-  const vmsReady = checkResults.filter(
-    (r) => r.blockerCount === 0
-  ).length;
+  // Summary metrics from shared service
+  const summaryCounts = useMemo(
+    () => derivePreflightCounts(checkResults, mode),
+    [checkResults, mode]
+  );
+  const { totalVMs, vmsWithBlockers, vmsWithWarningsOnly, vmsReady } = summaryCounts;
 
   // Create a lookup map for fast access to VMCheckResults by id
   const resultMap = useMemo(() => {

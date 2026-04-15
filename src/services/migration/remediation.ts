@@ -23,6 +23,13 @@ export const VPC_DOCS = {
 };
 
 export interface PreflightCheckCounts {
+  // Summary aggregates (computed from VMCheckResults[])
+  totalVMs: number;
+  vmsWithBlockers: number;
+  vmsWithWarningsOnly: number;  // warnings but no blockers
+  vmsReady: number;             // no blockers (warnings OK — they don't prevent migration)
+  readinessPercentage: number;  // vmsReady / totalVMs * 100
+
   // Common checks
   vmsWithoutTools: number;
   vmsWithoutToolsList: string[];

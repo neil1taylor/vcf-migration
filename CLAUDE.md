@@ -156,13 +156,13 @@ Each OS entry can include: `documentationLink` (primary URL), `additionalLinks` 
 
 | Consumer | Path |
 |----------|------|
-| Pre-Flight Report page | `runPreFlightChecks()` directly |
+| Pre-Flight Report page | `runPreFlightChecks()` → `derivePreflightCounts()` (summary tiles) |
 | `usePreflightChecks` hook (VSI/ROKS pages) | `runPreFlightChecks()` → `derivePreflightCounts()` → `generateRemediationItems()` |
 | PPTX export | `runPreFlightChecks()` → `derivePreflightCounts()` → `generateRemediationItems()` |
-| XLSX export | `runPreFlightChecks()` directly (per-VM results) |
+| XLSX export | `runPreFlightChecks()` → `derivePreflightCounts()` (summary sheet) + per-VM results |
 | DOCX export | `runPreFlightChecks()` → `calculateVMReadiness()` |
 
-`derivePreflightCounts()` translates per-VM `VMCheckResults[]` into aggregate `PreflightCheckCounts` (counts + VM name lists). It captures both `status === 'fail'` and `status === 'warn'` results. Never add a new check evaluation path — always use `runPreFlightChecks()`.
+`derivePreflightCounts()` translates per-VM `VMCheckResults[]` into aggregate `PreflightCheckCounts` — both per-check counts (VM name lists for remediation) and summary aggregates (`totalVMs`, `vmsWithBlockers`, `vmsWithWarningsOnly`, `vmsReady`, `readinessPercentage`). "Ready" means no blockers — warnings are advisory and don't prevent migration. Never add a new check evaluation path — always use `runPreFlightChecks()`. Never compute summary counts locally — always use `derivePreflightCounts()`.
 
 ## vInventory Converter
 
