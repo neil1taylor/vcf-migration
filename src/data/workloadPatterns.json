@@ -41,9 +41,9 @@
       {
         "id": "vmware-vrealize",
         "match": "contains",
-        "patterns": ["vRealize-"],
+        "patterns": ["vRealize-", "vrni"],
         "category": "virtualization",
-        "description": "VMware vRealize Suite (Log Insight, Operations) — always classify as VMware Infrastructure"
+        "description": "VMware vRealize Suite (Log Insight, Operations, Network Insight) — always classify as VMware Infrastructure"
       },
       {
         "id": "vmware-vsan-witness",
@@ -338,8 +338,8 @@
         "id": "vmware-vrealize",
         "label": "VMware Infrastructure",
         "match": "contains",
-        "patterns": ["vRealize-"],
-        "description": "VMware vRealize Suite (Log Insight, Operations Manager) appliances"
+        "patterns": ["vRealize-", "vrni"],
+        "description": "VMware vRealize Suite (Log Insight, Operations, Network Insight) appliances"
       },
       {
         "id": "vmware-vsan-witness",
