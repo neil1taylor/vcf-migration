@@ -20,7 +20,9 @@ import {
 import type { RVToolsData } from '@/types/rvtools';
 import reportTemplates from '@/data/reportTemplates.json';
 import { type DocxExportOptions, type DocumentContent, FONT_FAMILY, STYLES } from './types';
-import { calculateVMReadiness, calculateROKSSizing, calculateVSIMappings } from './utils/calculations';
+import { calculateROKSSizing, calculateVSIMappings } from './utils/calculations';
+import { runPreFlightChecks, derivePreflightCounts } from '@/services/preflightChecks';
+import type { MigrationMode } from '@/services/migration/osCompatibility';
 import { resetCaptionCounters } from './utils/helpers';
 import { createSectionCounter } from './utils/sectionCounter';
 import {
@@ -48,7 +50,7 @@ import {
 } from './sections';
 
 // Re-export types for consumers
-export type { DocxExportOptions, VMReadiness, ROKSSizing, VSIMapping } from './types';
+export type { DocxExportOptions, ROKSSizing, VSIMapping } from './types';
 
 /**
  * Generate a DOCX migration assessment report
@@ -90,12 +92,12 @@ export async function generateDocxReport(
   // Reset caption counters for fresh document
   resetCaptionCounters();
 
-  // Use cached summaries from the UI pages when available (single calculation path).
-  // Fall back to local calculations only when cache is empty (e.g. user skipped sizing pages).
-  const readiness = calculateVMReadiness(filteredRawData, {
-    includeROKS: finalOptions.includeROKS,
-    includeVSI: finalOptions.includeVSI,
-  });
+  // Run pre-flight checks through the shared path (same as UI, XLSX, and PPTX).
+  // Mode is determined by platform leaning — same logic as PPTX and remediation plan.
+  const remediationLeaning = finalOptions.platformSelection?.score?.leaning || 'vsi';
+  const preflightMode: MigrationMode = remediationLeaning === 'roks' ? 'roks' : 'vsi';
+  const checkResults = runPreFlightChecks(filteredRawData, preflightMode);
+  const preflightCounts = derivePreflightCounts(checkResults, preflightMode);
   const roksSizing = options.roksSizingSummary ?? calculateROKSSizing(filteredRawData);
   const vsiMappings = options.vsiMappingSummary ?? calculateVSIMappings(filteredRawData);
 
@@ -106,7 +108,7 @@ export async function generateDocxReport(
   // §1 Executive Summary (with recommendation banner when platform selection exists)
   const execNum = sec.next();
   const executiveSummary = await buildExecutiveSummary(
-    rawData, readiness, aiInsights, execNum,
+    rawData, preflightCounts, aiInsights, execNum,
     finalOptions.platformSelection, finalOptions.workloadClassification,
   );
 
@@ -168,7 +170,7 @@ export async function generateDocxReport(
   }
 
   sections.push(
-    ...buildMigrationReadiness(readiness, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §3/4
+    ...buildMigrationReadiness(checkResults, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §3/4
     ...buildComplexityAssessment(filteredRawData, sec.next(), finalOptions.platformSelection?.score?.leaning),               // §4
   );
 
@@ -178,10 +180,9 @@ export async function generateDocxReport(
   }
 
   // Migration Scope & Remediation Plan
-  const remediationLeaning = finalOptions.platformSelection?.score?.leaning || 'vsi';
   sections.push(
     ...buildOSCompatibilitySection(filteredRawData, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §6
-    ...buildRemediationPlanSection(filteredRawData, remediationLeaning, sec.next()),  // §7
+    ...buildRemediationPlanSection(preflightCounts, preflightMode, sec.next()),  // §7
     ...buildMigrationOptions(sec.next()),                                   // §8 (with PowerVS column)
   );
 
@@ -256,7 +257,7 @@ export async function generateDocxReport(
   sections.push(...buildNextSteps(finalOptions, aiInsights, sec.next()));
 
   // Appendices
-  sections.push(...buildAppendices(readiness, finalOptions.maxIssueVMs, filteredRawData, finalOptions.includeAppendices));
+  sections.push(...buildAppendices(checkResults, filteredRawData, finalOptions.maxIssueVMs, finalOptions.includeAppendices));
 
   // Create document with professional header/footer
   const doc = new Document({

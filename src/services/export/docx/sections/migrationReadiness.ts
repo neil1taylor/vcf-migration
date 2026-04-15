@@ -3,9 +3,10 @@
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle } from 'docx';
 import type { MigrationInsights } from '@/services/ai/types';
 import reportTemplates from '@/data/reportTemplates.json';
-import { CHECK_DEFINITIONS, type CheckDefinition } from '@/services/preflightChecks';
-import { STYLES, type DocumentContent, type VMReadiness } from '../types';
+import { CHECK_DEFINITIONS, type CheckDefinition, type VMCheckResults } from '@/services/preflightChecks';
+import { STYLES, type DocumentContent } from '../types';
 import { createHeading, createParagraph, createBulletList, createTableCell, createTableDescription, createTableLabel, createAISection } from '../utils/helpers';
+import { getIssueLabels } from '../utils/preflightHelpers';
 
 // Type assertion for templates with table/figure descriptions
 const templates = reportTemplates as typeof reportTemplates & {
@@ -58,10 +59,12 @@ function buildCheckList(modeFlags: ModeFlags): DocumentContent[] {
   return createBulletList(checks.map(formatCheckBullet));
 }
 
-export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: number, aiInsights?: MigrationInsights | null, modeFlags?: ModeFlags, sectionNum?: number): DocumentContent[] {
+export function buildMigrationReadiness(checkResults: VMCheckResults[], maxIssueVMs: number, aiInsights?: MigrationInsights | null, modeFlags?: ModeFlags, sectionNum?: number): DocumentContent[] {
   const readinessTemplates = reportTemplates.migrationReadiness;
-  const blockerVMs = readiness.filter((r) => r.hasBlocker).slice(0, maxIssueVMs);
-  const warningVMs = readiness.filter((r) => r.hasWarning && !r.hasBlocker).slice(0, maxIssueVMs);
+  const blockerVMs = checkResults.filter((r) => r.blockerCount > 0).slice(0, maxIssueVMs);
+  const warningVMs = checkResults.filter((r) => r.warningCount > 0 && r.blockerCount === 0).slice(0, maxIssueVMs);
+  const allBlockerCount = checkResults.filter((r) => r.blockerCount > 0).length;
+  const allWarningCount = checkResults.filter((r) => r.warningCount > 0 && r.blockerCount === 0).length;
   const s = sectionNum != null ? sectionNum : 3;
 
   // Local sub-counter for sequential numbering (conditional sections don't create gaps)
@@ -118,7 +121,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
                 children: [
                   createTableCell(vm.vmName.length > 30 ? vm.vmName.substring(0, 27) + '...' : vm.vmName),
                   createTableCell(vm.cluster),
-                  createTableCell(vm.issues.join(', ')),
+                  createTableCell(getIssueLabels(vm).join(', ')),
                 ],
               })
           ),
@@ -127,10 +130,10 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
       // Label below table
       createTableLabel(templates.tableDescriptions.blockerVMs.title)
     );
-    if (readiness.filter((r) => r.hasBlocker).length > maxIssueVMs) {
+    if (allBlockerCount > maxIssueVMs) {
       sections.push(
         createParagraph(
-          `Note: Showing ${maxIssueVMs} of ${readiness.filter((r) => r.hasBlocker).length} VMs with blockers. See Appendix A for the complete list.`,
+          `Note: Showing ${maxIssueVMs} of ${allBlockerCount} VMs with blockers. See Appendix A for the complete list.`,
           { spacing: { before: 120 } }
         )
       );
@@ -176,7 +179,7 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
                 children: [
                   createTableCell(vm.vmName.length > 30 ? vm.vmName.substring(0, 27) + '...' : vm.vmName),
                   createTableCell(vm.cluster),
-                  createTableCell(vm.issues.join(', ')),
+                  createTableCell(getIssueLabels(vm).join(', ')),
                 ],
               })
           ),
@@ -185,10 +188,10 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
       // Label below table
       createTableLabel(templates.tableDescriptions.warningVMs.title)
     );
-    if (readiness.filter((r) => r.hasWarning && !r.hasBlocker).length > maxIssueVMs) {
+    if (allWarningCount > maxIssueVMs) {
       sections.push(
         createParagraph(
-          `Note: Showing ${maxIssueVMs} of ${readiness.filter((r) => r.hasWarning && !r.hasBlocker).length} VMs with warnings. See Appendix B for the complete list.`,
+          `Note: Showing ${maxIssueVMs} of ${allWarningCount} VMs with warnings. See Appendix B for the complete list.`,
           { spacing: { before: 120 } }
         )
       );
@@ -208,22 +211,26 @@ export function buildMigrationReadiness(readiness: VMReadiness[], maxIssueVMs: n
 
   const riskItems: string[] = [];
 
-  const unsupportedOSCount = readiness.filter(r => r.issues.includes('Unsupported OS')).length;
+  // Count VMs with specific check failures by check ID
+  const countByCheck = (checkId: string) =>
+    checkResults.filter(r => r.checks[checkId]?.status === 'fail').length;
+
+  const unsupportedOSCount = countByCheck('vsi-os') + countByCheck('os-compatible');
   if (unsupportedOSCount > 0) {
     riskItems.push(`Unsupported Operating Systems: ${unsupportedOSCount} VMs have operating systems that may not be supported on the target platform. Review and plan for OS upgrades or alternative migration approaches.`);
   }
 
-  const snapshotCount = readiness.filter(r => r.issues.includes('Old Snapshots (>30d)')).length;
+  const snapshotCount = countByCheck('old-snapshots');
   if (snapshotCount > 0) {
     riskItems.push(`Snapshot Sprawl: ${snapshotCount} VMs have snapshots older than 30 days. Consolidate or remove snapshots before migration to reduce migration time and storage requirements.`);
   }
 
-  const rdmCount = readiness.filter(r => r.issues.includes('RDM Disk')).length;
+  const rdmCount = countByCheck('rdm-disks');
   if (rdmCount > 0) {
     riskItems.push(`Raw Device Mappings (RDM): ${rdmCount} VMs use RDM disks which require special handling. Plan for storage reconfiguration or alternative storage solutions.`);
   }
 
-  const noToolsCount = readiness.filter(r => r.issues.includes('No VMware Tools')).length;
+  const noToolsCount = countByCheck('tools-installed');
   if (noToolsCount > 0) {
     riskItems.push(`Missing VMware Tools: ${noToolsCount} VMs do not have VMware Tools installed. Install tools or plan for post-migration agent deployment.`);
   }

@@ -160,7 +160,7 @@ Each OS entry can include: `documentationLink` (primary URL), `additionalLinks` 
 | `usePreflightChecks` hook (VSI/ROKS pages) | `runPreFlightChecks()` → `derivePreflightCounts()` → `generateRemediationItems()` |
 | PPTX export | `runPreFlightChecks()` → `derivePreflightCounts()` → `generateRemediationItems()` |
 | XLSX export | `runPreFlightChecks()` → `derivePreflightCounts()` (summary sheet) + per-VM results |
-| DOCX export | `runPreFlightChecks()` → `calculateVMReadiness()` |
+| DOCX export | `runPreFlightChecks()` → `derivePreflightCounts()` (summary) + `VMCheckResults[]` (per-VM tables) |
 
 `derivePreflightCounts()` translates per-VM `VMCheckResults[]` into aggregate `PreflightCheckCounts` — both per-check counts (VM name lists for remediation) and summary aggregates (`totalVMs`, `vmsWithBlockers`, `vmsWithWarningsOnly`, `vmsReady`, `readinessPercentage`). "Ready" means no blockers — warnings are advisory and don't prevent migration. Never add a new check evaluation path — always use `runPreFlightChecks()`. Never compute summary counts locally — always use `derivePreflightCounts()`.
 

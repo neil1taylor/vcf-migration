@@ -4,9 +4,8 @@ import { Paragraph, PageBreak, HeadingLevel, ExternalHyperlink, TextRun, Alignme
 import type { DocumentContent } from '../types';
 import { STYLES, FONT_FAMILY } from '../types';
 import { MIGRATION_PHASES } from '@/data/migrationPhases';
-import { runPreFlightChecks, derivePreflightCounts } from '@/services/preflightChecks';
 import { generateRemediationItems } from '@/services/migration';
-import type { RVToolsData } from '@/types/rvtools';
+import type { PreflightCheckCounts } from '@/services/migration/remediation';
 import type { MigrationMode } from '@/services/migration/osCompatibility';
 import {
   createHeading,
@@ -20,8 +19,8 @@ import {
 const MAX_AFFECTED_VMS = 10;
 
 export function buildRemediationPlanSection(
-  rawData: RVToolsData,
-  leaning: string,
+  counts: PreflightCheckCounts,
+  mode: MigrationMode,
   sectionNum: number,
 ): DocumentContent[] {
   const s = sectionNum;
@@ -60,10 +59,7 @@ export function buildRemediationPlanSection(
     ),
   );
 
-  // Run pre-flight checks
-  const mode: MigrationMode = leaning === 'roks' ? 'roks' : 'vsi';
-  const checkResults = runPreFlightChecks(rawData, mode);
-  const counts = derivePreflightCounts(checkResults, mode);
+  // Use pre-computed pre-flight check results (shared path with UI and other exports)
   const includeAllChecks = mode === 'vsi';
   const items = generateRemediationItems(counts, mode, includeAllChecks);
 

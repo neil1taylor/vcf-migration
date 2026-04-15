@@ -9,82 +9,9 @@
 import type { RVToolsData, VirtualMachine } from '@/types/rvtools';
 import { mibToGiB } from '@/utils/formatters';
 import ibmCloudConfig from '@/data/ibmCloudConfig.json';
-import { runPreFlightChecks, CHECK_DEFINITIONS } from '@/services/preflightChecks';
-import type { CheckMode } from '@/services/preflightChecks';
 import { mapVMToVSIProfile, getProfileFamilyFromName } from '@/services/migration/vsiProfileMapping';
-import type { VMReadiness, ROKSSizing, VSIMapping } from '../types';
+import type { ROKSSizing, VSIMapping } from '../types';
 import { BOOT_DISK_SIZE_GIB, BOOT_STORAGE_COST_PER_GB, DATA_STORAGE_COST_PER_GB } from '../types';
-
-export function calculateVMReadiness(
-  rawData: RVToolsData,
-  modeFlags?: { includeROKS?: boolean; includeVSI?: boolean }
-): VMReadiness[] {
-  const includeROKS = modeFlags?.includeROKS ?? true;
-  const includeVSI = modeFlags?.includeVSI ?? true;
-
-  // Determine which modes to run
-  const modes: CheckMode[] = [];
-  if (includeROKS) modes.push('roks');
-  if (includeVSI) modes.push('vsi');
-  if (modes.length === 0) modes.push('roks', 'vsi');
-
-  // Run checks using the existing preflight service (same as UI)
-  const allResults = modes.map(mode => runPreFlightChecks(rawData, mode));
-
-  // Build a map of vmName → merged issues across all modes
-  const vmMap = new Map<string, VMReadiness>();
-
-  for (const results of allResults) {
-    for (const result of results) {
-      const vm = rawData.vInfo.find(v => v.vmName === result.vmName);
-      const existing = vmMap.get(result.vmName);
-
-      // Convert check results to issue strings
-      const issues: string[] = [];
-      let hasBlocker = false;
-      let hasWarning = false;
-
-      for (const [checkId, checkResult] of Object.entries(result.checks)) {
-        if (checkResult.status === 'fail' || checkResult.status === 'warn') {
-          const def = CHECK_DEFINITIONS.find(d => d.id === checkId);
-          if (def) {
-            const label = def.shortName || def.name;
-            if (checkResult.status === 'fail' && def.severity === 'blocker') {
-              hasBlocker = true;
-              issues.push(label);
-            } else {
-              hasWarning = true;
-              issues.push(label);
-            }
-          }
-        }
-      }
-
-      if (existing) {
-        // Merge: union of issues
-        existing.hasBlocker = existing.hasBlocker || hasBlocker;
-        existing.hasWarning = existing.hasWarning || hasWarning;
-        for (const issue of issues) {
-          if (!existing.issues.includes(issue)) existing.issues.push(issue);
-        }
-      } else {
-        vmMap.set(result.vmName, {
-          vmName: result.vmName,
-          cluster: result.cluster,
-          guestOS: vm?.guestOS || '',
-          cpus: vm?.cpus || 0,
-          memoryGiB: vm ? Math.round(mibToGiB(vm.memory)) : 0,
-          storageGiB: vm ? Math.round(mibToGiB(vm.provisionedMiB)) : 0,
-          hasBlocker,
-          hasWarning,
-          issues,
-        });
-      }
-    }
-  }
-
-  return Array.from(vmMap.values());
-}
 
 export function calculateROKSSizing(rawData: RVToolsData): ROKSSizing {
   const { odfSizing, ocpVirtSizing, bareMetalProfiles: bmProfiles } = ibmCloudConfig;

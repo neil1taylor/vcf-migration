@@ -29,16 +29,6 @@ vi.mock('./sections', () => ({
 
 // Mock utility functions
 vi.mock('./utils/calculations', () => ({
-  calculateVMReadiness: vi.fn(() => ({
-    total: 10,
-    ready: 8,
-    blockers: 1,
-    warnings: 1,
-    readyVMs: [],
-    blockerVMs: [],
-    warningVMs: [],
-    issuesByCategory: {},
-  })),
   calculateROKSSizing: vi.fn(() => ({
     workerNodes: 3,
     controlPlaneNodes: 3,
@@ -53,6 +43,32 @@ vi.mock('./utils/calculations', () => ({
     profileCounts: {},
     totalVCPUs: 40,
     totalMemoryGiB: 160,
+  })),
+}));
+
+// Mock shared pre-flight checks (same path as UI/XLSX/PPTX)
+vi.mock('@/services/preflightChecks', () => ({
+  runPreFlightChecks: vi.fn(() => []),
+  derivePreflightCounts: vi.fn(() => ({
+    totalVMs: 10,
+    vmsWithBlockers: 1,
+    vmsWithWarningsOnly: 1,
+    vmsReady: 8,
+    readinessPercentage: 80,
+    vmsWithoutTools: 0,
+    vmsWithoutToolsList: [],
+    vmsWithToolsNotRunning: 0,
+    vmsWithToolsNotRunningList: [],
+    vmsWithOldSnapshots: 0,
+    vmsWithOldSnapshotsList: [],
+    vmsWithRDM: 0,
+    vmsWithRDMList: [],
+    vmsWithSharedDisks: 0,
+    vmsWithSharedDisksList: [],
+    vmsWithLargeDisks: 0,
+    vmsWithLargeDisksList: [],
+    hwVersionOutdated: 0,
+    hwVersionOutdatedList: [],
   })),
 }));
 
@@ -140,7 +156,8 @@ import {
   buildMigrationStrategy,
   buildCostEstimation,
 } from './sections';
-import { calculateVMReadiness, calculateROKSSizing, calculateVSIMappings } from './utils/calculations';
+import { calculateROKSSizing, calculateVSIMappings } from './utils/calculations';
+import { runPreFlightChecks, derivePreflightCounts } from '@/services/preflightChecks';
 import type { RVToolsData } from '@/types/rvtools';
 import type { CostEstimate } from '@/services/costEstimation';
 
@@ -429,8 +446,8 @@ describe('generateDocxReport', () => {
 
     expect(buildAppendices).toHaveBeenCalledWith(
       expect.anything(),
-      expect.any(Number),
       mockRVToolsData,
+      expect.any(Number),
       true
     );
   });
@@ -440,8 +457,8 @@ describe('generateDocxReport', () => {
 
     expect(buildAppendices).toHaveBeenCalledWith(
       expect.anything(),
-      expect.any(Number),
       mockRVToolsData,
+      expect.any(Number),
       false
     );
   });
@@ -511,7 +528,7 @@ describe('generateDocxReport', () => {
     it('uses filteredRawData for target calculations when provided', async () => {
       await generateDocxReport(mockRVToolsData, { filteredRawData: mockFilteredData });
 
-      expect(calculateVMReadiness).toHaveBeenCalledWith(mockFilteredData, expect.any(Object));
+      expect(runPreFlightChecks).toHaveBeenCalledWith(mockFilteredData, expect.any(String));
       expect(calculateROKSSizing).toHaveBeenCalledWith(mockFilteredData);
       expect(calculateVSIMappings).toHaveBeenCalledWith(mockFilteredData);
     });
@@ -541,7 +558,7 @@ describe('generateDocxReport', () => {
     it('uses filteredRawData for appendices', async () => {
       await generateDocxReport(mockRVToolsData, { filteredRawData: mockFilteredData });
 
-      expect(buildAppendices).toHaveBeenCalledWith(expect.anything(), expect.any(Number), mockFilteredData, true);
+      expect(buildAppendices).toHaveBeenCalledWith(expect.anything(), mockFilteredData, expect.any(Number), true);
     });
 
     it('keeps rawData for source sections (executive summary, environment)', async () => {
@@ -556,7 +573,7 @@ describe('generateDocxReport', () => {
     it('falls back to rawData when filteredRawData is not provided', async () => {
       await generateDocxReport(mockRVToolsData);
 
-      expect(calculateVMReadiness).toHaveBeenCalledWith(mockRVToolsData, expect.any(Object));
+      expect(runPreFlightChecks).toHaveBeenCalledWith(mockRVToolsData, expect.any(String));
       expect(buildComplexityAssessment).toHaveBeenCalledWith(mockRVToolsData, expect.any(Number), undefined);
     });
   });

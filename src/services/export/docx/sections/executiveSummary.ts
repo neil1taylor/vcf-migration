@@ -5,7 +5,8 @@ import type { RVToolsData } from '@/types/rvtools';
 import type { MigrationInsights } from '@/services/ai/types';
 import { mibToTiB } from '@/utils/formatters';
 import reportTemplates from '@/data/reportTemplates.json';
-import { STYLES, CHART_COLORS, type DocumentContent, type VMReadiness, type ChartData, type PlatformSelectionExport, type WorkloadClassificationExport } from '../types';
+import type { PreflightCheckCounts } from '@/services/migration/remediation';
+import { STYLES, CHART_COLORS, type DocumentContent, type ChartData, type PlatformSelectionExport, type WorkloadClassificationExport } from '../types';
 import { createHeading, createParagraph, createBulletList, createStyledTable, createTableDescription, createTableLabel, createFigureDescription, createFigureLabel, createAISection } from '../utils/helpers';
 import { generatePieChart, createChartParagraph } from '../utils/charts';
 import { AlignmentType } from 'docx';
@@ -18,7 +19,7 @@ const templates = reportTemplates as typeof reportTemplates & {
 
 export async function buildExecutiveSummary(
   rawData: RVToolsData,
-  readiness: VMReadiness[],
+  counts: PreflightCheckCounts,
   aiInsights?: MigrationInsights | null,
   sectionNum?: number,
   platformSelection?: PlatformSelectionExport | null,
@@ -32,10 +33,11 @@ export async function buildExecutiveSummary(
   const totalMemoryTiB = mibToTiB(poweredOnVMs.reduce((sum, vm) => sum + vm.memory, 0));
   const totalStorageTiB = mibToTiB(poweredOnVMs.reduce((sum, vm) => sum + vm.provisionedMiB, 0));
 
-  const readyCount = readiness.filter((r) => !r.hasBlocker && !r.hasWarning).length;
-  const warningCount = readiness.filter((r) => r.hasWarning && !r.hasBlocker).length;
-  const blockerCount = readiness.filter((r) => r.hasBlocker).length;
-  const readinessPercent = readiness.length > 0 ? Math.round((readyCount / readiness.length) * 100) : 0;
+  // Use shared pre-flight counts (same as UI and XLSX exports)
+  const readyCount = counts.vmsReady;
+  const warningCount = counts.vmsWithWarningsOnly;
+  const blockerCount = counts.vmsWithBlockers;
+  const readinessPercent = Math.round(counts.readinessPercentage);
 
   // Generate Migration Readiness pie chart
   const readinessChartData: ChartData[] = [
@@ -170,8 +172,8 @@ export async function buildExecutiveSummary(
       ['Status', 'VM Count', 'Percentage'],
       [
         ['Ready to Migrate', `${readyCount}`, `${readinessPercent}%`],
-        ['Needs Preparation', `${warningCount}`, `${readiness.length > 0 ? Math.round((warningCount / readiness.length) * 100) : 0}%`],
-        ['Has Blockers', `${blockerCount}`, `${readiness.length > 0 ? Math.round((blockerCount / readiness.length) * 100) : 0}%`],
+        ['Needs Preparation', `${warningCount}`, `${counts.totalVMs > 0 ? Math.round((warningCount / counts.totalVMs) * 100) : 0}%`],
+        ['Has Blockers', `${blockerCount}`, `${counts.totalVMs > 0 ? Math.round((blockerCount / counts.totalVMs) * 100) : 0}%`],
       ],
       { columnAligns: [AlignmentType.LEFT, AlignmentType.RIGHT, AlignmentType.RIGHT] }
     ),

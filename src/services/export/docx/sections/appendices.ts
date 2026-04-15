@@ -1,9 +1,12 @@
 // Appendices Section
 
 import { Paragraph, Table, TableRow, PageBreak, HeadingLevel, BorderStyle, AlignmentType } from 'docx';
-import { STYLES, type DocumentContent, type VMReadiness } from '../types';
+import { STYLES, type DocumentContent } from '../types';
 import type { RVToolsData } from '@/types/rvtools';
+import type { VMCheckResults } from '@/services/preflightChecks';
+import { mibToGiB } from '@/utils/formatters';
 import { createHeading, createParagraph, createTableCell } from '../utils/helpers';
+import { getIssueLabels } from '../utils/preflightHelpers';
 import {
   buildComputeAppendix,
   buildStorageAppendix,
@@ -14,13 +17,16 @@ import {
 } from './appendixSections';
 
 export function buildAppendices(
-  readiness: VMReadiness[],
-  maxIssueVMs: number,
+  checkResults: VMCheckResults[],
   rawData: RVToolsData,
+  maxIssueVMs: number,
   includeAppendices: boolean
 ): DocumentContent[] {
-  const allBlockerVMs = readiness.filter((r) => r.hasBlocker);
-  const allWarningVMs = readiness.filter((r) => r.hasWarning && !r.hasBlocker);
+  const allBlockerVMs = checkResults.filter((r) => r.blockerCount > 0);
+  const allWarningVMs = checkResults.filter((r) => r.warningCount > 0 && r.blockerCount === 0);
+
+  // Build a lookup for VM compute details (not available in VMCheckResults)
+  const vmLookup = new Map(rawData.vInfo.map(vm => [vm.vmName, vm]));
 
   const hasOverflowBlockers = allBlockerVMs.length > maxIssueVMs;
   const hasOverflowWarnings = allWarningVMs.length > maxIssueVMs;
@@ -76,20 +82,22 @@ export function buildAppendices(
             ],
           }),
           ...allBlockerVMs.map(
-            (vm, index) =>
-              new TableRow({
+            (result, index) => {
+              const vm = vmLookup.get(result.vmName);
+              return new TableRow({
           cantSplit: true,
                 children: [
                   createTableCell(
-                    vm.vmName.length > 25 ? vm.vmName.substring(0, 22) + '...' : vm.vmName,
+                    result.vmName.length > 25 ? result.vmName.substring(0, 22) + '...' : result.vmName,
                     { altRow: index % 2 === 1 }
                   ),
-                  createTableCell(vm.cluster, { altRow: index % 2 === 1 }),
-                  createTableCell(`${vm.cpus}`, { align: AlignmentType.RIGHT, altRow: index % 2 === 1 }),
-                  createTableCell(`${vm.memoryGiB} GiB`, { align: AlignmentType.RIGHT, altRow: index % 2 === 1 }),
-                  createTableCell(vm.issues.join(', '), { altRow: index % 2 === 1 }),
+                  createTableCell(result.cluster, { altRow: index % 2 === 1 }),
+                  createTableCell(`${vm?.cpus ?? 0}`, { align: AlignmentType.RIGHT, altRow: index % 2 === 1 }),
+                  createTableCell(`${vm ? Math.round(mibToGiB(vm.memory)) : 0} GiB`, { align: AlignmentType.RIGHT, altRow: index % 2 === 1 }),
+                  createTableCell(getIssueLabels(result).join(', '), { altRow: index % 2 === 1 }),
                 ],
-              })
+              });
+            }
           ),
         ],
       })
@@ -129,20 +137,22 @@ export function buildAppendices(
             ],
           }),
           ...allWarningVMs.map(
-            (vm, index) =>
-              new TableRow({
+            (result, index) => {
+              const vm = vmLookup.get(result.vmName);
+              return new TableRow({
           cantSplit: true,
                 children: [
                   createTableCell(
-                    vm.vmName.length > 25 ? vm.vmName.substring(0, 22) + '...' : vm.vmName,
+                    result.vmName.length > 25 ? result.vmName.substring(0, 22) + '...' : result.vmName,
                     { altRow: index % 2 === 1 }
                   ),
-                  createTableCell(vm.cluster, { altRow: index % 2 === 1 }),
-                  createTableCell(`${vm.cpus}`, { align: AlignmentType.RIGHT, altRow: index % 2 === 1 }),
-                  createTableCell(`${vm.memoryGiB} GiB`, { align: AlignmentType.RIGHT, altRow: index % 2 === 1 }),
-                  createTableCell(vm.issues.join(', '), { altRow: index % 2 === 1 }),
+                  createTableCell(result.cluster, { altRow: index % 2 === 1 }),
+                  createTableCell(`${vm?.cpus ?? 0}`, { align: AlignmentType.RIGHT, altRow: index % 2 === 1 }),
+                  createTableCell(`${vm ? Math.round(mibToGiB(vm.memory)) : 0} GiB`, { align: AlignmentType.RIGHT, altRow: index % 2 === 1 }),
+                  createTableCell(getIssueLabels(result).join(', '), { altRow: index % 2 === 1 }),
                 ],
-              })
+              });
+            }
           ),
         ],
       })

@@ -3,9 +3,9 @@
 import type { CostEstimate } from '@/services/costEstimation';
 import type { RVToolsData } from '@/types/rvtools';
 import type { TimelinePhase } from '@/types/timeline';
-import type { PlatformSelectionExport, VMReadiness, WavePlanningPreference } from '../docx/types';
+import type { PlatformSelectionExport, WavePlanningPreference } from '../docx/types';
 import type { ROKSSizing, VSIMapping } from '@/types/exportSizing';
-export type { PlatformSelectionExport, VMReadiness, WavePlanningPreference };
+export type { PlatformSelectionExport, WavePlanningPreference };
 
 export interface PptxExportOptions {
   clientName?: string;

@@ -102,18 +102,6 @@ export interface SourceEnvironmentExport {
   }>;
 }
 
-export interface VMReadiness {
-  vmName: string;
-  cluster: string;
-  guestOS: string;
-  cpus: number;
-  memoryGiB: number;
-  storageGiB: number;
-  hasBlocker: boolean;
-  hasWarning: boolean;
-  issues: string[];
-}
-
 // Re-export from shared location (avoids circular deps: docx/types → bomCache → docx/types)
 export type { ROKSSizing, VSIMapping } from '@/types/exportSizing';
 
