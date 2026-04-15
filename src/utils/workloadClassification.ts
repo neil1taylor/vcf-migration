@@ -14,19 +14,28 @@ type CategoryDef = {
 
 const categories = workloadPatterns.categories as Record<string, CategoryDef>;
 
+/** Escape special regex characters in a string */
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Pre-compiled word-boundary regexes for each category (built once at module load) */
+const compiledCategories = Object.entries(categories).map(([key, cat]) => ({
+  key,
+  patterns: cat.patterns.map(p => new RegExp(`\\b${escapeRegExp(p)}\\b`, 'i')),
+}));
+
 /**
  * Detect a VM's workload category from its name and optional annotation.
  * Returns the category key (e.g., 'databases', 'middleware') or null if unclassified.
+ * Uses word-boundary matching to avoid false positives from short patterns.
  */
 export function getVMWorkloadCategory(vmName: string, annotation?: string | null): string | null {
-  const vmNameLower = vmName.toLowerCase();
-  const annotationLower = (annotation || '').toLowerCase();
+  const text = annotation ? `${vmName} ${annotation}` : vmName;
 
-  for (const [categoryKey, category] of Object.entries(categories)) {
-    for (const pattern of category.patterns) {
-      if (vmNameLower.includes(pattern) || annotationLower.includes(pattern)) {
-        return categoryKey;
-      }
+  for (const { key, patterns } of compiledCategories) {
+    for (const re of patterns) {
+      if (re.test(text)) return key;
     }
   }
 

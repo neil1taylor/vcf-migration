@@ -55,7 +55,7 @@ describe('workloadClassification', () => {
 
       // "ad" should not match words containing the substring
       expect(getVMWorkloadCategory('administrator')).toBeNull();
-      expect(getVMWorkloadCategory('loadbalancer-01')).toBeNull();
+      expect(getVMWorkloadCategory('broadcast-vm')).toBeNull();
 
       // "oci" should not match words containing the substring
       expect(getVMWorkloadCategory('invoicing-app')).toBeNull();
@@ -76,7 +76,7 @@ describe('workloadClassification', () => {
 
     it('should match short patterns when they appear as whole words', () => {
       // Hyphen-separated (common VM naming convention)
-      expect(getVMWorkloadCategory('prod-aws-proxy')).toBe('cloud');
+      expect(getVMWorkloadCategory('prod-aws-tools')).toBe('cloud');
       expect(getVMWorkloadCategory('ad-server-01')).toBe('identity');
       expect(getVMWorkloadCategory('prod-mq-01')).toBe('messaging');
       expect(getVMWorkloadCategory('corp-lb-01')).toBe('network');

@@ -201,7 +201,7 @@
         "infoblox", "bluecat", "dns", "dhcp", "loadbalancer", "lb",
         "firewall", "fw", "router", "switch", "vpn", "proxy",
         "fortigate", "fgt", "fortinet",
-        "paloalto", "palo-alto", "pan-", "juniper", "srx", "junos",
+        "paloalto", "palo-alto", "pan", "juniper", "srx", "junos",
         "cust-edge", "service-edge"
       ]
     },
