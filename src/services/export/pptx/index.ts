@@ -71,16 +71,16 @@ export async function generatePptxReport(
   // Build content titles for agenda (based on which slides are included)
   const contentTitles: string[] = [
     'Executive Summary',
+    'Platform Recommendation',
     'Migration Readiness',
     'Excluded VMs',
-    'Platform Recommendation',
+    'Migration Timeline',
+    'Migration Execution',
   ];
   const includeCosts = finalOptions.includeCosts && (finalOptions.includeROKS || finalOptions.includeVSI);
   if (includeCosts) {
     contentTitles.push('Cost Estimation');
   }
-  contentTitles.push('Migration Timeline');
-  contentTitles.push('Migration Execution');
   contentTitles.push('Next Steps');
 
   // Slide 1: Title image
@@ -95,17 +95,18 @@ export async function generatePptxReport(
 
   // Content slides — source sections use rawData, target sections use filteredRawData
   addExecutiveSummarySlide(pres, rawData);
+  addPlatformRecommendationSlide(pres, finalOptions);
   addMigrationStatsSlide(pres, filteredRawData, finalOptions.platformSelection?.score?.leaning ?? 'neutral');
   addExcludedVMsSlide(pres, rawData);
-  addPlatformRecommendationSlide(pres, finalOptions);
+
+  addWavePlanningSlide(pres, filteredRawData, finalOptions);
+  addMigrationExecutionSlide(pres);
 
   if (includeCosts) {
     const roksVariant = finalOptions.platformSelection?.score?.roksVariant;
     addCostEstimationSlide(pres, roksSizing, vsiMappings, finalOptions, finalOptions.roksCostEstimate, finalOptions.vsiCostEstimate, roksVariant);
   }
 
-  addWavePlanningSlide(pres, filteredRawData, finalOptions);
-  addMigrationExecutionSlide(pres);
   addNextStepsSlide(pres);
 
   // Generate blob and inject reference slides

@@ -180,7 +180,7 @@ describe('generatePptxReport', () => {
     expect(addAgendaSlide).toHaveBeenCalledTimes(1);
     expect(addAgendaSlide).toHaveBeenCalledWith(
       expect.anything(),
-      ['Executive Summary', 'Migration Readiness', 'Excluded VMs', 'Platform Recommendation', 'Cost Estimation', 'Migration Timeline', 'Migration Execution', 'Next Steps']
+      ['Executive Summary', 'Platform Recommendation', 'Migration Readiness', 'Excluded VMs', 'Migration Timeline', 'Migration Execution', 'Cost Estimation', 'Next Steps']
     );
 
     // Content slides
@@ -200,7 +200,7 @@ describe('generatePptxReport', () => {
     // Agenda should not include Cost Estimation
     expect(addAgendaSlide).toHaveBeenCalledWith(
       expect.anything(),
-      ['Executive Summary', 'Migration Readiness', 'Excluded VMs', 'Platform Recommendation', 'Migration Timeline', 'Migration Execution', 'Next Steps']
+      ['Executive Summary', 'Platform Recommendation', 'Migration Readiness', 'Excluded VMs', 'Migration Timeline', 'Migration Execution', 'Next Steps']
     );
   });
 
@@ -209,7 +209,7 @@ describe('generatePptxReport', () => {
     expect(addCostEstimationSlide).not.toHaveBeenCalled();
     expect(addAgendaSlide).toHaveBeenCalledWith(
       expect.anything(),
-      ['Executive Summary', 'Migration Readiness', 'Excluded VMs', 'Platform Recommendation', 'Migration Timeline', 'Migration Execution', 'Next Steps']
+      ['Executive Summary', 'Platform Recommendation', 'Migration Readiness', 'Excluded VMs', 'Migration Timeline', 'Migration Execution', 'Next Steps']
     );
   });
 
