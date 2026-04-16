@@ -11,6 +11,7 @@ import { formatNumber } from '@/utils/formatters';
 import { getVMIdentifier, getEnvironmentFingerprint } from '@/utils/vmIdentifier';
 import type { StorageTierType } from '@/utils/workloadClassification';
 import { findCategoryKeyByName, getVMWorkloadCategory } from '@/utils/workloadClassification';
+import { getCachedVMClassification } from '@/services/ai/aiClassificationCache';
 import { MetricCard, NextStepBanner, SectionErrorBoundary } from '@/components/common';
 import { CostEstimation } from '@/components/cost';
 import { ComplexityAssessmentPanel, OSCompatibilityPanel, VSIPreFlightPanel, VSISizingPanel } from '@/components/migration';
@@ -86,9 +87,10 @@ export function VSIMigrationPage() {
     return vmOverrides.isBandwidthSensitive(vmId);
   }, [allVmsRaw, vmOverrides]);
 
-  // Effective workload category: user workload type override > name-pattern matching.
+  // Effective workload category: user override > AI classification > name-pattern matching.
   // Mirrors Discovery's classification chain so storage tier derivation is consistent.
   const getEffectiveWorkloadCategoryByName = useCallback((vmName: string): string | null => {
+    // Pass 1: User workload type override (highest priority)
     const vm = allVmsRaw.find(v => v.vmName === vmName);
     if (vm) {
       const vmId = getVMIdentifier(vm);
@@ -98,6 +100,13 @@ export function VSIMigrationPage() {
         if (categoryKey) return categoryKey;
       }
     }
+    // Pass 2: AI classification from cache (set by Discovery page)
+    const aiResult = getCachedVMClassification(vmName);
+    if (aiResult?.source === 'ai' && aiResult.workloadType) {
+      const aiCategoryKey = findCategoryKeyByName(aiResult.workloadType);
+      if (aiCategoryKey) return aiCategoryKey;
+    }
+    // Pass 3: Rule-based name-pattern matching
     return getVMWorkloadCategory(vmName);
   }, [allVmsRaw, vmOverrides]);
 

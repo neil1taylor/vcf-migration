@@ -71,10 +71,11 @@ interface CostEstimationProps {
 function capacityVariant(dim: { required: number; provisioned: number }): MetricCardVariant {
   if (dim.required === 0) return 'info';
   const pct = ((dim.provisioned - dim.required) / dim.required) * 100;
-  if (pct < 0) return 'error';
-  if (pct <= 25) return 'success';
-  if (pct <= 75) return 'info';
-  return 'warning';
+  if (pct < -10) return 'error';       // Significant under-provision
+  if (pct < 0) return 'warning';       // Minor under-provision (e.g. boot cap)
+  if (pct <= 25) return 'success';     // Close match
+  if (pct <= 75) return 'info';        // Moderate overprovision (expected for fixed profiles)
+  return 'warning';                     // Large overprovision
 }
 
 function formatCapacityDetail(dim: { required: number; provisioned: number }): string {
