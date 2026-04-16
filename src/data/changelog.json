@@ -2,14 +2,25 @@
   "releases": [
     {
       "version": "2.6.8",
-      "date": "2026-04-15",
+      "date": "2026-04-16",
       "sections": {
-        "fixed": [
-          "PPTX and XLSX exports now correctly separate BYOL OS (warning) from unsupported OS (blocker) — previously BYOL VMs were either missing from warning counts or lumped into blocker counts",
-          "XLSX Check Failure Summary splits BYOL into a separate warning row instead of combining with unsupported OS blocker count"
+        "added": [
+          "Auto-exclude vRealize, vSAN Witness, and vCenter VMs as VMware infrastructure",
+          "DB server workload classification rule"
         ],
         "changed": [
-          "Pre-flight check hook consolidated to delegate to canonical runPreFlightChecks() service — eliminates duplicated check logic and ensures all consumers (UI, PPTX, XLSX, DOCX) use the same calculation path"
+          "Reorder PPTX slides: Platform Recommendation after Executive Summary, Cost Estimation after Migration Execution",
+          "Remove cost estimation and source BOM from PPTX/DOCX exports",
+          "Remove Remediation Actions PPTX slide, add disclaimer to Migration Readiness",
+          "Consolidate pre-flight checks to single calculation path",
+          "Route export sizing data through BOM cache from UI pages"
+        ],
+        "fixed": [
+          "Derive VSI storage tier from effective workload classification with AI classification support",
+          "Separate BYOL OS warnings from unsupported OS blockers in exports",
+          "Raise large disk threshold from 2TB to 16TB to match VPC block storage limit",
+          "Use word-boundary matching for workload classification to prevent false positives",
+          "Remove annotation matching from workload classification"
         ]
       }
     },

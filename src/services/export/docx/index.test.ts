@@ -155,7 +155,7 @@ import {
   buildMigrationStrategy,
 } from './sections';
 import { calculateROKSSizing, calculateVSIMappings } from './utils/calculations';
-import { runPreFlightChecks, derivePreflightCounts } from '@/services/preflightChecks';
+import { runPreFlightChecks } from '@/services/preflightChecks';
 import type { RVToolsData } from '@/types/rvtools';
 
 const mockRVToolsData = {
