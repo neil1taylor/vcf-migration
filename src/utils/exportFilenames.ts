@@ -43,7 +43,7 @@ export function getDefaultFilename(exportType: string, context: FilenameContext 
     case 'source-bom':
       return `source-infrastructure-bom-${date}.xlsx`;
     case 'it-requirements':
-      return `it-requirements-${context.region || 'us-south'}-${date}.xlsx`;
+      return `cool-tool-import-${context.region || 'us-south'}-${date}.xlsx`;
     case 'preflight': {
       const mode = context.mode || 'roks';
       return `preflight-report-${mode}-${date}.xlsx`;

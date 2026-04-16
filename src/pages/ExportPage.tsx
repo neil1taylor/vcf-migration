@@ -801,9 +801,9 @@ export function ExportPage() {
             <div className="export-page__card-header">
               <Report size={24} className="export-page__card-icon" />
               <div>
-                <h3 className="export-page__card-title">IT Requirements Template</h3>
+                <h3 className="export-page__card-title">COOL Tool Import</h3>
                 <p className="export-page__card-description">
-                  Export VM sizing for direct import into the IBM Cloud Public Cloud Solutioning Tool.
+                  Export VM sizing for direct import into the IBM Cloud Public Cloud Solutioning Tool (COOL Tool).
                 </p>
               </div>
             </div>
@@ -827,7 +827,7 @@ export function ExportPage() {
               disabled={!hasVSIBOM}
               className="export-page__card-action"
             >
-              Export IT Requirements
+              Export COOL Tool Import
             </Button>
           </Tile>
         </Column>

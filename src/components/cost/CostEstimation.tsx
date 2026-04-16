@@ -36,7 +36,7 @@ import {
   formatCurrencyPrecise,
   getBareMetalProfiles,
 } from '@/services/costEstimation';
-import { downloadBOM, downloadVSIBOMExcel, downloadROKSBOMExcel } from '@/services/export';
+import { downloadBOM, downloadROKSBOMExcel, downloadITRequirementsExcel } from '@/services/export';
 import type { VMDetail, ROKSNodeDetail } from '@/services/export';
 import { calculateOdfReservation } from '@/utils/odfCalculation';
 import type { OdfTuningProfile, OdfCpuUnitMode } from '@/utils/odfCalculation';
@@ -308,7 +308,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
     if (format === 'xlsx') {
       // Use xlsx export for detailed BOM
       if (type === 'vsi' && vmDetails && vmDetails.length > 0) {
-        await downloadVSIBOMExcel(vmDetails, estimate, 'Default VPC', region, discountType);
+        await downloadITRequirementsExcel(vmDetails, 'Default VPC', region, discountType);
       } else if (type === 'roks' && roksNodeDetails && roksNodeDetails.length > 0) {
         await downloadROKSBOMExcel(estimate, roksNodeDetails, 'ROKS Cluster', region, discountType, undefined, roksSizing?.solutionType);
       } else {
@@ -355,7 +355,7 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
               renderIcon={Download}
               onClick={() => handleExport('xlsx')}
             >
-              Export BOM
+              COOL Tool Import
             </Button>
           </div>
         </div>
