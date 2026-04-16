@@ -2,7 +2,6 @@
 
 import { Paragraph, Table, AlignmentType, HeadingLevel } from 'docx';
 import type { MigrationInsights } from '@/services/ai/types';
-import type { CostEstimate } from '@/services/costEstimation';
 import type { RVToolsData } from '@/types/rvtools';
 import type { ROKSSizing, VSIMapping } from '@/types/exportSizing';
 import type { RiskTableData, RiskTableOverrides } from '@/types/riskAssessment';
@@ -44,7 +43,6 @@ export interface DocxExportOptions {
   companyName?: string;
   includeROKS?: boolean;
   includeVSI?: boolean;
-  includeCosts?: boolean;
   maxIssueVMs?: number;
   aiInsights?: MigrationInsights | null;
   riskAssessment?: RiskTableData | null;
@@ -59,12 +57,6 @@ export interface DocxExportOptions {
   sourceEnvironment?: SourceEnvironmentExport | null;
   /** Pre-filtered rawData (exclusions applied). Used for target/migration sections. Falls back to rawData. */
   filteredRawData?: RVToolsData | null;
-  /** Cached ROKS cost estimate from BOM cache — full platform costs matching the UI */
-  roksCostEstimate?: CostEstimate | null;
-  /** Cached VSI cost estimate from BOM cache — full platform costs matching the UI */
-  vsiCostEstimate?: CostEstimate | null;
-  /** Source infrastructure BOM result for current VMware environment costing */
-  sourceBOM?: import('@/services/sourceBom').SourceBOMResult | null;
   /** ROKS sizing summary from BOM cache — computed by the sizing calculator, not exports */
   roksSizingSummary?: ROKSSizing | null;
   /** Per-VM VSI mapping from BOM cache — computed by the VSI page, not exports */

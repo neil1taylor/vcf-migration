@@ -5,7 +5,6 @@ import PptxGenJS from 'pptxgenjs';
 import type { RVToolsData } from '@/types/rvtools';
 import reportTemplates from '@/data/reportTemplates.json';
 import { type PptxExportOptions, SLIDE_WIDTH, SLIDE_HEIGHT, CUSTOM_LAYOUT_NAME } from './types';
-import { calculateROKSSizing, calculateVSIMappings } from '../docx/utils/calculations';
 import { defineMasterSlides, injectReferenceSlides } from './utils';
 import {
   addTitleSlide,
@@ -14,7 +13,6 @@ import {
   addMigrationStatsSlide,
   addExcludedVMsSlide,
   addPlatformRecommendationSlide,
-  addCostEstimationSlide,
   addWavePlanningSlide,
   addMigrationExecutionSlide,
   addNextStepsSlide,
@@ -33,17 +31,14 @@ export async function generatePptxReport(
   // filteredRawData: pre-filtered by exclusion model for target/migration sections
   const filteredRawData = options.filteredRawData ?? rawData;
 
-  const finalOptions: Required<Omit<PptxExportOptions, 'filteredRawData' | 'roksSizingSummary' | 'vsiMappingSummary'>> = {
+  const finalOptions: Required<Omit<PptxExportOptions, 'filteredRawData'>> = {
     clientName: options.clientName || reportTemplates.placeholders.clientName,
     preparedBy: options.preparedBy || reportTemplates.placeholders.preparedBy,
     companyName: options.companyName || reportTemplates.placeholders.companyName,
     includeROKS: options.includeROKS ?? true,
     includeVSI: options.includeVSI ?? true,
-    includeCosts: options.includeCosts ?? true,
     platformSelection: options.platformSelection ?? null,
     wavePlanningPreference: options.wavePlanningPreference ?? null,
-    roksCostEstimate: options.roksCostEstimate ?? null,
-    vsiCostEstimate: options.vsiCostEstimate ?? null,
     timelinePhases: options.timelinePhases ?? null,
     timelineStartDate: options.timelineStartDate ?? new Date(),
   };
@@ -63,12 +58,7 @@ export async function generatePptxReport(
   // Define master slides (theme)
   defineMasterSlides(pres);
 
-  // Use cached summaries from the UI pages when available (single calculation path).
-  // Fall back to local calculations only when cache is empty.
-  const roksSizing = options.roksSizingSummary ?? calculateROKSSizing(filteredRawData);
-  const vsiMappings = options.vsiMappingSummary ?? calculateVSIMappings(filteredRawData);
-
-  // Build content titles for agenda (based on which slides are included)
+  // Build content titles for agenda
   const contentTitles: string[] = [
     'Executive Summary',
     'Platform Recommendation',
@@ -76,12 +66,8 @@ export async function generatePptxReport(
     'Excluded VMs',
     'Migration Timeline',
     'Migration Execution',
+    'Next Steps',
   ];
-  const includeCosts = finalOptions.includeCosts && (finalOptions.includeROKS || finalOptions.includeVSI);
-  if (includeCosts) {
-    contentTitles.push('Cost Estimation');
-  }
-  contentTitles.push('Next Steps');
 
   // Slide 1: Title image
   addTitleSlide(pres);
@@ -101,11 +87,6 @@ export async function generatePptxReport(
 
   addWavePlanningSlide(pres, filteredRawData, finalOptions);
   addMigrationExecutionSlide(pres);
-
-  if (includeCosts) {
-    const roksVariant = finalOptions.platformSelection?.score?.roksVariant;
-    addCostEstimationSlide(pres, roksSizing, vsiMappings, finalOptions, finalOptions.roksCostEstimate, finalOptions.vsiCostEstimate, roksVariant);
-  }
 
   addNextStepsSlide(pres);
 

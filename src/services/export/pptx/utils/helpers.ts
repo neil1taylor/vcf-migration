@@ -164,10 +164,3 @@ export function addFooter(slide: PptxGenJS.Slide, companyName: string): void {
 export function fmt(n: number): string {
   return n.toLocaleString('en-US', { maximumFractionDigits: 0 });
 }
-
-/**
- * Format currency (USD).
- */
-export function fmtCurrency(n: number): string {
-  return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
-}

@@ -13,7 +13,6 @@ vi.mock('./sections', () => ({
   buildMigrationStrategy: vi.fn(() => []),
   buildROKSOverview: vi.fn(() => []),
   buildVSIOverview: vi.fn(() => []),
-  buildCostEstimation: vi.fn(() => []),
   buildDay2OperationsSection: vi.fn(() => []),
   buildNextSteps: vi.fn(() => []),
   buildAppendices: vi.fn(() => []),
@@ -154,12 +153,10 @@ import {
   buildExecutiveSummary,
   buildEnvironmentAnalysis,
   buildMigrationStrategy,
-  buildCostEstimation,
 } from './sections';
 import { calculateROKSSizing, calculateVSIMappings } from './utils/calculations';
 import { runPreFlightChecks, derivePreflightCounts } from '@/services/preflightChecks';
 import type { RVToolsData } from '@/types/rvtools';
-import type { CostEstimate } from '@/services/costEstimation';
 
 const mockRVToolsData = {
   metadata: {
@@ -237,7 +234,6 @@ describe('generateDocxReport', () => {
       companyName: 'Test Company',
       includeROKS: true,
       includeVSI: true,
-      includeCosts: true,
       maxIssueVMs: 10,
     });
 
@@ -255,14 +251,6 @@ describe('generateDocxReport', () => {
   it('generates a DOCX blob without VSI section', async () => {
     const blob = await generateDocxReport(mockRVToolsData, {
       includeVSI: false,
-    });
-
-    expect(blob).toBeInstanceOf(Blob);
-  });
-
-  it('generates a DOCX blob without costs section', async () => {
-    const blob = await generateDocxReport(mockRVToolsData, {
-      includeCosts: false,
     });
 
     expect(blob).toBeInstanceOf(Blob);
@@ -578,73 +566,4 @@ describe('generateDocxReport', () => {
     });
   });
 
-  describe('cached cost estimates', () => {
-    const mockRoksCostEstimate: CostEstimate = {
-      architecture: 'roks',
-      region: 'us-south',
-      regionName: 'Dallas',
-      discountType: 'list',
-      discountPct: 0,
-      lineItems: [
-        { category: 'Compute', description: 'Worker Nodes', quantity: 3, unit: 'nodes', unitCost: 5000, monthlyCost: 15000, annualCost: 180000 },
-        { category: 'OCP License', description: 'OpenShift Licensing', quantity: 3, unit: 'nodes', unitCost: 2000, monthlyCost: 6000, annualCost: 72000 },
-      ],
-      subtotalMonthly: 21000,
-      subtotalAnnual: 252000,
-      discountAmountMonthly: 0,
-      discountAmountAnnual: 0,
-      totalMonthly: 21000,
-      totalAnnual: 252000,
-      metadata: { pricingVersion: '1.0', generatedAt: '2024-01-15', notes: [] },
-    };
-
-    const mockVsiCostEstimate: CostEstimate = {
-      architecture: 'vsi',
-      region: 'us-south',
-      regionName: 'Dallas',
-      discountType: 'list',
-      discountPct: 0,
-      lineItems: [
-        { category: 'Compute', description: 'VSI Instances', quantity: 10, unit: 'instances', unitCost: 500, monthlyCost: 5000, annualCost: 60000 },
-      ],
-      subtotalMonthly: 5000,
-      subtotalAnnual: 60000,
-      discountAmountMonthly: 0,
-      discountAmountAnnual: 0,
-      totalMonthly: 5000,
-      totalAnnual: 60000,
-      metadata: { pricingVersion: '1.0', generatedAt: '2024-01-15', notes: [] },
-    };
-
-    it('passes cached cost estimates to buildCostEstimation', async () => {
-      await generateDocxReport(mockRVToolsData, {
-        roksCostEstimate: mockRoksCostEstimate,
-        vsiCostEstimate: mockVsiCostEstimate,
-      });
-
-      expect(buildCostEstimation).toHaveBeenCalledWith(
-        expect.any(Object), // roksSizing
-        expect.any(Object), // vsiMappings
-        null, // aiInsights
-        expect.any(Number), // sectionNum
-        mockRoksCostEstimate,
-        mockVsiCostEstimate,
-        undefined, // roksVariant
-      );
-    });
-
-    it('passes null cost estimates when not provided (fallback)', async () => {
-      await generateDocxReport(mockRVToolsData);
-
-      expect(buildCostEstimation).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.any(Object),
-        null,
-        expect.any(Number),
-        null,
-        null,
-        undefined, // roksVariant
-      );
-    });
-  });
 });

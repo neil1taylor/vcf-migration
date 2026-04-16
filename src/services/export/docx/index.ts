@@ -35,7 +35,6 @@ import {
   buildMigrationStrategy,
   buildROKSOverview,
   buildVSIOverview,
-  buildCostEstimation,
   buildDay2OperationsSection,
   buildNextSteps,
   buildAppendices,
@@ -45,7 +44,6 @@ import {
   buildOSCompatibilitySection,
   buildWorkloadClassification,
   buildPlatformRecommendation,
-  buildSourceBOMSection,
   buildRemediationPlanSection,
 } from './sections';
 
@@ -71,7 +69,6 @@ export async function generateDocxReport(
     companyName: options.companyName || reportTemplates.placeholders.companyName,
     includeROKS: options.includeROKS ?? true,
     includeVSI: options.includeVSI ?? true,
-    includeCosts: options.includeCosts ?? true,
     maxIssueVMs: options.maxIssueVMs ?? 20,
     aiInsights: aiInsights,
     riskAssessment: options.riskAssessment ?? null,
@@ -84,9 +81,6 @@ export async function generateDocxReport(
     targetAssignments: options.targetAssignments ?? null,
     workloadClassification: options.workloadClassification ?? null,
     sourceEnvironment: options.sourceEnvironment ?? null,
-    roksCostEstimate: options.roksCostEstimate ?? null,
-    vsiCostEstimate: options.vsiCostEstimate ?? null,
-    sourceBOM: options.sourceBOM ?? null,
   };
 
   // Reset caption counters for fresh document
@@ -164,11 +158,6 @@ export async function generateDocxReport(
     ...environmentAnalysis,                                                 // §2 (enriched)
   ];
 
-  // §3 Source Infrastructure BOM (conditional)
-  if (options.sourceBOM) {
-    sections.push(...buildSourceBOMSection(options.sourceBOM, sec.next()));
-  }
-
   sections.push(
     ...buildMigrationReadiness(checkResults, finalOptions.maxIssueVMs, aiInsights, { includeROKS: finalOptions.includeROKS, includeVSI: finalOptions.includeVSI }, sec.next()), // §3/4
     ...buildComplexityAssessment(filteredRawData, sec.next(), finalOptions.platformSelection?.score?.leaning),               // §4
@@ -234,13 +223,7 @@ export async function generateDocxReport(
   // §11 Migration Strategy
   sections.push(...buildMigrationStrategy(filteredRawData, aiInsights, finalOptions.wavePlanningPreference, finalOptions.includeROKS, finalOptions.includeVSI, sec.next()));
 
-  // §12 Cost Estimation
-  if (finalOptions.includeCosts && (finalOptions.includeROKS || finalOptions.includeVSI)) {
-    const roksVariant = finalOptions.platformSelection?.score?.roksVariant;
-    sections.push(...buildCostEstimation(roksSizing, vsiMappings, aiInsights, sec.next(), finalOptions.roksCostEstimate, finalOptions.vsiCostEstimate, roksVariant));
-  }
-
-  // §13 Migration Timeline
+  // §12 Migration Timeline
   if (finalOptions.timelinePhases) {
     sections.push(...buildTimelineSection(finalOptions.timelinePhases, finalOptions.timelineStartDate, sec.next()));
   }

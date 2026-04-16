@@ -9,7 +9,6 @@ vi.mock('./sections', () => ({
   addMigrationStatsSlide: vi.fn(),
   addExcludedVMsSlide: vi.fn(),
   addPlatformRecommendationSlide: vi.fn(),
-  addCostEstimationSlide: vi.fn(),
   addWavePlanningSlide: vi.fn(),
   addMigrationExecutionSlide: vi.fn(),
   addNextStepsSlide: vi.fn(),
@@ -56,7 +55,6 @@ vi.mock('./utils', () => ({
   addKPINumber: vi.fn(),
   addFooter: vi.fn(),
   fmt: vi.fn((n: number) => String(n)),
-  fmtCurrency: vi.fn((n: number) => `$${n}`),
   injectReferenceSlides: vi.fn((blob: Blob) => Promise.resolve(blob)),
 }));
 
@@ -103,15 +101,12 @@ import {
   addMigrationStatsSlide,
   addExcludedVMsSlide,
   addPlatformRecommendationSlide,
-  addCostEstimationSlide,
   addWavePlanningSlide,
   addMigrationExecutionSlide,
   addNextStepsSlide,
 } from './sections';
 import { defineMasterSlides, injectReferenceSlides } from './utils';
-import { calculateROKSSizing, calculateVSIMappings } from '../docx/utils/calculations';
 import type { RVToolsData } from '@/types/rvtools';
-import type { CostEstimate } from '@/services/costEstimation';
 
 const mockRVToolsData = {
   metadata: {
@@ -180,7 +175,7 @@ describe('generatePptxReport', () => {
     expect(addAgendaSlide).toHaveBeenCalledTimes(1);
     expect(addAgendaSlide).toHaveBeenCalledWith(
       expect.anything(),
-      ['Executive Summary', 'Platform Recommendation', 'Migration Readiness', 'Excluded VMs', 'Migration Timeline', 'Migration Execution', 'Cost Estimation', 'Next Steps']
+      ['Executive Summary', 'Platform Recommendation', 'Migration Readiness', 'Excluded VMs', 'Migration Timeline', 'Migration Execution', 'Next Steps']
     );
 
     // Content slides
@@ -188,29 +183,9 @@ describe('generatePptxReport', () => {
     expect(addMigrationStatsSlide).toHaveBeenCalledTimes(1);
     expect(addExcludedVMsSlide).toHaveBeenCalledTimes(1);
     expect(addPlatformRecommendationSlide).toHaveBeenCalledTimes(1);
-    expect(addCostEstimationSlide).toHaveBeenCalledTimes(1);
     expect(addWavePlanningSlide).toHaveBeenCalledTimes(1);
     expect(addMigrationExecutionSlide).toHaveBeenCalledTimes(1);
     expect(addNextStepsSlide).toHaveBeenCalledTimes(1);
-  });
-
-  it('skips cost slide when includeCosts is false', async () => {
-    await generatePptxReport(mockRVToolsData, { includeCosts: false });
-    expect(addCostEstimationSlide).not.toHaveBeenCalled();
-    // Agenda should not include Cost Estimation
-    expect(addAgendaSlide).toHaveBeenCalledWith(
-      expect.anything(),
-      ['Executive Summary', 'Platform Recommendation', 'Migration Readiness', 'Excluded VMs', 'Migration Timeline', 'Migration Execution', 'Next Steps']
-    );
-  });
-
-  it('skips cost slide when neither ROKS nor VSI included', async () => {
-    await generatePptxReport(mockRVToolsData, { includeROKS: false, includeVSI: false });
-    expect(addCostEstimationSlide).not.toHaveBeenCalled();
-    expect(addAgendaSlide).toHaveBeenCalledWith(
-      expect.anything(),
-      ['Executive Summary', 'Platform Recommendation', 'Migration Readiness', 'Excluded VMs', 'Migration Timeline', 'Migration Execution', 'Next Steps']
-    );
   });
 
   it('passes platformSelection to recommendation slide', async () => {
@@ -291,13 +266,6 @@ describe('generatePptxReport', () => {
       vInfo: [], // No VMs after filtering
     } as unknown as RVToolsData;
 
-    it('uses filteredRawData for target calculations when provided', async () => {
-      await generatePptxReport(mockRVToolsData, { filteredRawData: mockFilteredData });
-
-      expect(calculateROKSSizing).toHaveBeenCalledWith(mockFilteredData);
-      expect(calculateVSIMappings).toHaveBeenCalledWith(mockFilteredData);
-    });
-
     it('uses filteredRawData for migration stats and wave planning slides', async () => {
       await generatePptxReport(mockRVToolsData, { filteredRawData: mockFilteredData });
 
@@ -315,7 +283,6 @@ describe('generatePptxReport', () => {
     it('falls back to rawData when filteredRawData is not provided', async () => {
       await generatePptxReport(mockRVToolsData);
 
-      expect(calculateROKSSizing).toHaveBeenCalledWith(mockRVToolsData);
       expect(addMigrationStatsSlide).toHaveBeenCalledWith(expect.anything(), mockRVToolsData, 'neutral');
     });
   });
@@ -348,54 +315,4 @@ describe('generatePptxReport', () => {
     });
   });
 
-  describe('cached cost estimates', () => {
-    const mockRoksCostEstimate: CostEstimate = {
-      architecture: 'roks',
-      region: 'us-south',
-      regionName: 'Dallas',
-      discountType: 'list',
-      discountPct: 0,
-      lineItems: [
-        { category: 'Compute', description: 'Worker Nodes', quantity: 3, unit: 'nodes', unitCost: 5000, monthlyCost: 15000, annualCost: 180000 },
-        { category: 'OCP License', description: 'OpenShift Licensing', quantity: 3, unit: 'nodes', unitCost: 2000, monthlyCost: 6000, annualCost: 72000 },
-      ],
-      subtotalMonthly: 21000,
-      subtotalAnnual: 252000,
-      discountAmountMonthly: 0,
-      discountAmountAnnual: 0,
-      totalMonthly: 21000,
-      totalAnnual: 252000,
-      metadata: { pricingVersion: '1.0', generatedAt: '2024-01-15', notes: [] },
-    };
-
-    it('passes cached cost estimates to addCostEstimationSlide', async () => {
-      await generatePptxReport(mockRVToolsData, {
-        roksCostEstimate: mockRoksCostEstimate,
-      });
-
-      expect(addCostEstimationSlide).toHaveBeenCalledWith(
-        expect.anything(), // pres
-        expect.any(Object), // roksSizing
-        expect.any(Object), // vsiMappings
-        expect.any(Object), // options
-        mockRoksCostEstimate,
-        null,
-        undefined, // roksVariant
-      );
-    });
-
-    it('passes null cost estimates when not provided (fallback)', async () => {
-      await generatePptxReport(mockRVToolsData);
-
-      expect(addCostEstimationSlide).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.any(Object),
-        expect.any(Object),
-        expect.any(Object),
-        null,
-        null,
-        undefined, // roksVariant
-      );
-    });
-  });
 });

@@ -127,13 +127,6 @@ describe('DOCX integration — structural checks', () => {
     expect(blob.size).toBeGreaterThan(0);
   });
 
-  it('generates with no costs', async () => {
-    const blob = await generateDocxReport(data, {
-      ...defaultDocxOptions,
-      includeCosts: false,
-    });
-    expect(blob.size).toBeGreaterThan(0);
-  });
 });
 
 describe('DOCX integration — style checks', () => {

@@ -89,7 +89,7 @@ export const defaultDocxOptions: DocxExportOptions = {
   companyName: 'Test Corp',
   includeROKS: true,
   includeVSI: true,
-  includeCosts: true,
+
 };
 
 /** Default PPTX export options for integration tests */
@@ -99,7 +99,7 @@ export const defaultPptxOptions: PptxExportOptions = {
   companyName: 'Test Corp',
   includeROKS: true,
   includeVSI: true,
-  includeCosts: true,
+
 };
 
 /** Default PDF export options for integration tests */

@@ -342,9 +342,6 @@ export function ExportPage() {
       workloadClassification,
       sourceEnvironment,
       filteredRawData,
-      roksCostEstimate: roksBOM?.estimate ?? null,
-      vsiCostEstimate: vsiBOM?.estimate ?? null,
-      sourceBOM: sourceBOM ?? null,
       roksSizingSummary: roksBOM?.roksSizingSummary ?? null,
       vsiMappingSummary: vsiBOM?.vsiMappingSummary ?? null,
     }, sanitizeFilename(docxFilename, '.docx'));
@@ -354,18 +351,12 @@ export function ExportPage() {
   const handleExportPptx = useCallback(async () => {
     if (!rawData) return;
     const platformSelection = Object.keys(answers).length > 0 ? { score, answers } : null;
-    const roksBOMPptx = getCachedBOM('roks');
-    const vsiBOMPptx = getCachedBOM('vsi');
     await exportPptx(rawData, {
       platformSelection,
       wavePlanningPreference: getWavePlanningPreference(),
       filteredRawData,
-      roksCostEstimate: roksBOMPptx?.estimate ?? null,
-      vsiCostEstimate: vsiBOMPptx?.estimate ?? null,
       timelinePhases: timelinePhases.length > 0 ? timelinePhases : null,
       timelineStartDate,
-      roksSizingSummary: roksBOMPptx?.roksSizingSummary ?? null,
-      vsiMappingSummary: vsiBOMPptx?.vsiMappingSummary ?? null,
     }, sanitizeFilename(pptxFilename, '.pptx'));
     markExportComplete();
   }, [rawData, filteredRawData, exportPptx, markExportComplete, answers, score, pptxFilename, timelinePhases, timelineStartDate]);

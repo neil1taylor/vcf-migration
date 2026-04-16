@@ -5,7 +5,6 @@ export { addExecutiveSummarySlide } from './executiveSummary';
 export { addMigrationStatsSlide } from './migrationStatsSlide';
 export { addExcludedVMsSlide } from './excludedVMsSlide';
 export { addPlatformRecommendationSlide } from './platformRecommendation';
-export { addCostEstimationSlide } from './costEstimation';
 export { addWavePlanningSlide } from './wavePlanningSlide';
 export { addMigrationExecutionSlide } from './migrationExecutionSlide';
 export { addNextStepsSlide } from './nextSteps';

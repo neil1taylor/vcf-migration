@@ -236,7 +236,6 @@ async function main() {
     companyName: 'Preview Corp',
     includeROKS: true,
     includeVSI: true,
-    includeCosts: true,
     platformSelection,
     wavePlanningPreference,
     timelinePhases: timelineExport?.phases ?? buildDefaultTimeline(3, undefined, [2, 5, 8], ['Pilot', 'Wave 1', 'Wave 2', 'Wave 3'], [50, 200, 500, 800]),

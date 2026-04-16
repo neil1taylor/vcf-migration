@@ -1,10 +1,8 @@
 // PPTX Generator Types and Constants
 
-import type { CostEstimate } from '@/services/costEstimation';
 import type { RVToolsData } from '@/types/rvtools';
 import type { TimelinePhase } from '@/types/timeline';
 import type { PlatformSelectionExport, WavePlanningPreference } from '../docx/types';
-import type { ROKSSizing, VSIMapping } from '@/types/exportSizing';
 export type { PlatformSelectionExport, WavePlanningPreference };
 
 export interface PptxExportOptions {
@@ -13,23 +11,14 @@ export interface PptxExportOptions {
   companyName?: string;
   includeROKS?: boolean;
   includeVSI?: boolean;
-  includeCosts?: boolean;
   platformSelection?: PlatformSelectionExport | null;
   wavePlanningPreference?: WavePlanningPreference | null;
   /** Pre-filtered rawData (exclusions applied). Used for target/migration sections. Falls back to rawData. */
   filteredRawData?: RVToolsData | null;
-  /** Cached ROKS cost estimate from BOM cache — full platform costs matching the UI */
-  roksCostEstimate?: CostEstimate | null;
-  /** Cached VSI cost estimate from BOM cache — full platform costs matching the UI */
-  vsiCostEstimate?: CostEstimate | null;
   /** Timeline phases for migration timeline table on wave planning slide */
   timelinePhases?: TimelinePhase[] | null;
   /** Start date for timeline date range display */
   timelineStartDate?: Date;
-  /** ROKS sizing summary from BOM cache */
-  roksSizingSummary?: ROKSSizing | null;
-  /** Per-VM VSI mapping from BOM cache */
-  vsiMappingSummary?: VSIMapping[] | null;
 }
 
 // 16:9 slide layout (inches) — matches IBM reference deck dimensions
