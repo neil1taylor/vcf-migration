@@ -39,6 +39,17 @@ vi.mock('@/hooks', () => ({
     clearCache: vi.fn(),
     isAvailable: false,
   })),
+  useAIClassification: vi.fn(() => ({
+    classifications: {},
+    isLoading: false,
+    error: null,
+    progress: 0,
+    getClassification: () => null,
+    refreshClassifications: vi.fn(),
+    clearCache: vi.fn(),
+    isAvailable: false,
+  })),
+  useWorkloadCategoryMap: vi.fn(() => new Map()),
   useVSIPageData: vi.fn(() => ({
     vmProfileMappings: [],
     profileCounts: {},

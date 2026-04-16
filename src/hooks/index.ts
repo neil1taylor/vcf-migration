@@ -64,6 +64,7 @@ export { usePreflightChecks } from './usePreflightChecks';
 export type { UsePreflightChecksConfig, UsePreflightChecksReturn } from './usePreflightChecks';
 
 export { useVSIPageData } from './useVSIPageData';
+export { useWorkloadCategoryMap } from './useWorkloadCategoryMap';
 
 // Platform selection
 export { usePlatformSelection } from './usePlatformSelection';

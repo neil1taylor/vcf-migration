@@ -4,14 +4,12 @@ import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { Grid, Column, Tile, Tabs, TabList, Tab, TabPanels, TabPanel, Loading, Tooltip } from '@carbon/react';
 import { Navigate } from 'react-router-dom';
 import { Information, Report } from '@carbon/icons-react';
-import { useData, useAllVMs, useCustomProfiles, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides, useAIRightsizing, useAutoExclusion, useVSIPageData } from '@/hooks';
+import { useData, useAllVMs, useCustomProfiles, usePreflightChecks, useMigrationAssessment, useWavePlanning, useVMOverrides, useAIRightsizing, useAIClassification, useAutoExclusion, useVSIPageData, useWorkloadCategoryMap } from '@/hooks';
 import { filterRawDataByExclusions } from '@/utils/filterRawData';
 import { ROUTES, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/utils/constants';
 import { formatNumber } from '@/utils/formatters';
 import { getVMIdentifier, getEnvironmentFingerprint } from '@/utils/vmIdentifier';
 import type { StorageTierType } from '@/utils/workloadClassification';
-import { findCategoryKeyByName, getVMWorkloadCategory } from '@/utils/workloadClassification';
-import { getCachedVMClassification } from '@/services/ai/aiClassificationCache';
 import { MetricCard, NextStepBanner, SectionErrorBoundary } from '@/components/common';
 import { CostEstimation } from '@/components/cost';
 import { ComplexityAssessmentPanel, OSCompatibilityPanel, VSIPreFlightPanel, VSISizingPanel } from '@/components/migration';
@@ -85,29 +83,6 @@ export function VSIMigrationPage() {
     if (!vm) return false;
     const vmId = getVMIdentifier(vm);
     return vmOverrides.isBandwidthSensitive(vmId);
-  }, [allVmsRaw, vmOverrides]);
-
-  // Effective workload category: user override > AI classification > name-pattern matching.
-  // Mirrors Discovery's classification chain so storage tier derivation is consistent.
-  const getEffectiveWorkloadCategoryByName = useCallback((vmName: string): string | null => {
-    // Pass 1: User workload type override (highest priority)
-    const vm = allVmsRaw.find(v => v.vmName === vmName);
-    if (vm) {
-      const vmId = getVMIdentifier(vm);
-      const userType = vmOverrides.getWorkloadType(vmId);
-      if (userType) {
-        const categoryKey = findCategoryKeyByName(userType);
-        if (categoryKey) return categoryKey;
-      }
-    }
-    // Pass 2: AI classification from cache (set by Discovery page)
-    const aiResult = getCachedVMClassification(vmName);
-    if (aiResult?.source === 'ai' && aiResult.workloadType) {
-      const aiCategoryKey = findCategoryKeyByName(aiResult.workloadType);
-      if (aiCategoryKey) return aiCategoryKey;
-    }
-    // Pass 3: Rule-based name-pattern matching
-    return getVMWorkloadCategory(vmName);
   }, [allVmsRaw, vmOverrides]);
 
   // Unified storage tier: vmOverrides.dataStorageTier is the single source of truth.
@@ -211,6 +186,33 @@ export function VSIMigrationPage() {
     aiProfileSummaries,
     envFingerprint
   );
+
+  // AI classification (shares cache with Discovery — won't re-fetch if already cached)
+  const aiClassificationInputs = useMemo(() => {
+    return poweredOnVMs.map(vm => ({
+      vmName: vm.vmName,
+      guestOS: vm.guestOS || undefined,
+      annotation: vm.annotation || undefined,
+      vCPUs: vm.cpus,
+      memoryMB: vm.memory,
+      diskCount: 1,
+      nicCount: 1,
+      powerState: vm.powerState,
+    }));
+  }, [poweredOnVMs]);
+
+  const { classifications: aiClassifications } = useAIClassification(
+    aiClassificationInputs,
+    envFingerprint
+  );
+
+  // Shared 4-pass workload classification (User > Maintainer > AI > Name-patterns)
+  const workloadCategoryMap = useWorkloadCategoryMap(poweredOnVMs, vmOverrides, aiClassifications);
+
+  // Effective workload category lookup — backed by useWorkloadCategoryMap (full 4-pass chain).
+  const getEffectiveWorkloadCategoryByName = useCallback((vmName: string): string | null => {
+    return workloadCategoryMap.get(vmName) ?? null;
+  }, [workloadCategoryMap]);
 
   // ===== PRE-FLIGHT CHECKS (using hook) =====
   const {
