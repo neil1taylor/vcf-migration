@@ -83,7 +83,7 @@ export function VSIPreFlightPanel({
               <Tag type={(preflightCounts.vmsWithSmallDataDisk || 0) === 0 ? 'green' : 'teal'}>{formatNumber(preflightCounts.vmsWithSmallDataDisk || 0)}</Tag>
             </div>
             <div className="migration-page__check-item">
-              <span>Disks &gt;2TB</span>
+              <span>Disks &gt;16TB</span>
               <Tag type={preflightCounts.vmsWithLargeDisks === 0 ? 'green' : 'magenta'}>{formatNumber(preflightCounts.vmsWithLargeDisks)}</Tag>
             </div>
           </div>

@@ -232,11 +232,11 @@ export const CHECK_DEFINITIONS: CheckDefinition[] = [
   },
   {
     id: 'large-disks',
-    name: 'Disks ≤2TB',
-    shortName: 'Disk 2TB',
+    name: 'Disks ≤16TB',
+    shortName: 'Disk 16TB',
     category: 'storage',
     severity: 'warning',
-    description: 'Disks larger than 2TB may require splitting or multiple volumes',
+    description: 'Disks larger than 16TB exceed the VPC block storage volume limit',
     modes: ['vsi'],
   },
   {
@@ -487,18 +487,18 @@ function evaluateCheck(
     }
 
     case 'large-disks': {
-      const LARGE_DISK_THRESHOLD_GB = 2000;
+      const LARGE_DISK_THRESHOLD_GB = 16000;
       const largeDisks = context.disks.filter(d => mibToGiB(d.capacityMiB) > LARGE_DISK_THRESHOLD_GB);
       if (largeDisks.length > 0) {
         const maxSize = Math.round(Math.max(...largeDisks.map(d => mibToGiB(d.capacityMiB))));
         return {
           status: 'fail',
-          value: `${largeDisks.length} disk(s) > 2TB`,
-          threshold: '2TB',
+          value: `${largeDisks.length} disk(s) > 16TB`,
+          threshold: '16TB',
           message: `Largest: ${maxSize} GB`,
         };
       }
-      return { status: 'pass', value: 'All disks ≤2TB' };
+      return { status: 'pass', value: 'All disks ≤16TB' };
     }
 
     // ===== HARDWARE CHECKS =====

@@ -236,10 +236,10 @@ export function generateVSIRemediationItems(counts: PreflightCheckCounts): Remed
   if (counts.vmsWithLargeDisks > 0) {
     items.push({
       id: 'large-disks',
-      name: 'Large Disks (>2TB)',
+      name: 'Large Disks (>16TB)',
       severity: 'warning',
-      description: 'Disks larger than 2TB may require multiple block volumes or file storage. VPC block storage volumes support up to 16TB each.',
-      remediation: 'Plan for disk migration strategy: use multiple block volumes, leverage file storage for large data sets, or consider object storage for archival data.',
+      description: 'Disks larger than 16TB exceed the maximum VPC block storage volume size.',
+      remediation: 'Split data across multiple block volumes, leverage file storage for large data sets, or consider object storage for archival data.',
       documentationLink: VPC_DOCS.ibmVpcBlockStorage,
       affectedCount: counts.vmsWithLargeDisks,
       affectedVMs: counts.vmsWithLargeDisksList,

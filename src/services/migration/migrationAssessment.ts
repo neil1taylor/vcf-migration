@@ -64,10 +64,10 @@ export function calculateVSIComplexityScore(
 
   // Disk complexity
   const vmDisks = disks.filter(d => d.vmName === vm.vmName);
-  const largeDisks = vmDisks.filter(d => mibToGiB(d.capacityMiB) > 2000).length;
+  const largeDisks = vmDisks.filter(d => mibToGiB(d.capacityMiB) > 16000).length;
   if (largeDisks > 0) {
     score += 30;
-    factors.push(`${largeDisks} large disk${largeDisks > 1 ? 's' : ''} >2TB (+30)`);
+    factors.push(`${largeDisks} large disk${largeDisks > 1 ? 's' : ''} >16TB (+30)`);
   }
   if (vmDisks.length > 5) {
     score += 20;
