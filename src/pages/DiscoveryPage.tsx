@@ -12,6 +12,7 @@ import { DiscoveryVMTable, InfrastructureTab, SourceBOMTab } from '@/components/
 import { NetworkSummaryTable } from '@/components/network';
 import type { WorkloadMatch } from '@/components/discovery';
 import { getVMIdentifier, getEnvironmentFingerprint } from '@/utils/vmIdentifier';
+import { findCategoryKeyByName } from '@/utils/workloadClassification';
 import workloadPatterns from '@/data/workloadPatterns.json';
 import './DiscoveryPage.scss';
 
@@ -30,16 +31,6 @@ type AuthoritativeRule = {
 // Load authoritative classification rules from JSON
 const authoritativeRules: AuthoritativeRule[] =
   ((workloadPatterns as Record<string, unknown>).authoritativeClassifications as { rules?: AuthoritativeRule[] })?.rules ?? [];
-
-// Helper: find category key by display name (case-insensitive)
-function findCategoryKeyByName(displayName: string): string | null {
-  const categories = workloadPatterns.categories as Record<string, CategoryDef>;
-  const nameLower = displayName.toLowerCase();
-  for (const [key, cat] of Object.entries(categories)) {
-    if (cat.name.toLowerCase() === nameLower) return key;
-  }
-  return null;
-}
 
 // Helper: check if a VM name matches an authoritative classification rule
 function matchesAuthoritativeRule(vmName: string, rule: AuthoritativeRule): boolean {

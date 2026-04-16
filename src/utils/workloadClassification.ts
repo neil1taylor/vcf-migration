@@ -68,6 +68,18 @@ export function getCategoryDisplayName(categoryKey: string | null): string | nul
   return categories[categoryKey]?.name ?? null;
 }
 
+/**
+ * Reverse-lookup: find a category key by its display name (case-insensitive).
+ * Returns the key (e.g. 'databases') or null if no match.
+ */
+export function findCategoryKeyByName(displayName: string): string | null {
+  const nameLower = displayName.toLowerCase();
+  for (const [key, cat] of Object.entries(categories)) {
+    if (cat.name.toLowerCase() === nameLower) return key;
+  }
+  return null;
+}
+
 /** Short human-readable label for a storage tier */
 export function getStorageTierLabel(tier: StorageTierType): string {
   switch (tier) {

@@ -16,7 +16,7 @@ import type { ComplexityScore } from '@/services/migration';
 import type { UseWavePlanningReturn } from '@/hooks/useWavePlanning';
 import type { CustomProfile } from '@/hooks/useCustomProfiles';
 import type { StorageTierType } from '@/utils/workloadClassification';
-import { getVMWorkloadCategory, getCategoryDisplayName } from '@/utils/workloadClassification';
+import { getVMWorkloadCategory, getCategoryDisplayName, getStorageTierForWorkload } from '@/utils/workloadClassification';
 
 // ===== INPUT TYPE =====
 
@@ -36,11 +36,21 @@ export interface UseVSIPageDataConfig {
   isInstanceStoragePreferred?: (vmName: string) => boolean;
   isGpuRequired?: (vmName: string) => boolean;
   isBandwidthSensitive?: (vmName: string) => boolean;
+  /** Returns effective workload category key considering user/AI overrides; falls back to name-pattern matching. */
+  getEffectiveWorkloadCategory?: (vmName: string) => string | null;
   complexityScores: ComplexityScore[];
   blockerCount: number;
   warningCount: number;
   wavePlanning: UseWavePlanningReturn;
   remediationItems: RemediationItem[];
+}
+
+// ===== CAPACITY VALIDATION TYPE =====
+
+export interface CapacityValidation {
+  cpu: { required: number; provisioned: number };
+  memory: { required: number; provisioned: number };    // GiB
+  storage: { required: number; provisioned: number };   // GiB
 }
 
 // ===== RETURN TYPE =====
@@ -57,6 +67,7 @@ export interface UseVSIPageDataReturn {
   vsiTotalMemory: number;
   overriddenVMCount: number;
   vsiSizing: VSISizingInput;
+  capacityValidation: CapacityValidation;
   insightsData: InsightsInput | null;
   waveSuggestionData: WaveSuggestionInput | null;
   costOptimizationData: CostOptimizationInput | null;
@@ -84,6 +95,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
     isInstanceStoragePreferred,
     isGpuRequired,
     isBandwidthSensitive,
+    getEffectiveWorkloadCategory,
     complexityScores,
     blockerCount,
     warningCount,
@@ -160,12 +172,12 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
         }
       }
 
-      // Workload category (for display, not storage tier)
-      const workloadCategory = getVMWorkloadCategory(vm.vmName);
+      // Workload category — uses full classification chain (user override > AI > name patterns)
+      const workloadCategory = getEffectiveWorkloadCategory?.(vm.vmName) ?? getVMWorkloadCategory(vm.vmName);
 
-      // Storage tier — Discovery is the single source of truth.
-      // Default is general-purpose; overrides come from vmOverrides.dataStorageTier (set in Discovery or VSI table).
-      const storageTier = getEffectiveStorageTier(vm.vmName, 'general-purpose' as StorageTierType);
+      // Storage tier — derives from effective workload category; vmOverrides.dataStorageTier takes priority.
+      const autoTier = getStorageTierForWorkload(workloadCategory);
+      const storageTier = getEffectiveStorageTier(vm.vmName, autoTier);
       const isStorageTierOverridden = hasStorageTierOverride(vm.vmName);
 
       // Storage capacity
@@ -187,7 +199,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
         isOverridden,
         classification,
         storageTier,
-        autoStorageTier: 'general-purpose' as StorageTierType,
+        autoStorageTier: autoTier,
         isStorageTierOverridden,
         workloadCategory,
         provisionedStorageGiB,
@@ -196,7 +208,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
         bandwidthSensitive: needsBandwidth,
       };
     });
-  }, [poweredOnVMs, customProfiles, getEffectiveProfile, hasOverride, getEffectiveStorageTier, hasStorageTierOverride, isFlexCandidate, isInstanceStoragePreferred, isGpuRequired, isBandwidthSensitive, vsiProfiles, disks]);
+  }, [poweredOnVMs, customProfiles, getEffectiveProfile, hasOverride, getEffectiveStorageTier, hasStorageTierOverride, isFlexCandidate, isInstanceStoragePreferred, isGpuRequired, isBandwidthSensitive, getEffectiveWorkloadCategory, vsiProfiles, disks]);
 
   // ===== PROFILE COUNTS & CHART DATA =====
   const profileCounts = useMemo(() => vmProfileMappings.reduce((acc, mapping) => {
@@ -282,6 +294,40 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
       storageByTier,
     };
   }, [vmProfileMappings, disks, poweredOnVMs]);
+
+  // ===== CAPACITY VALIDATION =====
+  const capacityValidation = useMemo<CapacityValidation>(() => {
+    const requiredCpu = vmProfileMappings.reduce((sum, m) => sum + m.vcpus, 0);
+    const requiredMemory = vmProfileMappings.reduce((sum, m) => sum + m.memoryGiB, 0);
+    const requiredStorage = vmProfileMappings.reduce((sum, m) => sum + m.provisionedStorageGiB, 0);
+
+    // Provisioned storage: recompute from disks using BOM-adjusted values
+    // (boot min 100/120, cap 250, data min VPC_DATA_VOLUME_MIN_GB per volume)
+    const poweredOnVMNames = new Set(poweredOnVMs.map(vm => vm.vmName));
+    let provisionedStorageGiB = 0;
+    for (const mapping of vmProfileMappings) {
+      const vmDisks = disks
+        .filter(d => d.vmName === mapping.vmName && poweredOnVMNames.has(d.vmName))
+        .sort((a, b) => (a.diskKey || 0) - (b.diskKey || 0));
+      if (vmDisks.length === 0) continue;
+      const isWindows = mapping.guestOS.toLowerCase().includes('windows');
+      const bootGiB = Math.min(
+        Math.max(Math.round(mibToGiB(vmDisks[0].capacityMiB)), isWindows ? 120 : 100),
+        250
+      );
+      provisionedStorageGiB += bootGiB;
+      const dataDisks = vmDisks.slice(1);
+      provisionedStorageGiB += dataDisks.reduce(
+        (sum, d) => sum + Math.max(Math.round(mibToGiB(d.capacityMiB)), VPC_DATA_VOLUME_MIN_GB), 0
+      );
+    }
+
+    return {
+      cpu: { required: requiredCpu, provisioned: vsiTotalVCPUs },
+      memory: { required: requiredMemory, provisioned: vsiTotalMemory },
+      storage: { required: requiredStorage, provisioned: provisionedStorageGiB },
+    };
+  }, [vmProfileMappings, vsiTotalVCPUs, vsiTotalMemory, disks, poweredOnVMs]);
 
   // ===== AI INSIGHTS DATA =====
   const insightsData = useMemo<InsightsInput | null>(() => {
@@ -450,6 +496,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
     vsiTotalMemory,
     overriddenVMCount,
     vsiSizing,
+    capacityValidation,
     insightsData,
     waveSuggestionData,
     costOptimizationData,

@@ -346,4 +346,31 @@
     text-align: center;
     font-weight: 600;
   }
+
+  // Capacity Validation Section
+  &__capacity-validation {
+    padding: $spacing-05;
+    margin-bottom: $spacing-05;
+
+    h4 {
+      @include type-style('heading-compact-02');
+      margin: 0 0 $spacing-02 0;
+    }
+  }
+
+  &__capacity-validation-subtitle {
+    @include type-style('helper-text-01');
+    color: var(--cds-text-secondary, $gray-60);
+    margin-bottom: $spacing-05;
+  }
+
+  &__capacity-validation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: $spacing-05;
+
+    @media (max-width: 671px) {
+      grid-template-columns: 1fr;
+    }
+  }
 }

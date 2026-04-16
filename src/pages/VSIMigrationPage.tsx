@@ -10,6 +10,7 @@ import { ROUTES, SNAPSHOT_WARNING_AGE_DAYS, SNAPSHOT_BLOCKER_AGE_DAYS } from '@/
 import { formatNumber } from '@/utils/formatters';
 import { getVMIdentifier, getEnvironmentFingerprint } from '@/utils/vmIdentifier';
 import type { StorageTierType } from '@/utils/workloadClassification';
+import { findCategoryKeyByName, getVMWorkloadCategory } from '@/utils/workloadClassification';
 import { MetricCard, NextStepBanner, SectionErrorBoundary } from '@/components/common';
 import { CostEstimation } from '@/components/cost';
 import { ComplexityAssessmentPanel, OSCompatibilityPanel, VSIPreFlightPanel, VSISizingPanel } from '@/components/migration';
@@ -83,6 +84,21 @@ export function VSIMigrationPage() {
     if (!vm) return false;
     const vmId = getVMIdentifier(vm);
     return vmOverrides.isBandwidthSensitive(vmId);
+  }, [allVmsRaw, vmOverrides]);
+
+  // Effective workload category: user workload type override > name-pattern matching.
+  // Mirrors Discovery's classification chain so storage tier derivation is consistent.
+  const getEffectiveWorkloadCategoryByName = useCallback((vmName: string): string | null => {
+    const vm = allVmsRaw.find(v => v.vmName === vmName);
+    if (vm) {
+      const vmId = getVMIdentifier(vm);
+      const userType = vmOverrides.getWorkloadType(vmId);
+      if (userType) {
+        const categoryKey = findCategoryKeyByName(userType);
+        if (categoryKey) return categoryKey;
+      }
+    }
+    return getVMWorkloadCategory(vmName);
   }, [allVmsRaw, vmOverrides]);
 
   // Unified storage tier: vmOverrides.dataStorageTier is the single source of truth.
@@ -248,6 +264,7 @@ export function VSIMigrationPage() {
     vsiTotalMemory,
     overriddenVMCount,
     vsiSizing,
+    capacityValidation,
     insightsData,
     costOptimizationData,
     remediationAIData,
@@ -268,6 +285,7 @@ export function VSIMigrationPage() {
     isInstanceStoragePreferred: isInstanceStoragePreferredByName,
     isGpuRequired: isGpuRequiredByName,
     isBandwidthSensitive: isBandwidthSensitiveByName,
+    getEffectiveWorkloadCategory: getEffectiveWorkloadCategoryByName,
     complexityScores,
     blockerCount,
     warningCount,
@@ -420,7 +438,7 @@ export function VSIMigrationPage() {
               <TabPanel>
                 <Grid className="migration-page__tab-content">
                   <Column lg={16} md={8} sm={4}>
-                    <CostEstimation type="vsi" vsiSizing={vsiSizing} vmDetails={vmDetails} vsiMappingSummary={vsiMappingSummary} title="VPC VSI Cost Estimation" onEstimateChange={handleVsiEstimateChange} />
+                    <CostEstimation type="vsi" vsiSizing={vsiSizing} vmDetails={vmDetails} vsiMappingSummary={vsiMappingSummary} capacityValidation={capacityValidation} title="VPC VSI Cost Estimation" onEstimateChange={handleVsiEstimateChange} />
                   </Column>
                   <Column lg={16} md={8} sm={4}>
                     <SectionErrorBoundary sectionName="AI Cost Optimization">

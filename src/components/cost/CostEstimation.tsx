@@ -21,6 +21,7 @@ import {
 } from '@carbon/react';
 import { Download, Calculator } from '@carbon/icons-react';
 import { MetricCard } from '@/components/common';
+import type { MetricCardVariant } from '@/components/common';
 import { PricingRefresh } from '@/components/pricing';
 import { ProfilesRefresh } from '@/components/profiles';
 import { useDynamicPricing, useDynamicProfiles, useTargetLocation, useCostSettings } from '@/hooks';
@@ -42,6 +43,7 @@ import type { OdfTuningProfile, OdfCpuUnitMode } from '@/utils/odfCalculation';
 import { calculateNodesForProfile } from '@/utils/nodeCalculation';
 import { cacheBOMData } from '@/services/bomCache';
 import type { ROKSSizing, VSIMapping } from '@/types/exportSizing';
+import type { CapacityValidation } from '@/hooks/useVSIPageData';
 import { sortProfileCosts, findBestValueProfileId } from './profileCostSort';
 import './CostEstimation.scss';
 
@@ -62,9 +64,28 @@ interface CostEstimationProps {
   roksSizingSummary?: ROKSSizing;
   /** VSI mapping summary for export cache — built by VSIMigrationPage */
   vsiMappingSummary?: VSIMapping[];
+  /** Capacity validation: source VM requirements vs provisioned BOM capacity */
+  capacityValidation?: CapacityValidation;
 }
 
-export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true, onProfileSelect, onEstimateChange, onOdfTierChange, onIncludeAcmChange, roksVariant = 'full', roksSizingSummary, vsiMappingSummary }: CostEstimationProps) {
+function capacityVariant(dim: { required: number; provisioned: number }): MetricCardVariant {
+  if (dim.required === 0) return 'info';
+  const pct = ((dim.provisioned - dim.required) / dim.required) * 100;
+  if (pct < 0) return 'error';
+  if (pct <= 25) return 'success';
+  if (pct <= 75) return 'info';
+  return 'warning';
+}
+
+function formatCapacityDetail(dim: { required: number; provisioned: number }): string {
+  const delta = dim.provisioned - dim.required;
+  const sign = delta >= 0 ? '+' : '';
+  if (dim.required === 0) return 'No VMs';
+  const pct = Math.round((delta / dim.required) * 100);
+  return `Required: ${dim.required.toLocaleString()} · ${sign}${delta.toLocaleString()} (${sign}${pct}%)`;
+}
+
+export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNodeDetails, title, showPricingRefresh = true, onProfileSelect, onEstimateChange, onOdfTierChange, onIncludeAcmChange, roksVariant = 'full', roksSizingSummary, vsiMappingSummary, capacityValidation }: CostEstimationProps) {
   const { targetMzr } = useTargetLocation();
 
   // Initialize region from Discovery's MZR selection, validated against available regions
@@ -514,6 +535,39 @@ export function CostEstimation({ type, roksSizing, vsiSizing, vmDetails, roksNod
           </Accordion>
         )}
       </Tile>
+
+      {/* Capacity Validation (VSI only) */}
+      {type === 'vsi' && capacityValidation && (
+        <Tile className="cost-estimation__capacity-validation">
+          <h4>Capacity Validation</h4>
+          <p className="cost-estimation__capacity-validation-subtitle">
+            Source VM requirements vs. provisioned BOM capacity
+          </p>
+          <div className="cost-estimation__capacity-validation-grid">
+            <MetricCard
+              label="CPU (vCPUs)"
+              value={capacityValidation.cpu.provisioned.toLocaleString()}
+              detail={formatCapacityDetail(capacityValidation.cpu)}
+              variant={capacityVariant(capacityValidation.cpu)}
+              tooltip="Sum of assigned VSI profile vCPUs vs. sum of source VM vCPUs"
+            />
+            <MetricCard
+              label="Memory (GiB)"
+              value={capacityValidation.memory.provisioned.toLocaleString()}
+              detail={formatCapacityDetail(capacityValidation.memory)}
+              variant={capacityVariant(capacityValidation.memory)}
+              tooltip="Sum of assigned VSI profile memory vs. sum of source VM memory"
+            />
+            <MetricCard
+              label="Storage (GiB)"
+              value={capacityValidation.storage.provisioned.toLocaleString()}
+              detail={formatCapacityDetail(capacityValidation.storage)}
+              variant={capacityVariant(capacityValidation.storage)}
+              tooltip="Sum of BOM-adjusted storage (boot + data with VPC minimums) vs. sum of source VM provisioned storage"
+            />
+          </div>
+        </Tile>
+      )}
 
       {/* Cost Summary */}
       <div className="cost-estimation__summary">

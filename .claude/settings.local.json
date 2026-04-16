@@ -30,7 +30,8 @@
       "mcp__vcf-analyzer__ai_chat",
       "mcp__vcf-analyzer__ai_classify_vms",
       "mcp__vcf-analyzer__ai_call_endpoint",
-      "mcp__vcf-analyzer__classify_targets"
+      "mcp__vcf-analyzer__classify_targets",
+      "Skill(taches-cc-resources:debug)"
     ],
     "deny": [
       "Bash(rm -rf *)",
