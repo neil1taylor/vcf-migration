@@ -315,25 +315,25 @@ describe('IT Requirements Template Excel Generator', () => {
     });
 
     it('maps eu-de to Europe geography', async () => {
-      const wb = await generateITRequirementsExcel([sampleVMs[0]], 'VPC', 'eu-de' as any, 'onDemand');
+      const wb = await generateITRequirementsExcel([sampleVMs[0]], 'VPC', 'eu-de', 'onDemand');
       const sheet = wb.getWorksheet('Project Settings')!;
       expect(sheet.getRow(2).getCell(3).value).toBe('Europe');
     });
 
     it('maps jp-tok to Asia Pacific geography', async () => {
-      const wb = await generateITRequirementsExcel([sampleVMs[0]], 'VPC', 'jp-tok' as any, 'onDemand');
+      const wb = await generateITRequirementsExcel([sampleVMs[0]], 'VPC', 'jp-tok', 'onDemand');
       const sheet = wb.getWorksheet('Project Settings')!;
       expect(sheet.getRow(2).getCell(3).value).toBe('Asia Pacific');
     });
 
     it('maps br-sao to South America geography', async () => {
-      const wb = await generateITRequirementsExcel([sampleVMs[0]], 'VPC', 'br-sao' as any, 'onDemand');
+      const wb = await generateITRequirementsExcel([sampleVMs[0]], 'VPC', 'br-sao', 'onDemand');
       const sheet = wb.getWorksheet('Project Settings')!;
       expect(sheet.getRow(2).getCell(3).value).toBe('South America');
     });
 
     it('generates correct data center from region', async () => {
-      const wb = await generateITRequirementsExcel([sampleVMs[0]], 'VPC', 'eu-de' as any, 'onDemand');
+      const wb = await generateITRequirementsExcel([sampleVMs[0]], 'VPC', 'eu-de', 'onDemand');
       const sheet = wb.getWorksheet('Project Settings')!;
       expect(sheet.getRow(2).getCell(5).value).toBe('eu-de-1');
     });
