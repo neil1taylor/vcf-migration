@@ -59,7 +59,7 @@ import { runPreFlightChecks, type CheckMode } from '@/services/preflightChecks';
 import { exportPreFlightExcel, downloadWavePlanningExcel } from '@/services/export/excelGenerator';
 import { buildDiagnosticBundle, downloadDiagnosticBundle } from '@/services/diagnosticBundle';
 import { getCachedBOM, hasCachedBOM } from '@/services/bomCache';
-import { downloadVSIBOMExcel, downloadROKSBOMExcel, downloadSourceBOMExcel, MTVYAMLGenerator, downloadBlob } from '@/services/export';
+import { downloadVSIBOMExcel, downloadROKSBOMExcel, downloadSourceBOMExcel, downloadITRequirementsExcel, MTVYAMLGenerator, downloadBlob } from '@/services/export';
 import type { MTVExportOptions } from '@/types/mtvYaml';
 import { RackwareExportModal } from '@/components/export/RackwareExportModal';
 import './ExportPage.scss';
@@ -167,6 +167,7 @@ export function ExportPage() {
   const [handoverFilename, setHandoverFilename] = useState(() => getDefaultFilename('handover', filenameCtx));
   const [diagnosticsFilename, setDiagnosticsFilename] = useState(() => getDefaultFilename('diagnostics', filenameCtx));
   const [sourceBomFilename, setSourceBomFilename] = useState(() => getDefaultFilename('source-bom', filenameCtx));
+  const [itReqFilename, setItReqFilename] = useState(() => getDefaultFilename('it-requirements', filenameCtx));
 
   // ===== Filtered VMs (same exclusion logic as migration pages) =====
   const includedVMs = useMemo(() => {
@@ -400,6 +401,19 @@ export function ExportPage() {
     );
     markExportComplete();
   }, [markExportComplete, vsiBomFilename]);
+
+  const handleExportITRequirements = useCallback(async () => {
+    const cached = getCachedBOM('vsi');
+    if (!cached) return;
+    await downloadITRequirementsExcel(
+      cached.vmDetails ?? [],
+      'Default VPC',
+      cached.region,
+      cached.discountType,
+      sanitizeFilename(itReqFilename, '.xlsx'),
+    );
+    markExportComplete();
+  }, [markExportComplete, itReqFilename]);
 
   const handleExportROKSBOM = useCallback(async () => {
     const cached = getCachedBOM('roks');
@@ -777,6 +791,43 @@ export function ExportPage() {
               className="export-page__card-action"
             >
               Export VSI BOM
+            </Button>
+          </Tile>
+        </Column>
+
+        {/* IT Requirements Template */}
+        <Column lg={8} md={4} sm={4}>
+          <Tile className="export-page__card">
+            <div className="export-page__card-header">
+              <Report size={24} className="export-page__card-icon" />
+              <div>
+                <h3 className="export-page__card-title">IT Requirements Template</h3>
+                <p className="export-page__card-description">
+                  Export VM sizing for direct import into the IBM Cloud Public Cloud Solutioning Tool.
+                </p>
+              </div>
+            </div>
+            {!hasVSIBOM && (
+              <p className="export-page__card-helper">Complete cost estimation on the VSI Migration page to enable.</p>
+            )}
+            <TextInput
+              id="it-req-filename"
+              labelText="Filename"
+              size="sm"
+              value={itReqFilename}
+              onChange={(e) => setItReqFilename(e.target.value)}
+              disabled={!hasVSIBOM}
+              className="export-page__card-filename"
+            />
+            <Button
+              kind="primary"
+              size="md"
+              renderIcon={Report}
+              onClick={handleExportITRequirements}
+              disabled={!hasVSIBOM}
+              className="export-page__card-action"
+            >
+              Export IT Requirements
             </Button>
           </Tile>
         </Column>

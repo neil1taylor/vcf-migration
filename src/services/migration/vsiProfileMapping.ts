@@ -176,16 +176,25 @@ export function isFlexProfile(profileName: string): boolean {
 }
 
 /**
- * Check if a profile is a standard (non-flex, non-z-series) profile
+ * Check if a profile is a confidential computing profile (dc suffix, e.g. bx3dc, cx3dc).
+ * These are specialized profiles not part of the standard sizing flow.
+ */
+export function isConfidentialComputingProfile(profileName: string): boolean {
+  const prefix = profileName.split('-')[0];
+  return prefix.endsWith('dc');
+}
+
+/**
+ * Check if a profile is a standard (non-flex, non-z-series, non-confidential-computing) profile
  */
 export function isStandardProfile(profileName: string): boolean {
-  return !isFlexProfile(profileName) && !isZSeriesProfile(profileName);
+  return !isFlexProfile(profileName) && !isZSeriesProfile(profileName) && !isConfidentialComputingProfile(profileName);
 }
 
 /**
  * Check if a profile is a preferred (gen3) generation.
  * Gen3 profiles use 4th Gen Intel Xeon (Sapphire Rapids), DDR5, PCIe Gen5.
- * Prefixes: bx3d, bx3dc, cx3d, cx3dc, mx3d
+ * Prefixes: bx3d, cx3d, mx3d (excludes bx3dc/cx3dc confidential computing variants)
  */
 export function isPreferredGeneration(profileName: string): boolean {
   const prefix = profileName.split('-')[0];

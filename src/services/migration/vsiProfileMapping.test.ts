@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   isFlexProfile,
   isStandardProfile,
+  isConfidentialComputingProfile,
   isZSeriesProfile,
   isPreferredGeneration,
   determineProfileFamily,
@@ -70,6 +71,25 @@ describe('vsiProfileMapping', () => {
       expect(isStandardProfile('bz2e-4x16')).toBe(false);
       expect(isStandardProfile('cz2-2x4')).toBe(false);
       expect(isStandardProfile('mz2e-2x16')).toBe(false);
+    });
+
+    it('should exclude confidential computing profiles', () => {
+      expect(isStandardProfile('bx3dc-4x20')).toBe(false);
+      expect(isStandardProfile('cx3dc-8x20')).toBe(false);
+      expect(isStandardProfile('bx3dc-96x480')).toBe(false);
+    });
+  });
+
+  describe('isConfidentialComputingProfile', () => {
+    it('should identify confidential computing profiles', () => {
+      expect(isConfidentialComputingProfile('bx3dc-4x20')).toBe(true);
+      expect(isConfidentialComputingProfile('cx3dc-8x20')).toBe(true);
+    });
+
+    it('should not match standard profiles', () => {
+      expect(isConfidentialComputingProfile('bx3d-4x20')).toBe(false);
+      expect(isConfidentialComputingProfile('bx2-4x16')).toBe(false);
+      expect(isConfidentialComputingProfile('cx2d-8x16')).toBe(false);
     });
   });
 

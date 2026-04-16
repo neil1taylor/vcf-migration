@@ -481,6 +481,7 @@ export function useVSIPageData(config: UseVSIPageDataConfig): UseVSIPageDataRetu
       memoryGiB: mapping?.profile.memoryGiB || Math.round(mibToGiB(vm.memory)),
       bootVolumeGiB,
       dataVolumes,
+      storageTier: mapping?.storageTier ?? 'general-purpose',
     };
   }), [poweredOnVMs, vmProfileMappings, disks]);
 

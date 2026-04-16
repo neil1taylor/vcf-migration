@@ -17,6 +17,10 @@ export {
   downloadROKSBOMExcel,
 } from './bomXlsxGenerator';
 export type { VMDetail, ROKSNodeDetail } from './bomXlsxGenerator';
+export {
+  generateITRequirementsExcel,
+  downloadITRequirementsExcel,
+} from './itRequirementsXlsxGenerator';
 export { generateSourceBOMExcel, downloadSourceBOMExcel } from './sourceBomXlsxGenerator';
 export { generateDocxReport, downloadDocx } from './docxGenerator';
 export type { DocxExportOptions } from './docxGenerator';

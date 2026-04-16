@@ -26,6 +26,7 @@ export interface VMDetail {
   memoryGiB: number;
   bootVolumeGiB: number;
   dataVolumes: { sizeGiB: number }[];
+  storageTier?: 'general-purpose' | '5iops' | '10iops';
 }
 
 // ROKS node detail for xlsx export
