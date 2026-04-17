@@ -719,6 +719,48 @@ describe('Cost Estimation Service', () => {
 
       expect(defaultCost.totalMonthly).toBe(fullCost.totalMonthly);
     });
+
+    it('should use OVE rates even when regionalPricing has roks but not ove', () => {
+      // Regression test: when regionalPricing has per-region roks rates but no ove,
+      // ROV must not fall back to the regional ROKS rates
+      const pricing: IBMCloudPricing = { ...getStaticPricing() };
+
+      // Simulate what the pricing script does: add roks to regional data
+      if (!pricing.regionalPricing) pricing.regionalPricing = {};
+      pricing.regionalPricing['us-south'] = {
+        ...pricing.regionalPricing['us-south'],
+        vsi: {},
+        bareMetal: {},
+        blockStorage: {},
+        networking: {
+          loadBalancer: { perLBMonthly: 21.60, perGBProcessed: 0.008 },
+          vpnGateway: { perGatewayMonthly: 99, perConnectionMonthly: 0.04 },
+          publicGateway: { perGatewayMonthly: 5 },
+          transitGateway: { perGatewayMonthly: 0, localConnectionMonthly: 50, globalConnectionMonthly: 100, perGBLocal: 0.02, perGBGlobal: 0.04 },
+          floatingIP: { perIPMonthly: 5 },
+        },
+        roks: {
+          ocpLicense: { perVCPUHourly: 0.04275, perVCPUMonthly: 31.21 },
+          odf: {
+            advanced: { bareMetalPerNodeMonthly: 681.818, vsiPerVCPUHourly: 0.00725 },
+            essentials: { bareMetalPerNodeMonthly: 545.455, vsiPerVCPUHourly: 0.00575 },
+          },
+          clusterManagement: { perClusterMonthly: 0 },
+        },
+        // No ove key — this is the scenario that triggers the bug
+      };
+
+      const fullCost = calculateROKSCost(baseSizing, 'us-south', 'onDemand', pricing, 'full');
+      const rovCost = calculateROKSCost(baseSizing, 'us-south', 'onDemand', pricing, 'rov');
+
+      // ROV must be cheaper than ROKS (OVE licensing is ~25% of ROKS)
+      expect(rovCost.totalMonthly).toBeLessThan(fullCost.totalMonthly);
+
+      // Verify OCP license rates differ
+      const fullOcp = fullCost.lineItems.find(i => i.category === 'Licensing');
+      const rovOcp = rovCost.lineItems.find(i => i.category === 'Licensing');
+      expect(rovOcp!.unitCost).toBeLessThan(fullOcp!.unitCost);
+    });
   });
 
   describe('calculateROKSCost with solutionType', () => {

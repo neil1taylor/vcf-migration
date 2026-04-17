@@ -93,6 +93,60 @@ describe('regionalPricingResolver', () => {
       expect(result.vsi['cx2-4x8'].monthlyRate).toBe(109.50);
     });
 
+    it('should backfill ove from base pricing when regional data lacks ove', () => {
+      const pricing = {
+        regionalPricing: mockRegionalPricing, // has roks, no ove
+        bareMetal: {},
+        vsi: {},
+        ove: {
+          ocpLicense: { perVCPUHourly: 0.01069, perVCPUMonthly: 7.80, description: 'OVE OCP' },
+          odf: {
+            advanced: { bareMetalPerNodeMonthly: 170.455, vsiPerVCPUHourly: 0.00181, description: 'OVE ODF Adv' },
+            essentials: { bareMetalPerNodeMonthly: 136.364, vsiPerVCPUHourly: 0.00144, description: 'OVE ODF Ess' },
+          },
+          clusterManagement: { perClusterMonthly: 0, description: 'OVE cluster mgmt' },
+        },
+      } as unknown as IBMCloudPricing;
+      const result = getRegionalPricing(pricing, 'us-south');
+      expect(result.ove).toBeDefined();
+      expect(result.ove!.ocpLicense.perVCPUHourly).toBe(0.01069);
+      expect(result.ove!.odf.advanced.bareMetalPerNodeMonthly).toBe(170.455);
+      expect(result.ove!.odf.essentials.bareMetalPerNodeMonthly).toBe(136.364);
+    });
+
+    it('should not overwrite existing regional ove data', () => {
+      const regionalWithOve: Record<string, RegionalPricingData> = {
+        'us-south': {
+          ...mockRegionalPricing['us-south'],
+          ove: {
+            ocpLicense: { perVCPUHourly: 0.009, perVCPUMonthly: 6.57 },
+            odf: {
+              advanced: { bareMetalPerNodeMonthly: 150, vsiPerVCPUHourly: 0.0015 },
+              essentials: { bareMetalPerNodeMonthly: 120, vsiPerVCPUHourly: 0.0012 },
+            },
+            clusterManagement: { perClusterMonthly: 0 },
+          },
+        },
+      };
+      const pricing = {
+        regionalPricing: regionalWithOve,
+        bareMetal: {},
+        vsi: {},
+        ove: {
+          ocpLicense: { perVCPUHourly: 0.01069, perVCPUMonthly: 7.80, description: 'OVE OCP' },
+          odf: {
+            advanced: { bareMetalPerNodeMonthly: 170.455, vsiPerVCPUHourly: 0.00181, description: '' },
+            essentials: { bareMetalPerNodeMonthly: 136.364, vsiPerVCPUHourly: 0.00144, description: '' },
+          },
+          clusterManagement: { perClusterMonthly: 0, description: '' },
+        },
+      } as unknown as IBMCloudPricing;
+      const result = getRegionalPricing(pricing, 'us-south');
+      // Should keep the regional ove rates, not the base rates
+      expect(result.ove!.ocpLicense.perVCPUHourly).toBe(0.009);
+      expect(result.ove!.odf.advanced.bareMetalPerNodeMonthly).toBe(150);
+    });
+
     it('should fall back to base fields when regionalPricing is absent', () => {
       const staticPricing = getStaticPricing();
       delete (staticPricing as Record<string, unknown>).regionalPricing;

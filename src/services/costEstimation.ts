@@ -583,7 +583,7 @@ export function calculateROKSCost(
   const discountData = pricingToUse.discounts?.[discountType] || { name: 'On-Demand', discountPct: 0, description: 'Pay-as-you-go' };
   const regional = getRegionalPricing(pricingToUse, region);
   // When ROV variant, prefer OVE regional rates for licenses
-  const regionalLicense = roksVariant === 'rov' && regional.ove ? regional.ove : regional.roks;
+  const regionalLicense = roksVariant === 'rov' ? regional.ove : regional.roks;
 
   const solutionType = resolveRoksSolutionType(input);
 

@@ -35,6 +35,23 @@ export function getRegionalPricing(
     }
   }
 
+  // Backfill OVE licensing from base pricing when regional data lacks it
+  if (!regional.ove && pricing.ove) {
+    regional.ove = {
+      ocpLicense: { ...pricing.ove.ocpLicense },
+      odf: {
+        advanced: { ...pricing.ove.odf.advanced },
+        essentials: { ...pricing.ove.odf.essentials },
+      },
+      clusterManagement: { ...pricing.ove.clusterManagement },
+      acm: pricing.ove.acm ? { ...pricing.ove.acm } : undefined,
+      workerRates: pricing.ove.workerRates ? {
+        bareMetal: pricing.ove.workerRates.bareMetal ? { ...pricing.ove.workerRates.bareMetal } : undefined,
+        vsi: pricing.ove.workerRates.vsi ? { ...pricing.ove.workerRates.vsi } : undefined,
+      } : undefined,
+    };
+  }
+
   return regional;
 }
 
