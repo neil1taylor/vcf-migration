@@ -368,6 +368,13 @@
         "match": "contains",
         "patterns": ["cust-edge", "service-edge"],
         "description": "Network edge appliances (e.g., Cisco routers) — not VMware infrastructure"
+      },
+      {
+        "id": "zerto-vra",
+        "label": "Zerto Appliance",
+        "match": "startsWith",
+        "patterns": ["Z-VRA"],
+        "description": "Zerto Virtual Replication Appliance — infrastructure VM, not a migration candidate"
       }
     ]
   },

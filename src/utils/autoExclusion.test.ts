@@ -171,6 +171,31 @@ describe('getAutoExclusion', () => {
     expect(result.labels).toContain('VMware Infrastructure');
   });
 
+  it('excludes Zerto VRA appliances (Z-VRA prefix)', () => {
+    const vm = createVM({ vmName: 'Z-VRA-01' });
+    const result = getAutoExclusion(vm);
+
+    expect(result.isAutoExcluded).toBe(true);
+    expect(result.reasons).toContain('zerto-vra');
+    expect(result.labels).toContain('Zerto Appliance');
+  });
+
+  it('excludes Zerto VRAH appliances (Z-VRAH prefix)', () => {
+    const vm = createVM({ vmName: 'Z-VRAH-01' });
+    const result = getAutoExclusion(vm);
+
+    expect(result.isAutoExcluded).toBe(true);
+    expect(result.reasons).toContain('zerto-vra');
+    expect(result.labels).toContain('Zerto Appliance');
+  });
+
+  it('does not exclude VMs with ZVRA in the middle (e.g., PROD-ZVRA)', () => {
+    const vm = createVM({ vmName: 'PROD-ZVRA' });
+    const result = getAutoExclusion(vm);
+
+    expect(result.isAutoExcluded).toBe(false);
+  });
+
   it('can have multiple exclusion reasons', () => {
     const vm = createVM({
       template: true,
