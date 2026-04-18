@@ -1,6 +1,15 @@
 {
   "releases": [
     {
+      "version": "2.6.11",
+      "date": "2026-04-18",
+      "sections": {
+        "added": [
+          "Auto-exclude Zerto VRA/VRAH virtual replication appliances"
+        ]
+      }
+    },
+    {
       "version": "2.6.10",
       "date": "2026-04-18",
       "sections": {
