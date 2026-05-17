@@ -332,10 +332,125 @@ async function chatStream({
   }
 }
 
+/**
+ * Streaming chat that also detects an optional `<<<ACTIONS:` envelope appended
+ * by the model and emits it as a terminal SSE `event: actions` frame.
+ *
+ * Behaviour:
+ *   - Each watsonx delta is parsed; the text content is run through an
+ *     `actionEnvelope` stripper so the envelope (if any) does not reach the
+ *     client as visible text.
+ *   - Cleaned text is forwarded to `res` as a `data: {"chunk": "..."}` frame
+ *     (a shape the Lite client accepts alongside the raw watsonx delta).
+ *   - On stream close: any envelope text is parsed; if valid, a
+ *     `event: actions\ndata: {...}\n\n` frame is sent before `[DONE]`.
+ */
+async function chatStreamWithActions({
+  messages,
+  apiKey,
+  projectId,
+  modelId,
+  parameters = {},
+  res,
+}) {
+  const { createActionStripper, parseActionEnvelope } = require('./actionEnvelope');
+
+  const token = await getAccessToken(apiKey);
+
+  const defaultParams = {
+    max_tokens: 2048,
+    temperature: 0.3,
+    top_p: 0.95,
+    frequency_penalty: 0.1,
+  };
+
+  const requestBody = {
+    model_id: modelId,
+    messages,
+    project_id: projectId,
+    ...{ ...defaultParams, ...parameters },
+    stream: true,
+  };
+
+  const response = await fetch(
+    `${BASE_URL}/ml/v1/text/chat_stream?version=${API_VERSION}`,
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(requestBody),
+    }
+  );
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`watsonx.ai chat stream API error ${response.status}: ${errorBody}`);
+  }
+
+  const stripper = createActionStripper();
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let sseBuffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      sseBuffer += decoder.decode(value, { stream: true });
+
+      // SSE frames split on \n\n. Hold any partial trailing frame back for the next read.
+      const frames = sseBuffer.split('\n\n');
+      sseBuffer = frames.pop() ?? '';
+
+      for (const frame of frames) {
+        const dataLines = frame
+          .split('\n')
+          .filter((l) => l.startsWith('data:'))
+          .map((l) => l.slice(5).trim());
+        for (const data of dataLines) {
+          if (!data || data === '[DONE]') continue;
+          let parsed;
+          try {
+            parsed = JSON.parse(data);
+          } catch {
+            continue;
+          }
+          const text =
+            parsed?.choices?.[0]?.delta?.content ??
+            parsed?.choices?.[0]?.message?.content ??
+            '';
+          if (!text) continue;
+          const forward = stripper.push(text);
+          if (forward) {
+            res.write(`data: ${JSON.stringify({ chunk: forward })}\n\n`);
+          }
+        }
+      }
+    }
+  } finally {
+    const { forward, envelope } = stripper.flush();
+    if (forward) {
+      res.write(`data: ${JSON.stringify({ chunk: forward })}\n\n`);
+    }
+    if (envelope) {
+      const payload = parseActionEnvelope(envelope);
+      if (payload) {
+        res.write(`event: actions\ndata: ${JSON.stringify(payload)}\n\n`);
+      }
+    }
+    res.write('data: [DONE]\n\n');
+    res.end();
+  }
+}
+
 module.exports = {
   generateText,
   chat,
   generateTextStream,
   chatStream,
+  chatStreamWithActions,
   getAccessToken,
 };

@@ -306,6 +306,30 @@ When answering:
 - Be concise but thorough
 - If the user asks about something outside your expertise, say so
 - Use markdown formatting for clarity (lists, bold, code blocks)
+
+Action envelope (optional):
+- If — and only if — your answer recommends a concrete change to migration scope,
+  you MAY append a structured action envelope after your prose answer so the user
+  can apply it with one click. Otherwise omit the envelope entirely.
+- The envelope MUST be the last thing in your response and MUST begin with the
+  literal sentinel line on its own line:
+  <<<ACTIONS:
+- Immediately after the sentinel, emit ONE JSON object on the following lines.
+  Do not wrap it in markdown fences. Do not write anything after the JSON.
+- Schema:
+  { "suggestions": [
+    { "reason": "<one short sentence shown on the card>", "action": <Action> }
+  ] }
+- Action is exactly one of:
+  { "type": "excludeCluster",              "clusterName": "<exact cluster name>" }
+  { "type": "excludeByResourcePoolPattern","pattern":     "<regex>" }
+  { "type": "excludeByVMNamePattern",      "pattern":     "<regex>" }
+  { "type": "forceIncludeVM",              "vmName":      "<exact VM name>" }
+  { "type": "excludeVM",                   "vmName":      "<exact VM name>" }
+- Only reference cluster, VM, resource-pool, or annotation names that appear
+  in the environment context above. Do not invent identifiers.
+- Suggest at most 5 actions per response. Omit the envelope when the answer is
+  informational, conversational, or when no specific scope change is implied.
 ${envInfo}`;
 }
 

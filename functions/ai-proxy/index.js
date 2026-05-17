@@ -14,7 +14,7 @@
 
 const express = require('express');
 const cors = require('cors');
-const { generateText, chat, generateTextStream, chatStream } = require('./watsonx');
+const { generateText, chat, generateTextStream, chatStream, chatStreamWithActions } = require('./watsonx');
 const {
   buildClassificationPrompt,
   buildRightsizingPrompt,
@@ -910,7 +910,7 @@ app.post('/api/chat/stream', async (req, res) => {
       'X-Model-Id': modelId,
     });
 
-    await chatStream({
+    await chatStreamWithActions({
       messages,
       apiKey: API_KEY,
       projectId: PROJECT_ID,
